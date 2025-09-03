@@ -7,6 +7,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { accessTokenOptions, refreshTokenOptions } from "../utils/constant.js";
 import sendMail from "../utils/mail.util.js";
+import ENV from "../configs/env.config.js";
 
 //This will generate Authentication Tokens
 export const generateAuthTokens = async (userId) => {
@@ -118,4 +119,121 @@ export const logout = asyncHandler(async (req, res) => {
         .clearCookie("accessToken", accessTokenOptions)
         .clearCookie("refreshToken", refreshTokenOptions)
         .json(new ApiResponse(200, null, "User logged out successfully!"));
+});
+
+//For Fetch Current User Profile
+export const profile = asyncHandler(async (req, res) => {
+    if(!req.user) {
+        throw new ApiError("Not authorized", 401);
+    }
+
+    return res  
+        .status(200)
+        .json(new ApiResponse(200, req.user, "User profile fetched successfully!"));
+});
+
+//For Forgot Password
+export const forgotPassword = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if(!user) {
+        throw new ApiError("If an account with that email exists, a reset link has been sent.", 400);
+    }
+
+    let redirectUrl = "https://10sight.tech";
+
+    if(user.role === "ADMIN") {
+        redirectUrl = ENV.ADMIN_URL;
+    } else {
+        redirectUrl = ENV.FRONTEND_URL;
+    }
+
+    const resetToken = await user.generatePasswordResetToken();
+    await user.save({ validateBeforeSave: false });
+
+    const link = `${redirectUrl}/reset-password?token=${resetToken}`;
+    await sendMail(user.email, "Reset Password", link, "Reset Password");
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(200, null, "If an account with that email exists, a reset link has been sent.")
+        );
+});
+
+//For Refresh Token
+export const refreshAccessAndRefreshToken = asyncHandler(async (req, res) => {
+    const incomingRefreshToken =
+        req.cookies.refreshToken || req.body.refreshToken;
+
+    if(!incomingRefreshToken) {
+        throw new ApiError("You are not logged in!", 401);
+    }
+
+    const decodedToken = jwt.verify(
+        incomingRefreshToken,
+        ENV.JWT_REFRESH_SECRET
+    );
+
+    const user = await User.findById(decodedToken?.id).select(
+        "-emailVerificationToken -emailVerificationExpiry"
+    );
+
+    if(!user) {
+        throw new ApiError("Invalid Token!", 401);
+    }
+
+    if(user.refreshToken !== incomingRefreshToken) {
+        throw new ApiError("Invalid Token!", 401);
+    }
+
+    const { accessToken, refreshToken: newRefreshToken } =
+        await generateAuthTokens(user?._id);
+
+    return res  
+        .status(200)
+        .cookie("accessToken", accessToken, accessTokenOptions)
+        .cookie("refreshToken", newRefreshToken, refreshTokenOptions)
+        .json(
+            new ApiResponse(
+                200,
+                { accessToken, refreshToken: newRefreshToken },
+                "Token refreshed successfully!"
+            )
+        );
+});
+
+//For Reset Password
+export const resetPassword = asyncHandler(async (req, res) => {
+    const { token } = req.params;
+    let { password: newPassword } = req.body;
+
+    if(!newPassword) {
+        throw new ApiError("Please provide a new password", 400);
+    }
+
+    const forgetPasswordToken = crypto
+        .createHash("sha256")
+        .update(token)
+        .digest("hex");
+
+    const existingUser = await User.findOne({
+        resetPasswordToken: forgetPasswordToken,
+        resetPasswordExpiry: { $gt: Date.now() },
+    }).select("+password");
+
+    if(!existingUser) {
+        throw new ApiError("invalid or expired password reset token", 400);
+    }
+
+    existingUser.password = newPassword;
+    existingUser.resetPasswordToken = undefined;
+    existingUser.resetPasswordExpiry = undefined;
+    await existingUser.save();
+
+    res.status(200)
+        .json(new ApiResponse(
+            200, null, "Password reset successfully! You can login now."
+        ));
 });
