@@ -51,6 +51,33 @@ const userSchema = new Schema(
             enum: AvailableUserRoles,
             default: AvailableUserRoles.STUDENT,
         },
+        status: {
+            type: String,
+            enum: AvailableUserStatus,
+            default: AvailableUserStatus.ACTIVE,
+        },
+        isVerified: {
+            type: Boolean,
+            default: false,
+        },
+        enrolledCourses: [{ type: Schema.Types.ObjectId, ref: "Course" }],
+        createdCourses: [{ type: Schema.Types.ObjectId, ref: "Course" }],
+        lastLogin: {
+            type: Date,
+            default: null,
+        },
+        loginHistory: [{
+            ip: String,
+            device: String,
+            loggedInAt: {
+                type: Date,
+                default: Date.now
+            },
+        }],
+        isDeleted: {
+            type: Boolean,
+            default: false,
+        }
     },
     {
         timestamps: true,

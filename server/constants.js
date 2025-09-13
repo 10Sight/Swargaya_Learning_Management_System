@@ -21,3 +21,27 @@ export const UserLoginType = {
 };
 
 export const AvailableSocialLogins = Object.values(UserLoginType);
+
+export const CourseType = {
+    BEGGINER: "BEGGINER",
+    INTERMEDIATE: "INTERMEDIATE",
+    ADVANCED: "ADVANCED"
+};
+
+export const AvailableCourseDifficultyLevels = Object.values(CourseType);
+
+export const CourseStatus = {
+    DRAFT: "DRAFT",
+    PUBLISHED: "PUBLISHED",
+    ARCHIVED: "ARCHIVED"
+};
+
+export const AvailableCourseStatus = Object.values(CourseStatus);
+
+export const StudentStatus = {
+    PASSED: "PASSED",
+    FAILED: "FAILED",
+    IN_PROGRESS: "IN_PROGRESS"
+};
+
+export const AvailableStudentStatus = Object.values(StudentStatus);
