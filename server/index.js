@@ -30,7 +30,7 @@ app.use(cookieParser()); // Add cookie parser middleware
 // app.use(morganMiddleware);
 
 app.use(cors({
-    origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176", "http://localhost:5177"],
+    origin: ["https://swargaya-learning-management-system.onrender.com", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176", "http://localhost:5177"],
     credentials: true,
 }));
 

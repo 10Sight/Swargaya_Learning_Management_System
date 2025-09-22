@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = "http://localhost:3000"
+const BASE_URL = "https://swargaya-learning-management-system-3vcz.onrender.com"
 
 const axiosInstance = axios.create();
 
