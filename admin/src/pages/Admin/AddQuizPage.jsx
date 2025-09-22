@@ -1,0 +1,500 @@
+import React, { useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useCreateQuizMutation } from "@/Redux/AllApi/QuizApi";
+import { useGetCourseByIdQuery } from "@/Redux/AllApi/CourseApi";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  IconArrowLeft,
+  IconPlus,
+  IconTrash,
+  IconCheck,
+  IconX,
+  IconLoader,
+} from "@tabler/icons-react";
+import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const AddQuizPage = () => {
+  const { courseId } = useParams();
+  const navigate = useNavigate();
+  const [createQuiz, { isLoading }] = useCreateQuizMutation();
+  
+  // Add this to refetch course data after quiz creation
+  const { refetch: refetchCourse } = useGetCourseByIdQuery(courseId);
+
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    passingScore: 70,
+    timeLimit: 30,
+    attemptsAllowed: 1,
+    questions: [
+      {
+        questionText: "",
+        marks: 1,
+        options: [
+          { text: "", isCorrect: false },
+          { text: "", isCorrect: false },
+        ],
+      },
+    ],
+  });
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleQuestionChange = (index, field, value) => {
+    const updatedQuestions = [...formData.questions];
+    updatedQuestions[index][field] = value;
+    setFormData((prev) => ({
+      ...prev,
+      questions: updatedQuestions,
+    }));
+  };
+
+  const handleOptionChange = (questionIndex, optionIndex, field, value) => {
+    const updatedQuestions = [...formData.questions];
+    
+    if (field === "isCorrect") {
+      // If setting this option as correct, make all others incorrect
+      updatedQuestions[questionIndex].options.forEach((opt, idx) => {
+        opt.isCorrect = idx === optionIndex;
+      });
+    } else {
+      updatedQuestions[questionIndex].options[optionIndex][field] = value;
+    }
+    
+    setFormData((prev) => ({
+      ...prev,
+      questions: updatedQuestions,
+    }));
+  };
+
+  const addQuestion = () => {
+    setFormData((prev) => ({
+      ...prev,
+      questions: [
+        ...prev.questions,
+        {
+          questionText: "",
+          marks: 1,
+          options: [
+            { text: "", isCorrect: false },
+            { text: "", isCorrect: false },
+          ],
+        },
+      ],
+    }));
+  };
+
+  const removeQuestion = (index) => {
+    if (formData.questions.length <= 1) {
+      toast.error("Quiz must have at least one question");
+      return;
+    }
+    
+    setFormData((prev) => ({
+      ...prev,
+      questions: prev.questions.filter((_, i) => i !== index),
+    }));
+  };
+
+  const addOption = (questionIndex) => {
+    const updatedQuestions = [...formData.questions];
+    updatedQuestions[questionIndex].options.push({
+      text: "",
+      isCorrect: false,
+    });
+    
+    setFormData((prev) => ({
+      ...prev,
+      questions: updatedQuestions,
+    }));
+  };
+
+  const removeOption = (questionIndex, optionIndex) => {
+    const updatedQuestions = [...formData.questions];
+    
+    if (updatedQuestions[questionIndex].options.length <= 2) {
+      toast.error("Question must have at least 2 options");
+      return;
+    }
+    
+    updatedQuestions[questionIndex].options = updatedQuestions[questionIndex].options.filter(
+      (_, idx) => idx !== optionIndex
+    );
+    
+    setFormData((prev) => ({
+      ...prev,
+      questions: updatedQuestions,
+    }));
+  };
+
+  const validateForm = () => {
+    if (!formData.title.trim()) {
+      toast.error("Quiz title is required");
+      return false;
+    }
+
+    if (formData.questions.length === 0) {
+      toast.error("Quiz must have at least one question");
+      return false;
+    }
+
+    for (const [qIndex, question] of formData.questions.entries()) {
+      if (!question.questionText.trim()) {
+        toast.error(`Question ${qIndex + 1} text is required`);
+        return false;
+      }
+
+      if (question.options.length < 2) {
+        toast.error(`Question ${qIndex + 1} must have at least 2 options`);
+        return false;
+      }
+
+      const hasCorrectAnswer = question.options.some(opt => opt.isCorrect);
+      if (!hasCorrectAnswer) {
+        toast.error(`Question ${qIndex + 1} must have one correct answer`);
+        return false;
+      }
+
+      for (const [oIndex, option] of question.options.entries()) {
+        if (!option.text.trim()) {
+          toast.error(`Option ${oIndex + 1} in Question ${qIndex + 1} is required`);
+          return false;
+        }
+      }
+    }
+
+    if (formData.passingScore < 0 || formData.passingScore > 100) {
+      toast.error("Passing score must be between 0 and 100");
+      return false;
+    }
+
+    if (formData.timeLimit && formData.timeLimit < 1) {
+      toast.error("Time limit must be at least 1 minute");
+      return false;
+    }
+
+    if (formData.attemptsAllowed < 1) {
+      toast.error("At least 1 attempt must be allowed");
+      return false;
+    }
+
+    return true;
+  };
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  if (!validateForm()) {
+    return;
+  }
+
+  try {
+    await createQuiz({
+      courseId,
+      title: formData.title,
+      description: formData.description,
+      questions: formData.questions,
+      passingScore: parseInt(formData.passingScore),
+      timeLimit: formData.timeLimit ? parseInt(formData.timeLimit) : undefined,
+      attemptsAllowed: parseInt(formData.attemptsAllowed),
+    }).unwrap();
+
+    toast.success("Quiz created successfully!");
+    
+    // Instead of navigating immediately, wait a moment for the backend to process
+    setTimeout(() => {
+      navigate(`/admin/courses/${courseId}`);
+    }, 500);
+    
+  } catch (error) {
+    console.error("Create quiz error:", error);
+    toast.error(error?.data?.message || "Failed to create quiz");
+  }
+};
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate(`/admin/courses/${courseId}`)}
+        >
+          <IconArrowLeft className="h-4 w-4 mr-2" />
+          Back to Course
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Create New Quiz</h1>
+          <p className="text-muted-foreground">
+            Add a quiz to assess student understanding
+          </p>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Basic Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Basic Information</CardTitle>
+            <CardDescription>
+              Enter the basic details for your quiz
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-2">
+              <Label htmlFor="title">Quiz Title *</Label>
+              <Input
+                id="title"
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                placeholder="Enter quiz title"
+                required
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                placeholder="Enter quiz description (optional)"
+                rows={3}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="passingScore">Passing Score (%) *</Label>
+                <Input
+                  id="passingScore"
+                  name="passingScore"
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={formData.passingScore}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="timeLimit">Time Limit (minutes)</Label>
+                <Input
+                  id="timeLimit"
+                  name="timeLimit"
+                  type="number"
+                  min="1"
+                  value={formData.timeLimit}
+                  onChange={handleInputChange}
+                  placeholder="Optional"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="attemptsAllowed">Attempts Allowed *</Label>
+                <Select
+                  value={formData.attemptsAllowed.toString()}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      attemptsAllowed: parseInt(value),
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select attempts" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 attempt</SelectItem>
+                    <SelectItem value="2">2 attempts</SelectItem>
+                    <SelectItem value="3">3 attempts</SelectItem>
+                    <SelectItem value="0">Unlimited</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Questions */}
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>Questions</CardTitle>
+                <CardDescription>
+                  Add questions for your quiz. Each question must have at least 2 options and one correct answer.
+                </CardDescription>
+              </div>
+              <Button
+                type="button"
+                onClick={addQuestion}
+                variant="outline"
+                className="gap-2"
+              >
+                <IconPlus className="h-4 w-4" />
+                Add Question
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {formData.questions.map((question, qIndex) => (
+              <div key={qIndex} className="border rounded-lg p-4 space-y-4">
+                <div className="flex justify-between items-start">
+                  <h3 className="font-semibold">Question {qIndex + 1}</h3>
+                  <Button
+                    type="button"
+                    onClick={() => removeQuestion(qIndex)}
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                  >
+                    <IconTrash className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor={`question-${qIndex}`}>Question Text *</Label>
+                  <Input
+                    id={`question-${qIndex}`}
+                    value={question.questionText}
+                    onChange={(e) =>
+                      handleQuestionChange(qIndex, "questionText", e.target.value)
+                    }
+                    placeholder="Enter your question"
+                    required
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor={`marks-${qIndex}`}>Marks</Label>
+                  <Input
+                    id={`marks-${qIndex}`}
+                    type="number"
+                    min="1"
+                    value={question.marks}
+                    onChange={(e) =>
+                      handleQuestionChange(qIndex, "marks", parseInt(e.target.value) || 1)
+                    }
+                    placeholder="1"
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <Label>Options *</Label>
+                    <Button
+                      type="button"
+                      onClick={() => addOption(qIndex)}
+                      variant="outline"
+                      size="sm"
+                      className="gap-1"
+                    >
+                      <IconPlus className="h-3 w-3" />
+                      Add Option
+                    </Button>
+                  </div>
+
+                  {question.options.map((option, oIndex) => (
+                    <div key={oIndex} className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleOptionChange(qIndex, oIndex, "isCorrect", true)
+                        }
+                        className={`p-2 rounded-full border ${
+                          option.isCorrect
+                            ? "bg-green-100 border-green-300 text-green-700"
+                            : "bg-gray-100 border-gray-300 text-gray-500"
+                        }`}
+                        title={option.isCorrect ? "Correct answer" : "Mark as correct"}
+                      >
+                        {option.isCorrect ? (
+                          <IconCheck className="h-4 w-4" />
+                        ) : (
+                          <IconX className="h-4 w-4" />
+                        )}
+                      </button>
+
+                      <Input
+                        value={option.text}
+                        onChange={(e) =>
+                          handleOptionChange(qIndex, oIndex, "text", e.target.value)
+                        }
+                        placeholder={`Option ${oIndex + 1}`}
+                        className="flex-1"
+                        required
+                      />
+
+                      <Button
+                        type="button"
+                        onClick={() => removeOption(qIndex, oIndex)}
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                        disabled={question.options.length <= 2}
+                      >
+                        <IconTrash className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                {question.options.filter(opt => opt.isCorrect).length === 0 && (
+                  <p className="text-sm text-red-600">
+                    This question needs a correct answer
+                  </p>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* Form Actions */}
+        <div className="flex justify-end gap-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate(`/admin/courses/${courseId}`)}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isLoading} className="gap-2">
+            {isLoading && <IconLoader className="h-4 w-4 animate-spin" />}
+            {isLoading ? "Creating..." : "Create Quiz"}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default AddQuizPage;

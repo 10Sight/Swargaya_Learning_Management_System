@@ -1,5 +1,5 @@
 import { Schema, model } from "mongoose";
-import { AvailableStudentStatus } from "../constants";
+import { AvailableStudentStatus } from "../constants.js";
 
 const answerSchema = new Schema(
     {

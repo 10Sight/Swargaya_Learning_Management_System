@@ -77,7 +77,11 @@ const userSchema = new Schema(
         isDeleted: {
             type: Boolean,
             default: false,
-        }
+        },
+        batch: {
+            type: Schema.Types.ObjectId,
+            ref: "Batch",
+        },
     },
     {
         timestamps: true,
@@ -88,6 +92,20 @@ userSchema.pre("save", async function (next) {
     try {
         if (!this.isModified("password")) return next();
         this.password = await bcrypt.hash(this.password, 10);
+
+        // Only validate for instructors
+        if (this.role === 'INSTRUCTOR' && this.batch) {
+            // Check if another instructor is already assigned to this batch
+            const existingInstructor = await this.constructor.findOne({
+                _id: { $ne: this._id },
+                role: 'INSTRUCTOR',
+                batch: this.batch
+            });
+            
+            if (existingInstructor) {
+                return next(new ApiError('Another instructor is already assigned to this batch', 400));
+            }
+        }
         next();
     } catch (error) {
         return next(new ApiError(error.message, 500));

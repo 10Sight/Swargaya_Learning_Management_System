@@ -1,4 +1,5 @@
 import morgan from "morgan";
+import logger from "./winston.logger.js";
 import ENV from "../configs/env.config.js";
 
 const stream = {

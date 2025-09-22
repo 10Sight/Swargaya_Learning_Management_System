@@ -41,6 +41,12 @@ const progressSchema = new Schema(
       },
     ],
 
+    currentLevel: {
+      type: String,
+      enum: ["L1", "L2", "L3"],
+      default: "L1"
+    },
+
     progressPercent: {
       type: Number,
       default: 0,

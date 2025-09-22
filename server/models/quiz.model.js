@@ -1,5 +1,7 @@
 import { Schema, model } from "mongoose";
-import { trim } from "validator";
+import validator from "validator";
+
+const { trim } = validator;
 
 const optionSchema = new Schema(
     {

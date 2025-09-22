@@ -14,6 +14,11 @@ const enrollmentSchema = new Schema(
       required: true,
       index: true,
     },
+    enrolledBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     paymentStatus: {
       type: String,
       enum: ["PENDING", "PAID", "FAILED", "REFUNDED"],

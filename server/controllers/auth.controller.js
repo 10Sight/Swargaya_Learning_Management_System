@@ -2,22 +2,15 @@ import crypto from "crypto";
 import jwt from "jsonwebtoken";
 
 import User from "../models/auth.model.js";
-import Audit from "../models/audit.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { accessTokenOptions, refreshTokenOptions } from "../utils/constant.js";
 import sendMail from "../utils/mail.util.js";
 import ENV from "../configs/env.config.js";
-
-//For Audit
-const logAudit = async (userId, action, details = {}) => {
-  try {
-    await Audit.create({ user: userId, action, details });
-  } catch (err) {
-    console.error("Audit log error:", err.message);
-  }
-};
+import logAudit from "../utils/auditLogger.js";
+import { AvailableUserRoles } from "../constants.js";
+import validator from "validator";
 
 // Generate tokens
 export const generateAuthTokens = async (userId) => {
@@ -41,6 +34,18 @@ export const register = asyncHandler(async (req, res) => {
     throw new ApiError("All fields are required", 400);
   }
 
+  if (!validator.isEmail(email)) {
+    throw new ApiError("Invalid email address", 400);
+  }
+
+  if (password.length < 6) {
+    throw new ApiError("Password must be at least 6 characters long", 400);
+  }
+
+  if (userName.length < 3 || userName.length > 20) {
+    throw new ApiError("Username must be 3-20 characters long", 400);
+  }
+
   email = email.toLowerCase();
   userName = userName.toLowerCase();
 
@@ -50,9 +55,9 @@ export const register = asyncHandler(async (req, res) => {
   const usernameExists = await User.findOne({ userName });
   if (usernameExists) throw new ApiError("Username already in use", 400);
 
-  // Role enforcement
-  if (["ADMIN", "INSTRUCTOR"].includes(role) && req.user?.role !== "SUPERADMIN") {
-    role = "STUDENT";
+  // Validate role
+  if (!AvailableUserRoles.includes(role)) {
+    throw new ApiError("Invalid role provided", 400);
   }
 
   const user = await User.create({ fullName, userName, email, phoneNumber, password, role });
@@ -95,13 +100,30 @@ export const login = asyncHandler(async (req, res) => {
     "-password -refreshToken -resetPasswordToken -resetPasswordExpiry"
   );
 
+  console.log(fetchedUser.role);
+
+  let redirectUrl = null;
+  if(fetchedUser.role === "INSTRUCTOR") {
+      console.log(
+        'Checking'
+      );
+      redirectUrl ="https://www.youtube.com";
+     console.log(1);
+  }
+  console.log(
+    'bgb '
+  )
+  if(fetchedUser.role === "STUDENT") {
+     redirectUrl = "http://localhost:5175"
+  }
+
   await logAudit(user._id, "LOGIN");
 
   return res
     .status(200)
     .cookie("refreshToken", refreshToken, refreshTokenOptions)
     .cookie("accessToken", accessToken, accessTokenOptions)
-    .json(new ApiResponse(200, { user: fetchedUser }, "Login successful"));
+    .json(new ApiResponse(200, { user: fetchedUser, redirectUrl }, "Login successful"));
 });
 
 // Logout

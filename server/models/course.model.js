@@ -47,7 +47,7 @@ const courseSchema = new Schema(
         difficulty: {
             type: String,
             enum: AvailableCourseDifficultyLevels,
-            default: "BEGINNER",
+            default: "BEGGINER",
         },
         status: {
             type: String,
@@ -56,17 +56,8 @@ const courseSchema = new Schema(
         },
         modules: [
             {
-                title: { type: String, required: true },
-                description: String,
-                lessons: [
-                    {
-                        title: { type: String, required: true },
-                        videoUrl: String,
-                        content: String,
-                        resources: [String],
-                        duration: Number,
-                    },
-                ],
+                type: Schema.Types.ObjectId,
+                ref: "Module"
             },
         ],
         reviews: [
@@ -85,10 +76,32 @@ const courseSchema = new Schema(
             type: Number,
             default: 0,
         },
+        createdBy: {
+            type: Schema.Types.ObjectId,
+            ref: "User",
+        },
+        quizzes: [
+            {
+                type: Schema.Types.ObjectId,
+                ref: "Quiz",
+            },
+        ],
+        assignments: [
+            {
+                type: Schema.Types.ObjectId,
+                ref: "Assignment",
+            },
+        ],
     },
     {
         timestamps: true,
     }
 );
+
+courseSchema.virtual('studentCount').get(function() {
+    return this.students ? this.students.length : 0;
+});
+
+courseSchema.set('toJSON', { virtuals: true });
 
 export default model("Course", courseSchema);

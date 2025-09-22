@@ -10,12 +10,14 @@ const assignmentSchema = new Schema(
         },
         lesson: {
             type: Schema.Types.ObjectId,
-            required: true,
+            required: false, // Make optional
+            default: null,
         },
         instructor: {
             type: Schema.Types.ObjectId,
             ref: "User",
-            required: true,
+            required: false, // Make optional
+            default: null,
         },
         title: {
             type: String,
@@ -47,6 +49,11 @@ const assignmentSchema = new Schema(
             type: String,
             enum: ["ACTIVE", "CLOSED", "ARCHIVED"],
             default: "ACTIVE",
+        },
+        createdBy: {
+            type: Schema.Types.ObjectId,
+            ref: "User",
+            required: true,
         },
     },
     {
