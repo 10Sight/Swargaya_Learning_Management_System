@@ -69,12 +69,12 @@ app.use("/api/lessons", lessonRoutes);
 
 const startServer = async () => {
     try {
+        console.log("Mongo Uri:", ENV.MONGO_URI);
         await connectDB();
         app.listen(PORT, () => {
             logger.info(`Server running at http://localhost:${PORT}`);
         });
     } catch (error) {
-        logger.error("Failed to start server:", error.message);
         process.exit(1); 
     }
 };

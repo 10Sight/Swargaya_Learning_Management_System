@@ -100,19 +100,10 @@ export const login = asyncHandler(async (req, res) => {
     "-password -refreshToken -resetPasswordToken -resetPasswordExpiry"
   );
 
-  console.log(fetchedUser.role);
-
   let redirectUrl = null;
   if(fetchedUser.role === "INSTRUCTOR") {
-      console.log(
-        'Checking'
-      );
       redirectUrl ="https://www.youtube.com";
-     console.log(1);
   }
-  console.log(
-    'bgb '
-  )
   if(fetchedUser.role === "STUDENT") {
      redirectUrl = "http://localhost:5175"
   }
