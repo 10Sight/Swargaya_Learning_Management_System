@@ -67,10 +67,16 @@ app.use("/api/resources", resourceRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/lessons", lessonRoutes);
 
-app.listen(3000, async () => {
-    await connectDB();
-    logger.info(`http://localhost:${PORT}`);
-});
-
-// Start cleanup process
+const startServer = async () => {
+    try {
+        await connectDB();
+        app.listen(PORT, () => {
+            logger.info(`Server running at http://localhost:${PORT}`);
+        });
+    } catch (error) {
+        logger.error("Failed to start server:", error.message);
+        process.exit(1); 
+    }
+};
+startServer();
 cleanupOldFiles();
