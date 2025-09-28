@@ -10,7 +10,7 @@ export const createLesson = asyncHandler(async (req, res) => {
 
   const module = await Module.findById(moduleId);
   if (!module) {
-    throw new ApiError(404, "Module not found");
+    throw new ApiError("Module not found", 404);
   }
 
   const lesson = await Lesson.create({
@@ -41,7 +41,7 @@ export const getLessonById = asyncHandler(async (req, res) => {
   const { lessonId } = req.params;
   const lesson = await Lesson.findById(lessonId);
   if (!lesson) {
-    throw new ApiError(404, "Lesson not found");
+    throw new ApiError("Lesson not found", 404);
   }
   res
     .status(200)
@@ -58,7 +58,7 @@ export const updateLesson = asyncHandler(async (req, res) => {
   });
 
   if (!lesson) {
-    throw new ApiError(404, "Lesson not found");
+    throw new ApiError("Lesson not found", 404);
   }
 
   res
@@ -71,7 +71,7 @@ export const deleteLesson = asyncHandler(async (req, res) => {
 
   const lesson = await Lesson.findByIdAndDelete(lessonId);
   if (!lesson) {
-    throw new ApiError(404, "Lesson not found");
+    throw new ApiError("Lesson not found", 404);
   }
 
   await Module.findByIdAndUpdate(moduleId, { $pull: { lessons: lessonId } });

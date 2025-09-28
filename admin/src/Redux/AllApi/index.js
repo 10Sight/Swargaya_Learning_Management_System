@@ -16,6 +16,7 @@ export {
     useGetUserByIdQuery,
     useUpdateProfileMutation,
     useUpdateAvatarMutation,
+    useUpdateUserMutation,
     useDeleteUserMutation,
 } from './UserApi';
 
@@ -24,6 +25,7 @@ export {
     instructorApi,
     useGetAllInstructorsQuery,
     useGetInstructorByIdQuery,
+    useGetAllStudentsQuery,
     useCreateInstructorMutation,
     useUpdateInstructorMutation,
     useDeleteInstructorMutation,
@@ -94,6 +96,7 @@ export {
     useUpgradeLevelMutation,
     useGetMyProgressQuery,
     useGetCourseProgressQuery,
+    useGetStudentProgressQuery,
 } from './ProgressApi';
 
 // Submission API exports
@@ -104,6 +107,7 @@ export {
     useGetSubmissionByAssignmentQuery,
     useGetMySubmissionsQuery,
     useGradeSubmissionMutation,
+    useGetStudentSubmissionsQuery,
 } from './SubmissionApi';
 
 // Certificate API exports
@@ -132,4 +136,45 @@ export {
     useGetAttemptsQuizQuery,
     useGetAttemptByIdQuery,
     useDeleteAttemptMutation,
+    useGetStudentAttemptsQuery,
+    useStartQuizQuery,
+    useSubmitQuizMutation,
+    useGetQuizAttemptStatusQuery,
 } from './AttemptedQuizApi';
+
+// Analytics API exports
+export {
+    analyticsApi,
+    useGetDashboardStatsQuery,
+    useGetUserStatsQuery,
+    useGetCourseStatsQuery,
+    useGetEngagementStatsQuery,
+} from './AnalyticsApi';
+
+// Resource API exports
+export {
+    resourceApi,
+    useCreateResourceMutation,
+    useGetResourcesByModuleQuery,
+    useDeleteResourceMutation,
+    useUpdateResourceMutation,
+} from './resourceApi';
+
+// Module API exports
+export {
+    moduleApi,
+    useCreateModuleMutation,
+    useGetModulesByCourseQuery,
+    useUpdateModuleMutation,
+    useDeleteModuleMutation,
+} from './moduleApi';
+
+// Lesson API exports
+export {
+    lessonApi,
+    useCreateLessonMutation,
+    useGetLessonsByModuleQuery,
+    useGetLessonByIdQuery,
+    useUpdateLessonMutation,
+    useDeleteLessonMutation,
+} from './LessonApi';

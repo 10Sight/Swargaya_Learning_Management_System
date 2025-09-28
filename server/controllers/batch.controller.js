@@ -305,7 +305,7 @@ export const getBatchAssessments = asyncHandler(async (req, res) => {
     // Get user's batch
     const user = await User.findById(userId).populate('batch');
     if(!user || !user.batch) {
-        throw new ApiError(404, "No batch assigned to user");
+        throw new ApiError("No batch assigned to user", 404);
     }
 
     const batch = await Batch.findById(user.batch)
@@ -314,7 +314,7 @@ export const getBatchAssessments = asyncHandler(async (req, res) => {
         .populate('course');
 
     if(!batch || !batch.course) {
-        throw new ApiError(404, "Batch or course not found");
+        throw new ApiError("Batch or course not found", 404);
     }
 
     // Check if student has completed all modules
@@ -366,7 +366,7 @@ export const getBatchProgress = asyncHandler(async (req, res) => {
     const { id: batchId } = req.params;
 
     if(!mongoose.Types.ObjectId.isValid(batchId)) {
-        throw new ApiError(400, "Invalid batch ID");
+        throw new ApiError("Invalid batch ID", 400);
     }
 
     const batch = await Batch.findById(batchId)
@@ -374,7 +374,7 @@ export const getBatchProgress = asyncHandler(async (req, res) => {
         .populate('students', '_id fullName');
 
     if(!batch) {
-        throw new ApiError(404, "Batch not found");
+        throw new ApiError("Batch not found", 404);
     }
 
     if(!batch.course) {
@@ -468,12 +468,12 @@ export const getBatchSubmissions = asyncHandler(async (req, res) => {
     const { id: batchId } = req.params;
 
     if(!mongoose.Types.ObjectId.isValid(batchId)) {
-        throw new ApiError(400, "Invalid batch ID");
+        throw new ApiError("Invalid batch ID", 400);
     }
 
     const batch = await Batch.findById(batchId).populate('students', '_id');
     if(!batch) {
-        throw new ApiError(404, "Batch not found");
+        throw new ApiError("Batch not found", 404);
     }
 
     const submissions = await Submission.find({
@@ -519,12 +519,12 @@ export const getBatchAttempts = asyncHandler(async (req, res) => {
     const { id: batchId } = req.params;
 
     if(!mongoose.Types.ObjectId.isValid(batchId)) {
-        throw new ApiError(400, "Invalid batch ID");
+        throw new ApiError("Invalid batch ID", 400);
     }
 
     const batch = await Batch.findById(batchId).populate('students', '_id');
     if(!batch) {
-        throw new ApiError(404, "Batch not found");
+        throw new ApiError("Batch not found", 404);
     }
 
     const attempts = await AttemptedQuiz.find({
@@ -586,7 +586,7 @@ export const getBatchCourseContent = asyncHandler(async (req, res) => {
     // Get user's batch
     const user = await User.findById(userId).populate('batch');
     if(!user || !user.batch) {
-        throw new ApiError(404, "No batch assigned to user");
+        throw new ApiError("No batch assigned to user", 404);
     }
 
     // Get batch with course details
@@ -607,7 +607,7 @@ export const getBatchCourseContent = asyncHandler(async (req, res) => {
         .select('name course');
 
     if(!batch || !batch.course) {
-        throw new ApiError(404, "Batch or course not found");
+        throw new ApiError("Batch or course not found", 404);
     }
 
     // Get user's progress for this course

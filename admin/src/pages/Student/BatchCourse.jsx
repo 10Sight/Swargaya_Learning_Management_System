@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axiosInstance from "@/Helper/axiosInstance";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -96,6 +97,7 @@ const BatchCompletionSection = ({ allModulesCompleted }) => {
 };
 
 const BatchCourse = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [batch, setBatch] = useState(null);
   const [modules, setModules] = useState([]);
@@ -471,6 +473,10 @@ const BatchCourse = () => {
 
   const isLessonCompleted = (lesson) => {
     return completedLessonIds.includes(String(getLessonId(lesson)));
+  };
+
+  const handleStartQuiz = (quiz) => {
+    navigate(`/student/quiz/${quiz._id}`);
   };
 
   const getLevelBadge = (level) => {
@@ -1064,6 +1070,7 @@ const BatchCourse = () => {
                                       <Button 
                                         className={`w-full ${!isCompletedModule ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
                                         disabled={!isCompletedModule}
+                                        onClick={() => isCompletedModule && handleStartQuiz(quiz)}
                                       >
                                         <BarChart3 className="h-4 w-4 mr-2" />
                                         {!isCompletedModule ? 'Locked' : 'Start Quiz'}

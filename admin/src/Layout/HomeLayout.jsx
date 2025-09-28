@@ -32,7 +32,7 @@ const tabs = [
   { link: "/admin/courses", label: "Courses", icon: IconCertificate },
   { link: "/admin/batches", label: "Batches", icon: IconFolder },
   { link: "/admin/students", label: "Students", icon: IconUsers },
-  { link: "/analytics", label: "Analytics", icon: IconChartPie },
+  { link: "/admin/analytics", label: "Analytics", icon: IconChartPie },
 ];
 
 export function HomeLayout() {

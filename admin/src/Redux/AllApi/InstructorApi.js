@@ -4,7 +4,7 @@ import { createApi } from "@reduxjs/toolkit/query/react";
 export const instructorApi = createApi({
     reducerPath: "instructorApi",
     baseQuery: axiosBaseQuery,
-    tagTypes: ['Instructor'],
+    tagTypes: ['Instructor', 'InstructorCourse', 'InstructorBatch', 'InstructorStudent', 'InstructorQuiz', 'InstructorAssignment'],
     endpoints: (builder) => ({
         // Get all instructors with pagination, search and filters
         getAllInstructors: builder.query({
@@ -72,6 +72,136 @@ export const instructorApi = createApi({
             }),
             invalidatesTags: ['Instructor'],
         }),
+
+        // =============== INSTRUCTOR PORTAL ENDPOINTS ===============
+        
+        // Dashboard stats for instructor
+        getInstructorDashboardStats: builder.query({
+            query: () => ({
+                url: "/api/instructor/dashboard/stats",
+                method: "GET",
+            }),
+            providesTags: ['InstructorCourse', 'InstructorBatch', 'InstructorStudent'],
+        }),
+
+        // Get courses assigned to instructor
+        getInstructorAssignedCourses: builder.query({
+            query: ({ page = 1, limit = 12, search = "" } = {}) => ({
+                url: "/api/instructor/courses",
+                method: "GET",
+                params: { page, limit, search }
+            }),
+            providesTags: ['InstructorCourse'],
+        }),
+
+        // Get course details for instructor
+        getInstructorCourseDetails: builder.query({
+            query: (courseId) => ({
+                url: `/api/instructor/courses/${courseId}`,
+                method: "GET",
+            }),
+            providesTags: (result, error, courseId) => [{ type: 'InstructorCourse', id: courseId }],
+        }),
+
+        // Get batches assigned to instructor
+        getInstructorAssignedBatches: builder.query({
+            query: ({ page = 1, limit = 10, search = "" } = {}) => ({
+                url: "/api/instructor/batches",
+                method: "GET",
+                params: { page, limit, search }
+            }),
+            providesTags: ['InstructorBatch'],
+        }),
+
+        // Get batch details for instructor
+        getInstructorBatchDetails: builder.query({
+            query: (batchId) => ({
+                url: `/api/instructor/batches/${batchId}`,
+                method: "GET",
+            }),
+            providesTags: (result, error, batchId) => [{ type: 'InstructorBatch', id: batchId }],
+        }),
+
+        // Get batch students for instructor
+        getInstructorBatchStudents: builder.query({
+            query: (batchId) => ({
+                url: `/api/instructor/batches/${batchId}/students`,
+                method: "GET",
+            }),
+            providesTags: (result, error, batchId) => [{ type: 'InstructorStudent', id: batchId }],
+        }),
+
+        // Get student progress
+        getInstructorStudentProgress: builder.query({
+            query: ({ studentId, courseId }) => ({
+                url: `/api/instructor/students/${studentId}/progress`,
+                method: "GET",
+                params: { courseId }
+            }),
+            providesTags: (result, error, { studentId }) => [{ type: 'InstructorStudent', id: studentId }],
+        }),
+
+        // Get batch quiz attempts
+        getInstructorBatchQuizAttempts: builder.query({
+            query: ({ batchId, page = 1, limit = 10 } = {}) => ({
+                url: `/api/instructor/batches/${batchId}/quiz-attempts`,
+                method: "GET",
+                params: { page, limit }
+            }),
+            providesTags: ['InstructorQuiz'],
+        }),
+
+        // Get quiz details for instructor
+        getInstructorQuizDetails: builder.query({
+            query: (quizId) => ({
+                url: `/api/instructor/quizzes/${quizId}`,
+                method: "GET",
+            }),
+            providesTags: (result, error, quizId) => [{ type: 'InstructorQuiz', id: quizId }],
+        }),
+
+        // Get student quiz attempts
+        getInstructorStudentQuizAttempts: builder.query({
+            query: ({ studentId, quizId }) => ({
+                url: `/api/instructor/students/${studentId}/quiz-attempts/${quizId}`,
+                method: "GET",
+            }),
+            providesTags: (result, error, { studentId, quizId }) => [
+                { type: 'InstructorQuiz', id: quizId },
+                { type: 'InstructorStudent', id: studentId }
+            ],
+        }),
+
+        // Get batch assignment submissions
+        getInstructorBatchAssignmentSubmissions: builder.query({
+            query: ({ batchId, page = 1, limit = 10 } = {}) => ({
+                url: `/api/instructor/batches/${batchId}/assignment-submissions`,
+                method: "GET",
+                params: { page, limit }
+            }),
+            providesTags: ['InstructorAssignment'],
+        }),
+
+        // Get assignment details for instructor
+        getInstructorAssignmentDetails: builder.query({
+            query: (assignmentId) => ({
+                url: `/api/instructor/assignments/${assignmentId}`,
+                method: "GET",
+            }),
+            providesTags: (result, error, assignmentId) => [{ type: 'InstructorAssignment', id: assignmentId }],
+        }),
+
+        // Get student assignment submissions
+        getInstructorStudentAssignmentSubmissions: builder.query({
+            query: ({ studentId, assignmentId }) => ({
+                url: `/api/instructor/students/${studentId}/assignment-submissions/${assignmentId}`,
+                method: "GET",
+            }),
+            providesTags: (result, error, { studentId, assignmentId }) => [
+                { type: 'InstructorAssignment', id: assignmentId },
+                { type: 'InstructorStudent', id: studentId }
+            ],
+        }),
     }),
 });
 
@@ -83,4 +213,18 @@ export const {
     useUpdateInstructorMutation,
     useDeleteInstructorMutation,
     useUpdateInstructorStatusMutation,
+    // Instructor Portal Hooks
+    useGetInstructorDashboardStatsQuery,
+    useGetInstructorAssignedCoursesQuery,
+    useGetInstructorCourseDetailsQuery,
+    useGetInstructorAssignedBatchesQuery,
+    useGetInstructorBatchDetailsQuery,
+    useGetInstructorBatchStudentsQuery,
+    useGetInstructorStudentProgressQuery,
+    useGetInstructorBatchQuizAttemptsQuery,
+    useGetInstructorQuizDetailsQuery,
+    useGetInstructorStudentQuizAttemptsQuery,
+    useGetInstructorBatchAssignmentSubmissionsQuery,
+    useGetInstructorAssignmentDetailsQuery,
+    useGetInstructorStudentAssignmentSubmissionsQuery,
 } = instructorApi;

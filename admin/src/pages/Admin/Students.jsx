@@ -1,10 +1,12 @@
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import {
   useGetAllStudentsQuery,
-  useUpdateInstructorMutation,
-  useDeleteInstructorMutation,
 } from "@/Redux/AllApi/InstructorApi";
 import { useUserRegisterMutation } from "@/Redux/AllApi/AuthApi";
+import {
+  useUpdateUserMutation,
+  useDeleteUserMutation,
+} from "@/Redux/AllApi/UserApi";
 import {
   useGetAllBatchesQuery,
   useAddStudentToBatchMutation,
@@ -150,8 +152,8 @@ const Students = () => {
     }
   );
   const [registerStudent] = useUserRegisterMutation();
-  const [updateStudent] = useUpdateInstructorMutation();
-  const [deleteStudent] = useDeleteInstructorMutation();
+  const [updateStudent] = useUpdateUserMutation();
+  const [deleteStudent] = useDeleteUserMutation();
   const [assignStudent] = useAddStudentToBatchMutation();
 
   const students = studentsData?.data?.users || [];
@@ -317,9 +319,7 @@ const Students = () => {
         role: "STUDENT",
       };
 
-      console.log("Registering student with data:", studentData);
       const result = await registerStudent(studentData).unwrap();
-      console.log("Student registration result:", result);
       showToast("success", "Student registered successfully!");
       setIsAddDialogOpen(false);
       resetForm();

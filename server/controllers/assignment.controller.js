@@ -12,22 +12,22 @@ export const createAssignment = asyncHandler(async (req, res) => {
     const { courseId, moduleId, title, description, dueDate, maxScore, allowResubmission } = req.body;
 
     if(!mongoose.Types.ObjectId.isValid(courseId)) {
-        throw new ApiError(400, "Invalid course ID");
+        throw new ApiError("Invalid course ID", 400);
     }
 
     if(moduleId && !mongoose.Types.ObjectId.isValid(moduleId)) {
-        throw new ApiError(400, "Invalid module ID");
+        throw new ApiError("Invalid module ID", 400);
     }
 
     const course = await Course.findById(courseId);
-    if(!course) throw new ApiError(404, "Course not found");
+    if(!course) throw new ApiError("Course not found", 404);
 
     // If moduleId is provided, verify the module exists and belongs to the course
     if(moduleId) {
         const Module = (await import("../models/module.model.js")).default;
         const module = await Module.findOne({ _id: moduleId, course: courseId });
         if(!module) {
-            throw new ApiError(404, "Module not found or does not belong to this course");
+            throw new ApiError("Module not found or does not belong to this course", 404);
         }
     }
 
@@ -59,7 +59,7 @@ export const getAllAssignments = asyncHandler(async (req, res) => {
     const query = {};
     if(courseId) {
         if(!mongoose.Types.ObjectId.isValid(courseId)) {
-            throw new ApiError(400, "Invalid course ID");
+            throw new ApiError("Invalid course ID", 400);
         }
         query.course = courseId;
     }
@@ -80,7 +80,7 @@ export const getAssigmentById = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
     if(!mongoose.Types.ObjectId.isValid(id)) {
-        throw new ApiError(400, "Invalid assignment ID");
+        throw new ApiError("Invalid assignment ID", 400);
     }
 
     const assignment = await Assignment.findById(id)
@@ -88,7 +88,7 @@ export const getAssigmentById = asyncHandler(async (req, res) => {
         .populate("instructor", "fullName email")
         .populate("createdBy", "fullName email");
 
-    if(!assignment) throw new ApiError(404, "Assignment not found");
+    if(!assignment) throw new ApiError("Assignment not found", 404);
 
     res.json(new ApiResponse(200, assignment, "Assignment fetched successfully"));
 });
@@ -98,11 +98,11 @@ export const updatedAssignment = asyncHandler(async (req, res) => {
     const { title, description, dueDate } = req.body;
 
     if(!mongoose.Types.ObjectId.isValid(id)) {
-        throw new ApiError(400, "Invalid assignment ID");
+        throw new ApiError("Invalid assignment ID", 400);
     }
 
     const assignment = await Assignment.findById(id);
-    if(!assignment) throw new ApiError(404, "Assignment not found");
+    if(!assignment) throw new ApiError("Assignment not found", 404);
 
     if(title) assignment.title = title;
     if(description) assignment.description = description;
@@ -117,11 +117,11 @@ export const deleteAssignment = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
     if(!mongoose.Types.ObjectId.isValid(id)) {
-        throw new ApiError(400, "Invalid assignment ID");
+        throw new ApiError("Invalid assignment ID", 400);
     }
 
     const assignment = await Assignment.findById(id);
-    if(!assignment) throw new ApiError(404, "Assignment not found");
+    if(!assignment) throw new ApiError("Assignment not found", 404);
 
     await Course.findByIdAndUpdate(assignment.course, {
         $pull: { assignments: assignment._id },
@@ -139,7 +139,7 @@ export const getAccessibleAssignments = asyncHandler(async (req, res) => {
     const userId = req.user._id;
 
     if(!mongoose.Types.ObjectId.isValid(courseId) || !mongoose.Types.ObjectId.isValid(moduleId)) {
-        throw new ApiError(400, "Invalid course ID or module ID");
+        throw new ApiError("Invalid course ID or module ID", 400);
     }
 
     // Check if user has access to assessments for this module (effective completion)

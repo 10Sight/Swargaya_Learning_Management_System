@@ -21,6 +21,7 @@ import AddAssignmentPage from "./pages/Admin/AddAssignmentPage";
 import AddResourcePage from "./pages/Admin/AddResourcePage";
 import InstructorDetail from "./pages/Admin/InstructorDetail";
 import StudentDetail from "./pages/Admin/StudentDetail";
+import Analytics from "./pages/Admin/Analytics";
 import { useSelector } from "react-redux";
 import { Navigate } from "react-router-dom";
 import InstructorDashboard from "./pages/Instructor/Dashboard";
@@ -28,10 +29,13 @@ import InstructorCourses from "./pages/Instructor/Courses";
 import InstructorBatches from "./pages/Instructor/Batches";
 import InstructorStudents from "./pages/Instructor/Students";
 import InstructorCourseDetailPage from "./pages/Instructor/InstructorCourseDetailPage";
+import QuizMonitoring from "./pages/Instructor/QuizMonitoring";
+import AssignmentMonitoring from "./pages/Instructor/AssignmentMonitoring";
 import SuperAdminDashboard from "./pages/SuperAdmin/Dashboard";
 import StudentDashboard from "./pages/Student/Dashboard";
 import StudentBatch from "./pages/Student/Batch";
 import BatchCourse from "./pages/Student/BatchCourse";
+import TakeQuiz from "./pages/Student/TakeQuiz";
 
 const RoleRedirect = () => {
   const { user } = useSelector((state) => state.auth);
@@ -91,6 +95,7 @@ const App = () => {
           <Route path="add-module/:courseId" element={<AddModulePage />} />
           <Route path="add-assignment/:courseId" element={<AddAssignmentPage />} />
           <Route path="add-resource/:courseId" element={<AddResourcePage />} />
+          <Route path="analytics" element={<Analytics pageName="Analytics" />} />
         </Route>
 
         {/* Instructor routes */}
@@ -103,12 +108,12 @@ const App = () => {
           }
         >
           <Route index element={<InstructorDashboard />} />
-          <Route path="instructor" element={<Instructor pageName="Instructor" />} />
-          <Route path="instructor/:id" element={<InstructorDetail />} />
           <Route path="courses" element={<InstructorCourses />} />
           <Route path="courses/:courseId" element={<InstructorCourseDetailPage />} />
           <Route path="batches" element={<InstructorBatches />} />
           <Route path="students" element={<InstructorStudents />} />
+          <Route path="quiz-monitoring" element={<QuizMonitoring />} />
+          <Route path="assignment-monitoring" element={<AssignmentMonitoring />} />
         </Route>
 
         {/* SuperAdmin routes */}
@@ -144,6 +149,7 @@ const App = () => {
           <Route index element={<StudentDashboard />} />
           <Route path="batch" element={<StudentBatch />} />
           <Route path="course" element={<BatchCourse />} />
+          <Route path="quiz/:quizId" element={<TakeQuiz />} />
         </Route>
       </Routes>
     </Router>

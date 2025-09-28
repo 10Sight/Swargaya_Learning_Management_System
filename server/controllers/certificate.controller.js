@@ -11,18 +11,18 @@ export const issueCertificate = asyncHandler(async (req, res) => {
     const { courseId, studentId } = req.body;
 
     if(!mongoose.Types.ObjectId.isValid(courseId) || !mongoose.Types.ObjectId.isValid(studentId)) {
-        throw new ApiError(400, "Invalid course or student ID");
+        throw new ApiError("Invalid course or student ID", 400);
     }
 
     const course = await Course.findById(courseId);
-    if(!course) throw new ApiError(404, "Course not found");
+    if(!course) throw new ApiError("Course not found", 404);
 
     const student = await User.findById(studentId);
-    if(!student) throw new ApiError(404, "Student not found");
+    if(!student) throw new ApiError("Student not found", 404);
 
     const existing = await Certificate.findOne({ user: studentId, course: courseId });
     if(existing) {
-        throw new ApiError(400, "Certificate already issued for this student & course");
+        throw new ApiError("Certificate already issued for this student & course", 400);
     }
 
     const certificate = await Certificate.create({
@@ -39,7 +39,7 @@ export const getCertificateById = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
     if(!mongoose.Types.ObjectId.isValid(id)) {
-        throw new ApiError(400, "Invalid certificate ID");
+        throw new ApiError("Invalid certificate ID", 400);
     } 
 
     const certificate = await Certificate.findById(id)
@@ -47,7 +47,7 @@ export const getCertificateById = asyncHandler(async (req, res) => {
         .populate("course", "title")
         .populate("issuedBy", "fullName email");
 
-    if(!certificate) throw new ApiError(404, "Certificate not found");
+    if(!certificate) throw new ApiError("Certificate not found", 404);
 
     res.json(new ApiResponse(200, certificate, "Certificate fetched successfully"));
 });
@@ -66,7 +66,7 @@ export const getCourseCertificates = asyncHandler(async (req, res) => {
     const { courseId } = req.params;
 
     if(!mongoose.Types.ObjectId.isValid(courseId)) {
-        throw new ApiError(400, "Invalid course ID");
+        throw new ApiError("Invalid course ID", 400);
     }
 
     const certificates = await Certificate.find({ course: courseId })
@@ -81,11 +81,11 @@ export const revokeCertificate = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
     if(!mongoose.Types.ObjectId.isValid(id)) {
-        throw new ApiError(400, "Invalid certificate ID");
+        throw new ApiError("Invalid certificate ID", 400);
     }
 
     const certificate = await Certificate.findById(id);
-    if(!certificate) throw new ApiError(404, "Certificate not found");
+    if(!certificate) throw new ApiError("Certificate not found", 404);
 
     await certificate.deleteOne();
 

@@ -11,11 +11,11 @@ export const createSubmission = asyncHandler(async (req, res) => {
     const { assignmentId, fileUrl } = req.body;
 
     if(!mongoose.Types.ObjectId.isValid(assignmentId)) {
-        throw new ApiError(400, "Invalid assignment ID");
+        throw new ApiError("Invalid assignment ID", 400);
     }
 
     const assignment = await Assignment.findById(assignmentId);
-    if(!assignment) throw new ApiError(404, "Assignment not found");
+    if(!assignment) throw new ApiError("Assignment not found", 404);
 
     const existing = await Submission.findOne({
         assignment: assignmentId,
@@ -23,7 +23,7 @@ export const createSubmission = asyncHandler(async (req, res) => {
     });
 
     if(existing) {
-        throw new ApiError(400, "Submission already exists. Please resubmit");
+        throw new ApiError("Submission already exists. Please resubmit", 400);
     }
 
     const isLate = assignment.dueDate && new Date() > assignment.dueDate;
@@ -43,14 +43,14 @@ export const resubmitAssignment = asyncHandler(async (req, res) => {
     const { submissionId, fileUrl } = req.body;
 
     if(!mongoose.Types.ObjectId.isValid(submissionId)) {
-        throw new ApiError(400, "Invalid submission ID");
+        throw new ApiError("Invalid submission ID", 400);
     }
 
     const submission = await Submission.findById(submissionId);
-    if(!submission) throw new ApiError(404, "Submission not found");
+    if(!submission) throw new ApiError("Submission not found", 404);
 
     if(submission.student.toString() !== req.user._id.toString()) {
-        throw new ApiError(403, "Not authorized to resubmit this assignment");
+        throw new ApiError("Not authorized to resubmit this assignment", 403);
     }
 
     submission.fileUrl = fileUrl;
@@ -66,7 +66,7 @@ export const getSubmissionByAssignment = asyncHandler(async (req, res) => {
     const { assignmentId } = req.params;
 
     if(!mongoose.Types.ObjectId.isValid(assignmentId)) {
-        throw new ApiError(400, "Invalid assignment ID");
+        throw new ApiError("Invalid assignment ID", 400);
     }
 
     const submissions = await Submission.find({ assignment: assignmentId })
@@ -89,11 +89,11 @@ export const gradeSubmission = asyncHandler(async (req, res) => {
     const { grade, feedback } = req.body;
 
     if(!mongoose.Types.ObjectId.isValid(submissionId)) {
-        throw new ApiError(400, "Invalid submission ID");
+        throw new ApiError("Invalid submission ID", 400);
     }
 
     const submission = await Submission.findById(submissionId);
-    if(!submission) throw new ApiError(404, "Submission not found");
+    if(!submission) throw new ApiError("Submission not found", 404);
 
     submission.grade = grade;
     submission.feedback = feedback;
@@ -107,7 +107,7 @@ export const getStudentSubmissions = asyncHandler(async (req, res) => {
     const { studentId } = req.params;
 
     if(!mongoose.Types.ObjectId.isValid(studentId)) {
-        throw new ApiError(400, "Invalid student ID");
+        throw new ApiError("Invalid student ID", 400);
     }
 
     const submissions = await Submission.find({ student: studentId })

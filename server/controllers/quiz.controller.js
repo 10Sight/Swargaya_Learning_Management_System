@@ -11,16 +11,16 @@ export const createQuiz = asyncHandler(async (req, res) => {
     const { courseId, moduleId, title, questions, passingScore, description, timeLimit, attemptsAllowed } = req.body;
 
     if(!mongoose.Types.ObjectId.isValid(courseId)) {
-        throw new ApiError(400, "Invalid course ID");
+        throw new ApiError("Invalid course ID", 400);
     }
 
     if(moduleId && !mongoose.Types.ObjectId.isValid(moduleId)) {
-        throw new ApiError(400, "Invalid module ID");
+        throw new ApiError("Invalid module ID", 400);
     }
 
     const course = await Course.findById(courseId);
     if(!course) {
-        throw new ApiError(404, "Course not found");
+        throw new ApiError("Course not found", 404);
     }
 
     // If moduleId is provided, verify the module exists and belongs to the course
@@ -28,12 +28,12 @@ export const createQuiz = asyncHandler(async (req, res) => {
         const Module = (await import("../models/module.model.js")).default;
         const module = await Module.findOne({ _id: moduleId, course: courseId });
         if(!module) {
-            throw new ApiError(404, "Module not found or does not belong to this course");
+            throw new ApiError("Module not found or does not belong to this course", 404);
         }
     }
 
     if(!title || !questions || questions.length === 0) {
-        throw new ApiError(400, "Title and questions are required");
+        throw new ApiError("Title and questions are required", 400);
     }
 
     const quiz = await Quiz.create({
@@ -94,7 +94,7 @@ export const getAllQuizzes = asyncHandler(async (req, res) => {
 
 export const getQuizById = asyncHandler(async (req, res) => {
     if(!mongoose.Types.ObjectId.isValid(req.params.id)) {
-        throw new ApiError(400, "Invalid quiz ID");
+        throw new ApiError("Invalid quiz ID", 400);
     }
 
     const quiz = await Quiz.findById(req.params.id)
@@ -102,7 +102,7 @@ export const getQuizById = asyncHandler(async (req, res) => {
         .populate("createdBy", "fullName email");
 
     if(!quiz) {
-        throw new ApiError(404, "Quiz not found");
+        throw new ApiError("Quiz not found", 404);
     }
 
     res.json(new ApiResponse(200, quiz, "Quiz fetched successfully"));
@@ -110,14 +110,14 @@ export const getQuizById = asyncHandler(async (req, res) => {
 
 export const updateQuiz = asyncHandler(async (req, res) => {
     if(!mongoose.Types.ObjectId.isValid(req.params.id)) {
-        throw new ApiError(400, "Invalid quiz ID");
+        throw new ApiError("Invalid quiz ID", 400);
     }
 
     const { title, questions } = req.body;
 
     const quiz = await Quiz.findById(req.params.id);
     if(!quiz) {
-        throw new ApiError(404, "Quiz not found");
+        throw new ApiError("Quiz not found", 404);
     }
 
     if(title) quiz.title = title;
@@ -130,12 +130,12 @@ export const updateQuiz = asyncHandler(async (req, res) => {
 
 export const deleteQuiz = asyncHandler(async (req, res) => {
     if(!mongoose.Types.ObjectId.isValid(req.params.id)) {
-        throw new ApiError(400, "Invalid quiz ID");
+        throw new ApiError("Invalid quiz ID", 400);
     }
 
     const quiz = await Quiz.findById(req.params.id);
     if(!quiz) {
-        throw new ApiError(404, "Quiz not found");
+        throw new ApiError("Quiz not found", 404);
     }
 
     await Course.findByIdAndUpdate(quiz.course, {
@@ -153,7 +153,7 @@ export const getAccessibleQuizzes = asyncHandler(async (req, res) => {
     const userId = req.user._id;
 
     if(!mongoose.Types.ObjectId.isValid(courseId) || !mongoose.Types.ObjectId.isValid(moduleId)) {
-        throw new ApiError(400, "Invalid course ID or module ID");
+        throw new ApiError("Invalid course ID or module ID", 400);
     }
 
     // Check if user has access to assessments for this module (effective completion)

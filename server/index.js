@@ -22,6 +22,8 @@ import resourceRoutes from "./routes/resource.routes.js";
 import moduleRoutes from "./routes/module.routes.js";
 import uploadRoutes from "./routes/upload.routes.js";
 import lessonRoutes from "./routes/lesson.routes.js";
+import analyticsRoutes from "./routes/analytics.routes.js";
+import instructorRoutes from "./routes/instructor.routes.js";
 // import cleanupOldFiles from './scripts/cleanup.js';
 
 const app = express();
@@ -30,7 +32,7 @@ app.use(cookieParser()); // Add cookie parser middleware
 // app.use(morganMiddleware);
 
 app.use(cors({
-    origin: ["https://swargaya-learning-management-system.onrender.com", "http://localhost:5173", "http://localhost:5175", "http://localhost:5176", "http://localhost:5177"],
+    origin: ["https://swargaya-learning-management-system.onrender.com", "http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176", "http://localhost:5177"],
     credentials: true,
 }));
 
@@ -69,6 +71,8 @@ app.use("/api/lessons", lessonRoutes);
 app.use("/api/modules", moduleRoutes);
 app.use("/api/resources", resourceRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/api/analytics", analyticsRoutes);
+app.use("/api/instructor", instructorRoutes);
 
 // Global Error Handler (must be after all routes)
 app.use((err, req, res, next) => {

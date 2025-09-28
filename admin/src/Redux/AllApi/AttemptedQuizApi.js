@@ -54,6 +54,32 @@ export const attemptedQuizApi = createApi({
             }),
             providesTags: (result, error, studentId) => [{ type: 'AttemptedQuiz', id: `student-${studentId}` }],
         }),
+
+        // New quiz flow endpoints
+        startQuiz: builder.query({
+            query: (quizId) => ({
+                url: `/api/attempts/start/${quizId}`,
+                method: "GET",
+            }),
+            providesTags: (result, error, quizId) => [{ type: 'AttemptedQuiz', id: `start-${quizId}` }],
+        }),
+
+        submitQuiz: builder.mutation({
+            query: ({ quizId, answers, timeTaken }) => ({
+                url: "/api/attempts/submit",
+                method: "POST",
+                data: { quizId, answers, timeTaken }
+            }),
+            invalidatesTags: ['AttemptedQuiz'],
+        }),
+
+        getQuizAttemptStatus: builder.query({
+            query: (quizId) => ({
+                url: `/api/attempts/status/${quizId}`,
+                method: "GET",
+            }),
+            providesTags: (result, error, quizId) => [{ type: 'AttemptedQuiz', id: `status-${quizId}` }],
+        }),
     }),
 });
 
@@ -64,4 +90,8 @@ export const {
     useGetAttemptByIdQuery,
     useDeleteAttemptMutation,
     useGetStudentAttemptsQuery,
+    // New quiz flow hooks
+    useStartQuizQuery,
+    useSubmitQuizMutation,
+    useGetQuizAttemptStatusQuery,
 } = attemptedQuizApi;

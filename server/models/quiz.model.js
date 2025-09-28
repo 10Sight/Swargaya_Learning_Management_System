@@ -39,8 +39,8 @@ const questionSchema = new Schema(
             default: 1,
             min: [1, "Marks must be at least 1"],
         },
-    },
-    { _id: false }
+    }
+    // _id: true by default, which is what we need for question tracking
 );
 
 const quizSchema = new Schema(

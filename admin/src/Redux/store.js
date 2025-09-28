@@ -22,6 +22,7 @@ import { attemptedQuizApi } from "./AllApi/AttemptedQuizApi";
 import { resourceApi } from "./AllApi/resourceApi";
 import { moduleApi } from "./AllApi/moduleApi";
 import { lessonApi } from "./AllApi/LessonApi";
+import { analyticsApi } from "./AllApi/AnalyticsApi";
 
 const store = configureStore({
     reducer: {
@@ -47,6 +48,7 @@ const store = configureStore({
         [resourceApi.reducerPath]: resourceApi.reducer,
         [moduleApi.reducerPath]: moduleApi.reducer,
         [lessonApi.reducerPath]: lessonApi.reducer,
+        [analyticsApi.reducerPath]: analyticsApi.reducer,
     },
     middleware: (getDefaultMiddleware) => 
         getDefaultMiddleware().concat(
@@ -66,6 +68,7 @@ const store = configureStore({
             resourceApi.middleware,
             moduleApi.middleware,
             lessonApi.middleware,
+            analyticsApi.middleware,
         ),
 });
 

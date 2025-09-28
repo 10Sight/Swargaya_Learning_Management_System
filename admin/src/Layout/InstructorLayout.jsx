@@ -13,26 +13,21 @@ import {
   IconLayoutDashboardFilled,
   IconLayoutSidebarRightCollapse,
   IconLogout,
-  IconMail,
-  IconArticle,
-  IconClipboardList,
-  IconShoppingCart,
-  IconTarget,
   IconCertificate,
   IconFolder,
   IconUsers,
-  IconChartPie,
-  IconUser,
+  IconClipboardList,
+  IconClipboard,
 } from "@tabler/icons-react";
 import { HomeIcon } from "lucide-react";
 
 const tabs = [
   { link: "/instructor", label: "Dashboard", icon: IconLayoutDashboardFilled },
-  { link: "/instructor/instructor", label: "Instructors", icon: IconUser },
   { link: "/instructor/courses", label: "Courses", icon: IconCertificate },
   { link: "/instructor/batches", label: "Batches", icon: IconFolder },
   { link: "/instructor/students", label: "Students", icon: IconUsers },
-  { link: "/analytics", label: "Analytics", icon: IconChartPie },
+  { link: "/instructor/quiz-monitoring", label: "Quiz Monitoring", icon: IconClipboardList },
+  { link: "/instructor/assignment-monitoring", label: "Assignment Monitoring", icon: IconClipboard },
 ];
 
 export function InstructorLayout() {

@@ -13,15 +13,15 @@ export const initializeProgress = asyncHandler(async (req, res) => {
     const userId = req.user._id;
 
     if(!mongoose.Types.ObjectId.isValid(courseId)) {
-        throw new ApiError(400, "Invalid course ID");
+        throw new ApiError("Invalid course ID", 400);
     }
 
     const course = await Course.findById(courseId);
-    if(!course) throw new ApiError(404, "Course not found");
+    if(!course) throw new ApiError("Course not found", 404);
 
     let progress = await Progress.findOne({ student: userId, course: courseId });
     if(progress) {
-        throw new ApiError(400, "Progress already initialized for this course");
+        throw new ApiError("Progress already initialized for this course", 400);
     }
 
     progress = await Progress.create({
@@ -45,7 +45,7 @@ export const updateProgress = asyncHandler(async (req, res) => {
     const userId = req.user._id;
 
     const progress = await Progress.findOne({ student: userId, course: courseId });
-    if(!progress) throw new ApiError(404, "Progress not found");
+    if(!progress) throw new ApiError("Progress not found", 404);
 
     // For now, we'll just update the lastAccessed time
     // In a real app, you'd track individual lesson completion
@@ -60,7 +60,7 @@ export const markLessonComplete = asyncHandler(async (req, res) => {
     const userId = req.user._id;
 
     if(!mongoose.Types.ObjectId.isValid(courseId) || !mongoose.Types.ObjectId.isValid(lessonId)) {
-        throw new ApiError(400, "Invalid course ID or lesson ID");
+        throw new ApiError("Invalid course ID or lesson ID", 400);
     }
 
     let progress = await Progress.findOne({ student: userId, course: courseId });
@@ -101,7 +101,7 @@ export const markModuleComplete = asyncHandler(async (req, res) => {
     const userId = req.user._id;
 
     if(!mongoose.Types.ObjectId.isValid(courseId) || !mongoose.Types.ObjectId.isValid(moduleId)) {
-        throw new ApiError(400, "Invalid course ID or module ID");
+        throw new ApiError("Invalid course ID or module ID", 400);
     }
 
     let progress = await Progress.findOne({ student: userId, course: courseId });
@@ -180,10 +180,10 @@ export const upgradeLevel = asyncHandler(async (req, res) => {
     const userId = req.user._id;
 
     const progress = await Progress.findOne({ student: userId, course: courseId });
-    if(!progress) throw new ApiError(404, "Progress not found");
+    if(!progress) throw new ApiError("Progress not found", 404);
 
     if(progress.progressPercent < 100) {
-        throw new ApiError(400, "Cannot upgrade level until progress is 100%");
+        throw new ApiError("Cannot upgrade level until progress is 100%", 400);
     }
 
     if(progress.currentLevel === "L1") {
@@ -222,7 +222,7 @@ export const getMyProgress = asyncHandler(async (req, res) => {
         .populate("course", "title")
         .populate("student", "fullName email");
 
-    if(!progress) throw new ApiError(404, "Progress not found");
+    if(!progress) throw new ApiError("Progress not found", 404);
 
     res.json(new ApiResponse(200, progress, "Progress fetched successfully"));
 });
@@ -232,11 +232,11 @@ export const getOrInitializeProgress = asyncHandler(async (req, res) => {
     const userId = req.user._id;
 
     if(!mongoose.Types.ObjectId.isValid(courseId)) {
-        throw new ApiError(400, "Invalid course ID");
+        throw new ApiError("Invalid course ID", 400);
     }
 
     const course = await Course.findById(courseId);
-    if(!course) throw new ApiError(404, "Course not found");
+    if(!course) throw new ApiError("Course not found", 404);
 
     let progress = await Progress.findOne({ student: userId, course: courseId })
         .populate("course", "title")
@@ -288,7 +288,7 @@ export const validateModuleAccess = asyncHandler(async (req, res) => {
     const userId = req.user._id;
 
     if(!mongoose.Types.ObjectId.isValid(courseId) || !mongoose.Types.ObjectId.isValid(moduleId)) {
-        throw new ApiError(400, "Invalid course ID or module ID");
+        throw new ApiError("Invalid course ID or module ID", 400);
     }
 
     // Get course with modules to determine module order
@@ -298,7 +298,7 @@ export const validateModuleAccess = asyncHandler(async (req, res) => {
             path: 'lessons'
         }
     });
-    if(!course) throw new ApiError(404, "Course not found");
+    if(!course) throw new ApiError("Course not found", 404);
 
     // Get user progress
     const progress = await Progress.findOne({ student: userId, course: courseId });
@@ -315,7 +315,7 @@ export const validateModuleAccess = asyncHandler(async (req, res) => {
         .findIndex(mod => mod._id.toString() === moduleId);
     
     if(moduleIndex === -1) {
-        throw new ApiError(404, "Module not found in course");
+        throw new ApiError("Module not found in course", 404);
     }
 
     // Check if module is effectively completed
@@ -344,7 +344,7 @@ export const getStudentProgress = asyncHandler(async (req, res) => {
     const { studentId } = req.params;
 
     if(!mongoose.Types.ObjectId.isValid(studentId)) {
-        throw new ApiError(400, "Invalid student ID");
+        throw new ApiError("Invalid student ID", 400);
     }
 
     const progresses = await Progress.find({ student: studentId })

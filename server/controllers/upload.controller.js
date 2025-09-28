@@ -7,7 +7,7 @@ import { ApiError } from "../utils/ApiError.js";
 // Upload single file
 export const uploadSingleFile = asyncHandler(async (req, res) => {
   if (!req.file) {
-    throw new ApiError(400, "No file uploaded");
+    throw new ApiError("No file uploaded", 400);
   }
 
   const result = await cloudinary.uploader.upload(req.file.path, {
@@ -30,7 +30,7 @@ export const uploadSingleFile = asyncHandler(async (req, res) => {
 // Upload multiple files
 export const uploadMultipleFiles = asyncHandler(async (req, res) => {
   if (!req.files || req.files.length === 0) {
-    throw new ApiError(400, "No files uploaded");
+    throw new ApiError("No files uploaded", 400);
   }
 
   const results = [];

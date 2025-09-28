@@ -46,11 +46,11 @@ export const getAuditById = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
     if(!mongoose.Types.ObjectId.isValid(id)) {
-        throw new ApiError(400, "Invalid audit ID");
+        throw new ApiError("Invalid audit ID", 400);
     }
 
     const audit = await Audit.findById(id).populate("user", "fullName email role");
-    if(!audit) throw new ApiError(404, "Audit log not found");
+    if(!audit) throw new ApiError("Audit log not found", 404);
 
     res.json(new ApiResponse(200, audit, "Audit log fetched successfully"));
 });
@@ -59,11 +59,11 @@ export const deleteAudit = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
     if(!mongoose.Types.ObjectId.isValid(id)) {
-        throw new ApiError(400, "Invalid audit ID");
+        throw new ApiError("Invalid audit ID", 400);
     }
 
     const audit = await Audit.findById(id);
-    if(!audit) throw new ApiError(404, "Audit log not found");
+    if(!audit) throw new ApiError("Audit log not found", 404);
 
     await audit.deleteOne();
 

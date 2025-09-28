@@ -10,19 +10,19 @@ export const enrollStudent = asyncHandler(async (req, res) => {
     const { courseId, studentId } = req.body;
 
     if(!mongoose.Types.ObjectId.isValid(courseId)) {
-        throw new ApiError(400, "Invalid Course ID");
+        throw new ApiError("Invalid Course ID", 400);
     }
 
     if(!mongoose.Types.ObjectId.isValid(studentId)) {
-        throw new ApiError(400, "Invalid Student ID");
+        throw new ApiError("Invalid Student ID", 400);
     }
 
     const course = await Course.findById(courseId);
-    if(!course) throw new ApiError(404, "Course not found");
+    if(!course) throw new ApiError("Course not found", 404);
 
     const student = await User.findById(studentId);
     if(!student || student.role !== "STUDENT") {
-        throw new ApiError(400, "Invalid Student");
+        throw new ApiError("Invalid Student", 400);
     }
 
     const existingEnrollment = await Enrollment.findOne({
@@ -30,7 +30,7 @@ export const enrollStudent = asyncHandler(async (req, res) => {
         student: studentId,
     });
     if(existingEnrollment) {
-        throw new ApiError(400, "Student already enrolled in this course");
+        throw new ApiError("Student already enrolled in this course", 400);
     }
 
     const enrollment = await Enrollment.create({
@@ -63,7 +63,7 @@ export const unenrollStudent = asyncHandler(async (req, res) => {
     });
 
     if(!enrollment) {
-        throw new ApiError(404, "Enrollment not found");
+        throw new ApiError("Enrollment not found", 404);
     }
 
     res.json(new ApiResponse(200, null, "Student unenrolled successfully"));
@@ -110,7 +110,7 @@ export const getStudentEnrollments = asyncHandler(async (req, res) => {
     const { studentId } = req.params;
 
     if(!mongoose.Types.ObjectId.isValid(studentId)) {
-        throw new ApiError(400, "Invalid student ID");
+        throw new ApiError("Invalid student ID", 400);
     }
 
     const enrollments = await Enrollment.find({ student: studentId })
@@ -124,7 +124,7 @@ export const getCourseEnrollments = asyncHandler(async (req, res) => {
     const { courseId } = req.params;
 
     if(!mongoose.Types.ObjectId.isValid(courseId)) {
-        throw new ApiError(400, "Invalid course ID");
+        throw new ApiError("Invalid course ID", 400);
     }
 
     const enrollments = await Enrollment.find({ course: courseId })
@@ -139,7 +139,7 @@ export const updateEnrollment = asyncHandler(async (req, res) => {
     const { status } = req.body;
 
     const enrollment = await Enrollment.findById(id);
-    if(!enrollment) throw new ApiError(404, "Enrollment not found");
+    if(!enrollment) throw new ApiError("Enrollment not found", 404);
 
     if(status) enrollment.status = status;
 
@@ -152,7 +152,7 @@ export const deleteEnrollment = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
     const enrollment = await Enrollment.findById(id);
-    if(!enrollment) throw new ApiError(404, "Enrollment not found");
+    if(!enrollment) throw new ApiError("Enrollment not found", 404);
 
     await enrollment.deleteOne();
 

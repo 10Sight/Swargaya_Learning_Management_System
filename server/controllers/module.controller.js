@@ -9,12 +9,12 @@ export const createModule = asyncHandler(async (req, res) => {
     const { courseId, title, description, order } = req.body;
 
     if(!courseId || !title) {
-        throw new ApiError(400, "Course ID and Title are required");
+        throw new ApiError("Course ID and Title are required", 400);
     }
 
     const course = await Course.findById(courseId);
 
-    if(!course) throw new ApiError(404, "Course not found");
+    if(!course) throw new ApiError("Course not found", 404);
 
     const module = await Module.create({
         course: courseId,
@@ -49,7 +49,7 @@ export const updateModule = asyncHandler(async (req, res) => {
         { new: true }
     );
 
-    if(!module) throw new ApiError(404, "Moduel not found");
+    if(!module) throw new ApiError("Moduel not found", 404);
 
     res.status(200).json(new ApiResponse(200, module, "Module updated successfully"));
 });
@@ -58,7 +58,7 @@ export const deleteModule = asyncHandler(async (req, res) => {
     const { moduleId } = req.params;
 
     const module = await Module.findByIdAndDelete(moduleId);
-    if(!module) throw new ApiError(404, "Module not found");
+    if(!module) throw new ApiError("Module not found", 404);
 
     await Course.findByIdAndUpdate(module.course, { $pull: { modules: moduleId } });
 

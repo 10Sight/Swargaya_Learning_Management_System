@@ -13,7 +13,7 @@ export const createCourse = asyncHandler(async (req, res) => {
     const { title, description, category, level, modules, instructor, quizzes, assignments } = req.body;
 
     if(!title || !description || !instructor) {
-        throw new ApiError(400, "Title and description are required");
+        throw new ApiError("Title and description are required", 400);
     }
 
     const course = await Course.create({
@@ -82,7 +82,7 @@ export const getCourseById = asyncHandler(async (req, res) => {
         .populate("createdBy", "fullName email role")
         .populate("quizzes assignments");
 
-    if(!course) throw new ApiError(404, "Course not found");
+    if(!course) throw new ApiError("Course not found", 404);
 
     return res
         .status(200)
@@ -97,7 +97,7 @@ export const updatedCourse = asyncHandler(async (req, res) => {
         runValidators: true,
     });
 
-    if(!updatedCourse) throw new ApiError(404, "Course not found");
+    if(!updatedCourse) throw new ApiError("Course not found", 404);
 
     await Audit.create({
         user: req.user._id,
@@ -115,7 +115,7 @@ export const deleteCourse = asyncHandler(async (req, res) => {
 
     const course = await Course.findByIdAndDelete(id);
 
-    if(!course) throw new ApiError(404, "Course not found");
+    if(!course) throw new ApiError("Course not found", 404);
 
     await Audit.create({
         user: req.user._id,
@@ -132,7 +132,7 @@ export const togglePublishCourse = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
     const course = await Course.findById(id);
-    if(!course) throw new ApiError(404, "Course not found");
+    if(!course) throw new ApiError("Course not found", 404);
 
     course.status = course.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED";
 
@@ -160,7 +160,7 @@ export const getCourseAnalytics = asyncHandler(async (req, res) => {
     const { id: courseId } = req.params;
 
     if(!mongoose.Types.ObjectId.isValid(courseId)) {
-        throw new ApiError(400, "Invalid course ID");
+        throw new ApiError("Invalid course ID", 400);
     }
 
     const course = await Course.findById(courseId)
@@ -168,7 +168,7 @@ export const getCourseAnalytics = asyncHandler(async (req, res) => {
         .populate('students', '_id fullName');
 
     if(!course) {
-        throw new ApiError(404, "Course not found");
+        throw new ApiError("Course not found", 404);
     }
 
     // Get progress data for enrolled students
@@ -278,7 +278,7 @@ export const getCourseStudents = asyncHandler(async (req, res) => {
     const { id: courseId } = req.params;
 
     if(!mongoose.Types.ObjectId.isValid(courseId)) {
-        throw new ApiError(400, "Invalid course ID");
+        throw new ApiError("Invalid course ID", 400);
     }
 
     const course = await Course.findById(courseId)
@@ -286,7 +286,7 @@ export const getCourseStudents = asyncHandler(async (req, res) => {
         .populate('modules', '_id title');
 
     if(!course) {
-        throw new ApiError(404, "Course not found");
+        throw new ApiError("Course not found", 404);
     }
 
     const totalModules = course.modules?.length || 0;
