@@ -101,20 +101,34 @@ export const login = asyncHandler(async (req, res) => {
   );
 
   let redirectUrl = null;
-  if(fetchedUser.role === "INSTRUCTOR") {
-      redirectUrl ="https://www.youtube.com";
-  }
-  if(fetchedUser.role === "STUDENT") {
-     redirectUrl = "http://localhost:5175"
+  const role = fetchedUser.role;
+  // Determine redirect URL per role using ENV with sensible fallbacks
+  if (role === "ADMIN") {
+    redirectUrl = ENV.ADMIN_URL;
+  } else if (role === "SUPERADMIN") {
+    redirectUrl = ENV.SUPERADMIN_URL;
+  } else if (role === "INSTRUCTOR") {
+    redirectUrl = ENV.INSTRUCTOR_URL;
+  } else if (role === "STUDENT") {
+    redirectUrl = ENV.STUDENT_URL;
+  } else {
+    redirectUrl = ENV.FRONTEND_URL;
   }
 
   await logAudit(user._id, "LOGIN");
 
+  // Set cookies and return JSON payload expected by frontend
   return res
     .status(200)
     .cookie("refreshToken", refreshToken, refreshTokenOptions)
     .cookie("accessToken", accessToken, accessTokenOptions)
-    .json(new ApiResponse(200, { user: fetchedUser, redirectUrl }, "Login successful"));
+    .json(
+      new ApiResponse(
+        200,
+        { user: fetchedUser, redirectUrl },
+        "Login successful"
+      )
+    );
 });
 
 // Logout

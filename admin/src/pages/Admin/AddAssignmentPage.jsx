@@ -53,6 +53,7 @@ const AddAssignmentPage = () => {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
+    moduleId: "", // Add module selection
     dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Default: 7 days from now
   });
 
@@ -67,6 +68,11 @@ const AddAssignmentPage = () => {
   };
 
   const validateForm = () => {
+    if (!formData.moduleId) {
+      toast.error("Please select a module");
+      return false;
+    }
+    
     if (!formData.title.trim()) {
       toast.error("Assignment title is required");
       return false;
@@ -95,6 +101,7 @@ const AddAssignmentPage = () => {
     try {
       await createAssignment({
         courseId,
+        moduleId: formData.moduleId, // Include moduleId
         title: formData.title,
         description: formData.description,
         dueDate: formData.dueDate.toISOString(),
@@ -144,6 +151,55 @@ const AddAssignmentPage = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Module Selection */}
+            <div className="grid gap-2">
+              <Label htmlFor="moduleId">Module *</Label>
+              <Select
+                value={formData.moduleId}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, moduleId: value }))
+                }
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a module" />
+                </SelectTrigger>
+                <SelectContent>
+                  {modules.length === 0 ? (
+                    <SelectItem value="none" disabled>
+                      No modules available. Create modules first.
+                    </SelectItem>
+                  ) : (
+                    modules.map((module) => (
+                      <SelectItem key={module._id} value={module._id}>
+                        {module.title}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              
+              {/* Show error message if no modules */}
+              {modules.length === 0 && (
+                <div className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-md p-3">
+                  <p className="font-medium">No modules found for this course.</p>
+                  <p className="text-xs mt-1">
+                    You need to create modules first before adding assignments.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 gap-1"
+                    onClick={() => navigate(`/admin/courses/${courseId}`)}
+                  >
+                    <IconPlus className="h-3 w-3" />
+                    Go to Course
+                  </Button>
+                </div>
+              )}
+            </div>
+            
             <div className="grid gap-2">
               <Label htmlFor="title">Assignment Title *</Label>
               <Input

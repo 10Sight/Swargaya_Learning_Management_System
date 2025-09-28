@@ -13,26 +13,13 @@ import {
   IconLayoutDashboardFilled,
   IconLayoutSidebarRightCollapse,
   IconLogout,
-  IconMail,
-  IconArticle,
-  IconClipboardList,
-  IconShoppingCart,
-  IconTarget,
-  IconCertificate,
   IconFolder,
-  IconUsers,
-  IconChartPie,
-  IconUser,
 } from "@tabler/icons-react";
 import { HomeIcon } from "lucide-react";
 
 const tabs = [
-  { link: "/", label: "Dashboard", icon: IconLayoutDashboardFilled },
-  { link: "/admin/instructor", label: "Instructors", icon: IconUser },
-  { link: "/admin/courses", label: "Courses", icon: IconCertificate },
-  { link: "/admin/batches", label: "Batches", icon: IconFolder },
-  { link: "/admin/students", label: "Students", icon: IconUsers },
-  { link: "/analytics", label: "Analytics", icon: IconChartPie },
+  { link: "/student", label: "Dashboard", icon: IconLayoutDashboardFilled },
+  { link: "/student/batch", label: "Batch", icon: IconFolder },
 ];
 
 export function StudentLayout() {
@@ -50,15 +37,14 @@ export function StudentLayout() {
   useEffect(() => {
     const currentTab = tabs.find(tab => 
       pathname === tab.link || 
-      (tab.link !== "/" && pathname.startsWith(tab.link))
+      (tab.link !== "/student" && pathname.startsWith(tab.link))
     );
     
     if (currentTab) {
       setPageName(currentTab.label);
-    } else if (pathname === "/") {
+    } else if (pathname === "/student") {
       setPageName("Dashboard");
     } else {
-      // For nested routes, you might want to extract from pathname
       const routeName = pathname.split("/").pop();
       setPageName(routeName.charAt(0).toUpperCase() + routeName.slice(1));
     }
@@ -73,7 +59,6 @@ export function StudentLayout() {
       await dispatch(logout()).unwrap();
       navigate("/login", { replace: true });
     } catch (error) {
-      // Even if logout fails, redirect to login (toast handled by Redux)
       navigate("/login", { replace: true });
     }
   };
@@ -108,7 +93,7 @@ export function StudentLayout() {
           />
           {!collapsed && (
             <span className="ml-4 py-1 text-sm font-semibold uppercase tracking-wide text-blue-700">
-              SARVAGAYA INSTITUTE
+              STUDENT INSTITUTE
             </span>
           )}
         </div>
@@ -116,11 +101,7 @@ export function StudentLayout() {
         {/* Sidebar Tabs */}
         <div className="px-2 flex flex-col w-full py-4 space-y-2">
           {tabs.map((item) => {
-            const isActive =
-              pathname === item.link ||
-              (item.link === "/orders" && pathname.startsWith("/orders")) ||
-              (item.link === "/priority-polls" &&
-                pathname.startsWith("/priority-polls"));
+            const isActive = pathname === item.link;
 
             return (
               <div
@@ -191,7 +172,7 @@ export function StudentLayout() {
             <BreadcrumbList>
               <BreadcrumbItem>
                 <Link
-                  to="/"
+                  to="/student"
                   className="flex items-center text-blue-600 hover:text-blue-800"
                 >
                   <HomeIcon size={18} aria-hidden="true" />

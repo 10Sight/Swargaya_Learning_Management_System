@@ -2,8 +2,6 @@ import React from "react";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +9,7 @@ import {
   IconPaperclip,
 } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
+import ResourceModule from "./ResourceModule";
 
 const ResourceList = ({ courseId, modules }) => {
   const navigate = useNavigate();
@@ -24,6 +23,13 @@ const ResourceList = ({ courseId, modules }) => {
             Supplementary materials organized by module
           </p>
         </div>
+        <Button 
+          onClick={() => navigate(`/admin/add-resource/${courseId}`)}
+          className="gap-2"
+        >
+          <IconPlus className="h-4 w-4" />
+          Add Resource
+        </Button>
       </div>
 
       {modules.length === 0 ? (
@@ -43,39 +49,13 @@ const ResourceList = ({ courseId, modules }) => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <div className="space-y-4">
           {modules.map((module) => (
-            <Card key={module._id}>
-              <CardHeader className="pb-3">
-                <div className="flex justify-between items-center">
-                  <CardTitle>{module.title}</CardTitle>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate(`/admin/add-resource/${courseId}`)}
-                  >
-                    <IconPlus className="h-4 w-4 mr-2" />
-                    Add Resource
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  {module.resources?.length > 0 
-                    ? `${module.resources.length} resource(s) available` 
-                    : "No resources yet. Add resources to this module."}
-                </p>
-                {module.resources?.length > 0 && (
-                  <Button 
-                    variant="link" 
-                    className="p-0 mt-2"
-                    onClick={() => navigate(`/admin/module-resources/${module._id}`)}
-                  >
-                    View Resources
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
+            <ResourceModule
+              key={module._id || module.id}
+              module={module}
+              courseId={courseId}
+            />
           ))}
         </div>
       )}

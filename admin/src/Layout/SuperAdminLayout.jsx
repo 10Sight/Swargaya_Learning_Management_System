@@ -27,7 +27,7 @@ import {
 import { HomeIcon } from "lucide-react";
 
 const tabs = [
-  { link: "/", label: "Dashboard", icon: IconLayoutDashboardFilled },
+  { link: "/superadmin", label: "Dashboard", icon: IconLayoutDashboardFilled },
   { link: "/admin/instructor", label: "Instructors", icon: IconUser },
   { link: "/admin/courses", label: "Courses", icon: IconCertificate },
   { link: "/admin/batches", label: "Batches", icon: IconFolder },
@@ -50,12 +50,12 @@ export function SuperAdminLayout() {
   useEffect(() => {
     const currentTab = tabs.find(tab => 
       pathname === tab.link || 
-      (tab.link !== "/" && pathname.startsWith(tab.link))
+      (tab.link !== "/superadmin" && pathname.startsWith(tab.link))
     );
     
     if (currentTab) {
       setPageName(currentTab.label);
-    } else if (pathname === "/") {
+    } else if (pathname === "/superadmin") {
       setPageName("Dashboard");
     } else {
       // For nested routes, you might want to extract from pathname
@@ -108,7 +108,7 @@ export function SuperAdminLayout() {
           />
           {!collapsed && (
             <span className="ml-4 py-1 text-sm font-semibold uppercase tracking-wide text-blue-700">
-              SARVAGAYA INSTITUTE
+              SUPER ADMIN INSTITUTE
             </span>
           )}
         </div>
@@ -118,9 +118,8 @@ export function SuperAdminLayout() {
           {tabs.map((item) => {
             const isActive =
               pathname === item.link ||
-              (item.link === "/orders" && pathname.startsWith("/orders")) ||
-              (item.link === "/priority-polls" &&
-                pathname.startsWith("/priority-polls"));
+              (item.link === "/superadmin" && pathname === "/superadmin") ||
+              (item.link !== "/superadmin" && pathname.startsWith(item.link));
 
             return (
               <div
@@ -191,7 +190,7 @@ export function SuperAdminLayout() {
             <BreadcrumbList>
               <BreadcrumbItem>
                 <Link
-                  to="/"
+                  to="/superadmin"
                   className="flex items-center text-blue-600 hover:text-blue-800"
                 >
                   <HomeIcon size={18} aria-hidden="true" />

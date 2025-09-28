@@ -23,6 +23,9 @@ const ENV = {
     // Frontend URLs
     FRONTEND_URL: process.env.FRONTEND_URL || "http://localhost:5173",
     ADMIN_URL: process.env.ADMIN_URL || "http://localhost:5174",
+    INSTRUCTOR_URL: process.env.INSTRUCTOR_URL,
+    STUDENT_URL: process.env.STUDENT_URL,
+    SUPERADMIN_URL: process.env.SUPERADMIN_URL,
 }
 
 export default ENV;

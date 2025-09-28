@@ -4,7 +4,8 @@ import {
     getMyAttempts, 
     getAttemptsQuiz, 
     getAttemptById, 
-    deleteAttempt 
+    deleteAttempt,
+    getStudentAttempts 
 } from "../controllers/attemptedQuiz.controller.js";
 import verifyJWT from "../middlewares/auth.middleware.js";
 import authorizeRoles from "../middlewares/authrization.middleware.js";
@@ -14,6 +15,7 @@ const router = Router();
 router.post("/", verifyJWT, authorizeRoles("STUDENT"), attemptQuiz);
 router.get("/my", verifyJWT, authorizeRoles("STUDENT"), getMyAttempts);
 router.get("/quiz/:quizId", verifyJWT, authorizeRoles("INSTRUCTOR", "ADMIN"), getAttemptsQuiz);
+router.get("/student/:studentId", verifyJWT, authorizeRoles("INSTRUCTOR", "ADMIN"), getStudentAttempts);
 router.get("/:id", verifyJWT, authorizeRoles("INSTRUCTOR", "ADMIN", "STUDENT"), getAttemptById);
 router.delete("/:id", verifyJWT, authorizeRoles("INSTRUCTOR", "ADMIN"), deleteAttempt);
 

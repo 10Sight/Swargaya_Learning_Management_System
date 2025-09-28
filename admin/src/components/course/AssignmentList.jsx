@@ -17,8 +17,14 @@ import {
 } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 
-const AssignmentList = ({ assignments, courseId }) => {
+const AssignmentList = ({ assignments, courseId, modules = [] }) => {
   const navigate = useNavigate();
+  
+  // Helper function to get module name
+  const getModuleName = (moduleId) => {
+    const module = modules.find(m => m._id === moduleId || m.id === moduleId);
+    return module ? module.title : 'Unknown Module';
+  };
 
   if (assignments.length === 0) {
     return (
@@ -84,6 +90,11 @@ const AssignmentList = ({ assignments, courseId }) => {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                {assignment.moduleId && (
+                  <Badge variant="secondary" className="text-xs">
+                    📚 {getModuleName(assignment.moduleId)}
+                  </Badge>
+                )}
                 {assignment.dueDate && (
                   <div className="flex items-center gap-1">
                     <IconCalendar className="h-4 w-4" />

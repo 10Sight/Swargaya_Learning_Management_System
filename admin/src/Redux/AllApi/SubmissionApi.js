@@ -48,6 +48,14 @@ export const submissionApi = createApi({
             }),
             invalidatesTags: ['Submission'],
         }),
+
+        getStudentSubmissions: builder.query({
+            query: (studentId) => ({
+                url: `/api/submissions/student/${studentId}`,
+                method: "GET",
+            }),
+            providesTags: (result, error, studentId) => [{ type: 'Submission', id: `student-${studentId}` }],
+        }),
     }),
 });
 
@@ -57,4 +65,5 @@ export const {
     useGetSubmissionByAssignmentQuery,
     useGetMySubmissionsQuery,
     useGradeSubmissionMutation,
+    useGetStudentSubmissionsQuery,
 } = submissionApi;

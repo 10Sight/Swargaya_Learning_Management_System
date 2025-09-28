@@ -5,17 +5,31 @@ import Course from "../models/course.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { checkModuleAccessForAssessments } from "../utils/moduleCompletion.js";
 
 export const createQuiz = asyncHandler(async (req, res) => {
-    const { courseId, title, questions, passingScore } = req.body;
+    const { courseId, moduleId, title, questions, passingScore, description, timeLimit, attemptsAllowed } = req.body;
 
     if(!mongoose.Types.ObjectId.isValid(courseId)) {
         throw new ApiError(400, "Invalid course ID");
     }
 
+    if(moduleId && !mongoose.Types.ObjectId.isValid(moduleId)) {
+        throw new ApiError(400, "Invalid module ID");
+    }
+
     const course = await Course.findById(courseId);
     if(!course) {
         throw new ApiError(404, "Course not found");
+    }
+
+    // If moduleId is provided, verify the module exists and belongs to the course
+    if(moduleId) {
+        const Module = (await import("../models/module.model.js")).default;
+        const module = await Module.findOne({ _id: moduleId, course: courseId });
+        if(!module) {
+            throw new ApiError(404, "Module not found or does not belong to this course");
+        }
     }
 
     if(!title || !questions || questions.length === 0) {
@@ -24,9 +38,13 @@ export const createQuiz = asyncHandler(async (req, res) => {
 
     const quiz = await Quiz.create({
         course: courseId,
+        module: moduleId || null,
         title,
+        description,
         questions,
         passingScore,
+        timeLimit,
+        attemptsAllowed,
         createdBy: req.user._id,
     });
 
@@ -55,6 +73,7 @@ export const getAllQuizzes = asyncHandler(async (req, res) => {
 
     const quizzes = await Quiz.find(searchQuery)
         .populate("course", "title")
+        .populate("module", "title")
         .populate("createdBy", "fullName email role")
         .skip(skip)
         .limit(limit)
@@ -126,4 +145,97 @@ export const deleteQuiz = asyncHandler(async (req, res) => {
     await quiz.deleteOne();
 
     res.json(new ApiResponse(200, null, "Quiz deleted successfully"));
+});
+
+// Get quizzes accessible to a student for a specific module
+export const getAccessibleQuizzes = asyncHandler(async (req, res) => {
+    const { courseId, moduleId } = req.params;
+    const userId = req.user._id;
+
+    if(!mongoose.Types.ObjectId.isValid(courseId) || !mongoose.Types.ObjectId.isValid(moduleId)) {
+        throw new ApiError(400, "Invalid course ID or module ID");
+    }
+
+    // Check if user has access to assessments for this module (effective completion)
+    const accessCheck = await checkModuleAccessForAssessments(userId, courseId, moduleId);
+    
+    if (!accessCheck.hasAccess) {
+        // Return empty array with access information
+        return res.json(new ApiResponse(200, {
+            quizzes: [],
+            accessInfo: {
+                hasAccess: false,
+                reason: accessCheck.reason
+            }
+        }, "Module quizzes locked - complete all lessons to unlock"));
+    }
+
+    // User has access, fetch quizzes based on onlyModule parameter
+    const onlyModule = String(req.query.onlyModule || '').toLowerCase() === 'true';
+    let filter;
+    
+    if (onlyModule) {
+        // First try to find quizzes specifically assigned to this module
+        filter = { course: courseId, module: moduleId };
+
+        const moduleOnlyQuizzes = await Quiz.find(filter)
+            .populate("course", "title")
+            .populate("module", "title")
+            .sort({ createdAt: -1 });
+
+        // If module has specific content, return it
+        if (moduleOnlyQuizzes.length > 0) {
+            return res.json(new ApiResponse(200, {
+                quizzes: moduleOnlyQuizzes,
+                accessInfo: {
+                    hasAccess: true,
+                    reason: accessCheck.reason
+                }
+            }, "Accessible quizzes (module-specific) fetched successfully"));
+        }
+
+        // Fallback: if no module-specific content, return course-wide items
+        filter = { 
+            course: courseId,
+            $or: [
+                { module: null },
+                { module: { $exists: false } }
+            ]
+        };
+
+        const fallbackQuizzes = await Quiz.find(filter)
+            .populate("course", "title")
+            .populate("module", "title")
+            .sort({ createdAt: -1 });
+        return res.json(new ApiResponse(200, {
+            quizzes: fallbackQuizzes,
+            accessInfo: {
+                hasAccess: true,
+                reason: accessCheck.reason
+            }
+        }, "Accessible quizzes (course-wide fallback) fetched successfully"));
+    } else {
+        // Return both module-specific and course-wide quizzes
+        filter = { 
+            course: courseId, 
+            $or: [ 
+                { module: moduleId }, 
+                { module: null }, 
+                { module: { $exists: false } }
+            ] 
+        };
+
+        const quizzes = await Quiz.find(filter)
+            .populate("course", "title")
+            .populate("module", "title")
+            .sort({ createdAt: -1 });
+
+        return res.json(new ApiResponse(200, {
+            quizzes,
+            accessInfo: {
+                hasAccess: true,
+                reason: accessCheck.reason
+            }
+        }, "Accessible quizzes fetched successfully"));
+    }
 });

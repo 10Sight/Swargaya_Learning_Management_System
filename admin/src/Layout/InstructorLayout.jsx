@@ -27,7 +27,7 @@ import {
 import { HomeIcon } from "lucide-react";
 
 const tabs = [
-  { link: "/", label: "Dashboard", icon: IconLayoutDashboardFilled },
+  { link: "/instructor", label: "Dashboard", icon: IconLayoutDashboardFilled },
   { link: "/instructor/instructor", label: "Instructors", icon: IconUser },
   { link: "/instructor/courses", label: "Courses", icon: IconCertificate },
   { link: "/instructor/batches", label: "Batches", icon: IconFolder },
@@ -50,12 +50,12 @@ export function InstructorLayout() {
   useEffect(() => {
     const currentTab = tabs.find(tab => 
       pathname === tab.link || 
-      (tab.link !== "/" && pathname.startsWith(tab.link))
+      (tab.link !== "/instructor" && pathname.startsWith(tab.link))
     );
     
     if (currentTab) {
       setPageName(currentTab.label);
-    } else if (pathname === "/") {
+    } else if (pathname === "/instructor") {
       setPageName("Dashboard");
     } else {
       // For nested routes, you might want to extract from pathname
@@ -108,7 +108,7 @@ export function InstructorLayout() {
           />
           {!collapsed && (
             <span className="ml-4 py-1 text-sm font-semibold uppercase tracking-wide text-blue-700">
-              SARVAGAYA INSTITUTE
+              INSTRUCTOR INSTITUTE
             </span>
           )}
         </div>
@@ -118,9 +118,8 @@ export function InstructorLayout() {
           {tabs.map((item) => {
             const isActive =
               pathname === item.link ||
-              (item.link === "/orders" && pathname.startsWith("/orders")) ||
-              (item.link === "/priority-polls" &&
-                pathname.startsWith("/priority-polls"));
+              (item.link === "/instructor" && pathname === "/instructor") ||
+              (item.link !== "/instructor" && pathname.startsWith(item.link));
 
             return (
               <div
@@ -191,7 +190,7 @@ export function InstructorLayout() {
             <BreadcrumbList>
               <BreadcrumbItem>
                 <Link
-                  to="/"
+                  to="/instructor"
                   className="flex items-center text-blue-600 hover:text-blue-800"
                 >
                   <HomeIcon size={18} aria-hidden="true" />

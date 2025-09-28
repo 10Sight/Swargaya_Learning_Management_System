@@ -3,9 +3,30 @@ import mongoose from "mongoose";
 import Batch from "../models/batch.model.js";
 import User from "../models/auth.model.js";
 import Course from "../models/course.model.js";
+import Progress from "../models/progress.model.js";
+import Submission from "../models/submission.model.js";
+import AttemptedQuiz from "../models/attemptedQuiz.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+
+export const getMyBatch = asyncHandler(async (req, res) => {
+    // If user has no batch assigned
+    if (!req.user?.batch) {
+        return res.json(new ApiResponse(200, null, "No batch assigned"));
+    }
+
+    const batch = await Batch.findById(req.user.batch)
+        .populate("instructor", "fullName email")
+        .populate("course", "title name")
+        .select("name status startDate endDate capacity schedule");
+
+    if (!batch) {
+        return res.json(new ApiResponse(200, null, "No batch assigned"));
+    }
+
+    return res.json(new ApiResponse(200, batch, "My batch fetched successfully"));
+});
 
 export const createBatch = asyncHandler(async (req, res) => {
     const { name, instructorId, courseId, startDate, endDate, capacity } = req.body;
@@ -275,5 +296,345 @@ export const deleteBatch = asyncHandler(async (req, res) => {
     await batch.deleteOne();
 
     res.json(new ApiResponse(200, null, "Batch deleted successfully"));
+});
+
+// Get batch quiz and assignment for completed students
+export const getBatchAssessments = asyncHandler(async (req, res) => {
+    const userId = req.user._id;
+
+    // Get user's batch
+    const user = await User.findById(userId).populate('batch');
+    if(!user || !user.batch) {
+        throw new ApiError(404, "No batch assigned to user");
+    }
+
+    const batch = await Batch.findById(user.batch)
+        .populate('batchQuiz')
+        .populate('batchAssignment')
+        .populate('course');
+
+    if(!batch || !batch.course) {
+        throw new ApiError(404, "Batch or course not found");
+    }
+
+    // Check if student has completed all modules
+    const progress = await Progress.findOne({ student: userId, course: batch.course._id });
+    
+    if(!progress) {
+        return res.json(new ApiResponse(200, { 
+            hasAccess: false, 
+            reason: "No progress found",
+            batchQuiz: null,
+            batchAssignment: null
+        }, "Batch assessments check completed"));
+    }
+
+    // Get total modules in course
+    const course = await Course.findById(batch.course._id).populate('modules');
+    const totalModules = course?.modules?.length || 0;
+    const completedModules = progress.completedModules?.length || 0;
+
+    const hasAccess = totalModules > 0 && completedModules >= totalModules;
+
+    if(!hasAccess) {
+        return res.json(new ApiResponse(200, {
+            hasAccess: false,
+            reason: `Complete all ${totalModules} modules to unlock batch assessments. ${completedModules} completed.`,
+            batchQuiz: null,
+            batchAssignment: null,
+            progress: {
+                completed: completedModules,
+                total: totalModules
+            }
+        }, "Batch assessments locked"));
+    }
+
+    res.json(new ApiResponse(200, {
+        hasAccess: true,
+        reason: "All modules completed",
+        batchQuiz: batch.batchQuiz,
+        batchAssignment: batch.batchAssignment,
+        progress: {
+            completed: completedModules,
+            total: totalModules
+        }
+    }, "Batch assessments unlocked"));
+});
+
+// Get batch progress analytics for admin/instructor
+export const getBatchProgress = asyncHandler(async (req, res) => {
+    const { id: batchId } = req.params;
+
+    if(!mongoose.Types.ObjectId.isValid(batchId)) {
+        throw new ApiError(400, "Invalid batch ID");
+    }
+
+    const batch = await Batch.findById(batchId)
+        .populate('course', 'title modules')
+        .populate('students', '_id fullName');
+
+    if(!batch) {
+        throw new ApiError(404, "Batch not found");
+    }
+
+    if(!batch.course) {
+        return res.json(new ApiResponse(200, {
+            batchProgress: [],
+            overallStats: {
+                totalStudents: batch.students.length,
+                studentsWithProgress: 0,
+                averageProgress: 0,
+                totalModules: 0
+            }
+        }, "No course assigned to batch"));
+    }
+
+    // Get course details
+    const course = await Course.findById(batch.course._id).populate('modules');
+    const totalModules = course?.modules?.length || 0;
+
+    // Get progress for all students in batch
+    const progressData = await Progress.find({
+        student: { $in: batch.students.map(s => s._id) },
+        course: batch.course._id
+    })
+    .populate('student', 'fullName email avatar')
+    .lean();
+
+    // Transform progress data
+    const batchProgress = batch.students.map(student => {
+        const studentProgress = progressData.find(p => 
+            p.student._id.toString() === student._id.toString()
+        );
+
+        if (!studentProgress) {
+            return {
+                student: {
+                    _id: student._id,
+                    fullName: student.fullName,
+                    email: student.email || '',
+                    avatar: student.avatar
+                },
+                completedModules: 0,
+                completedLessons: 0,
+                totalModules,
+                progressPercentage: 0,
+                lastActivity: null,
+                courseTitle: course?.title
+            };
+        }
+
+        const completedModules = studentProgress.completedModules?.length || 0;
+        const completedLessons = studentProgress.completedLessons?.length || 0;
+        const progressPercentage = totalModules > 0 ? Math.round((completedModules / totalModules) * 100) : 0;
+
+        return {
+            student: {
+                _id: studentProgress.student._id,
+                fullName: studentProgress.student.fullName,
+                email: studentProgress.student.email,
+                avatar: studentProgress.student.avatar
+            },
+            completedModules,
+            completedLessons,
+            totalModules,
+            progressPercentage,
+            lastActivity: studentProgress.updatedAt,
+            courseTitle: course?.title
+        };
+    });
+
+    // Calculate overall stats
+    const studentsWithProgress = batchProgress.filter(p => p.completedModules > 0).length;
+    const averageProgress = batchProgress.length > 0 
+        ? Math.round(batchProgress.reduce((sum, p) => sum + p.progressPercentage, 0) / batchProgress.length)
+        : 0;
+
+    const overallStats = {
+        totalStudents: batch.students.length,
+        studentsWithProgress,
+        averageProgress,
+        totalModules
+    };
+
+    res.json(new ApiResponse(200, {
+        batchProgress,
+        overallStats
+    }, "Batch progress fetched successfully"));
+});
+
+// Get batch submissions analytics
+export const getBatchSubmissions = asyncHandler(async (req, res) => {
+    const { id: batchId } = req.params;
+
+    if(!mongoose.Types.ObjectId.isValid(batchId)) {
+        throw new ApiError(400, "Invalid batch ID");
+    }
+
+    const batch = await Batch.findById(batchId).populate('students', '_id');
+    if(!batch) {
+        throw new ApiError(404, "Batch not found");
+    }
+
+    const submissions = await Submission.find({
+        student: { $in: batch.students.map(s => s._id) }
+    })
+    .populate({
+        path: 'student',
+        select: 'fullName email avatar'
+    })
+    .populate({
+        path: 'assignment',
+        select: 'title dueDate maxScore',
+        populate: {
+            path: 'course',
+            select: 'title'
+        }
+    })
+    .sort({ submittedAt: -1 });
+
+    // Calculate stats
+    const totalSubmissions = submissions.length;
+    const gradedSubmissions = submissions.filter(s => s.grade !== undefined).length;
+    const averageGrade = gradedSubmissions > 0 
+        ? Math.round(submissions.filter(s => s.grade !== undefined)
+            .reduce((sum, s) => sum + s.grade, 0) / gradedSubmissions)
+        : 0;
+    const lateSubmissions = submissions.filter(s => s.isLate).length;
+
+    res.json(new ApiResponse(200, {
+        submissions,
+        stats: {
+            totalSubmissions,
+            gradedSubmissions,
+            pendingGrading: totalSubmissions - gradedSubmissions,
+            averageGrade,
+            lateSubmissions
+        }
+    }, "Batch submissions fetched successfully"));
+});
+
+// Get batch quiz attempts analytics
+export const getBatchAttempts = asyncHandler(async (req, res) => {
+    const { id: batchId } = req.params;
+
+    if(!mongoose.Types.ObjectId.isValid(batchId)) {
+        throw new ApiError(400, "Invalid batch ID");
+    }
+
+    const batch = await Batch.findById(batchId).populate('students', '_id');
+    if(!batch) {
+        throw new ApiError(404, "Batch not found");
+    }
+
+    const attempts = await AttemptedQuiz.find({
+        student: { $in: batch.students.map(s => s._id) }
+    })
+    .populate({
+        path: 'student',
+        select: 'fullName email avatar'
+    })
+    .populate({
+        path: 'quiz',
+        select: 'title questions passingScore',
+        populate: {
+            path: 'course',
+            select: 'title'
+        }
+    })
+    .sort({ createdAt: -1 });
+
+    // Transform attempts with computed fields
+    const transformedAttempts = attempts.map(attempt => {
+        const totalQuestions = attempt.quiz?.questions?.length || 0;
+        const scorePercent = totalQuestions > 0 ? Math.round((attempt.score / totalQuestions) * 100) : 0;
+        const passingScore = attempt.quiz?.passingScore || 70;
+        const passed = scorePercent >= passingScore;
+
+        return {
+            ...attempt.toObject(),
+            scorePercent,
+            passed,
+            totalQuestions,
+            attemptedAt: attempt.createdAt
+        };
+    });
+
+    // Calculate stats
+    const totalAttempts = transformedAttempts.length;
+    const passedAttempts = transformedAttempts.filter(a => a.passed).length;
+    const averageScore = transformedAttempts.length > 0 
+        ? Math.round(transformedAttempts.reduce((sum, a) => sum + a.scorePercent, 0) / transformedAttempts.length)
+        : 0;
+
+    res.json(new ApiResponse(200, {
+        attempts: transformedAttempts,
+        stats: {
+            totalAttempts,
+            passedAttempts,
+            failedAttempts: totalAttempts - passedAttempts,
+            passRate: totalAttempts > 0 ? Math.round((passedAttempts / totalAttempts) * 100) : 0,
+            averageScore
+        }
+    }, "Batch quiz attempts fetched successfully"));
+});
+
+// Get batch course content (modules with lessons) for student dashboard
+export const getBatchCourseContent = asyncHandler(async (req, res) => {
+    const userId = req.user._id;
+
+    // Get user's batch
+    const user = await User.findById(userId).populate('batch');
+    if(!user || !user.batch) {
+        throw new ApiError(404, "No batch assigned to user");
+    }
+
+    // Get batch with course details
+    const batch = await Batch.findById(user.batch._id)
+        .populate({
+            path: 'course',
+            select: 'title description modules',
+            populate: {
+                path: 'modules',
+                select: 'title description order lessons',
+                populate: {
+                    path: 'lessons',
+                    select: 'title content duration order'
+                },
+                options: { sort: { order: 1 } }
+            }
+        })
+        .select('name course');
+
+    if(!batch || !batch.course) {
+        throw new ApiError(404, "Batch or course not found");
+    }
+
+    // Get user's progress for this course
+    const progress = await Progress.findOne({ 
+        student: userId, 
+        course: batch.course._id 
+    });
+
+    // Format the response with progress information
+    const courseContent = {
+        batch: {
+            _id: batch._id,
+            name: batch.name
+        },
+        course: {
+            _id: batch.course._id,
+            title: batch.course.title,
+            description: batch.course.description,
+            modules: batch.course.modules || []
+        },
+        progress: {
+            completedModules: progress?.completedModules || [],
+            completedLessons: progress?.completedLessons || [],
+            currentLevel: progress?.currentLevel || "L1"
+        }
+    };
+
+    res.json(new ApiResponse(200, courseContent, "Batch course content fetched successfully"));
 });
 

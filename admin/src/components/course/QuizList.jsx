@@ -14,14 +14,41 @@ import {
   IconTrash,
   IconHelpCircle,
   IconClock,
+  IconLoader,
 } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { useDeleteQuizMutation } from "@/Redux/AllApi/QuizApi";
 
-const QuizList = ({ quizzes, courseId, onRefetch }) => {
+const QuizList = ({ quizzes, courseId, onRefetch, modules = [] }) => {
   const navigate = useNavigate();
+  const [deleteQuiz, { isLoading: isDeletingQuiz }] = useDeleteQuizMutation();
+
+  const handleDeleteQuiz = async (quizId) => {
+    if (!window.confirm("Are you sure you want to delete this quiz? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      await deleteQuiz(quizId).unwrap();
+      toast.success("Quiz deleted successfully!");
+      if (onRefetch) {
+        onRefetch();
+      }
+    } catch (error) {
+      console.error("Delete quiz error:", error);
+      toast.error(error?.data?.message || "Failed to delete quiz");
+    }
+  };
 
   // Ensure quizzes is always an array
   const quizArray = Array.isArray(quizzes) ? quizzes : [];
+  
+  // Helper function to get module name
+  const getModuleName = (moduleId) => {
+    const module = modules.find(m => m._id === moduleId || m.id === moduleId);
+    return module ? module.title : 'Unknown Module';
+  };
 
   if (quizArray.length === 0) {
     return (
@@ -79,8 +106,14 @@ const QuizList = ({ quizzes, courseId, onRefetch }) => {
                     variant="outline"
                     size="sm"
                     className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                    onClick={() => handleDeleteQuiz(quiz._id)}
+                    disabled={isDeletingQuiz}
                   >
-                    <IconTrash className="h-4 w-4" />
+                    {isDeletingQuiz ? (
+                      <IconLoader className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <IconTrash className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
               </div>
@@ -94,6 +127,11 @@ const QuizList = ({ quizzes, courseId, onRefetch }) => {
                     {quiz.questions?.length !== 1 ? "s" : ""}
                   </span>
                 </div>
+                {quiz.moduleId && (
+                  <Badge variant="secondary" className="text-xs">
+                    📚 {getModuleName(quiz.moduleId)}
+                  </Badge>
+                )}
                 {quiz.passingScore && (
                   <Badge variant="outline">
                     Passing: {quiz.passingScore}%

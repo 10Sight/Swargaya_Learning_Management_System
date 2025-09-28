@@ -101,3 +101,25 @@ export const gradeSubmission = asyncHandler(async (req, res) => {
 
     res.json(new ApiResponse(200, submission, "Submission graded successfully"));
 });
+
+// New endpoint to get specific student submissions for admin
+export const getStudentSubmissions = asyncHandler(async (req, res) => {
+    const { studentId } = req.params;
+
+    if(!mongoose.Types.ObjectId.isValid(studentId)) {
+        throw new ApiError(400, "Invalid student ID");
+    }
+
+    const submissions = await Submission.find({ student: studentId })
+        .populate({
+            path: "assignment",
+            select: "title dueDate maxScore",
+            populate: {
+                path: "course",
+                select: "title"
+            }
+        })
+        .sort({ submittedAt: -1 });
+
+    res.json(new ApiResponse(200, submissions, "Student submissions fetched successfully"));
+});

@@ -27,7 +27,7 @@ import {
 import { HomeIcon } from "lucide-react";
 
 const tabs = [
-  { link: "/", label: "Dashboard", icon: IconLayoutDashboardFilled },
+  { link: "/admin", label: "Dashboard", icon: IconLayoutDashboardFilled },
   { link: "/admin/instructor", label: "Instructors", icon: IconUser },
   { link: "/admin/courses", label: "Courses", icon: IconCertificate },
   { link: "/admin/batches", label: "Batches", icon: IconFolder },
@@ -50,12 +50,12 @@ export function HomeLayout() {
   useEffect(() => {
     const currentTab = tabs.find(tab => 
       pathname === tab.link || 
-      (tab.link !== "/" && pathname.startsWith(tab.link))
+      (tab.link !== "/admin" && pathname.startsWith(tab.link))
     );
     
     if (currentTab) {
       setPageName(currentTab.label);
-    } else if (pathname === "/") {
+    } else if (pathname === "/admin") {
       setPageName("Dashboard");
     } else {
       // For nested routes, you might want to extract from pathname
@@ -118,9 +118,8 @@ export function HomeLayout() {
           {tabs.map((item) => {
             const isActive =
               pathname === item.link ||
-              (item.link === "/orders" && pathname.startsWith("/orders")) ||
-              (item.link === "/priority-polls" &&
-                pathname.startsWith("/priority-polls"));
+              (item.link === "/admin" && pathname === "/admin") ||
+              (item.link !== "/admin" && pathname.startsWith(item.link));
 
             return (
               <div
@@ -191,7 +190,7 @@ export function HomeLayout() {
             <BreadcrumbList>
               <BreadcrumbItem>
                 <Link
-                  to="/"
+                  to="/admin"
                   className="flex items-center text-blue-600 hover:text-blue-800"
                 >
                   <HomeIcon size={18} aria-hidden="true" />

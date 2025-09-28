@@ -8,6 +8,12 @@ const assignmentSchema = new Schema(
             required: true,
             index: true,
         },
+        module: {
+            type: Schema.Types.ObjectId,
+            ref: "Module",
+            required: false,
+            index: true,
+        },
         lesson: {
             type: Schema.Types.ObjectId,
             required: false, // Make optional

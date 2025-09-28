@@ -97,3 +97,41 @@ export const deleteAttempt = asyncHandler(async (req, res) => {
 
     res.json(new ApiResponse(200, null, "Attempt deleted successfully"));
 });
+
+// New endpoint to get specific student attempts for admin
+export const getStudentAttempts = asyncHandler(async (req, res) => {
+    const { studentId } = req.params;
+
+    if(!mongoose.Types.ObjectId.isValid(studentId)) {
+        throw new ApiError(400, "Invalid student ID");
+    }
+
+    const attempts = await AttemptedQuiz.find({ student: studentId })
+        .populate({
+            path: "quiz",
+            select: "title questions passingScore",
+            populate: {
+                path: "course",
+                select: "title"
+            }
+        })
+        .sort({ createdAt: -1 });
+
+    // Transform attempts to include additional computed fields
+    const transformedAttempts = attempts.map(attempt => {
+        const totalQuestions = attempt.quiz?.questions?.length || 0;
+        const scorePercent = totalQuestions > 0 ? Math.round((attempt.score / totalQuestions) * 100) : 0;
+        const passingScore = attempt.quiz?.passingScore || 70;
+        const passed = scorePercent >= passingScore;
+
+        return {
+            ...attempt.toObject(),
+            scorePercent,
+            passed,
+            totalQuestions,
+            attemptedAt: attempt.createdAt
+        };
+    });
+
+    res.json(new ApiResponse(200, transformedAttempts, "Student attempts fetched successfully"));
+});

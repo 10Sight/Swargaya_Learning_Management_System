@@ -32,7 +32,10 @@ export const createModule = asyncHandler(async (req, res) => {
 export const getModulesByCourse = asyncHandler(async (req, res) => {
     const { courseId } = req.params;
 
-    const modules = await Module.find({ course: courseId }).populate("resources");
+    const modules = await Module.find({ course: courseId })
+        .populate("resources")
+        .populate("lessons")
+        .sort({ order: 1 });
     res.status(200).json(new ApiResponse(200, modules, "Modules fetched successfully"));
 });
 

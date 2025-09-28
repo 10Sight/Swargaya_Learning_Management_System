@@ -9,13 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Loader2, Mail, User, Eye, EyeOff } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import { login } from '@/Redux/Slice/AuthSlice';
-
-// Import your layout components
-import {HomeLayout} from '@/Layout/HomeLayout';
-import {InstructorLayout} from '@/Layout/InstructorLayout';
-import {StudentLayout} from '@/Layout/StudentLayout';
-import {SuperAdminLayout} from '@/Layout/SuperAdminLayout';
+import { login, clearRedirectUrl } from '@/Redux/Slice/AuthSlice';
 
 const emailLoginSchema = z.object({
   email: z
@@ -47,13 +41,12 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  const { isLoading, isLoggedIn, user, redirctUrl } = useSelector((state) => state.auth);
+  const { isLoading, isLoggedIn, user } = useSelector((state) => state.auth);
   
   const {
     register,
     handleSubmit,
     formState: { errors },
-    setError,
     reset,
     watch
   } = useForm({
@@ -63,33 +56,24 @@ const Login = () => {
   const formValues = watch();
 
   useEffect(() => {
-    if (isLoggedIn && user) {
-      // Determine the appropriate layout based on user role
-      let layoutPath = '/';
-      
-      switch(user.role) {
-        case 'ADMIN':
-          layoutPath = '/admin/*'; // Route for HomeLayout
-          break;
-        case 'INSTRUCTOR':
-          layoutPath = '/instructor/*'; // Route for InstructorLayout
-          break;
-        case 'STUDENT':
-          layoutPath = '/student/*'; // Route for StudentLayout
-          break;
-        case 'SUPERADMIN':
-          layoutPath = '/superadmin/*'; // Route for SuperAdminLayout
-          break;
-        default:
-          layoutPath = '/';
-      }
-      
-      // Get the intended destination from location state, default to role-specific layout
-      const from = location.state?.from?.pathname || layoutPath;
-      console.log(redirctUrl)
-      navigate(redirctUrl, { replace: true });
+    if (!isLoggedIn || !user) return;
+
+    const role = user?.role;
+    const roleLayoutMap = {
+      SUPERADMIN: '/superadmin',
+      ADMIN: '/admin',
+      INSTRUCTOR: '/instructor',
+      STUDENT: '/student'
+    };
+
+    const targetPath = roleLayoutMap[role] || '/student';
+    const from = location.state?.from?.pathname;
+    const finalTarget = from || targetPath;
+
+    if (location.pathname !== finalTarget) {
+      navigate(finalTarget, { replace: true });
     }
-  }, [isLoggedIn, user, navigate, location.state]);
+  }, [isLoggedIn, user, navigate, location]);
 
   const handleLoginMethodChange = (method) => {
     setLoginMethod(method);

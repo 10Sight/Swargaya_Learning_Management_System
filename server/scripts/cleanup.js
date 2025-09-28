@@ -19,7 +19,6 @@ const cleanupOldFiles = () => {
     
     if (now - stats.mtime.getTime() > oneHour) {
       fs.unlinkSync(filePath);
-      console.log(`Deleted old file: ${file}`);
     }
   });
 };

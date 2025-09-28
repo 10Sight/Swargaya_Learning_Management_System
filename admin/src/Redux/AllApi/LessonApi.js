@@ -17,7 +17,7 @@ export const lessonApi = createApi({
 
     getLessonsByModule: builder.query({
       query: (moduleId) => ({
-        url: `/api/modules/${moduleId}/lessons`,
+        url: `/api/lessons/modules/${moduleId}/lessons`,
         method: "GET",
       }),
       providesTags: ["Lesson"],
@@ -25,7 +25,7 @@ export const lessonApi = createApi({
 
     getLessonById: builder.query({
       query: ({ moduleId, lessonId }) => ({
-        url: `/api/modules/${moduleId}/lessons/${lessonId}`,
+        url: `/api/lessons/modules/${moduleId}/lessons/${lessonId}`,
         method: "GET",
       }),
       providesTags: ["Lesson"],
@@ -33,7 +33,7 @@ export const lessonApi = createApi({
 
     updateLesson: builder.mutation({
       query: ({ moduleId, lessonId, title, content, duration, order }) => ({
-        url: `/api/modules/${moduleId}/lessons/${lessonId}`,
+        url: `/api/lessons/modules/${moduleId}/lessons/${lessonId}`,
         method: "PUT",
         data: { title, content, duration, order },
       }),
@@ -42,7 +42,7 @@ export const lessonApi = createApi({
 
     deleteLesson: builder.mutation({
       query: ({ moduleId, lessonId }) => ({
-        url: `/api/modules/${moduleId}/lessons/${lessonId}`,
+        url: `/api/lessons/modules/${moduleId}/lessons/${lessonId}`,
         method: "DELETE",
       }),
       invalidatesTags: ["Lesson"],

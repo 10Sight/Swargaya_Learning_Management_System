@@ -113,7 +113,7 @@ export const getStudentEnrollments = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid student ID");
     }
 
-    const enrollments = await Enrollment.find({ studnet: studentId })
+    const enrollments = await Enrollment.find({ student: studentId })
         .populate("course", "title description")
         .sort({ createdAt: -1 });
 

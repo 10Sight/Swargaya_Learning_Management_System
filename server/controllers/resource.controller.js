@@ -58,6 +58,7 @@ export const createResource = asyncHandler(async (req, res) => {
                 resourceData.publicId = uploadResult.public_id;
                 resourceData.fileSize = uploadResult.size;
                 resourceData.format = uploadResult.format;
+                resourceData.fileName = file.originalname;
             } else {
                 throw new ApiError(`File upload failed: ${uploadResult.error}`, 500);
             }

@@ -84,6 +84,30 @@ export const batchApi = createApi({
             }),
             invalidatesTags: ['Batch'],
         }),
+
+        getBatchProgress: builder.query({
+            query: (batchId) => ({
+                url: `/api/batches/${batchId}/progress`,
+                method: "GET",
+            }),
+            providesTags: (result, error, batchId) => [{ type: 'Batch', id: `progress-${batchId}` }],
+        }),
+
+        getBatchSubmissions: builder.query({
+            query: (batchId) => ({
+                url: `/api/batches/${batchId}/submissions`,
+                method: "GET",
+            }),
+            providesTags: (result, error, batchId) => [{ type: 'Batch', id: `submissions-${batchId}` }],
+        }),
+
+        getBatchAttempts: builder.query({
+            query: (batchId) => ({
+                url: `/api/batches/${batchId}/attempts`,
+                method: "GET",
+            }),
+            providesTags: (result, error, batchId) => [{ type: 'Batch', id: `attempts-${batchId}` }],
+        }),
     }),
 });
 
@@ -97,4 +121,7 @@ export const {
     useGetBatchByIdQuery,
     useUpdateBatchMutation,
     useDeleteBatchMutation,
+    useGetBatchProgressQuery,
+    useGetBatchSubmissionsQuery,
+    useGetBatchAttemptsQuery,
 } = batchApi;

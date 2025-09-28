@@ -71,7 +71,11 @@ export const profile = createAsyncThunk("api/v1/auth/profile", async (_, { rejec
 const authSlice = createSlice({
     name: "auth",
     initialState,
-    reducers: {},
+    reducers: {
+        clearRedirectUrl: (state) => {
+            state.redirectUrl = null
+        }
+    },
     extraReducers: (builder) => {
         builder
             // Login cases
@@ -182,6 +186,8 @@ const authSlice = createSlice({
             })
     },
 })
+
+export const { clearRedirectUrl } = authSlice.actions
 
 export default authSlice.reducer
 

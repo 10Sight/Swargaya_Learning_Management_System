@@ -60,6 +60,22 @@ export const courseApi = createApi({
             }),
             invalidatesTags: ['Course'],
         }),
+
+        getCourseAnalytics: builder.query({
+            query: (courseId) => ({
+                url: `/api/courses/${courseId}/analytics`,
+                method: "GET",
+            }),
+            providesTags: (result, error, courseId) => [{ type: 'Course', id: `analytics-${courseId}` }],
+        }),
+
+        getCourseStudents: builder.query({
+            query: (courseId) => ({
+                url: `/api/courses/${courseId}/students`,
+                method: "GET",
+            }),
+            providesTags: (result, error, courseId) => [{ type: 'Course', id: `students-${courseId}` }],
+        }),
     }),
 });
 
@@ -70,4 +86,6 @@ export const {
     useUpdateCourseMutation,
     useDeleteCourseMutation,
     useTogglePublishCourseMutation,
+    useGetCourseAnalyticsQuery,
+    useGetCourseStudentsQuery,
 } = courseApi;

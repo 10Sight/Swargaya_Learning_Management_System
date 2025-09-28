@@ -52,6 +52,16 @@ const batchSchema = new Schema(
             type: String,
             trim: true,
         },
+        batchQuiz: {
+            type: Schema.Types.ObjectId,
+            ref: "Quiz",
+            required: false,
+        },
+        batchAssignment: {
+            type: Schema.Types.ObjectId,
+            ref: "Assignment",
+            required: false,
+        },
     },
     {
         timestamps: true,

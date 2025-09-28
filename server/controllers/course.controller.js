@@ -1,5 +1,10 @@
+import mongoose from "mongoose";
 import Course from "../models/course.model.js";
 import Audit from "../models/audit.model.js";
+import Progress from "../models/progress.model.js";
+import Submission from "../models/submission.model.js";
+import AttemptedQuiz from "../models/attemptedQuiz.model.js";
+import User from "../models/auth.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -148,4 +153,197 @@ export const togglePublishCourse = asyncHandler(async (req, res) => {
                 `Course ${course.status === "PUBLISHED" ? "published" : "unpublished"} successfully`
             )
         );
+});
+
+// Get course analytics for admin/instructor
+export const getCourseAnalytics = asyncHandler(async (req, res) => {
+    const { id: courseId } = req.params;
+
+    if(!mongoose.Types.ObjectId.isValid(courseId)) {
+        throw new ApiError(400, "Invalid course ID");
+    }
+
+    const course = await Course.findById(courseId)
+        .populate('modules', '_id title order')
+        .populate('students', '_id fullName');
+
+    if(!course) {
+        throw new ApiError(404, "Course not found");
+    }
+
+    // Get progress data for enrolled students
+    const progressData = await Progress.find({
+        course: courseId
+    })
+    .populate('student', 'fullName email avatar')
+    .lean();
+
+    // Calculate overall progress stats
+    const totalModules = course.modules?.length || 0;
+    const studentsWithProgress = progressData.filter(p => p.completedModules?.length > 0).length;
+    const averageProgress = progressData.length > 0 
+        ? Math.round(progressData.reduce((sum, p) => {
+            const studentProgress = totalModules > 0 ? (p.completedModules?.length || 0) / totalModules * 100 : 0;
+            return sum + studentProgress;
+        }, 0) / progressData.length)
+        : 0;
+
+    // Get recent submissions for this course's assignments
+    const submissions = await Submission.find({
+        assignment: { $in: course.assignments }
+    })
+    .populate('student', 'fullName email avatar')
+    .populate('assignment', 'title dueDate')
+    .sort({ submittedAt: -1 })
+    .limit(10)
+    .lean();
+
+    // Get recent quiz attempts for this course's quizzes
+    const quizAttempts = await AttemptedQuiz.find({
+        quiz: { $in: course.quizzes }
+    })
+    .populate('student', 'fullName email avatar')
+    .populate('quiz', 'title questions passingScore')
+    .sort({ createdAt: -1 })
+    .limit(10)
+    .lean();
+
+    // Transform quiz attempts with computed fields
+    const transformedAttempts = quizAttempts.map(attempt => {
+        const totalQuestions = attempt.quiz?.questions?.length || 0;
+        const scorePercent = totalQuestions > 0 ? Math.round((attempt.score / totalQuestions) * 100) : 0;
+        const passingScore = attempt.quiz?.passingScore || 70;
+        const passed = scorePercent >= passingScore;
+
+        return {
+            ...attempt,
+            scorePercent,
+            passed,
+            totalQuestions,
+            attemptedAt: attempt.createdAt
+        };
+    });
+
+    // Calculate submission stats
+    const totalSubmissions = submissions.length;
+    const gradedSubmissions = submissions.filter(s => s.grade !== undefined).length;
+    const averageGrade = gradedSubmissions > 0 
+        ? Math.round(submissions.filter(s => s.grade !== undefined)
+            .reduce((sum, s) => sum + s.grade, 0) / gradedSubmissions)
+        : 0;
+
+    // Calculate quiz stats
+    const totalQuizAttempts = transformedAttempts.length;
+    const passedAttempts = transformedAttempts.filter(a => a.passed).length;
+    const averageQuizScore = transformedAttempts.length > 0 
+        ? Math.round(transformedAttempts.reduce((sum, a) => sum + a.scorePercent, 0) / transformedAttempts.length)
+        : 0;
+
+    res.json(new ApiResponse(200, {
+        courseInfo: {
+            _id: course._id,
+            title: course.title,
+            status: course.status,
+            totalModules,
+            totalEnrollments: course.students?.length || 0
+        },
+        progressStats: {
+            totalStudents: course.students?.length || 0,
+            studentsWithProgress,
+            averageProgress,
+            totalModules
+        },
+        submissionStats: {
+            totalSubmissions,
+            gradedSubmissions,
+            pendingGrading: totalSubmissions - gradedSubmissions,
+            averageGrade
+        },
+        quizStats: {
+            totalAttempts: totalQuizAttempts,
+            passedAttempts,
+            failedAttempts: totalQuizAttempts - passedAttempts,
+            passRate: totalQuizAttempts > 0 ? Math.round((passedAttempts / totalQuizAttempts) * 100) : 0,
+            averageScore: averageQuizScore
+        },
+        recentActivity: {
+            recentSubmissions: submissions.slice(0, 5),
+            recentQuizAttempts: transformedAttempts.slice(0, 5)
+        }
+    }, "Course analytics fetched successfully"));
+});
+
+// Get course enrollments/students with progress
+export const getCourseStudents = asyncHandler(async (req, res) => {
+    const { id: courseId } = req.params;
+
+    if(!mongoose.Types.ObjectId.isValid(courseId)) {
+        throw new ApiError(400, "Invalid course ID");
+    }
+
+    const course = await Course.findById(courseId)
+        .populate('students', 'fullName email avatar createdAt')
+        .populate('modules', '_id title');
+
+    if(!course) {
+        throw new ApiError(404, "Course not found");
+    }
+
+    const totalModules = course.modules?.length || 0;
+
+    // Get progress for all enrolled students
+    const progressData = await Progress.find({
+        student: { $in: course.students.map(s => s._id) },
+        course: courseId
+    })
+    .populate('student', 'fullName email avatar')
+    .lean();
+
+    // Transform student data with progress
+    const studentsWithProgress = course.students.map(student => {
+        const studentProgress = progressData.find(p => 
+            p.student._id.toString() === student._id.toString()
+        );
+
+        if (!studentProgress) {
+            return {
+                student: {
+                    _id: student._id,
+                    fullName: student.fullName,
+                    email: student.email,
+                    avatar: student.avatar,
+                    enrolledAt: student.createdAt
+                },
+                completedModules: 0,
+                totalModules,
+                progressPercentage: 0,
+                currentLevel: "L1",
+                lastActivity: null
+            };
+        }
+
+        const completedModules = studentProgress.completedModules?.length || 0;
+        const progressPercentage = totalModules > 0 ? Math.round((completedModules / totalModules) * 100) : 0;
+
+        return {
+            student: {
+                _id: studentProgress.student._id,
+                fullName: studentProgress.student.fullName,
+                email: studentProgress.student.email,
+                avatar: studentProgress.student.avatar,
+                enrolledAt: student.createdAt
+            },
+            completedModules,
+            totalModules,
+            progressPercentage,
+            currentLevel: studentProgress.currentLevel,
+            lastActivity: studentProgress.updatedAt
+        };
+    });
+
+    res.json(new ApiResponse(200, {
+        courseTitle: course.title,
+        totalStudents: course.students?.length || 0,
+        students: studentsWithProgress
+    }, "Course students fetched successfully"));
 });

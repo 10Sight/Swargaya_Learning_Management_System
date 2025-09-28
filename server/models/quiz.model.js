@@ -51,6 +51,12 @@ const quizSchema = new Schema(
             required: [true, "Course reference is required"],
             index: true,
         },
+        module: {
+            type: Schema.Types.ObjectId,
+            ref: "Module",
+            required: false,
+            index: true,
+        },
         title: {
             type: String,
             required: [true, "Quiz title is required"],

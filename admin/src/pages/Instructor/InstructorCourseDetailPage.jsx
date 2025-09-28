@@ -181,8 +181,9 @@ const InstructorCourseDetailPage = () => {
 
   // Calculate course statistics
   const enrolledStudents = course.enrolledStudents || 0;
-  const averageGrade = submissions.length > 0 
-    ? (submissions.reduce((sum, sub) => sum + (sub.grade || 0), 0) / submissions.length).toFixed(1)
+  const gradedSubmissions = submissions.filter(sub => sub.grade !== undefined && sub.grade !== null);
+  const averageGrade = gradedSubmissions.length > 0 
+    ? (gradedSubmissions.reduce((sum, sub) => sum + (sub.grade || 0), 0) / gradedSubmissions.length).toFixed(1)
     : 0;
   const completionRate = enrolledStudents > 0 
     ? ((submissions.filter(sub => sub.status === "GRADED").length / enrolledStudents) * 100).toFixed(0)
@@ -267,12 +268,12 @@ const InstructorCourseDetailPage = () => {
 
         <div className="flex gap-2">
           <Button
-            onClick={() => navigate(`/instructor/courses/edit/${courseId}`)}
+            onClick={() => navigate('/instructor/courses')}
             variant="outline"
             className="gap-2"
           >
             <IconEdit className="h-4 w-4" />
-            Edit Course
+            Manage Course
           </Button>
           <Button
             onClick={() => navigate(`/instructor/add-module/${courseId}`)}

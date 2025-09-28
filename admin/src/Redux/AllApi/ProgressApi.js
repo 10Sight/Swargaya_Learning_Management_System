@@ -48,6 +48,14 @@ export const progressApi = createApi({
             }),
             providesTags: (result, error, courseId) => [{ type: 'Progress', id: courseId }],
         }),
+
+        getStudentProgress: builder.query({
+            query: (studentId) => ({
+                url: `/api/progress/student/${studentId}`,
+                method: "GET",
+            }),
+            providesTags: (result, error, studentId) => [{ type: 'Progress', id: `student-${studentId}` }],
+        }),
     }),
 });
 
@@ -57,4 +65,5 @@ export const {
     useUpgradeLevelMutation,
     useGetMyProgressQuery,
     useGetCourseProgressQuery,
+    useGetStudentProgressQuery,
 } = progressApi;

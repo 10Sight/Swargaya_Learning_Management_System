@@ -6,25 +6,42 @@ import Submission from "../models/submission.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { checkModuleAccessForAssessments } from "../utils/moduleCompletion.js";
 
 export const createAssignment = asyncHandler(async (req, res) => {
-    const { courseId, title, description, dueDate } = req.body;
+    const { courseId, moduleId, title, description, dueDate, maxScore, allowResubmission } = req.body;
 
     if(!mongoose.Types.ObjectId.isValid(courseId)) {
         throw new ApiError(400, "Invalid course ID");
     }
 
+    if(moduleId && !mongoose.Types.ObjectId.isValid(moduleId)) {
+        throw new ApiError(400, "Invalid module ID");
+    }
+
     const course = await Course.findById(courseId);
     if(!course) throw new ApiError(404, "Course not found");
+
+    // If moduleId is provided, verify the module exists and belongs to the course
+    if(moduleId) {
+        const Module = (await import("../models/module.model.js")).default;
+        const module = await Module.findOne({ _id: moduleId, course: courseId });
+        if(!module) {
+            throw new ApiError(404, "Module not found or does not belong to this course");
+        }
+    }
 
     // Create assignment with required fields
     const assignment = await Assignment.create({
         course: courseId,
+        module: moduleId || null,
         lesson: courseId, // Use courseId as lesson for now
         instructor: course.instructor || req.user._id, // Use course instructor or current user
         title,
         description,
         dueDate,
+        maxScore: maxScore || 100,
+        allowResubmission: allowResubmission !== undefined ? allowResubmission : true,
         createdBy: req.user._id,
     });
 
@@ -49,6 +66,7 @@ export const getAllAssignments = asyncHandler(async (req, res) => {
 
     const assignments = await Assignment.find(query)
         .populate("course", "title")
+        .populate("module", "title")
         .populate("instructor", "fullName email")
         .populate("createdBy", "fullName email")
         .sort({ createdAt: -1 });
@@ -113,4 +131,103 @@ export const deleteAssignment = asyncHandler(async (req, res) => {
     await assignment.deleteOne();
 
     res.json(new ApiResponse(200, null, "Assignment deleted successfully"));
+});
+
+// Get assignments accessible to a student for a specific module
+export const getAccessibleAssignments = asyncHandler(async (req, res) => {
+    const { courseId, moduleId } = req.params;
+    const userId = req.user._id;
+
+    if(!mongoose.Types.ObjectId.isValid(courseId) || !mongoose.Types.ObjectId.isValid(moduleId)) {
+        throw new ApiError(400, "Invalid course ID or module ID");
+    }
+
+    // Check if user has access to assessments for this module (effective completion)
+    const accessCheck = await checkModuleAccessForAssessments(userId, courseId, moduleId);
+    
+    if (!accessCheck.hasAccess) {
+        // Return empty array with access information
+        return res.json(new ApiResponse(200, {
+            assignments: [],
+            accessInfo: {
+                hasAccess: false,
+                reason: accessCheck.reason
+            }
+        }, "Module assignments locked - complete all lessons to unlock"));
+    }
+
+    // User has access, fetch assignments based on onlyModule parameter
+    const onlyModule = String(req.query.onlyModule || '').toLowerCase() === 'true';
+    let filter;
+    
+    if (onlyModule) {
+        // First try to find assignments specifically assigned to this module
+        filter = { course: courseId, module: moduleId };
+
+        const moduleOnlyAssignments = await Assignment.find(filter)
+            .populate("course", "title")
+            .populate("module", "title")
+            .populate("instructor", "fullName email")
+            .populate("createdBy", "fullName email")
+            .sort({ createdAt: -1 });
+
+        // If module has specific content, return it
+        if (moduleOnlyAssignments.length > 0) {
+            return res.json(new ApiResponse(200, {
+                assignments: moduleOnlyAssignments,
+                accessInfo: {
+                    hasAccess: true,
+                    reason: accessCheck.reason
+                }
+            }, "Accessible assignments (module-specific) fetched successfully"));
+        }
+
+        // Fallback: if no module-specific content, return course-wide items
+        filter = { 
+            course: courseId,
+            $or: [
+                { module: null },
+                { module: { $exists: false } }
+            ]
+        };
+
+        const fallbackAssignments = await Assignment.find(filter)
+            .populate("course", "title")
+            .populate("module", "title")
+            .populate("instructor", "fullName email")
+            .populate("createdBy", "fullName email")
+            .sort({ createdAt: -1 });
+        return res.json(new ApiResponse(200, {
+            assignments: fallbackAssignments,
+            accessInfo: {
+                hasAccess: true,
+                reason: accessCheck.reason
+            }
+        }, "Accessible assignments (course-wide fallback) fetched successfully"));
+    } else {
+        // Return both module-specific and course-wide assignments
+        filter = { 
+            course: courseId, 
+            $or: [ 
+                { module: moduleId }, 
+                { module: null }, 
+                { module: { $exists: false } }
+            ] 
+        };
+
+        const assignments = await Assignment.find(filter)
+            .populate("course", "title")
+            .populate("module", "title")
+            .populate("instructor", "fullName email")
+            .populate("createdBy", "fullName email")
+            .sort({ createdAt: -1 });
+
+        return res.json(new ApiResponse(200, {
+            assignments,
+            accessInfo: {
+                hasAccess: true,
+                reason: accessCheck.reason
+            }
+        }, "Accessible assignments fetched successfully"));
+    }
 });

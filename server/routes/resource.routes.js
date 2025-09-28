@@ -13,11 +13,11 @@ const router = express.Router();
 // Apply JWT verification to all routes
 router.use(verifyJWT);
 
+// Get resources by module
+router.get("/module/:moduleId", getResourcesByModule);
+
 // Create resource with file upload
 router.post("/", upload.single('file'), createResource);
-
-// Get resources by module - Use specific route
-router.get("/module/:moduleId", getResourcesByModule);
 
 // Update resource with file upload
 router.put("/:resourceId", upload.single('file'), updateResource);

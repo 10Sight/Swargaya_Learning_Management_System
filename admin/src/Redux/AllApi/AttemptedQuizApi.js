@@ -46,6 +46,14 @@ export const attemptedQuizApi = createApi({
             }),
             invalidatesTags: ['AttemptedQuiz'],
         }),
+
+        getStudentAttempts: builder.query({
+            query: (studentId) => ({
+                url: `/api/attempts/student/${studentId}`,
+                method: "GET",
+            }),
+            providesTags: (result, error, studentId) => [{ type: 'AttemptedQuiz', id: `student-${studentId}` }],
+        }),
     }),
 });
 
@@ -55,4 +63,5 @@ export const {
     useGetAttemptsQuizQuery,
     useGetAttemptByIdQuery,
     useDeleteAttemptMutation,
+    useGetStudentAttemptsQuery,
 } = attemptedQuizApi;

@@ -13,8 +13,11 @@ const resourceSchema = new Schema({
     },
     type: {
         type: String,
-        enum: ["VIDEO", "PDF", "IMAGE", "TEXT", "LINK"],
-        required: true
+        enum: ["video", "pdf", "image", "text", "link", "VIDEO", "PDF", "IMAGE", "TEXT", "LINK"],
+        required: true,
+        set: function(value) {
+            return value ? value.toLowerCase() : value;
+        }
     },
     description: {
         type: String,
@@ -34,6 +37,10 @@ const resourceSchema = new Schema({
     },
     format: {
         type: String, // File format (pdf, jpg, mp4, etc.)
+        default: null
+    },
+    fileName: {
+        type: String, // Original file name
         default: null
     },
     createdBy: {
