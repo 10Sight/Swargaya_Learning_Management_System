@@ -127,14 +127,51 @@ export const gradeSubmission = asyncHandler(async (req, res) => {
         throw new ApiError("Invalid submission ID", 400);
     }
 
-    const submission = await Submission.findById(submissionId);
+    const submission = await Submission.findById(submissionId)
+        .populate({
+            path: 'assignment',
+            populate: {
+                path: 'course',
+                select: 'title'
+            }
+        })
+        .populate('student', 'fullName email batch');
     if(!submission) throw new ApiError("Submission not found", 404);
 
+    // Verify instructor authorization - check if instructor teaches this course
+    if (req.user.role === 'INSTRUCTOR') {
+        const Batch = (await import("../models/batch.model.js")).default;
+        const batch = await Batch.findById(submission.student.batch);
+        
+        if (!batch || 
+            batch.instructor.toString() !== req.user._id.toString() || 
+            batch.course.toString() !== submission.assignment.course._id.toString()) {
+            throw new ApiError("You are not authorized to grade this submission", 403);
+        }
+    }
+
+    // Validate grade if provided
+    if (grade !== null && grade !== undefined) {
+        const maxScore = submission.assignment.maxScore || 100;
+        if (grade < 0 || grade > maxScore) {
+            throw new ApiError(`Grade must be between 0 and ${maxScore}`, 400);
+        }
+    }
+
     submission.grade = grade;
-    submission.feedback = feedback;
+    submission.feedback = feedback || '';
+    submission.status = grade !== null && grade !== undefined ? 'GRADED' : submission.status;
+    submission.gradedAt = grade !== null && grade !== undefined ? new Date() : submission.gradedAt;
+    submission.gradedBy = grade !== null && grade !== undefined ? req.user._id : submission.gradedBy;
+    
     await submission.save();
 
-    res.json(new ApiResponse(200, submission, "Submission graded successfully"));
+    const populatedSubmission = await Submission.findById(submission._id)
+        .populate('assignment', 'title maxScore dueDate')
+        .populate('student', 'fullName email')
+        .populate('gradedBy', 'fullName email');
+
+    res.json(new ApiResponse(200, populatedSubmission, "Submission graded successfully"));
 });
 
 // New endpoint to get specific student submissions for admin

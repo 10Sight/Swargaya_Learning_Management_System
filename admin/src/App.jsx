@@ -23,6 +23,7 @@ import AddLessonPage from "./pages/Admin/AddLessonPage";
 import InstructorDetail from "./pages/Admin/InstructorDetail";
 import StudentDetail from "./pages/Admin/StudentDetail";
 import Analytics from "./pages/Admin/Analytics";
+import StudentLevelManagement from "./pages/Admin/StudentLevelManagement";
 import { useSelector } from "react-redux";
 import { Navigate } from "react-router-dom";
 import InstructorDashboard from "./pages/Instructor/Dashboard";
@@ -38,6 +39,11 @@ import StudentBatch from "./pages/Student/Batch";
 import BatchCourse from "./pages/Student/BatchCourse";
 import LessonDetail from "./pages/Student/LessonDetail";
 import TakeQuiz from "./pages/Student/TakeQuiz";
+import CourseReport from "./pages/Student/CourseReport";
+import Reports from "./pages/Student/Reports";
+import CertificateTemplates from "./pages/Admin/CertificateTemplates";
+import CertificateIssuance from "./pages/Instructor/CertificateIssuance";
+import StudentCertificates from "./pages/Student/Certificates";
 
 const RoleRedirect = () => {
   const { user } = useSelector((state) => state.auth);
@@ -99,6 +105,8 @@ const App = () => {
           <Route path="add-assignment/:courseId" element={<AddAssignmentPage />} />
           <Route path="add-resource/:courseId" element={<AddResourcePage />} />
           <Route path="analytics" element={<Analytics pageName="Analytics" />} />
+          <Route path="student-levels" element={<StudentLevelManagement />} />
+          <Route path="certificate-templates" element={<CertificateTemplates pageName="Certificate Templates" />} />
         </Route>
 
         {/* Instructor routes */}
@@ -117,6 +125,7 @@ const App = () => {
           <Route path="students" element={<InstructorStudents />} />
           <Route path="quiz-monitoring" element={<QuizMonitoring />} />
           <Route path="assignment-monitoring" element={<AssignmentMonitoring />} />
+          <Route path="certificate-issuance" element={<CertificateIssuance />} />
         </Route>
 
         {/* SuperAdmin routes */}
@@ -138,6 +147,8 @@ const App = () => {
           <Route path="students" element={<Students pageName="Students" />} />
           <Route path="students/:studentId" element={<StudentDetail />} />
           <Route path="batches/:batchId" element={<BatchDetail pageName="Batch Detail" />} />
+          <Route path="student-levels" element={<StudentLevelManagement />} />
+          <Route path="certificate-templates" element={<CertificateTemplates pageName="Certificate Templates" />} />
         </Route>
 
         {/* Student routes */}
@@ -154,6 +165,9 @@ const App = () => {
           <Route path="course" element={<BatchCourse />} />
           <Route path="lesson/:lessonId" element={<LessonDetail />} />
           <Route path="quiz/:quizId" element={<TakeQuiz />} />
+          <Route path="reports" element={<Reports />} />
+          <Route path="report/:courseId" element={<CourseReport />} />
+          <Route path="certificates" element={<StudentCertificates />} />
         </Route>
       </Routes>
     </Router>

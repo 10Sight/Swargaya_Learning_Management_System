@@ -134,53 +134,53 @@ const StudentBatch = () => {
       onClick={handleBatchClick}
     >
       <CardHeader className="pb-4 relative">
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle className="text-2xl flex items-center gap-2 group-hover:text-blue-600 transition-colors">
-              <Users className="h-6 w-6 text-blue-600 group-hover:scale-110 transition-transform" />
-              {batch.name}
-              <ExternalLink className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+          <div className="flex-1">
+            <CardTitle className="text-xl sm:text-2xl flex items-center gap-2 group-hover:text-blue-600 transition-colors">
+              <Users className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 group-hover:scale-110 transition-transform" />
+              <span className="break-words">{batch.name}</span>
+              <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-sm mt-1">
               Your current learning program details
             </CardDescription>
           </div>
-          <Badge variant={getStatusVariant(batch.status)} className="text-sm">
-            {batch.status}
-          </Badge>
-        </div>
-        
-        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleViewDetails}
-            className="flex items-center gap-1"
-          >
-            View Details
-            <ArrowRight className="h-3 w-3" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Badge variant={getStatusVariant(batch.status)} className="text-xs sm:text-sm">
+              {batch.status}
+            </Badge>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleViewDetails}
+              className="flex items-center gap-1 text-xs sm:text-sm sm:opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <span className="hidden sm:inline">View Details</span>
+              <span className="sm:hidden">View</span>
+              <ArrowRight className="h-3 w-3" />
+            </Button>
+          </div>
         </div>
       </CardHeader>
       
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4 text-muted-foreground" />
-              <div>
+            <div className="flex items-start gap-2">
+              <BookOpen className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+              <div className="min-w-0">
                 <p className="text-sm font-medium text-muted-foreground">Course</p>
-                <p className="font-semibold">
+                <p className="font-semibold break-words">
                   {batch.course?.title || batch.course?.name || "N/A"}
                 </p>
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <div>
+            <div className="flex items-start gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+              <div className="min-w-0">
                 <p className="text-sm font-medium text-muted-foreground">Start Date</p>
-                <p className="font-semibold">
+                <p className="font-semibold break-words">
                   {batch.startDate ? formatDate(batch.startDate) : "Not specified"}
                 </p>
               </div>
@@ -188,23 +188,23 @@ const StudentBatch = () => {
           </div>
           
           <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <div>
+            <div className="flex items-start gap-2">
+              <Clock className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+              <div className="min-w-0">
                 <p className="text-sm font-medium text-muted-foreground">End Date</p>
-                <p className="font-semibold">
+                <p className="font-semibold break-words">
                   {batch.endDate ? formatDate(batch.endDate) : "Not specified"}
                 </p>
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 flex items-center justify-center">
+            <div className="flex items-start gap-2">
+              <div className="w-4 h-4 flex items-center justify-center mt-0.5 flex-shrink-0">
                 <div className="w-2 h-2 bg-muted-foreground rounded-full"></div>
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm font-medium text-muted-foreground">Batch Code</p>
-                <p className="font-mono font-semibold text-sm">{batch.name}</p>
+                <p className="font-mono font-semibold text-sm break-all">{batch.name}</p>
               </div>
             </div>
           </div>
@@ -222,7 +222,7 @@ const StudentBatch = () => {
                 style={{ width: `${progress}%` }}
               ></div>
             </div>
-            <div className="flex justify-between text-xs text-muted-foreground">
+            <div className="flex flex-col sm:flex-row justify-between text-xs text-muted-foreground gap-1">
               <span>Start: {batch.startDate ? formatDate(batch.startDate) : 'N/A'}</span>
               <span>End: {batch.endDate ? formatDate(batch.endDate) : 'N/A'}</span>
             </div>

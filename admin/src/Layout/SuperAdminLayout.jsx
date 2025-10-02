@@ -23,16 +23,17 @@ import {
   IconUsers,
   IconChartPie,
   IconUser,
+  IconSettings,
 } from "@tabler/icons-react";
 import { HomeIcon } from "lucide-react";
 
 const tabs = [
   { link: "/superadmin", label: "Dashboard", icon: IconLayoutDashboardFilled },
-  { link: "/admin/instructor", label: "Instructors", icon: IconUser },
-  { link: "/admin/courses", label: "Courses", icon: IconCertificate },
-  { link: "/admin/batches", label: "Batches", icon: IconFolder },
-  { link: "/admin/students", label: "Students", icon: IconUsers },
-  { link: "/analytics", label: "Analytics", icon: IconChartPie },
+  { link: "/superadmin/instructor", label: "Instructors", icon: IconUser },
+  { link: "/superadmin/courses", label: "Courses", icon: IconCertificate },
+  { link: "/superadmin/batches", label: "Batches", icon: IconFolder },
+  { link: "/superadmin/students", label: "Students", icon: IconUsers },
+  { link: "/superadmin/student-levels", label: "Student Levels", icon: IconSettings },
 ];
 
 export function SuperAdminLayout() {

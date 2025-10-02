@@ -49,6 +49,11 @@ const LessonDetail = () => {
     skip: !lessonId,
   });
 
+  console.log("LessonDetail - lessonId:", lessonId);
+  console.log("LessonDetail - resourcesData:", resourcesData);
+  console.log("LessonDetail - resourcesLoading:", resourcesLoading);
+  console.log("LessonDetail - resourcesError:", resourcesError);
+
   const resources = resourcesData?.data || [];
 
   // Lesson and course data state
@@ -104,7 +109,7 @@ const LessonDetail = () => {
               break;
             }
           } catch (err) {
-            // Continue to next module if this one fails
+            console.error(`Error fetching lessons for module ${moduleId}:`, err);
             continue;
           }
         }
@@ -241,8 +246,8 @@ const LessonDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-4xl mx-auto space-y-6">
+      <div className="min-h-screen bg-gray-50 p-3 sm:p-6">
+        <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
           <div className="h-8 bg-gray-200 rounded animate-pulse" />
           <div className="h-64 bg-gray-200 rounded animate-pulse" />
           <div className="h-32 bg-gray-200 rounded animate-pulse" />
@@ -253,7 +258,7 @@ const LessonDetail = () => {
 
   if (error || !lesson) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen bg-gray-50 p-3 sm:p-6">
         <div className="max-w-4xl mx-auto">
           <Alert variant="destructive">
             <AlertDescription>
@@ -273,22 +278,24 @@ const LessonDetail = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Fixed Header */}
       <div className="sticky top-0 bg-white border-b z-10">
-        <div className="max-w-4xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+        <div className="max-w-4xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+            <div className="flex items-center gap-2 sm:gap-4">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleBackToCourse}
+                className="text-xs sm:text-sm"
               >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Course
+                <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Back to Course</span>
+                <span className="sm:hidden">Back</span>
               </Button>
               <div>
-                <h1 className="text-xl font-bold">
+                <h1 className="text-lg sm:text-xl font-bold">
                   {lesson.title || "Lesson"}
                 </h1>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   {lesson.duration && (
                     <>
                       <Clock className="h-3 w-3 inline mr-1" />
@@ -322,7 +329,7 @@ const LessonDetail = () => {
       {/* Scrollable Content */}
       <div 
         ref={scrollContainerRef}
-        className="max-w-4xl mx-auto p-6 space-y-6 h-[calc(100vh-80px)] overflow-y-auto"
+        className="max-w-4xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6 h-[calc(100vh-80px)] overflow-y-auto"
       >
         {/* Lesson Content */}
         <Card>
@@ -333,9 +340,9 @@ const LessonDetail = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="prose max-w-none">
-            {lesson.description ? (
+            {lesson.content ? (
               <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
-                {lesson.description}
+                {lesson.content}
               </div>
             ) : (
               <p className="text-muted-foreground">
@@ -398,9 +405,9 @@ const LessonDetail = () => {
                               {resource.type?.toUpperCase() || 'FILE'}
                             </Badge>
                           </div>
-                          {resource.description && (
+                          {resource.content && (
                             <p className="text-xs text-muted-foreground">
-                              {resource.description}
+                              {resource.content}
                             </p>
                           )}
                         </div>

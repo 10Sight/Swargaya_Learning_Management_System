@@ -1,8 +1,14 @@
 import mongoose from "mongoose";
 
 import Certificate from "../models/certificate.model.js";
+import CertificateTemplate from "../models/certificateTemplate.model.js";
 import Course from "../models/course.model.js";
 import User from "../models/auth.model.js";
+import Submission from "../models/submission.model.js";
+import Assignment from "../models/assignment.model.js";
+import AttemptedQuiz from "../models/attemptedQuiz.model.js";
+import Progress from "../models/progress.model.js";
+import Batch from "../models/batch.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -55,11 +61,13 @@ export const getCertificateById = asyncHandler(async (req, res) => {
 export const getStudentCertificates = asyncHandler(async (req, res) => {
     const studentId = req.user._id;
 
-    const certificates = await Certificate.find({ user: studentId })
-        .populate("course", "title")
-        .sort({ issuedAt: -1 });
+    const certificates = await Certificate.find({ student: studentId })
+        .populate("student", "fullName email")
+        .populate("course", "title description")
+        .populate("issuedBy", "fullName email")
+        .sort({ issueDate: -1 });
 
-    res.json(new ApiResponse(200, certificates, "Certificate fetched successfully"));
+    res.json(new ApiResponse(200, certificates, "Certificates fetched successfully"));
 });
 
 export const getCourseCertificates = asyncHandler(async (req, res) => {
@@ -90,4 +98,300 @@ export const revokeCertificate = asyncHandler(async (req, res) => {
     await certificate.deleteOne();
 
     res.json(new ApiResponse(200, null, "Certificate revoked successfully"));
+});
+
+// Check student eligibility for certificate (Instructor only)
+export const checkCertificateEligibility = asyncHandler(async (req, res) => {
+    const { studentId, courseId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(studentId) || !mongoose.Types.ObjectId.isValid(courseId)) {
+        throw new ApiError("Invalid student or course ID", 400);
+    }
+
+    // Get student and course details
+    const student = await User.findById(studentId).populate('batch');
+    if (!student) throw new ApiError("Student not found", 404);
+
+    const course = await Course.findById(courseId).populate('modules');
+    if (!course) throw new ApiError("Course not found", 404);
+
+    // Check if student is enrolled in instructor's batch for this course
+    if (!student.batch) {
+        throw new ApiError("Student not assigned to any batch", 400);
+    }
+
+    const batch = await Batch.findById(student.batch._id);
+    if (batch.course.toString() !== courseId || batch.instructor.toString() !== req.user._id.toString()) {
+        throw new ApiError("You are not authorized to issue certificates for this student", 403);
+    }
+
+    // Check if certificate already exists
+    const existingCertificate = await Certificate.findOne({ student: studentId, course: courseId });
+    if (existingCertificate) {
+        return res.json(new ApiResponse(200, {
+            eligible: false,
+            reason: "Certificate already issued",
+            certificate: existingCertificate
+        }, "Certificate eligibility checked"));
+    }
+
+    // Check progress completion
+    const progress = await Progress.findOne({ student: studentId, course: courseId });
+    if (!progress) {
+        return res.json(new ApiResponse(200, {
+            eligible: false,
+            reason: "No progress found for this course",
+            requirements: {
+                courseCompletion: false,
+                quizPassed: false,
+                assignmentsGraded: false
+            }
+        }, "Certificate eligibility checked"));
+    }
+
+    // Check course completion (all modules completed)
+    const totalModules = course.modules?.length || 0;
+    const completedModules = progress.completedModules?.length || 0;
+    const courseCompleted = totalModules > 0 && completedModules >= totalModules;
+
+    // Check quiz attempts and pass status
+    const quizAttempts = await AttemptedQuiz.find({ student: studentId })
+        .populate({
+            path: 'quiz',
+            match: { course: courseId },
+            select: 'title questions passingScore'
+        });
+
+    const courseQuizAttempts = quizAttempts.filter(attempt => attempt.quiz);
+    const passedQuizzes = courseQuizAttempts.filter(attempt => {
+        const totalQuestions = attempt.quiz.questions?.length || 0;
+        const scorePercent = totalQuestions > 0 ? (attempt.score / totalQuestions) * 100 : 0;
+        const passingScore = attempt.quiz.passingScore || 70;
+        return scorePercent >= passingScore;
+    });
+
+    const quizPassed = courseQuizAttempts.length > 0 && passedQuizzes.length > 0;
+
+    // Check assignment submissions and grading
+    const assignments = await Assignment.find({ course: courseId });
+    const submissions = await Submission.find({
+        student: studentId,
+        assignment: { $in: assignments.map(a => a._id) }
+    }).populate('assignment', 'title maxScore');
+
+    const gradedSubmissions = submissions.filter(sub => sub.grade !== null && sub.grade !== undefined);
+    const assignmentsGraded = submissions.length > 0 && gradedSubmissions.length === submissions.length;
+
+    const eligible = courseCompleted && quizPassed && assignmentsGraded;
+
+    res.json(new ApiResponse(200, {
+        eligible,
+        reason: eligible ? "Student is eligible for certificate" : "Student does not meet all requirements",
+        requirements: {
+            courseCompletion: courseCompleted,
+            quizPassed,
+            assignmentsGraded
+        },
+        details: {
+            progress: {
+                completedModules,
+                totalModules,
+                progressPercent: progress.progressPercent,
+                currentLevel: progress.currentLevel
+            },
+            quizzes: {
+                totalAttempts: courseQuizAttempts.length,
+                passedQuizzes: passedQuizzes.length
+            },
+            assignments: {
+                totalSubmissions: submissions.length,
+                gradedSubmissions: gradedSubmissions.length,
+                submissions: submissions.map(sub => ({
+                    assignment: sub.assignment.title,
+                    grade: sub.grade,
+                    maxScore: sub.assignment.maxScore,
+                    isGraded: sub.grade !== null && sub.grade !== undefined
+                }))
+            }
+        }
+    }, "Certificate eligibility checked"));
+});
+
+// Issue certificate with template (Instructor only)
+export const issueCertificateWithTemplate = asyncHandler(async (req, res) => {
+    const { studentId, courseId, grade, templateId } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(studentId) || !mongoose.Types.ObjectId.isValid(courseId)) {
+        throw new ApiError("Invalid student or course ID", 400);
+    }
+
+    // Check eligibility first
+    const student = await User.findById(studentId).populate('batch');
+    if (!student) throw new ApiError("Student not found", 404);
+
+    const course = await Course.findById(courseId);
+    if (!course) throw new ApiError("Course not found", 404);
+
+    // Verify instructor authorization
+    const batch = await Batch.findById(student.batch._id)
+        .populate('instructor', 'fullName email');
+    if (batch.course.toString() !== courseId || batch.instructor._id.toString() !== req.user._id.toString()) {
+        throw new ApiError("You are not authorized to issue certificates for this student", 403);
+    }
+
+    // Check if certificate already exists
+    const existing = await Certificate.findOne({ student: studentId, course: courseId });
+    if (existing) {
+        throw new ApiError("Certificate already issued for this student & course", 400);
+    }
+
+    // Get progress for level information
+    const progress = await Progress.findOne({ student: studentId, course: courseId });
+    if (!progress) {
+        throw new ApiError("No progress found for this course", 404);
+    }
+
+    // Get certificate template
+    let template;
+    if (templateId && mongoose.Types.ObjectId.isValid(templateId)) {
+        template = await CertificateTemplate.findById(templateId);
+        if (!template || !template.isActive) {
+            throw new ApiError("Certificate template not found", 404);
+        }
+    } else {
+        // Use default template
+        template = await CertificateTemplate.findOne({ isDefault: true, isActive: true });
+        if (!template) {
+            template = await CertificateTemplate.findOne({ isActive: true }).sort({ createdAt: 1 });
+        }
+        if (!template) {
+            throw new ApiError("No certificate template available", 404);
+        }
+    }
+
+    // Generate certificate content
+    const certificateData = {
+        studentName: student.fullName,
+        courseName: course.title,
+        batchName: batch.name,
+        instructorName: batch.instructor.fullName,
+        level: progress.currentLevel,
+        issueDate: new Date().toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        }),
+        grade: grade || 'PASS'
+    };
+
+    // Replace placeholders in template
+    let certificateHTML = template.template;
+    Object.keys(certificateData).forEach(key => {
+        const placeholder = new RegExp(`{{${key}}}`, 'g');
+        certificateHTML = certificateHTML.replace(placeholder, certificateData[key]);
+    });
+
+    // Create certificate record
+    const certificate = await Certificate.create({
+        student: studentId,
+        course: courseId,
+        issuedBy: req.user._id,
+        grade: grade || 'PASS',
+        metadata: {
+            ...certificateData,
+            templateId: template._id.toString(),
+            templateName: template.name,
+            generatedHTML: certificateHTML,
+            styles: template.styles
+        }
+    });
+
+    const populatedCertificate = await Certificate.findById(certificate._id)
+        .populate('student', 'fullName email')
+        .populate('course', 'title description')
+        .populate('issuedBy', 'fullName email');
+
+    res.status(201).json(new ApiResponse(201, {
+        certificate: populatedCertificate,
+        certificateData,
+        template: {
+            _id: template._id,
+            name: template.name,
+            html: certificateHTML,
+            styles: template.styles
+        }
+    }, "Certificate issued successfully"));
+});
+
+// Generate certificate preview (Instructor only)
+export const generateCertificatePreview = asyncHandler(async (req, res) => {
+    const { studentId, courseId, templateId } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(studentId) || !mongoose.Types.ObjectId.isValid(courseId)) {
+        throw new ApiError("Invalid student or course ID", 400);
+    }
+
+    const student = await User.findById(studentId).populate('batch');
+    if (!student) throw new ApiError("Student not found", 404);
+
+    const course = await Course.findById(courseId);
+    if (!course) throw new ApiError("Course not found", 404);
+
+    const batch = await Batch.findById(student.batch._id)
+        .populate('instructor', 'fullName');
+
+    const progress = await Progress.findOne({ student: studentId, course: courseId });
+    if (!progress) {
+        throw new ApiError("No progress found for this course", 404);
+    }
+
+    // Get certificate template
+    let template;
+    if (templateId && mongoose.Types.ObjectId.isValid(templateId)) {
+        template = await CertificateTemplate.findById(templateId);
+    } else {
+        template = await CertificateTemplate.findOne({ isDefault: true, isActive: true });
+        if (!template) {
+            template = await CertificateTemplate.findOne({ isActive: true }).sort({ createdAt: 1 });
+        }
+    }
+
+    if (!template) {
+        throw new ApiError("No certificate template available", 404);
+    }
+
+    // Generate preview data
+    const previewData = {
+        studentName: student.fullName,
+        courseName: course.title,
+        batchName: batch.name,
+        instructorName: batch.instructor.fullName,
+        level: progress.currentLevel,
+        issueDate: new Date().toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        }),
+        grade: 'PASS' // Default for preview
+    };
+
+    // Replace placeholders in template
+    let previewHTML = template.template;
+    Object.keys(previewData).forEach(key => {
+        const placeholder = new RegExp(`{{${key}}}`, 'g');
+        previewHTML = previewHTML.replace(placeholder, previewData[key]);
+    });
+
+    res.json(new ApiResponse(200, {
+        preview: {
+            html: previewHTML,
+            styles: template.styles,
+            data: previewData
+        },
+        template: {
+            _id: template._id,
+            name: template.name,
+            description: template.description
+        }
+    }, "Certificate preview generated successfully"));
 });

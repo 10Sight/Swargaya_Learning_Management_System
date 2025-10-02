@@ -40,8 +40,7 @@ const certificateSchema = new Schema(
             default: "ACTIVE",
         },
         metadata: {
-            type: Map,
-            of: String,
+            type: Schema.Types.Mixed,
         },
     },
     {

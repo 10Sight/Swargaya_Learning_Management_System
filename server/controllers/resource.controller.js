@@ -132,8 +132,11 @@ export const createResource = asyncHandler(async (req, res) => {
 export const getResourcesByModule = asyncHandler(async (req, res) => {
     const rawModuleId = req.params?.moduleId ?? req.body?.moduleId;
 
+    console.log("getResourcesByModule - moduleId:", rawModuleId);
+    console.log("getResourcesByModule - params:", req.params);
 
     if (!rawModuleId || rawModuleId === 'undefined' || rawModuleId === 'null') {
+        console.log("getResourcesByModule - Invalid moduleId provided:", rawModuleId);
         return res.status(400).json(new ApiResponse(400, [], "Module ID is required"));
     }
 
@@ -145,6 +148,8 @@ export const getResourcesByModule = asyncHandler(async (req, res) => {
         const resources = await Resource.find({ moduleId: rawModuleId, scope: 'module' })
             .populate('createdBy', 'name email')
             .sort({ createdAt: -1 });
+
+        console.log("getResourcesByModule - Found resources:", resources.length, "resources for moduleId:", rawModuleId);
 
         return res.json(
             new ApiResponse(200, resources, "Resources retrieved successfully")
@@ -158,8 +163,11 @@ export const getResourcesByModule = asyncHandler(async (req, res) => {
 export const getResourcesByCourse = asyncHandler(async (req, res) => {
     const rawCourseId = req.params?.courseId ?? req.body?.courseId;
 
+    console.log("getResourcesByCourse - courseId:", rawCourseId);
+    console.log("getResourcesByCourse - params:", req.params);
 
     if (!rawCourseId || rawCourseId === 'undefined' || rawCourseId === 'null') {
+        console.log("getResourcesByCourse - Invalid courseId provided:", rawCourseId);
         return res.status(400).json(new ApiResponse(400, [], "Course ID is required"));
     }
 
@@ -171,6 +179,8 @@ export const getResourcesByCourse = asyncHandler(async (req, res) => {
         const resources = await Resource.find({ courseId: rawCourseId, scope: 'course' })
             .populate('createdBy', 'name email')
             .sort({ createdAt: -1 });
+
+        console.log("getResourcesByCourse - Found resources:", resources.length, "resources for courseId:", rawCourseId);
 
         return res.json(
             new ApiResponse(200, resources, "Resources retrieved successfully")
@@ -184,8 +194,11 @@ export const getResourcesByCourse = asyncHandler(async (req, res) => {
 export const getResourcesByLesson = asyncHandler(async (req, res) => {
     const rawLessonId = req.params?.lessonId ?? req.body?.lessonId;
 
+    console.log("getResourcesByLesson - lessonId:", rawLessonId);
+    console.log("getResourcesByLesson - params:", req.params);
 
     if (!rawLessonId || rawLessonId === 'undefined' || rawLessonId === 'null') {
+        console.log("getResourcesByLesson - Invalid lessonId provided:", rawLessonId);
         return res.status(400).json(new ApiResponse(400, [], "Lesson ID is required"));
     }
 
@@ -197,6 +210,8 @@ export const getResourcesByLesson = asyncHandler(async (req, res) => {
         const resources = await Resource.find({ lessonId: rawLessonId, scope: 'lesson' })
             .populate('createdBy', 'name email')
             .sort({ createdAt: -1 });
+
+        console.log("getResourcesByLesson - Found resources:", resources.length, "resources for lessonId:", rawLessonId);
 
         return res.json(
             new ApiResponse(200, resources, "Resources retrieved successfully")

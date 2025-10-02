@@ -9,6 +9,9 @@ if(!fs.existsSync(uploadDir)) {
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
+        cb(null, uploadDir);
+    },
+    filename: function (req, file, cb) {
         const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
         cb(null, uniqueSuffix + path.extname(file.originalname));
     },
@@ -23,12 +26,19 @@ const fileFilter = (req, file, cb) => {
         "video/mp4",
         "video/mpeg",
         "video/quicktime",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "text/plain",
+        "application/vnd.ms-powerpoint",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "application/zip",
+        "application/x-rar-compressed"
     ];
 
     if(allowedTypes.includes(file.mimetype)) {
         cb(null, true);
     } else {
-        cb(new Error("Invalid file type. Only images, pdfs, and videos are allowed"), false);
+        cb(new Error("Invalid file type. Allowed: images, PDFs, videos, documents, presentations, and archives"), false);
     }
 };
 

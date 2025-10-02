@@ -73,7 +73,7 @@ const InstructorCourses = () => {
   const totalCount = coursesData?.data?.total || 0;
 
   const handleCourseClick = (course) => {
-    navigate(`instructor/courses/${course._id}`);
+    navigate(`/instructor/courses/${course._id}`);
   };
 
   const getDifficultyBadge = (difficulty) => {

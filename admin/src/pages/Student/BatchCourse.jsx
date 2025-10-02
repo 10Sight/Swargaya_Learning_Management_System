@@ -38,14 +38,18 @@ import {
 } from "lucide-react";
 import axiosInstance from "@/Helper/axiosInstance";
 import { useGetResourcesByCourseQuery } from "@/Redux/AllApi/resourceApi";
+import { useGetQuizzesByCourseQuery, useGetQuizzesByModuleQuery } from "@/Redux/AllApi/QuizApi";
+import { useGetAssignmentsByCourseQuery, useGetAssignmentsByModuleQuery } from "@/Redux/AllApi/AssignmentApi";
+import { useGetMySubmissionsQuery } from "@/Redux/AllApi/SubmissionApi";
+import { useGetMyAttemptsQuery } from "@/Redux/AllApi/AttemptedQuizApi";
 
 // Import custom components
-import ModuleResources from "@/components/student/ModuleResources";
-import ModuleQuiz from "@/components/student/ModuleQuiz";
-import ModuleAssignment from "@/components/student/ModuleAssignment";
-import FinalAssessments from "@/components/student/FinalAssessments";
 import StudentModuleResources from "@/components/student/StudentModuleResources";
 import StudentCourseResources from "@/components/student/StudentCourseResources";
+import StudentModuleQuizzes from "@/components/student/StudentModuleQuizzes";
+import StudentModuleAssignments from "@/components/student/StudentModuleAssignments";
+import AssignmentDetailsModal from "@/components/student/AssignmentDetailsModal";
+import AssignmentSubmissionModal from "@/components/student/AssignmentSubmissionModal";
 
 // Constants
 const STATUS_CONFIG = {
@@ -107,6 +111,8 @@ const useCourseData = () => {
         batch,
         modules: modules.sort((a, b) => (a.order || 0) - (b.order || 0)),
         currentLevel: progress.currentLevel || "L1",
+        levelLockEnabled: progress.levelLockEnabled || false,
+        lockedLevel: progress.lockedLevel || null,
         completedModuleIds,
         completedLessonIds,
         loading: false,
@@ -133,55 +139,39 @@ const useCourseData = () => {
 };
 
 
-// Hook for managing course-level content
-const useCourseContent = () => {
-  const [state, setState] = useState({
-    courseQuizzes: [],
-    courseAssignments: [],
-    loading: false,
-    loaded: false,
+// Hook for managing course-level content using RTK Query
+const useCourseContent = (courseId, allModulesCompleted) => {
+  const {
+    data: courseQuizzesData,
+    isLoading: courseQuizzesLoading,
+    error: courseQuizzesError,
+  } = useGetQuizzesByCourseQuery(courseId, {
+    skip: !courseId || !allModulesCompleted,
   });
 
-  const loadCourseContent = useCallback(async (courseId) => {
-    if (state.loading || state.loaded) return;
+  const {
+    data: courseAssignmentsData,
+    isLoading: courseAssignmentsLoading,
+    error: courseAssignmentsError,
+  } = useGetAssignmentsByCourseQuery(courseId, {
+    skip: !courseId || !allModulesCompleted,
+  });
 
-    setState(prev => ({ ...prev, loading: true }));
+  const courseQuizzes = courseQuizzesData?.data || [];
+  const courseAssignments = courseAssignmentsData?.data || [];
+  const loading = courseQuizzesLoading || courseAssignmentsLoading;
+  const loaded = !loading && (courseQuizzesData !== undefined || courseAssignmentsData !== undefined);
 
-    try {
-      const [quizzesRes, assignmentsRes] = await Promise.allSettled([
-        axiosInstance.get(`/api/quizzes/course/${courseId}`),
-        axiosInstance.get(`/api/assignments/course/${courseId}`),
-      ]);
-
-      const courseQuizzes = quizzesRes.status === 'fulfilled' && quizzesRes.value?.data?.data
-        ? (Array.isArray(quizzesRes.value.data.data.quizzes) ? quizzesRes.value.data.data.quizzes : [])
-        : [];
-
-      const courseAssignments = assignmentsRes.status === 'fulfilled' && assignmentsRes.value?.data?.data
-        ? (Array.isArray(assignmentsRes.value.data.data.assignments) ? assignmentsRes.value.data.data.assignments : [])
-        : [];
-
-      setState({
-        courseQuizzes,
-        courseAssignments,
-        loading: false,
-        loaded: true,
-      });
-    } catch (error) {
-      console.error('Error loading course content:', error);
-      setState({
-        courseQuizzes: [],
-        courseAssignments: [],
-        loading: false,
-        loaded: true,
-      });
-    }
-  }, [state.loading, state.loaded]);
-
-  return { ...state, loadCourseContent };
+  return {
+    courseQuizzes,
+    courseAssignments,
+    loading,
+    loaded,
+    loadCourseContent: () => {}, // No longer needed with RTK Query
+  };
 };
 
-// Updated hook for managing module content
+// Updated hook for managing module content with RTK Query for assessments
 const useModuleContent = () => {
   const [state, setState] = useState({
     lessonsByModule: {},
@@ -189,11 +179,18 @@ const useModuleContent = () => {
     quizzesByModule: {},
     assignmentsByModule: {},
     loadingStates: {},
+    loadedModules: new Set(), // Track which modules have been loaded
   });
+
+  // Store moduleId and courseId for RTK Query hooks
+  const [currentModules, setCurrentModules] = useState({});
 
   const loadModuleContent = useCallback(async (moduleId, courseId) => {
     const key = String(moduleId);
     if (state.loadingStates[key]) return;
+
+    // Add to current modules for RTK Query
+    setCurrentModules(prev => ({ ...prev, [key]: { moduleId, courseId } }));
 
     setState(prev => ({
       ...prev,
@@ -201,11 +198,22 @@ const useModuleContent = () => {
     }));
 
     try {
-      // Load lessons and resources
+      // Load lessons and resources (still using direct API calls as no RTK Query hooks exist for these)
+      console.log(`BatchCourse - Loading content for moduleId: ${moduleId}`);
+      
       const [lessonsRes, resourcesRes] = await Promise.allSettled([
         axiosInstance.get(`/api/modules/${moduleId}/lessons`),
         axiosInstance.get(`/api/resources/module/${moduleId}`),
       ]);
+
+      console.log(`BatchCourse - lessonsRes status: ${lessonsRes.status}`);
+      console.log(`BatchCourse - resourcesRes status: ${resourcesRes.status}`);
+      
+      if (resourcesRes.status === 'rejected') {
+        console.error(`BatchCourse - Resources fetch failed for moduleId ${moduleId}:`, resourcesRes.reason);
+      } else {
+        console.log(`BatchCourse - Resources response for moduleId ${moduleId}:`, resourcesRes.value?.data);
+      }
 
       const lessons = lessonsRes.status === 'fulfilled'
         ? (lessonsRes.value?.data?.data || []).sort((a, b) => (a.order || 0) - (b.order || 0))
@@ -214,42 +222,16 @@ const useModuleContent = () => {
       const resources = resourcesRes.status === 'fulfilled'
         ? resourcesRes.value?.data?.data || []
         : [];
-
-      // Load quizzes and assignments using the correct endpoints with access control
-      let quizzes = [];
-      let assignments = [];
-
-      if (courseId) {
-        try {
-          const [quizzesRes, assignmentsRes] = await Promise.allSettled([
-            axiosInstance.get(`/api/quizzes/accessible/${courseId}/${moduleId}`),
-            axiosInstance.get(`/api/assignments/accessible/${courseId}/${moduleId}`),
-          ]);
-
-          // Handle the new API response structure with access control
-          if (quizzesRes.status === 'fulfilled' && quizzesRes.value?.data?.data) {
-            const quizData = quizzesRes.value.data.data;
-            quizzes = Array.isArray(quizData.quizzes) ? quizData.quizzes : 
-                      Array.isArray(quizData) ? quizData : [];
-          }
-
-          if (assignmentsRes.status === 'fulfilled' && assignmentsRes.value?.data?.data) {
-            const assignmentData = assignmentsRes.value.data.data;
-            assignments = Array.isArray(assignmentData.assignments) ? assignmentData.assignments : 
-                         Array.isArray(assignmentData) ? assignmentData : [];
-          }
-        } catch (assessmentError) {
-          // Don't fail the whole loading process if assessments can't be loaded
-        }
-      }
+        
+      console.log(`BatchCourse - Found ${resources.length} resources for moduleId ${moduleId}`);
+      console.log(`BatchCourse - Resources data:`, resources);
 
       setState(prev => ({
         ...prev,
         lessonsByModule: { ...prev.lessonsByModule, [key]: lessons },
         resourcesByModule: { ...prev.resourcesByModule, [key]: resources },
-        quizzesByModule: { ...prev.quizzesByModule, [key]: quizzes },
-        assignmentsByModule: { ...prev.assignmentsByModule, [key]: assignments },
-        loadingStates: { ...prev.loadingStates, [key]: false }
+        loadingStates: { ...prev.loadingStates, [key]: false },
+        loadedModules: new Set([...prev.loadedModules, key])
       }));
     } catch (error) {
       console.error(`Error loading module ${moduleId} content:`, error);
@@ -257,23 +239,69 @@ const useModuleContent = () => {
         ...prev,
         lessonsByModule: { ...prev.lessonsByModule, [key]: [] },
         resourcesByModule: { ...prev.resourcesByModule, [key]: [] },
-        quizzesByModule: { ...prev.quizzesByModule, [key]: [] },
-        assignmentsByModule: { ...prev.assignmentsByModule, [key]: [] },
         loadingStates: { ...prev.loadingStates, [key]: false }
       }));
     }
   }, [state.loadingStates]);
 
-  return { ...state, loadModuleContent };
+  // Function to update assessments data from RTK Query
+  const updateModuleAssessments = useCallback((moduleId, quizzes = [], assignments = []) => {
+    const key = String(moduleId);
+    setState(prev => ({
+      ...prev,
+      quizzesByModule: { ...prev.quizzesByModule, [key]: quizzes },
+      assignmentsByModule: { ...prev.assignmentsByModule, [key]: assignments }
+    }));
+  }, []);
+
+  return { 
+    ...state, 
+    loadModuleContent,
+    updateModuleAssessments,
+    currentModules
+  };
+};
+
+// Component to handle RTK Query hooks for individual modules
+const ModuleAssessmentProvider = ({ moduleId, courseId, children, onAssessmentsLoaded }) => {
+  const {
+    data: moduleQuizzesData,
+    isLoading: moduleQuizzesLoading,
+    error: moduleQuizzesError,
+  } = useGetQuizzesByModuleQuery(moduleId, {
+    skip: !courseId || !moduleId,
+  });
+
+  const {
+    data: moduleAssignmentsData,
+    isLoading: moduleAssignmentsLoading,
+    error: moduleAssignmentsError,
+  } = useGetAssignmentsByModuleQuery(moduleId, {
+    skip: !courseId || !moduleId,
+  });
+
+  const moduleQuizzes = moduleQuizzesData?.data || [];
+  const moduleAssignments = moduleAssignmentsData?.data || [];
+
+  // Update parent component when assessments are loaded
+  useEffect(() => {
+    if (!moduleQuizzesLoading && !moduleAssignmentsLoading && onAssessmentsLoaded) {
+      onAssessmentsLoaded(moduleId, moduleQuizzes, moduleAssignments);
+    }
+  }, [moduleId, moduleQuizzes, moduleAssignments, moduleQuizzesLoading, moduleAssignmentsLoading, onAssessmentsLoaded]);
+
+  return children;
 };
 
 // Main component
 const BatchCourse = () => {
   const navigate = useNavigate();
-  const { 
+  const {
     batch, 
     modules, 
     currentLevel, 
+    levelLockEnabled,
+    lockedLevel,
     completedModuleIds, 
     completedLessonIds, 
     loading, 
@@ -282,14 +310,26 @@ const BatchCourse = () => {
     refresh 
   } = useCourseData();
   
+  // Extract level lock information from course data
+  const [levelLockInfo, setLevelLockInfo] = useState({
+    isLocked: false,
+    lockedLevel: null
+  });
+  
   const {
     lessonsByModule,
     resourcesByModule,
     quizzesByModule,
     assignmentsByModule,
     loadingStates,
-    loadModuleContent
+    loadModuleContent,
+    updateModuleAssessments
   } = useModuleContent();
+
+  // Callback for handling module assessments loaded from RTK Query
+  const handleModuleAssessmentsLoaded = useCallback((moduleId, quizzes, assignments) => {
+    updateModuleAssessments(moduleId, quizzes, assignments);
+  }, [updateModuleAssessments]);
 
   // Fetch course-level resources
   const {
@@ -300,16 +340,73 @@ const BatchCourse = () => {
     skip: !batch?.course?._id && !batch?.course?.id,
   });
   
+  console.log("BatchCourse - Course Resources:", {
+    courseId: batch?.course?._id || batch?.course?.id,
+    courseResourcesData,
+    courseResourcesLoading,
+    courseResourcesError,
+  });
+  
   const courseResources = courseResourcesData?.data || [];
+  console.log("BatchCourse - Course Resources count:", courseResources.length);
 
+  const allModulesCompleted = modules.length > 0 && modules.every(m => 
+    completedModuleIds.includes(String(m?._id || m?.id))
+  );
+  
   const {
     courseQuizzes,
     courseAssignments,
     loading: courseContentLoading,
     loaded: courseContentLoaded,
     loadCourseContent
-  } = useCourseContent();
+  } = useCourseContent(batch?.course?._id || batch?.course?.id, allModulesCompleted);
   
+  // Fetch student submissions
+  const { data: submissionsData, refetch: refetchSubmissions } = useGetMySubmissionsQuery(undefined, {
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+  });
+  const submissions = submissionsData?.data || [];
+
+  // Create a map of submissions by assignment ID for quick lookup (from API)
+  const apiSubmissionsByAssignment = submissions.reduce((acc, submission) => {
+    if (submission.assignment) {
+      const key = typeof submission.assignment === 'object' 
+        ? (submission.assignment._id || submission.assignment.id)
+        : submission.assignment;
+      if (key) acc[key] = submission;
+    }
+    return acc;
+  }, {});
+
+  // Fetch student quiz attempts
+  const { data: attemptsData, refetch: refetchAttempts } = useGetMyAttemptsQuery(undefined, {
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+  });
+  const attempts = attemptsData?.data || [];
+
+  // Create a map of quiz attempts by quiz ID for quick lookup
+  const attemptsByQuiz = attempts.reduce((acc, attempt) => {
+    if (attempt.quiz) {
+      const key = typeof attempt.quiz === 'object' 
+        ? (attempt.quiz._id || attempt.quiz.id)
+        : attempt.quiz;
+      if (key) {
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(attempt);
+      }
+    }
+    return acc;
+  }, {});
+
+  // Local optimistic map for instant UI updates after successful submission
+  const [localSubmissionsMap, setLocalSubmissionsMap] = useState({});
+
+  // Effective submissions map (API + local optimistic updates)
+  const submissionsByAssignment = { ...apiSubmissionsByAssignment, ...localSubmissionsMap };
+
   const [uiState, setUiState] = useState({
     levelUpgradeMessage: null,
     processingAction: null,
@@ -317,20 +414,27 @@ const BatchCourse = () => {
     activeTab: 'lessons',
   });
 
+  // Assignment modal states
+  const [assignmentModals, setAssignmentModals] = useState({
+    detailsModal: { isOpen: false, assignment: null, submission: null },
+    submissionModal: { isOpen: false, assignment: null, submission: null }
+  });
+
   // Helper functions
   const getModuleId = (m) => m?._id || m?.id;
   const getLessonId = (l) => l?._id || l?.id;
+  const getAssignmentId = (a) => a?._id || a?.id;
 
-  const isModuleCompleted = (module) => {
+  const isModuleCompleted = useCallback((module) => {
     const moduleId = String(getModuleId(module));
     return completedModuleIds.includes(moduleId);
-  };
+  }, [completedModuleIds]);
 
-  const isLessonCompleted = (lesson) => {
+  const isLessonCompleted = useCallback((lesson) => {
     return completedLessonIds.includes(String(getLessonId(lesson)));
-  };
+  }, [completedLessonIds]);
 
-  const isModuleAccessible = (moduleIndex) => {
+  const isModuleAccessible = useCallback((moduleIndex) => {
     // First module is always accessible
     if (moduleIndex === 0) return true;
     
@@ -340,21 +444,34 @@ const BatchCourse = () => {
         return false;
       }
     }
+    
+    // Check level lock restrictions if enabled
+    if (levelLockEnabled && lockedLevel && modules[moduleIndex]) {
+      const moduleLevel = modules[moduleIndex].level || "L1";
+      const currentLevelNum = parseInt(currentLevel.replace('L', ''));
+      const moduleLevelNum = parseInt(moduleLevel.replace('L', ''));
+      
+      // Module is locked if its level is higher than current level
+      if (moduleLevelNum > currentLevelNum) {
+        return false;
+      }
+    }
+    
     return true;
-  };
+  }, [modules, isModuleCompleted, levelLockEnabled, lockedLevel, currentLevel]);
 
-  const getCompletedModulesCount = () => {
+  const getCompletedModulesCount = useCallback(() => {
     return modules.reduce((count, module) => 
       count + (isModuleCompleted(module) ? 1 : 0), 0
     );
-  };
+  }, [modules, isModuleCompleted]);
 
-  const calculateProgress = () => {
+  const calculateProgress = useCallback(() => {
     if (modules.length === 0) return 0;
     return Math.round((getCompletedModulesCount() / modules.length) * 100);
-  };
+  }, [modules.length, getCompletedModulesCount]);
 
-  const getLevelBadge = (level) => {
+  const getLevelBadge = useCallback((level) => {
     const config = {
       L1: { label: "Level 1", color: "bg-blue-100 text-blue-800" },
       L2: { label: "Level 2", color: "bg-orange-100 text-orange-800" },
@@ -368,17 +485,17 @@ const BatchCourse = () => {
         {levelConfig.label}
       </Badge>
     );
-  };
+  }, []);
 
   // Get the current accessible module based on completion status
-  const getCurrentModuleIndex = () => {
+  const getCurrentModuleIndex = useCallback(() => {
     for (let i = 0; i < modules.length; i++) {
       if (!isModuleCompleted(modules[i])) {
         return i;
       }
     }
     return modules.length - 1; // All modules completed, stay at last module
-  };
+  }, [modules, isModuleCompleted]);
 
   // Check stage completion status for current module
   const getStageStatus = (moduleIndex, stage) => {
@@ -408,18 +525,38 @@ const BatchCourse = () => {
           accessible: allLessonsCompleted,
           hasContent: moduleResources.length > 0
         };
-      case 'quiz':
+      case 'quiz': {
+        const allQuizzesCompleted = moduleQuizzes.length > 0 && moduleQuizzes.every(q => {
+          const qid = q._id || q.id;
+          const quizAttempts = attemptsByQuiz[String(qid)] || [];
+          if (quizAttempts.length === 0) return false;
+          
+          // Check if passed (best score >= passing score)
+          const bestAttempt = quizAttempts.reduce((best, current) => {
+            return (current.score > best.score) ? current : best;
+          }, quizAttempts[0]);
+          
+          const passingScore = q.passingScore || 70;
+          return bestAttempt.score >= passingScore;
+        });
+        
         return { 
-          completed: false, // TODO: Check quiz completion from progress
+          completed: allQuizzesCompleted,
           accessible: allLessonsCompleted,
           hasContent: moduleQuizzes.length > 0
         };
-      case 'assignment':
+      }
+      case 'assignment': {
+        const allAssignmentsSubmitted = moduleAssignments.length > 0 && moduleAssignments.every(a => {
+          const aid = getAssignmentId(a);
+          return aid && submissionsByAssignment[String(aid)];
+        });
         return { 
-          completed: false, // TODO: Check assignment completion from progress
+          completed: allAssignmentsSubmitted,
           accessible: allLessonsCompleted,
           hasContent: moduleAssignments.length > 0
         };
+      }
       default:
         return { completed: false, accessible: false, hasContent: false };
     }
@@ -474,6 +611,69 @@ const BatchCourse = () => {
     navigate(`/student/quiz/${quiz._id || quiz.id}`);
   };
 
+  // Assignment handlers
+  const handleAssignmentViewDetails = (assignment, submission) => {
+    setAssignmentModals({
+      ...assignmentModals,
+      detailsModal: { isOpen: true, assignment, submission }
+    });
+  };
+
+  const handleAssignmentSubmit = (assignment, submission) => {
+    setAssignmentModals({
+      ...assignmentModals,
+      submissionModal: { isOpen: true, assignment, submission }
+    });
+  };
+
+  const handleCloseDetailsModal = () => {
+    setAssignmentModals({
+      ...assignmentModals,
+      detailsModal: { isOpen: false, assignment: null, submission: null }
+    });
+  };
+
+  const handleCloseSubmissionModal = () => {
+    setAssignmentModals({
+      ...assignmentModals,
+      submissionModal: { isOpen: false, assignment: null, submission: null }
+    });
+  };
+
+  const handleSubmissionSuccess = (submissionData) => {
+    // Normalize submission object from API response wrapper or direct object
+    const submission = submissionData?.data || submissionData;
+    const assignmentKey = typeof submission?.assignment === 'object'
+      ? (submission.assignment?._id || submission.assignment?.id)
+      : submission?.assignment;
+
+    if (assignmentKey) {
+      // Optimistically update local submissions map for instant UI change
+      setLocalSubmissionsMap(prev => ({ ...prev, [String(assignmentKey)]: submission }));
+    }
+
+    toast.success('Assignment submitted successfully!');
+
+    // Close modals
+    setAssignmentModals({
+      detailsModal: { isOpen: false, assignment: null, submission: null },
+      submissionModal: { isOpen: false, assignment: null, submission: null }
+    });
+
+    // Ensure server state is synced (RTK invalidation + explicit refetch)
+    if (typeof refetchSubmissions === 'function') {
+      refetchSubmissions();
+    }
+  };
+
+  const handleShowSubmissionFromDetails = () => {
+    const { assignment, submission } = assignmentModals.detailsModal;
+    setAssignmentModals({
+      detailsModal: { isOpen: false, assignment: null, submission: null },
+      submissionModal: { isOpen: true, assignment, submission }
+    });
+  };
+
   const handleModuleClick = (module, index) => {
     if (!isModuleAccessible(index)) return;
     
@@ -491,7 +691,7 @@ const BatchCourse = () => {
     }
   };
 
-  const handleMarkModuleComplete = async (module) => {
+  const handleMarkModuleComplete = useCallback(async (module) => {
     if (!batch?.course || uiState.processingAction) return;
     
     const courseId = batch.course._id || batch.course.id;
@@ -526,7 +726,56 @@ const BatchCourse = () => {
     } finally {
       setUiState(prev => ({ ...prev, processingAction: null }));
     }
-  };
+  }, [batch?.course, uiState.processingAction, refresh]);
+
+  // Auto-complete module when all lessons and assessments are complete
+  const isModuleReadyToComplete = useCallback((module) => {
+    const moduleId = getModuleId(module);
+
+    const moduleLessons = lessonsByModule[moduleId] || [];
+    const completedLessonsInModule = moduleLessons.filter(lesson => isLessonCompleted(lesson)).length;
+    const allLessonsComplete = moduleLessons.length > 0 && completedLessonsInModule === moduleLessons.length;
+
+    const moduleAssignmentsList = assignmentsByModule[moduleId] || [];
+    const allAssignmentsComplete = moduleAssignmentsList.length === 0 || moduleAssignmentsList.every(a => {
+      const aid = getAssignmentId(a);
+      return aid && submissionsByAssignment[String(aid)];
+    });
+
+    const moduleQuizzesList = quizzesByModule[moduleId] || [];
+    const allQuizzesComplete = moduleQuizzesList.length === 0 || moduleQuizzesList.every(q => {
+      const qid = q._id || q.id;
+      const quizAttempts = attemptsByQuiz[String(qid)] || [];
+      if (quizAttempts.length === 0) return false;
+      const bestAttempt = quizAttempts.reduce((best, current) => {
+        return (current.score > best.score) ? current : best;
+      }, quizAttempts[0]);
+      const passingScore = q.passingScore || 70;
+      return bestAttempt.score >= passingScore;
+    });
+
+    return allLessonsComplete && allAssignmentsComplete && allQuizzesComplete;
+  }, [lessonsByModule, assignmentsByModule, submissionsByAssignment, quizzesByModule, attemptsByQuiz, isLessonCompleted]);
+
+  useEffect(() => {
+    if (!modules || modules.length === 0) return;
+    if (uiState.processingAction) return;
+
+    const index = getCurrentModuleIndex();
+    if (index >= modules.length) return;
+
+    const module = modules[index];
+    if (!isModuleCompleted(module) && isModuleReadyToComplete(module)) {
+      handleMarkModuleComplete(module);
+    }
+  }, [
+    modules,
+    uiState.processingAction,
+    getCurrentModuleIndex,
+    isModuleCompleted,
+    isModuleReadyToComplete,
+    handleMarkModuleComplete
+  ]);
 
   // Load current module content
   useEffect(() => {
@@ -537,20 +786,24 @@ const BatchCourse = () => {
     }
   }, [modules, batch?.course]);
 
-  // Auto-refresh when page becomes visible to sync lesson completion state
+  // Auto-refresh when page becomes visible/focused to sync completion state and attempts/submissions
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        // Page became visible, refresh course data to get latest lesson completion status
+        // Page became visible, refresh course data and queries
         refresh();
+        if (typeof refetchSubmissions === 'function') refetchSubmissions();
+        if (typeof refetchAttempts === 'function') refetchAttempts();
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
-    // Also refresh when window gets focus (user returns from lesson page)
+    // Also refresh when window gets focus (user returns from quiz/assignment pages)
     const handleFocus = () => {
       refresh();
+      if (typeof refetchSubmissions === 'function') refetchSubmissions();
+      if (typeof refetchAttempts === 'function') refetchAttempts();
     };
     
     window.addEventListener('focus', handleFocus);
@@ -559,7 +812,7 @@ const BatchCourse = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [refresh]);
+  }, [refresh, refetchSubmissions, refetchAttempts]);
 
   // Load course-level content when all modules are completed
   useEffect(() => {
@@ -568,7 +821,7 @@ const BatchCourse = () => {
     if (modulesDone && courseId && !courseContentLoaded && !courseContentLoading) {
       loadCourseContent(courseId);
     }
-  }, [modules, completedModuleIds, batch?.course, courseContentLoaded, courseContentLoading, loadCourseContent]);
+  }, [modules, completedModuleIds, batch?.course, courseContentLoaded, courseContentLoading, loadCourseContent, getCompletedModulesCount]);
 
   // Loading state
   if (loading) {
@@ -637,7 +890,6 @@ const BatchCourse = () => {
 
   const completedCount = getCompletedModulesCount();
   const progress = calculateProgress();
-  const allModulesCompleted = modules.length > 0 && completedCount >= modules.length;
   const currentModuleIndex = getCurrentModuleIndex();
   const currentModule = currentModuleIndex < modules.length ? modules[currentModuleIndex] : null;
   const currentStage = currentModule ? getCurrentStage(currentModuleIndex) : 'complete';
@@ -906,24 +1158,33 @@ const BatchCourse = () => {
               const isActive = uiState.activeModule && 
                 String(getModuleId(uiState.activeModule)) === String(moduleId);
               
+              // Check if module is level-locked specifically
+              const isLevelLocked = levelLockEnabled && lockedLevel && module.level && 
+                parseInt(module.level.replace('L', '')) > parseInt(currentLevel.replace('L', ''));
+              
               const moduleLessons = lessonsByModule[moduleId] || [];
               const completedLessonsInModule = moduleLessons.filter(lesson => 
                 isLessonCompleted(lesson)
               ).length;
 
               return (
-                <div
+                <ModuleAssessmentProvider
                   key={moduleId || index}
-                  className={`group relative p-4 rounded-lg border transition-all duration-200 ${
-                    isCompleted
-                      ? "bg-green-50 border-green-200"
-                      : isCurrent
-                      ? "bg-blue-50 border-blue-200 shadow-sm ring-2 ring-blue-100"
-                      : isLocked
-                      ? "bg-gray-50 border-gray-200 opacity-60"
-                      : "bg-white border-gray-200"
-                  }`}
+                  moduleId={moduleId}
+                  courseId={batch?.course?._id || batch?.course?.id}
+                  onAssessmentsLoaded={handleModuleAssessmentsLoaded}
                 >
+                  <div
+                    className={`group relative p-6 rounded-xl border-2 transition-all duration-300 hover:shadow-lg ${
+                      isCompleted
+                        ? "bg-gradient-to-br from-green-50 to-green-100 border-green-300 shadow-sm"
+                        : isCurrent
+                        ? "bg-gradient-to-br from-blue-50 to-blue-100 border-blue-300 shadow-md ring-2 ring-blue-200"
+                        : isLocked
+                        ? "bg-gray-50 border-gray-200 opacity-60"
+                        : "bg-white border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
                   <div className="flex items-center justify-between">
                     <div className="flex items-start gap-4 flex-1">
                       {/* Module Number/Status Indicator */}
@@ -958,6 +1219,14 @@ const BatchCourse = () => {
                           }`}>
                             {module.title || `Module ${index + 1}`}
                           </h3>
+                          
+                          {/* Module level badge */}
+                          {module.level && (
+                            <div className="flex items-center gap-1">
+                              {getLevelBadge(module.level)}
+                            </div>
+                          )}
+                          
                           {isCurrent && (
                             <Badge variant="default" className="text-xs">
                               Current
@@ -966,6 +1235,12 @@ const BatchCourse = () => {
                           {isCompleted && (
                             <Badge variant="outline" className="text-xs bg-green-100 text-green-800">
                               Completed
+                            </Badge>
+                          )}
+                          {isLevelLocked && (
+                            <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800 border-yellow-300">
+                              <Lock className="h-3 w-3 mr-1" />
+                              Level Locked
                             </Badge>
                           )}
                         </div>
@@ -1012,7 +1287,10 @@ const BatchCourse = () => {
                         ) : (
                           <Lock className="h-4 w-4 mr-1" />
                         )}
-                        {isCompleted ? "Review" : isCurrent ? (isActive ? "Hide" : "Start") : "Locked"}
+                        {isCompleted ? "Review" : 
+                         isCurrent ? (isActive ? "Hide" : "Start") : 
+                         isLevelLocked ? `Need ${module.level}` :
+                         "Locked"}
                         <ChevronRight className={`h-4 w-4 ml-1 transition-transform ${
                           isActive ? 'rotate-90' : ''
                         }`} />
@@ -1150,49 +1428,106 @@ const BatchCourse = () => {
                             )}
                             
                             {/* Module Complete Button */}
-                            {!isCompleted && 
-                             isAccessible && 
-                             completedLessonsInModule === moduleLessons.length && 
-                             moduleLessons.length > 0 && (
-                              <div className="pt-4 border-t mt-4">
-                                {/* Show different message based on whether assessments exist */}
-                                {((quizzesByModule[moduleId]?.length || 0) + (assignmentsByModule[moduleId]?.length || 0)) > 0 ? (
-                                  <div className="text-center">
-                                    <p className="text-sm text-muted-foreground mb-4">
-                                      📚 All lessons completed! Now complete the assessments in the "Assessments" tab to finish this module.
-                                    </p>
-                                    <Button 
-                                      onClick={() => setUiState(prev => ({ ...prev, activeTab: "assessments" }))}
-                                      variant="outline" 
-                                      className="w-full"
-                                      size="lg"
-                                    >
-                                      <BarChart3 className="h-4 w-4 mr-2" />
-                                      Go to Assessments
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <div>
-                                    <Button 
-                                      onClick={() => handleMarkModuleComplete(module)} 
-                                      className="w-full bg-green-600 hover:bg-green-700"
-                                      size="lg"
-                                      disabled={uiState.processingAction === `module-${moduleId}`}
-                                    >
-                                      {uiState.processingAction === `module-${moduleId}` ? (
-                                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                            {(() => {
+                              const moduleAssignments = assignmentsByModule[moduleId] || [];
+                              const moduleQuizzes = quizzesByModule[moduleId] || [];
+                              const allLessonsComplete = completedLessonsInModule === moduleLessons.length && moduleLessons.length > 0;
+                              const totalAssessments = moduleQuizzes.length + moduleAssignments.length;
+                              
+                              // Check if all assignments in this module are submitted
+                              const allAssignmentsComplete = moduleAssignments.length === 0 || moduleAssignments.every(a => {
+                                const aid = getAssignmentId(a);
+                                return aid && submissionsByAssignment[String(aid)];
+                              });
+                              
+                              // Check if all quizzes in this module are completed (passed)
+                              const allQuizzesComplete = moduleQuizzes.length === 0 || moduleQuizzes.every(q => {
+                                const qid = q._id || q.id;
+                                const quizAttempts = attemptsByQuiz[String(qid)] || [];
+                                if (quizAttempts.length === 0) return false;
+                                
+                                // Check if passed (best score >= passing score)
+                                const bestAttempt = quizAttempts.reduce((best, current) => {
+                                  return (current.score > best.score) ? current : best;
+                                }, quizAttempts[0]);
+                                
+                                const passingScore = q.passingScore || 70;
+                                return bestAttempt.score >= passingScore;
+                              });
+                              
+                              const allAssessmentsComplete = allAssignmentsComplete && allQuizzesComplete;
+                              const canCompleteModule = allLessonsComplete && allAssessmentsComplete;
+                              
+                              if (!isCompleted && isAccessible && allLessonsComplete) {
+                                return (
+                                  <div className="pt-4 border-t mt-4">
+                                    {totalAssessments > 0 ? (
+                                      allAssessmentsComplete ? (
+                                        <div>
+                                          <Button 
+                                            onClick={() => handleMarkModuleComplete(module)} 
+                                            className="w-full bg-green-600 hover:bg-green-700"
+                                            size="lg"
+                                            disabled={uiState.processingAction === `module-${moduleId}`}
+                                          >
+                                            {uiState.processingAction === `module-${moduleId}` ? (
+                                              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                            ) : (
+                                              <Trophy className="h-4 w-4 mr-2" />
+                                            )}
+                                            Complete Module
+                                          </Button>
+                                          <p className="text-xs text-muted-foreground text-center mt-2">
+                                            🎉 All lessons and assessments completed!
+                                          </p>
+                                        </div>
                                       ) : (
-                                        <Trophy className="h-4 w-4 mr-2" />
-                                      )}
-                                      Complete Module
-                                    </Button>
-                                    <p className="text-xs text-muted-foreground text-center mt-2">
-                                      🎉 All lessons completed! No assessments required for this module.
-                                    </p>
+                                        <div className="text-center">
+                                          <p className="text-sm text-muted-foreground mb-4">
+                                            📚 All lessons completed! Now complete the assessments in the "Assessments" tab to finish this module.
+                                          </p>
+                                          <Button 
+                                            onClick={() => setUiState(prev => ({ ...prev, activeTab: "assessments" }))}
+                                            variant="outline" 
+                                            className="w-full"
+                                            size="lg"
+                                          >
+                                            <BarChart3 className="h-4 w-4 mr-2" />
+                                            Go to Assessments
+                                          </Button>
+                                          <div className="mt-3 text-xs text-muted-foreground">
+                                            <p>Progress: {moduleAssignments.filter(a => {
+                                              const aid = getAssignmentId(a);
+                                              return aid && submissionsByAssignment[String(aid)];
+                                            }).length} of {moduleAssignments.length} assignments submitted</p>
+                                          </div>
+                                        </div>
+                                      )
+                                    ) : (
+                                      <div>
+                                        <Button 
+                                          onClick={() => handleMarkModuleComplete(module)} 
+                                          className="w-full bg-green-600 hover:bg-green-700"
+                                          size="lg"
+                                          disabled={uiState.processingAction === `module-${moduleId}`}
+                                        >
+                                          {uiState.processingAction === `module-${moduleId}` ? (
+                                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                          ) : (
+                                            <Trophy className="h-4 w-4 mr-2" />
+                                          )}
+                                          Complete Module
+                                        </Button>
+                                        <p className="text-xs text-muted-foreground text-center mt-2">
+                                          🎉 All lessons completed! No assessments required for this module.
+                                        </p>
+                                      </div>
+                                    )}
                                   </div>
-                                )}
-                              </div>
-                            )}
+                                );
+                              }
+                              return null;
+                            })()}
                           </div>
                         </TabsContent>
 
@@ -1254,130 +1589,22 @@ const BatchCourse = () => {
                               </div>
                             )}
                             
-                            {/* Quizzes */}
-                            {quizzesByModule[moduleId]?.length > 0 && (
-                              <div>
-                                <h4 className="font-medium mb-3 flex items-center gap-2">
-                                  <BarChart3 className="h-4 w-4" />
-                                  Quizzes ({quizzesByModule[moduleId].length})
-                                </h4>
-                                <div className="space-y-3">
-                                  {quizzesByModule[moduleId].map((quiz, quizIndex) => {
-                                    const allLessonsCompleted = completedLessonsInModule === moduleLessons.length && moduleLessons.length > 0;
-                                    
-                                    return (
-                                      <Card 
-                                        key={quizIndex} 
-                                        className={`${!allLessonsCompleted ? 'opacity-50' : ''}`}
-                                      >
-                                        <CardHeader className="pb-3">
-                                          <CardTitle className="text-base flex items-center gap-2">
-                                            {!allLessonsCompleted && <Lock className="h-4 w-4" />}
-                                            <Award className="h-4 w-4" />
-                                            {quiz.title || 'Module Quiz'}
-                                            <Badge className="bg-orange-100 text-orange-800 text-xs">
-                                              MODULE LEVEL
-                                            </Badge>
-                                          </CardTitle>
-                                          {quiz.description && (
-                                            <CardDescription>{quiz.description}</CardDescription>
-                                          )}
-                                        </CardHeader>
-                                        <CardContent>
-                                          <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-                                            <div>Questions: {quiz.questions?.length || 0}</div>
-                                            <div>Passing Score: {quiz.passingScore || 70}%</div>
-                                            <div>Time Limit: {quiz.timeLimit || 30} min</div>
-                                            <div>Attempts: {quiz.attemptsAllowed || 1}</div>
-                                          </div>
-                                          <Button 
-                                            className="w-full"
-                                            disabled={!allLessonsCompleted}
-                                            onClick={() => allLessonsCompleted && handleStartQuiz(quiz)}
-                                          >
-                                            {!allLessonsCompleted ? (
-                                              <>
-                                                <Lock className="h-4 w-4 mr-2" />
-                                                Complete Lessons First
-                                              </>
-                                            ) : (
-                                              <>
-                                                <BarChart3 className="h-4 w-4 mr-2" />
-                                                Start Quiz
-                                              </>
-                                            )}
-                                          </Button>
-                                        </CardContent>
-                                      </Card>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Assignments */}
-                            {assignmentsByModule[moduleId]?.length > 0 && (
-                              <div>
-                                <h4 className="font-medium mb-3 flex items-center gap-2">
-                                  <FileText className="h-4 w-4" />
-                                  Assignments ({assignmentsByModule[moduleId].length})
-                                </h4>
-                                <div className="space-y-3">
-                                  {assignmentsByModule[moduleId].map((assignment, assignmentIndex) => {
-                                    const allLessonsCompleted = completedLessonsInModule === moduleLessons.length && moduleLessons.length > 0;
-                                    
-                                    return (
-                                      <Card 
-                                        key={assignmentIndex} 
-                                        className={`${!allLessonsCompleted ? 'opacity-50' : ''}`}
-                                      >
-                                        <CardHeader className="pb-3">
-                                          <CardTitle className="text-base flex items-center gap-2">
-                                            {!allLessonsCompleted && <Lock className="h-4 w-4" />}
-                                            <FileText className="h-4 w-4" />
-                                            {assignment.title || 'Module Assignment'}
-                                            <Badge className="bg-orange-100 text-orange-800 text-xs">
-                                              MODULE LEVEL
-                                            </Badge>
-                                          </CardTitle>
-                                          {assignment.description && (
-                                            <CardDescription>{assignment.description}</CardDescription>
-                                          )}
-                                        </CardHeader>
-                                        <CardContent>
-                                          <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-                                            <div>
-                                              Due: {assignment.dueDate 
-                                                ? new Date(assignment.dueDate).toLocaleDateString() 
-                                                : 'No deadline'
-                                              }
-                                            </div>
-                                            <div>Max Score: {assignment.maxScore || 100} points</div>
-                                          </div>
-                                          <div className="flex gap-2">
-                                            <Button 
-                                              variant="outline" 
-                                              className="flex-1"
-                                              disabled={!allLessonsCompleted}
-                                            >
-                                              <Eye className="h-4 w-4 mr-2" />
-                                              {!allLessonsCompleted ? 'Locked' : 'View Details'}
-                                            </Button>
-                                            <Button 
-                                              className="flex-1"
-                                              disabled={!allLessonsCompleted}
-                                            >
-                                              <FileText className="h-4 w-4 mr-2" />
-                                              {!allLessonsCompleted ? 'Locked' : 'Submit'}
-                                            </Button>
-                                          </div>
-                                        </CardContent>
-                                      </Card>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            )}
+                            {/* Module Quizzes Component */}
+                            <StudentModuleQuizzes 
+                              quizzes={quizzesByModule[moduleId] || []}
+                              attempts={attemptsByQuiz}
+                              isUnlocked={completedLessonsInModule === moduleLessons.length && moduleLessons.length > 0}
+                              onStart={handleStartQuiz}
+                            />
+                            
+                            {/* Module Assignments Component */}
+                            <StudentModuleAssignments 
+                              assignments={assignmentsByModule[moduleId] || []}
+                              submissions={submissionsByAssignment}
+                              isUnlocked={completedLessonsInModule === moduleLessons.length && moduleLessons.length > 0}
+                              onViewDetails={handleAssignmentViewDetails}
+                              onSubmit={handleAssignmentSubmit}
+                            />
 
                             {/* No Assessments */}
                             {(!quizzesByModule[moduleId] || quizzesByModule[moduleId].length === 0) &&
@@ -1406,6 +1633,7 @@ const BatchCourse = () => {
                     />
                   </div>
                 </div>
+              </ModuleAssessmentProvider>
               );
             })
           )}
@@ -1414,11 +1642,25 @@ const BatchCourse = () => {
 
       {/* Course Resources Component */}
       <StudentCourseResources 
-        courseId={batch?.course?._id || batch?.course?.id}
         resources={courseResources}
-        loading={courseResourcesLoading}
-        error={courseResourcesError}
-        allModulesCompleted={allModulesCompleted}
+        courseTitle={batch?.course?.title || batch?.course?.name}
+      />
+      
+      {/* Assignment Modals */}
+      <AssignmentDetailsModal 
+        assignment={assignmentModals.detailsModal.assignment}
+        submission={assignmentModals.detailsModal.submission}
+        isOpen={assignmentModals.detailsModal.isOpen}
+        onClose={handleCloseDetailsModal}
+        onSubmit={handleShowSubmissionFromDetails}
+      />
+      
+      <AssignmentSubmissionModal 
+        assignment={assignmentModals.submissionModal.assignment}
+        submission={assignmentModals.submissionModal.submission}
+        isOpen={assignmentModals.submissionModal.isOpen}
+        onClose={handleCloseSubmissionModal}
+        onSuccess={handleSubmissionSuccess}
       />
     </div>
   );

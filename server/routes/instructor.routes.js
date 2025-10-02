@@ -16,6 +16,9 @@ import {
   getBatchAssignmentSubmissions,
   getAssignmentDetails,
   getStudentAssignmentSubmissions,
+  getSubmissionDetails,
+  gradeInstructorSubmission,
+  downloadSubmissionFile,
 } from "../controllers/instructor.controller.js";
 
 const router = express.Router();
@@ -51,5 +54,10 @@ router.get("/students/:studentId/quiz-attempts/:quizId", getStudentQuizAttempts)
 router.get("/batches/:batchId/assignment-submissions", getBatchAssignmentSubmissions);
 router.get("/assignments/:assignmentId", getAssignmentDetails);
 router.get("/students/:studentId/assignment-submissions/:assignmentId", getStudentAssignmentSubmissions);
+
+// Submission management - view details, grade, and download files
+router.get("/submissions/:submissionId", getSubmissionDetails);
+router.patch("/submissions/:submissionId/grade", gradeInstructorSubmission);
+router.get("/submissions/:submissionId/files/:fileIndex", downloadSubmissionFile);
 
 export default router;

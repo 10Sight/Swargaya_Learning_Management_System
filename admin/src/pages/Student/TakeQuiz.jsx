@@ -173,7 +173,7 @@ const TakeQuiz = () => {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto p-6 space-y-6">
+      <div className="max-w-4xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
         <div className="animate-pulse">
           <Card>
             <CardHeader>
@@ -196,7 +196,7 @@ const TakeQuiz = () => {
   // Show result page
   if (result) {
     return (
-      <div className="max-w-4xl mx-auto p-6 space-y-6">
+      <div className="max-w-4xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
         <Card className={`${result.passed ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -364,33 +364,33 @@ const TakeQuiz = () => {
 
   // Show quiz taking interface
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
+    <div className="max-w-4xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
       {/* Quiz Header */}
       <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
         <CardHeader>
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle className="flex items-center gap-2 text-xl">
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+            <div className="flex-1">
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                 <BarChart3 className="h-5 w-5 text-blue-600" />
-                {quiz.title}
+                <span className="break-words">{quiz.title}</span>
               </CardTitle>
               {quiz.description && (
-                <CardDescription className="mt-2">{quiz.description}</CardDescription>
+                <CardDescription className="mt-2 text-sm">{quiz.description}</CardDescription>
               )}
-              <div className="flex items-center gap-4 mt-3 text-sm text-gray-600">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-3 text-xs sm:text-sm text-gray-600">
                 <span>Module: {quiz.module?.title}</span>
-                <span>•</span>
-                <span>Passing Score: {quiz.passingScore}%</span>
-                <span>•</span>
-                <span>Questions: {quiz.questions.length}</span>
+                <span className="hidden sm:inline">•</span>
+                <span>Passing: {quiz.passingScore}%</span>
+                <span className="hidden sm:inline">•</span>
+                <span>{quiz.questions.length} Questions</span>
               </div>
             </div>
             
             {/* Timer */}
             {timeRemaining !== null && (
-              <div className="text-right">
-                <div className="flex items-center gap-2 text-lg font-bold">
-                  <Clock className={`h-5 w-5 ${timeRemaining <= 300 ? 'text-red-600' : 'text-blue-600'}`} />
+              <div className="text-right flex-shrink-0">
+                <div className="flex items-center gap-2 text-base sm:text-lg font-bold">
+                  <Clock className={`h-4 w-4 sm:h-5 sm:w-5 ${timeRemaining <= 300 ? 'text-red-600' : 'text-blue-600'}`} />
                   <span className={timeRemaining <= 300 ? 'text-red-600' : 'text-blue-600'}>
                     {formatTime(timeRemaining)}
                   </span>
@@ -402,9 +402,9 @@ const TakeQuiz = () => {
           
           {/* Progress Bar */}
           <div className="mt-4">
-            <div className="flex justify-between items-center mb-2">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1">
               <span className="text-sm font-medium">Progress</span>
-              <span className="text-sm text-gray-600">
+              <span className="text-xs sm:text-sm text-gray-600">
                 {getAnsweredCount()} of {quiz.questions.length} answered
               </span>
             </div>
@@ -466,7 +466,7 @@ const TakeQuiz = () => {
       {/* Submit Section */}
       <Card className="bg-gray-50">
         <CardContent className="p-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <div className="font-medium">Ready to submit?</div>
               <div className="text-sm text-gray-600">
@@ -475,15 +475,15 @@ const TakeQuiz = () => {
                   : `${quiz.questions.length - getAnsweredCount()} questions remaining`}
               </div>
             </div>
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={handleBackToCourse}>
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+              <Button variant="outline" onClick={handleBackToCourse} className="text-sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
               </Button>
               <Button 
                 onClick={() => handleSubmit()} 
                 disabled={submitting}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-green-600 hover:bg-green-700 text-sm"
               >
                 {submitting ? (
                   <>

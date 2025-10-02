@@ -4,15 +4,23 @@ import { createApi } from "@reduxjs/toolkit/query/react";
 export const quizApi = createApi({
     reducerPath: "quizApi",
     baseQuery: axiosBaseQuery,
-    tagTypes: ['Quiz', 'Course'], // Add Course to tagTypes
+    tagTypes: ['Quiz', 'Course', 'Module', 'Lesson'], // Add Module and Lesson to tagTypes
     endpoints: (builder) => ({
         createQuiz: builder.mutation({
-            query: ({ courseId, title, questions, passingScore = 70 }) => ({
+            query: ({ courseId, moduleId, lessonId, scope, title, questions, passingScore = 70 }) => ({
                 url: "/api/quizzes",
                 method: "POST",
-                data: { courseId, title, questions, passingScore }
+                data: { 
+                    courseId, 
+                    moduleId, 
+                    lessonId, 
+                    scope, 
+                    title, 
+                    questions, 
+                    passingScore 
+                }
             }),
-            invalidatesTags: ['Quiz', 'Course'], // Invalidate both Quiz and Course caches
+            invalidatesTags: ['Quiz', 'Course', 'Module', 'Lesson'], // Invalidate all relevant caches
         }),
 
         getAllQuizzes: builder.query({
@@ -55,6 +63,52 @@ export const quizApi = createApi({
             }),
             invalidatesTags: ['Quiz', 'Course'],
         }),
+
+        // New scoped query endpoints
+        getQuizzesByCourse: builder.query({
+            query: (courseId) => ({
+                url: `/api/quizzes/by-course/${courseId}`,
+                method: "GET",
+            }),
+            providesTags: (result, error, courseId) => {
+                const quizzes = result?.data || [];
+                return [
+                    { type: 'Course', id: courseId },
+                    'Quiz',
+                    ...(Array.isArray(quizzes) ? quizzes.map(({ _id }) => ({ type: 'Quiz', id: _id })) : [])
+                ];
+            },
+        }),
+
+        getQuizzesByModule: builder.query({
+            query: (moduleId) => ({
+                url: `/api/quizzes/by-module/${moduleId}`,
+                method: "GET",
+            }),
+            providesTags: (result, error, moduleId) => {
+                const quizzes = result?.data || [];
+                return [
+                    { type: 'Module', id: moduleId },
+                    'Quiz',
+                    ...(Array.isArray(quizzes) ? quizzes.map(({ _id }) => ({ type: 'Quiz', id: _id })) : [])
+                ];
+            },
+        }),
+
+        getQuizzesByLesson: builder.query({
+            query: (lessonId) => ({
+                url: `/api/quizzes/by-lesson/${lessonId}`,
+                method: "GET",
+            }),
+            providesTags: (result, error, lessonId) => {
+                const quizzes = result?.data || [];
+                return [
+                    { type: 'Lesson', id: lessonId },
+                    'Quiz',
+                    ...(Array.isArray(quizzes) ? quizzes.map(({ _id }) => ({ type: 'Quiz', id: _id })) : [])
+                ];
+            },
+        }),
     }),
 });
 
@@ -64,4 +118,7 @@ export const {
     useGetQuizByIdQuery,
     useUpdateQuizMutation,
     useDeleteQuizMutation,
+    useGetQuizzesByCourseQuery,
+    useGetQuizzesByModuleQuery,
+    useGetQuizzesByLessonQuery,
 } = quizApi;

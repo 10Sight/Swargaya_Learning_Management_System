@@ -9,7 +9,10 @@ import {
     markModuleComplete,
     markLessonComplete,
     validateModuleAccess,
-    getStudentProgress
+    getStudentProgress,
+    getMyAllProgress,
+    setStudentLevel,
+    getCourseCompletionReport
 } from "../controllers/progress.controller.js";
 import verifyJWT from "../middlewares/auth.middleware.js";
 import authorizeRoles from "../middlewares/authrization.middleware.js";
@@ -21,10 +24,13 @@ router.patch("/", verifyJWT, authorizeRoles("STUDENT"), updateProgress);
 router.patch("/lesson-complete", verifyJWT, authorizeRoles("STUDENT"), markLessonComplete);
 router.patch("/module-complete", verifyJWT, authorizeRoles("STUDENT"), markModuleComplete);
 router.patch("/upgrade-level", verifyJWT, authorizeRoles("STUDENT"), upgradeLevel);
+router.patch("/admin/set-level", verifyJWT, authorizeRoles("ADMIN"), setStudentLevel);
 router.get("/my/:courseId", verifyJWT, authorizeRoles("STUDENT"), getMyProgress);
+router.get("/my", verifyJWT, authorizeRoles("STUDENT"), getMyAllProgress);
 router.get("/init/:courseId", verifyJWT, authorizeRoles("STUDENT"), getOrInitializeProgress);
 router.get("/validate-access/:courseId/:moduleId", verifyJWT, authorizeRoles("STUDENT"), validateModuleAccess);
 router.get("/course/:courseId", verifyJWT, authorizeRoles("INSTRUCTOR", "ADMIN"), getCourseProgress);
+router.get("/report/:courseId", verifyJWT, authorizeRoles("STUDENT"), getCourseCompletionReport);
 router.get("/student/:studentId", verifyJWT, authorizeRoles("INSTRUCTOR", "ADMIN"), getStudentProgress);
 
 export default router;

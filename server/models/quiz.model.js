@@ -45,6 +45,7 @@ const questionSchema = new Schema(
 
 const quizSchema = new Schema(
     {
+        // Legacy fields - keeping for backward compatibility
         course: {
             type: Schema.Types.ObjectId,
             ref: "Course",
@@ -59,12 +60,50 @@ const quizSchema = new Schema(
         },
         type: {
             type: String,
-            enum: ["MODULE", "COURSE"],
+            enum: ["MODULE", "COURSE", "LESSON"],
             default: function() {
-                // If module is provided, it's a module quiz, otherwise course quiz
+                // Determine type based on scope or legacy logic
+                if (this.scope) {
+                    return this.scope.toUpperCase();
+                }
                 return this.module ? "MODULE" : "COURSE";
             },
             index: true,
+        },
+        // New resource-like scoping system
+        courseId: {
+            type: Schema.Types.ObjectId,
+            ref: "Course",
+            default: function() {
+                return this.course; // Use legacy course field as fallback
+            }
+        },
+        moduleId: {
+            type: Schema.Types.ObjectId,
+            ref: "Module",
+            default: function() {
+                return this.module; // Use legacy module field as fallback
+            }
+        },
+        lessonId: {
+            type: Schema.Types.ObjectId,
+            ref: "Lesson",
+            default: null
+        },
+        // Scope - helps identify where quiz belongs
+        scope: {
+            type: String,
+            enum: ["course", "module", "lesson"],
+            default: function() {
+                // Determine scope based on what IDs are provided
+                if (this.lessonId || (this.type && this.type === "LESSON")) {
+                    return "lesson";
+                } else if (this.moduleId || this.module) {
+                    return "module";
+                } else {
+                    return "course";
+                }
+            }
         },
         title: {
             type: String,
@@ -117,5 +156,38 @@ const quizSchema = new Schema(
 );
 
 quizSchema.index({ course: 1, createdBy: 1 });
+
+// Pre-save hook to ensure data consistency between new and legacy fields
+quizSchema.pre('save', function(next) {
+    const quiz = this;
+    
+    // Sync new fields with legacy fields for backward compatibility
+    if (quiz.courseId && !quiz.course) {
+        quiz.course = quiz.courseId;
+    }
+    if (quiz.course && !quiz.courseId) {
+        quiz.courseId = quiz.course;
+    }
+    
+    if (quiz.moduleId && !quiz.module) {
+        quiz.module = quiz.moduleId;
+    }
+    if (quiz.module && !quiz.moduleId) {
+        quiz.moduleId = quiz.module;
+    }
+    
+    // Validate scope matches provided IDs
+    if (quiz.scope === 'course' && (quiz.moduleId || quiz.lessonId)) {
+        return next(new Error('Course-scoped quiz cannot have module or lesson IDs'));
+    }
+    if (quiz.scope === 'module' && (!quiz.moduleId || quiz.lessonId)) {
+        return next(new Error('Module-scoped quiz must have moduleId and cannot have lessonId'));
+    }
+    if (quiz.scope === 'lesson' && (!quiz.lessonId || !quiz.moduleId)) {
+        return next(new Error('Lesson-scoped quiz must have both moduleId and lessonId'));
+    }
+    
+    next();
+});
 
 export default model("Quiz", quizSchema);

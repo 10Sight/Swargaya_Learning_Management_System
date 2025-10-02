@@ -32,7 +32,7 @@ const QuizMonitoring = () => {
   const batches = batchesData?.data?.batches || []
 
   const getScoreColor = (score, totalScore) => {
-    if (!totalScore) return 'text-gray-500'
+    if (!totalScore || totalScore === 0) return 'text-gray-500'
     const percentage = (score / totalScore) * 100
     if (percentage >= 80) return 'text-green-600'
     if (percentage >= 60) return 'text-yellow-600'
@@ -129,6 +129,14 @@ const QuizMonitoring = () => {
                   <Skeleton key={i} className="h-16 w-full" />
                 ))}
               </div>
+            ) : error ? (
+              <div className="text-center py-8">
+                <IconClipboardList className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2 text-red-600">Error Loading Data</h3>
+                <p className="text-muted-foreground">
+                  {error?.data?.message || 'Failed to load quiz attempts. Please try again.'}
+                </p>
+              </div>
             ) : quizAttempts.length > 0 ? (
               <Table>
                 <TableHeader>
@@ -169,7 +177,7 @@ const QuizMonitoring = () => {
                             {attempt.score}/{attempt.totalScore}
                           </span>
                           <span className="text-sm text-muted-foreground">
-                            ({Math.round((attempt.score / attempt.totalScore) * 100)}%)
+                            ({attempt.totalScore > 0 ? Math.round((attempt.score / attempt.totalScore) * 100) : 0}%)
                           </span>
                         </div>
                       </TableCell>

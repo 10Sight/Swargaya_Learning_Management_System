@@ -8,37 +8,65 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { checkModuleAccessForAssessments } from "../utils/moduleCompletion.js";
 
 export const createQuiz = asyncHandler(async (req, res) => {
-    const { courseId, moduleId, title, questions, passingScore, description, timeLimit, attemptsAllowed } = req.body;
+    const { courseId, moduleId, lessonId, scope, title, questions, passingScore, description, timeLimit, attemptsAllowed } = req.body;
 
-    if(!mongoose.Types.ObjectId.isValid(courseId)) {
-        throw new ApiError("Invalid course ID", 400);
-    }
-
-    if(moduleId && !mongoose.Types.ObjectId.isValid(moduleId)) {
-        throw new ApiError("Invalid module ID", 400);
-    }
-
-    const course = await Course.findById(courseId);
-    if(!course) {
-        throw new ApiError("Course not found", 404);
-    }
-
-    // If moduleId is provided, verify the module exists and belongs to the course
-    if(moduleId) {
-        const Module = (await import("../models/module.model.js")).default;
-        const module = await Module.findOne({ _id: moduleId, course: courseId });
-        if(!module) {
-            throw new ApiError("Module not found or does not belong to this course", 404);
-        }
-    }
-
-    if(!title || !questions || questions.length === 0) {
+    // Validate required fields
+    if (!title || !questions || questions.length === 0) {
         throw new ApiError("Title and questions are required", 400);
     }
 
-    const quiz = await Quiz.create({
-        course: courseId,
-        module: moduleId || null,
+    // Validate scope
+    if (scope && !['course', 'module', 'lesson'].includes(scope)) {
+        throw new ApiError("Scope must be 'course', 'module', or 'lesson'", 400);
+    }
+
+    // Determine scope from provided parameters if not explicitly set
+    const actualScope = scope || (lessonId ? 'lesson' : moduleId ? 'module' : 'course');
+    
+    // Validate course ID
+    if (!courseId || !mongoose.Types.ObjectId.isValid(courseId)) {
+        throw new ApiError("Valid Course ID is required", 400);
+    }
+    
+    const course = await Course.findById(courseId);
+    if (!course) {
+        throw new ApiError("Course not found", 404);
+    }
+
+    // Validate scope-specific requirements
+    let parentEntity;
+    let parentId;
+
+    if (actualScope === 'course') {
+        parentEntity = course;
+        parentId = courseId;
+    } else if (actualScope === 'module') {
+        if (!moduleId || !mongoose.Types.ObjectId.isValid(moduleId)) {
+            throw new ApiError("Valid Module ID is required for module-scoped quiz", 400);
+        }
+        const Module = (await import("../models/module.model.js")).default;
+        parentEntity = await Module.findOne({ _id: moduleId, course: courseId });
+        if (!parentEntity) {
+            throw new ApiError("Module not found or does not belong to this course", 404);
+        }
+        parentId = moduleId;
+    } else if (actualScope === 'lesson') {
+        if (!lessonId || !mongoose.Types.ObjectId.isValid(lessonId)) {
+            throw new ApiError("Valid Lesson ID is required for lesson-scoped quiz", 400);
+        }
+        if (!moduleId || !mongoose.Types.ObjectId.isValid(moduleId)) {
+            throw new ApiError("Valid Module ID is required for lesson-scoped quiz", 400);
+        }
+        const Lesson = (await import("../models/lesson.model.js")).default;
+        parentEntity = await Lesson.findById(lessonId);
+        if (!parentEntity) {
+            throw new ApiError("Lesson not found", 404);
+        }
+        parentId = lessonId;
+    }
+
+    let quizData = {
+        scope: actualScope,
         title,
         description,
         questions,
@@ -46,8 +74,27 @@ export const createQuiz = asyncHandler(async (req, res) => {
         timeLimit,
         attemptsAllowed,
         createdBy: req.user._id,
-    });
+        // Legacy fields for backward compatibility
+        course: courseId
+    };
 
+    // Set the appropriate ID based on scope
+    if (actualScope === 'course') {
+        quizData.courseId = parentId;
+    } else if (actualScope === 'module') {
+        quizData.courseId = courseId;
+        quizData.moduleId = parentId;
+        quizData.module = parentId; // Legacy field
+    } else if (actualScope === 'lesson') {
+        quizData.courseId = courseId;
+        quizData.moduleId = moduleId;
+        quizData.lessonId = parentId;
+        quizData.module = moduleId; // Legacy field
+    }
+
+    const quiz = await Quiz.create(quizData);
+
+    // Update parent entity with new quiz (if needed for legacy compatibility)
     course.quizzes.push(quiz._id);
     await course.save();
 
@@ -317,4 +364,87 @@ export const getCourseQuizzes = asyncHandler(async (req, res) => {
             reason: "All modules completed"
         }
     }, "Course quizzes fetched successfully"));
+});
+
+// Get quizzes by course scope (similar to resources)
+export const getQuizzesByCourse = asyncHandler(async (req, res) => {
+    const rawCourseId = req.params?.courseId ?? req.body?.courseId;
+
+    if (!rawCourseId || rawCourseId === 'undefined' || rawCourseId === 'null') {
+        return res.status(400).json(new ApiResponse(400, [], "Course ID is required"));
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(rawCourseId)) {
+        return res.status(400).json(new ApiResponse(400, [], "Invalid course ID format"));
+    }
+
+    try {
+        const quizzes = await Quiz.find({ courseId: rawCourseId, scope: 'course' })
+            .populate('createdBy', 'name email')
+            .populate('course', 'title')
+            .sort({ createdAt: -1 });
+
+        return res.json(
+            new ApiResponse(200, quizzes, "Quizzes retrieved successfully")
+        );
+    } catch (err) {
+        console.error("getQuizzesByCourse - DB error:", err);
+        return res.status(500).json(new ApiResponse(500, [], "Error fetching quizzes"));
+    }
+});
+
+// Get quizzes by module scope (similar to resources)
+export const getQuizzesByModule = asyncHandler(async (req, res) => {
+    const rawModuleId = req.params?.moduleId ?? req.body?.moduleId;
+
+    if (!rawModuleId || rawModuleId === 'undefined' || rawModuleId === 'null') {
+        return res.status(400).json(new ApiResponse(400, [], "Module ID is required"));
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(rawModuleId)) {
+        return res.status(400).json(new ApiResponse(400, [], "Invalid module ID format"));
+    }
+
+    try {
+        const quizzes = await Quiz.find({ moduleId: rawModuleId, scope: 'module' })
+            .populate('createdBy', 'name email')
+            .populate('course', 'title')
+            .populate('module', 'title')
+            .sort({ createdAt: -1 });
+
+        return res.json(
+            new ApiResponse(200, quizzes, "Quizzes retrieved successfully")
+        );
+    } catch (err) {
+        console.error("getQuizzesByModule - DB error:", err);
+        return res.status(500).json(new ApiResponse(500, [], "Error fetching quizzes"));
+    }
+});
+
+// Get quizzes by lesson scope (similar to resources)
+export const getQuizzesByLesson = asyncHandler(async (req, res) => {
+    const rawLessonId = req.params?.lessonId ?? req.body?.lessonId;
+
+    if (!rawLessonId || rawLessonId === 'undefined' || rawLessonId === 'null') {
+        return res.status(400).json(new ApiResponse(400, [], "Lesson ID is required"));
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(rawLessonId)) {
+        return res.status(400).json(new ApiResponse(400, [], "Invalid lesson ID format"));
+    }
+
+    try {
+        const quizzes = await Quiz.find({ lessonId: rawLessonId, scope: 'lesson' })
+            .populate('createdBy', 'name email')
+            .populate('course', 'title')
+            .populate('module', 'title')
+            .sort({ createdAt: -1 });
+
+        return res.json(
+            new ApiResponse(200, quizzes, "Quizzes retrieved successfully")
+        );
+    } catch (err) {
+        console.error("getQuizzesByLesson - DB error:", err);
+        return res.status(500).json(new ApiResponse(500, [], "Error fetching quizzes"));
+    }
 });

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useCreateQuizMutation } from "@/Redux/AllApi/QuizApi";
 import { useGetCourseByIdQuery } from "@/Redux/AllApi/CourseApi";
 import { useGetModulesByCourseQuery } from "@/Redux/AllApi/moduleApi";
+import { useGetLessonsByModuleQuery } from "@/Redux/AllApi/LessonApi";
 import {
   Card,
   CardContent,
@@ -54,8 +55,9 @@ const AddQuizPage = () => {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    quizType: "MODULE", // New field for quiz type
-    moduleId: "", // Module selection (only for MODULE type)
+    scope: "module", // New scope field: course, module, lesson
+    moduleId: "", // Module selection (for module and lesson scopes)
+    lessonId: "", // Lesson selection (only for lesson scope)
     passingScore: 70,
     timeLimit: 30,
     attemptsAllowed: 1,
@@ -70,6 +72,18 @@ const AddQuizPage = () => {
       },
     ],
   });
+
+  // Fetch lessons for the selected module
+  const { 
+    data: lessonsData, 
+    isLoading: lessonsLoading, 
+    error: lessonsError,
+    refetch: refetchLessons 
+  } = useGetLessonsByModuleQuery(formData.moduleId, {
+    skip: !formData.moduleId || formData.scope !== "lesson", // Skip if no module selected or not lesson scope
+  });
+  
+  const lessons = lessonsData?.data || [];
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -167,9 +181,19 @@ const AddQuizPage = () => {
   };
 
   const validateForm = () => {
-    // Only require module selection for MODULE type quizzes
-    if (formData.quizType === "MODULE" && !formData.moduleId) {
+    // Validate scope-specific requirements
+    if (formData.scope === "module" && !formData.moduleId) {
       toast.error("Please select a module for module quiz");
+      return false;
+    }
+    
+    if (formData.scope === "lesson" && !formData.moduleId) {
+      toast.error("Please select a module for lesson quiz");
+      return false;
+    }
+    
+    if (formData.scope === "lesson" && !formData.lessonId) {
+      toast.error("Please select a lesson for lesson quiz");
       return false;
     }
     
@@ -236,6 +260,7 @@ const handleSubmit = async (e) => {
   try {
     const quizData = {
       courseId,
+      scope: formData.scope,
       title: formData.title,
       description: formData.description,
       questions: formData.questions,
@@ -244,9 +269,14 @@ const handleSubmit = async (e) => {
       attemptsAllowed: parseInt(formData.attemptsAllowed),
     };
 
-    // Only include moduleId for MODULE type quizzes
-    if (formData.quizType === "MODULE" && formData.moduleId) {
+    // Include moduleId for module and lesson scopes
+    if ((formData.scope === "module" || formData.scope === "lesson") && formData.moduleId) {
       quizData.moduleId = formData.moduleId;
+    }
+    
+    // Include lessonId for lesson scope
+    if (formData.scope === "lesson" && formData.lessonId) {
+      quizData.lessonId = formData.lessonId;
     }
     
     await createQuiz(quizData).unwrap();

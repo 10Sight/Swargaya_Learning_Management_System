@@ -9,6 +9,7 @@ import Assignment from "../models/assignment.model.js";
 import Submission from "../models/submission.model.js";
 import Progress from "../models/progress.model.js";
 import ENV from "../configs/env.config.js";
+import { Readable } from 'node:stream';
 
 // Helper function to generate JWT token
 const generateToken = (userId) => {
@@ -409,29 +410,52 @@ export const getBatchStudents = async (req, res) => {
           course: batch.course?._id
         });
 
-        // Get quiz attempts
+        // Get quiz attempts for quizzes in this course
         const quizAttempts = await AttemptedQuiz.find({
           student: student._id
-        }).populate('quiz');
+        }).populate({
+          path: 'quiz',
+          match: { course: batch.course?._id }, // Only quizzes from this course
+          select: 'title questions totalMarks'
+        });
 
-        // Get assignment submissions
+        // Filter out attempts where quiz is null (doesn't belong to this course)
+        const relevantQuizAttempts = quizAttempts.filter(attempt => attempt.quiz);
+
+        // Get assignment submissions for assignments in this course
         const submissions = await Submission.find({
           student: student._id
-        }).populate('assignment');
+        }).populate({
+          path: 'assignment',
+          match: { course: batch.course?._id }, // Only assignments from this course
+          select: 'title maxScore course'
+        });
 
-        // Calculate stats
-        const averageQuizScore = quizAttempts.length > 0 
-          ? quizAttempts.reduce((sum, attempt) => sum + (attempt.score / attempt.totalScore * 100), 0) / quizAttempts.length
+        // Filter out submissions where assignment is null (doesn't belong to this course)
+        const relevantSubmissions = submissions.filter(sub => sub.assignment);
+
+        // Calculate quiz average - using score from attempt and totalMarks from quiz
+        const averageQuizScore = relevantQuizAttempts.length > 0 
+          ? relevantQuizAttempts.reduce((sum, attempt) => {
+              const totalMarks = attempt.quiz?.totalMarks || attempt.quiz?.questions?.length || 1;
+              return sum + ((attempt.score / totalMarks) * 100);
+            }, 0) / relevantQuizAttempts.length
           : 0;
+
+        // Get total quizzes available for this course
+        const totalQuizzesInCourse = await Quiz.countDocuments({ course: batch.course?._id });
+        
+        // Get total assignments available for this course
+        const totalAssignmentsInCourse = await Assignment.countDocuments({ course: batch.course?._id });
 
         return {
           ...student.toObject(),
-          progress: progress?.completionPercentage || 0,
-          averageQuizScore: Math.round(averageQuizScore),
-          completedQuizzes: quizAttempts.filter(a => a.status === 'COMPLETED').length,
-          totalQuizzes: quizAttempts.length,
-          submittedAssignments: submissions.filter(s => s.status === 'SUBMITTED').length,
-          totalAssignments: submissions.length
+          progress: progress?.progressPercent || 0,
+          averageQuizScore: Math.round(averageQuizScore) || 0,
+          completedQuizzes: relevantQuizAttempts.filter(a => a.status === 'COMPLETED').length,
+          totalQuizzes: totalQuizzesInCourse,
+          submittedAssignments: relevantSubmissions.length,
+          totalAssignments: totalAssignmentsInCourse
         };
       })
     );
@@ -508,11 +532,11 @@ export const getBatchQuizAttempts = async (req, res) => {
     const { batchId } = req.params;
     const { page = 1, limit = 10 } = req.query;
 
-    // Verify instructor owns this batch
+    // Verify instructor owns this batch and populate course for filtering
     const batch = await Batch.findOne({ 
       _id: batchId, 
       instructor: instructorId 
-    });
+    }).populate('course', '_id');
 
     if (!batch) {
       return res.status(404).json({
@@ -521,25 +545,69 @@ export const getBatchQuizAttempts = async (req, res) => {
       });
     }
 
+    // Find attempts for students in this batch, with quizzes from the batch's course
     const attempts = await AttemptedQuiz.find({
       student: { $in: batch.students }
     })
     .populate('student', 'fullName userName email')
-    .populate('quiz', 'title description questions')
+    .populate({
+      path: 'quiz',
+      select: 'title description questions course',
+      match: { course: batch.course._id } // Only quizzes from this course
+    })
     .sort({ createdAt: -1 })
     .limit(limit * 1)
     .skip((page - 1) * limit);
 
-    const total = await AttemptedQuiz.countDocuments({
-      student: { $in: batch.students }
-    });
+    // Filter out attempts where quiz is null (doesn't belong to course) and transform data
+    const filteredAttempts = attempts
+      .filter(attempt => attempt.quiz) // Remove attempts with null quiz
+      .map(attempt => {
+        // Calculate total score from quiz questions
+        const totalScore = attempt.quiz.questions?.reduce((sum, q) => sum + (q.marks || 1), 0) || 0;
+        
+        return {
+          _id: attempt._id,
+          student: attempt.student,
+          quiz: {
+            _id: attempt.quiz._id,
+            title: attempt.quiz.title,
+            description: attempt.quiz.description,
+            questions: attempt.quiz.questions
+          },
+          score: attempt.score || 0,
+          totalScore, // Add calculated totalScore
+          status: attempt.status,
+          startedAt: attempt.startedAt,
+          submittedAt: attempt.completedAt, // Map completedAt to submittedAt for frontend
+          timeTaken: attempt.timeTaken,
+          createdAt: attempt.createdAt,
+          updatedAt: attempt.updatedAt
+        };
+      });
+
+    // Count filtered attempts for correct pagination
+    const totalFilteredAttempts = await AttemptedQuiz.aggregate([
+      { $match: { student: { $in: batch.students } } },
+      {
+        $lookup: {
+          from: 'quizzes',
+          localField: 'quiz',
+          foreignField: '_id',
+          as: 'quizData'
+        }
+      },
+      { $match: { 'quizData.course': batch.course._id } },
+      { $count: 'total' }
+    ]);
     
+    const total = totalFilteredAttempts.length > 0 ? totalFilteredAttempts[0].total : 0;
     const totalPages = Math.ceil(total / limit);
 
     res.status(200).json({
       success: true,
       data: {
-        attempts,
+        attempts: filteredAttempts,
         totalPages,
         currentPage: parseInt(page),
         total
@@ -645,7 +713,7 @@ export const getBatchAssignmentSubmissions = async (req, res) => {
     const batch = await Batch.findOne({ 
       _id: batchId, 
       instructor: instructorId 
-    });
+    }).populate('course', 'title');
 
     if (!batch) {
       return res.status(404).json({
@@ -654,17 +722,23 @@ export const getBatchAssignmentSubmissions = async (req, res) => {
       });
     }
 
+    // Get assignments for this course to filter submissions
+    const courseAssignments = await Assignment.find({ course: batch.course?._id }).select('_id');
+    const assignmentIds = courseAssignments.map(assignment => assignment._id);
+
     const submissions = await Submission.find({
-      student: { $in: batch.students }
+      student: { $in: batch.students },
+      assignment: { $in: assignmentIds } // Only submissions for assignments in this course
     })
     .populate('student', 'fullName userName email')
-    .populate('assignment', 'title description dueDate maxGrade')
+    .populate('assignment', 'title description dueDate maxScore course')
     .sort({ createdAt: -1 })
     .limit(limit * 1)
     .skip((page - 1) * limit);
 
     const total = await Submission.countDocuments({
-      student: { $in: batch.students }
+      student: { $in: batch.students },
+      assignment: { $in: assignmentIds }
     });
     
     const totalPages = Math.ceil(total / limit);
@@ -749,7 +823,7 @@ export const getStudentAssignmentSubmissions = async (req, res) => {
       student: studentId,
       assignment: assignmentId
     })
-    .populate('assignment', 'title description dueDate maxGrade')
+    .populate('assignment', 'title description dueDate maxScore')
     .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -761,6 +835,271 @@ export const getStudentAssignmentSubmissions = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error fetching student assignment submissions",
+    });
+  }
+};
+
+// @desc    Get submission details
+// @route   GET /api/instructor/submissions/:submissionId
+// @access  Private (Instructor only)
+export const getSubmissionDetails = async (req, res) => {
+  try {
+    const instructorId = req.user._id;
+    const { submissionId } = req.params;
+
+    const submission = await Submission.findById(submissionId)
+      .populate('student', 'fullName userName email')
+      .populate({
+        path: 'assignment',
+        select: 'title description dueDate maxScore course',
+        populate: {
+          path: 'course',
+          select: 'title'
+        }
+      })
+      .populate('gradedBy', 'fullName');
+
+    if (!submission) {
+      return res.status(404).json({
+        success: false,
+        message: "Submission not found",
+      });
+    }
+
+    // Verify instructor has access to this submission (through batches)
+    const batch = await Batch.findOne({
+      instructor: instructorId,
+      students: submission.student._id,
+      course: submission.assignment.course._id
+    });
+
+    if (!batch) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Student not in your batch.",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: submission
+    });
+  } catch (error) {
+    console.error("Get submission details error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching submission details",
+    });
+  }
+};
+
+// @desc    Grade a submission
+// @route   PATCH /api/instructor/submissions/:submissionId/grade
+// @access  Private (Instructor only)
+export const gradeInstructorSubmission = async (req, res) => {
+  try {
+    const instructorId = req.user._id;
+    const { submissionId } = req.params;
+    const { grade, feedback } = req.body;
+
+    if (grade !== undefined && (isNaN(grade) || grade < 0)) {
+      return res.status(400).json({
+        success: false,
+        message: "Grade must be a non-negative number",
+      });
+    }
+
+    const submission = await Submission.findById(submissionId)
+      .populate({
+        path: 'assignment',
+        select: 'maxScore course'
+      });
+
+    if (!submission) {
+      return res.status(404).json({
+        success: false,
+        message: "Submission not found",
+      });
+    }
+
+    // Verify instructor has access to this submission
+    const batch = await Batch.findOne({
+      instructor: instructorId,
+      students: submission.student,
+      course: submission.assignment.course
+    });
+
+    if (!batch) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Student not in your batch.",
+      });
+    }
+
+    // Validate grade against assignment max score
+    if (grade !== undefined && submission.assignment.maxScore && grade > submission.assignment.maxScore) {
+      return res.status(400).json({
+        success: false,
+        message: `Grade cannot exceed maximum score of ${submission.assignment.maxScore}`,
+      });
+    }
+
+    // Update submission
+    submission.grade = grade;
+    submission.feedback = feedback;
+    submission.status = 'GRADED';
+    submission.gradedAt = new Date();
+    submission.gradedBy = instructorId;
+    
+    await submission.save();
+
+    // Populate the updated submission for response
+    await submission.populate([
+      { path: 'student', select: 'fullName userName email' },
+      { path: 'assignment', select: 'title maxScore' },
+      { path: 'gradedBy', select: 'fullName' }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      message: "Submission graded successfully",
+      data: submission
+    });
+  } catch (error) {
+    console.error("Grade submission error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error grading submission",
+    });
+  }
+};
+
+// @desc    Download submission file
+// @route   GET /api/instructor/submissions/:submissionId/files/:fileIndex
+// @access  Private (Instructor only)
+export const downloadSubmissionFile = async (req, res) => {
+  try {
+    const instructorId = req.user._id;
+    const { submissionId, fileIndex } = req.params;
+
+    console.log(`[DEBUG] Download request - Instructor: ${instructorId}, Submission: ${submissionId}, File: ${fileIndex}`);
+
+    const submission = await Submission.findById(submissionId)
+      .populate({
+        path: 'assignment',
+        select: 'course'
+      });
+      
+    console.log(`[DEBUG] Submission found: ${!!submission}`);
+    if (submission) {
+      console.log(`[DEBUG] Legacy fileUrl: ${submission.fileUrl}`);
+      console.log(`[DEBUG] Attachments count: ${submission.attachments?.length || 0}`);
+    }
+
+    if (!submission) {
+      return res.status(404).json({
+        success: false,
+        message: "Submission not found",
+      });
+    }
+
+    // Verify instructor has access
+    const batch = await Batch.findOne({
+      instructor: instructorId,
+      students: submission.student,
+      course: submission.assignment.course
+    });
+
+    if (!batch) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied",
+      });
+    }
+
+    // Handle legacy fileUrl or new attachments
+    if (fileIndex === 'legacy' && submission.fileUrl) {
+      // Proxy legacy Cloudinary (or other external) file through our server to avoid CORS issues
+      try {
+        const fileUrl = submission.fileUrl;
+        const response = await fetch(fileUrl, { redirect: 'follow' });
+        if (!response.ok) {
+          return res.status(response.status).json({ success: false, message: `Upstream fetch failed with status ${response.status}` });
+        }
+
+        // Derive filename from Content-Disposition or URL path
+        const cd = response.headers.get('content-disposition');
+        const ct = response.headers.get('content-type') || 'application/octet-stream';
+        const cl = response.headers.get('content-length');
+        let filename = 'submission-file';
+        if (cd) {
+          const m = cd.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
+          const raw = m?.[1] || m?.[2];
+          if (raw) filename = decodeURIComponent(raw);
+        } else {
+          try {
+            const u = new URL(fileUrl);
+            const last = u.pathname.split('/').filter(Boolean).pop();
+            if (last) filename = decodeURIComponent(last);
+          } catch {}
+        }
+
+        res.setHeader('Content-Type', ct);
+        if (cl) res.setHeader('Content-Length', cl);
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+        if (response.body && typeof Readable.fromWeb === 'function') {
+          // Node 18+ supports Readable.fromWeb
+          return Readable.fromWeb(response.body).pipe(res);
+        }
+
+        // Fallback: buffer the response (less ideal for large files)
+        const arrayBuffer = await response.arrayBuffer();
+        return res.send(Buffer.from(arrayBuffer));
+      } catch (err) {
+        console.error('Legacy file proxy error:', err);
+        return res.status(500).json({ success: false, message: 'Error fetching legacy file' });
+      }
+    } 
+    
+    if (submission.attachments && submission.attachments.length > 0) {
+      const index = parseInt(fileIndex);
+      if (isNaN(index) || index < 0 || index >= submission.attachments.length) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid file index",
+        });
+      }
+      
+      const fileInfo = submission.attachments[index];
+      
+      // For new file system, check if file exists and serve it
+      const path = await import('path');
+      const fs = await import('fs');
+      
+      if (fs.existsSync(fileInfo.filePath)) {
+        res.setHeader('Content-Disposition', `attachment; filename="${fileInfo.originalName}"`);
+        res.setHeader('Content-Type', fileInfo.mimeType);
+        return res.sendFile(path.resolve(fileInfo.filePath));
+      } else {
+        return res.status(404).json({
+          success: false,
+          message: "File not found on server",
+        });
+      }
+    }
+    
+    // If no files found at all
+    return res.status(404).json({
+      success: false,
+      message: "No files found in submission",
+    });
+    
+  } catch (error) {
+    console.error("Download file error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error downloading file",
     });
   }
 };

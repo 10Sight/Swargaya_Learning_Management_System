@@ -46,6 +46,31 @@ export const certificateApi = createApi({
             }),
             invalidatesTags: ['Certificate'],
         }),
+
+        // New instructor workflow endpoints
+        checkCertificateEligibility: builder.query({
+            query: ({ studentId, courseId }) => ({
+                url: `/api/certificates/check-eligibility/${studentId}/${courseId}`,
+                method: "GET",
+            }),
+        }),
+
+        issueCertificateWithTemplate: builder.mutation({
+            query: ({ studentId, courseId, grade, templateId }) => ({
+                url: "/api/certificates/issue-with-template",
+                method: "POST",
+                data: { studentId, courseId, grade, templateId }
+            }),
+            invalidatesTags: ['Certificate'],
+        }),
+
+        generateCertificatePreview: builder.mutation({
+            query: ({ studentId, courseId, templateId }) => ({
+                url: "/api/certificates/preview",
+                method: "POST",
+                data: { studentId, courseId, templateId }
+            }),
+        }),
     }),
 });
 
@@ -55,4 +80,7 @@ export const {
     useGetStudentCertificatesQuery,
     useGetCourseCertificatesQuery,
     useRevokeCertificateMutation,
+    useCheckCertificateEligibilityQuery,
+    useIssueCertificateWithTemplateMutation,
+    useGenerateCertificatePreviewMutation,
 } = certificateApi;

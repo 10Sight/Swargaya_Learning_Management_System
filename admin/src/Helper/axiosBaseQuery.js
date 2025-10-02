@@ -1,14 +1,20 @@
 import { toast } from "sonner";
 import axiosInstance from "./axiosInstance";
 
-const axiosBaseQuery = async ({ url, method, data, params }) => {
+const axiosBaseQuery = async ({ url, method, data, params, responseHandler }) => {
     try {
         const response = await axiosInstance({
             url,
             method,
             data,
-            params
+            params,
+            ...(responseHandler && { responseType: 'blob' })
         })
+
+        // Handle different response types
+        if (responseHandler) {
+            return { data: responseHandler(response) }
+        }
 
         return { data: response.data }
     } catch (error) {

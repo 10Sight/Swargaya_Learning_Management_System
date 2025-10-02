@@ -18,6 +18,7 @@ import {
   IconUsers,
   IconClipboardList,
   IconClipboard,
+  IconAward,
 } from "@tabler/icons-react";
 import { HomeIcon } from "lucide-react";
 
@@ -28,6 +29,7 @@ const tabs = [
   { link: "/instructor/students", label: "Students", icon: IconUsers },
   { link: "/instructor/quiz-monitoring", label: "Quiz Monitoring", icon: IconClipboardList },
   { link: "/instructor/assignment-monitoring", label: "Assignment Monitoring", icon: IconClipboard },
+  { link: "/instructor/certificate-issuance", label: "Certificate Issuance", icon: IconAward },
 ];
 
 export function InstructorLayout() {

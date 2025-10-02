@@ -180,31 +180,31 @@ const StudentDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Welcome Header */}
-      <Card className="bg-gradient-to-r from-blue-50 to-indigo-100 border-blue-200">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-2xl text-blue-900">
-                Welcome back, {user?.fullName?.split(' ')[0] || 'Student'}! 👋
-              </CardTitle>
-              <CardDescription className="text-blue-700 text-base mt-1">
-                Ready to continue your learning journey?
-              </CardDescription>
-            </div>
-            <div className="flex items-center gap-3">
-              <Badge className={`${levelInfo.color} font-medium px-3 py-1`}>
-                {levelInfo.icon} {levelInfo.name}
-              </Badge>
-              {dashboardData.batch && (
-                <Badge variant="outline" className="bg-white/80">
-                  {dashboardData.batch.name}
+        {/* Welcome Header */}
+        <Card className="bg-gradient-to-r from-blue-50 to-indigo-100 border-blue-200">
+          <CardHeader>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <CardTitle className="text-xl sm:text-2xl text-blue-900">
+                  Welcome back, {user?.fullName?.split(' ')[0] || 'Student'}! 👋
+                </CardTitle>
+                <CardDescription className="text-blue-700 text-sm sm:text-base mt-1">
+                  Ready to continue your learning journey?
+                </CardDescription>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <Badge className={`${levelInfo.color} font-medium px-2 sm:px-3 py-1 text-xs sm:text-sm`}>
+                  <span className="hidden sm:inline">{levelInfo.icon} </span>{levelInfo.name}
                 </Badge>
-              )}
+                {dashboardData.batch && (
+                  <Badge variant="outline" className="bg-white/80 text-xs sm:text-sm">
+                    {dashboardData.batch.name}
+                  </Badge>
+                )}
+              </div>
             </div>
-          </div>
-        </CardHeader>
-      </Card>
+          </CardHeader>
+        </Card>
 
       {/* Quick Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -386,14 +386,23 @@ const StudentDashboard = () => {
                 </Button>
               </div>
             ) : dashboardData.courseContent?.course && courseProgress === 100 ? (
-              <div className="text-center py-8">
+              <div className="text-center py-8 space-y-4">
                 <Trophy className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
                 <h3 className="font-semibold text-lg mb-2">Congratulations! 🎉</h3>
                 <p className="text-muted-foreground mb-4">You've completed all course modules!</p>
-                <Button onClick={() => navigate('/student/course')} variant="outline">
-                  <Award className="h-4 w-4 mr-2" />
-                  View Final Assessments
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                  <Button onClick={() => navigate('/student/course')} variant="outline">
+                    <Award className="h-4 w-4 mr-2" />
+                    View Final Assessments
+                  </Button>
+                  <Button 
+                    onClick={() => navigate(`/student/report/${dashboardData.courseContent.course._id}`)} 
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    View Course Report
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className="text-center py-8">
@@ -418,15 +427,15 @@ const StudentDashboard = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground">Batch Name</p>
-                <p className="font-semibold">{dashboardData.batch.name}</p>
+                <p className="font-semibold break-words">{dashboardData.batch.name}</p>
               </div>
               
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground">Course</p>
-                <p className="font-semibold">
+                <p className="font-semibold break-words">
                   {dashboardData.batch.course?.title || dashboardData.batch.course?.name || "N/A"}
                 </p>
               </div>
@@ -478,7 +487,7 @@ const StudentDashboard = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             <Button 
               variant="outline" 
               onClick={() => navigate('/student/course')}
@@ -494,6 +503,25 @@ const StudentDashboard = () => {
                 </div>
               </div>
             </Button>
+            
+            {/* Show Course Report button if course is completed */}
+            {dashboardData.courseContent?.course && courseProgress === 100 && (
+              <Button 
+                variant="outline" 
+                onClick={() => navigate(`/student/report/${dashboardData.courseContent.course._id}`)}
+                className="h-auto p-4 justify-start border-green-200 hover:bg-green-50"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <FileText className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-medium text-green-700">Course Report</p>
+                    <p className="text-xs text-green-600">View & download certificate</p>
+                  </div>
+                </div>
+              </Button>
+            )}
             
             <Button 
               variant="outline" 

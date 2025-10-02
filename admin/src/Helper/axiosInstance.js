@@ -8,9 +8,13 @@ const axiosInstance = axios.create();
 axiosInstance.defaults.baseURL = BASE_URL
 axiosInstance.defaults.withCredentials = true
 
-// Request interceptor - for future authentication token handling
+// Request interceptor - for authentication token handling
 axiosInstance.interceptors.request.use(
     (config) => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
         return config;
     },
     (error) => {
@@ -24,10 +28,26 @@ axiosInstance.interceptors.response.use(
         return response;
     },
     (error) => {
+        console.error('Axios Error:', {
+            url: error.config?.url,
+            method: error.config?.method,
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            data: error.response?.data,
+            message: error.message
+        });
+        
         // Handle 401 errors globally if needed
         if (error.response?.status === 401) {
+            console.warn('Unauthorized request - token may be invalid or expired');
             // Could redirect to login or refresh tokens here
         }
+        
+        // Handle 404 errors
+        if (error.response?.status === 404) {
+            console.warn('API endpoint not found:', error.config?.url);
+        }
+        
         return Promise.reject(error);
     }
 );

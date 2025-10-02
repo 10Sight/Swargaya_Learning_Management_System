@@ -9,43 +9,94 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { checkModuleAccessForAssessments } from "../utils/moduleCompletion.js";
 
 export const createAssignment = asyncHandler(async (req, res) => {
-    const { courseId, moduleId, title, description, dueDate, maxScore, allowResubmission } = req.body;
+    const { courseId, moduleId, lessonId, scope, title, description, dueDate, maxScore, allowResubmission } = req.body;
 
-    if(!mongoose.Types.ObjectId.isValid(courseId)) {
-        throw new ApiError("Invalid course ID", 400);
+    // Validate required fields
+    if (!title || !dueDate) {
+        throw new ApiError("Title and due date are required", 400);
     }
 
-    if(moduleId && !mongoose.Types.ObjectId.isValid(moduleId)) {
-        throw new ApiError("Invalid module ID", 400);
+    // Validate scope
+    if (scope && !['course', 'module', 'lesson'].includes(scope)) {
+        throw new ApiError("Scope must be 'course', 'module', or 'lesson'", 400);
     }
 
+    // Determine scope from provided parameters if not explicitly set
+    const actualScope = scope || (lessonId ? 'lesson' : moduleId ? 'module' : 'course');
+    
+    // Validate course ID
+    if (!courseId || !mongoose.Types.ObjectId.isValid(courseId)) {
+        throw new ApiError("Valid Course ID is required", 400);
+    }
+    
     const course = await Course.findById(courseId);
-    if(!course) throw new ApiError("Course not found", 404);
+    if (!course) {
+        throw new ApiError("Course not found", 404);
+    }
 
-    // If moduleId is provided, verify the module exists and belongs to the course
-    if(moduleId) {
+    // Validate scope-specific requirements
+    let parentEntity;
+    let parentId;
+
+    if (actualScope === 'course') {
+        parentEntity = course;
+        parentId = courseId;
+    } else if (actualScope === 'module') {
+        if (!moduleId || !mongoose.Types.ObjectId.isValid(moduleId)) {
+            throw new ApiError("Valid Module ID is required for module-scoped assignment", 400);
+        }
         const Module = (await import("../models/module.model.js")).default;
-        const module = await Module.findOne({ _id: moduleId, course: courseId });
-        if(!module) {
+        parentEntity = await Module.findOne({ _id: moduleId, course: courseId });
+        if (!parentEntity) {
             throw new ApiError("Module not found or does not belong to this course", 404);
         }
+        parentId = moduleId;
+    } else if (actualScope === 'lesson') {
+        if (!lessonId || !mongoose.Types.ObjectId.isValid(lessonId)) {
+            throw new ApiError("Valid Lesson ID is required for lesson-scoped assignment", 400);
+        }
+        if (!moduleId || !mongoose.Types.ObjectId.isValid(moduleId)) {
+            throw new ApiError("Valid Module ID is required for lesson-scoped assignment", 400);
+        }
+        const Lesson = (await import("../models/lesson.model.js")).default;
+        parentEntity = await Lesson.findById(lessonId);
+        if (!parentEntity) {
+            throw new ApiError("Lesson not found", 404);
+        }
+        parentId = lessonId;
     }
 
-    // Create assignment with required fields
-    const assignment = await Assignment.create({
-        course: courseId,
-        module: moduleId || null,
-        lesson: courseId, // Use courseId as lesson for now
-        instructor: course.instructor || req.user._id, // Use course instructor or current user
+    let assignmentData = {
+        scope: actualScope,
         title,
         description,
         dueDate,
         maxScore: maxScore || 100,
         allowResubmission: allowResubmission !== undefined ? allowResubmission : true,
+        instructor: course.instructor || req.user._id,
         createdBy: req.user._id,
-    });
+        // Legacy fields for backward compatibility
+        course: courseId
+    };
 
-    // Update course assignments array
+    // Set the appropriate ID based on scope
+    if (actualScope === 'course') {
+        assignmentData.courseId = parentId;
+    } else if (actualScope === 'module') {
+        assignmentData.courseId = courseId;
+        assignmentData.moduleId = parentId;
+        assignmentData.module = parentId; // Legacy field
+    } else if (actualScope === 'lesson') {
+        assignmentData.courseId = courseId;
+        assignmentData.moduleId = moduleId;
+        assignmentData.lessonId = parentId;
+        assignmentData.module = moduleId; // Legacy field
+        assignmentData.lesson = parentId; // Legacy field
+    }
+
+    const assignment = await Assignment.create(assignmentData);
+
+    // Update parent entity with new assignment (if needed for legacy compatibility)
     course.assignments.push(assignment._id);
     await course.save();
 
@@ -263,4 +314,90 @@ export const getCourseAssignments = asyncHandler(async (req, res) => {
         assignments,
         courseTitle: course.title
     }, "Course assignments fetched successfully"));
+});
+
+// Get assignments by course scope (similar to resources)
+export const getAssignmentsByCourse = asyncHandler(async (req, res) => {
+    const rawCourseId = req.params?.courseId ?? req.body?.courseId;
+
+    if (!rawCourseId || rawCourseId === 'undefined' || rawCourseId === 'null') {
+        return res.status(400).json(new ApiResponse(400, [], "Course ID is required"));
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(rawCourseId)) {
+        return res.status(400).json(new ApiResponse(400, [], "Invalid course ID format"));
+    }
+
+    try {
+        const assignments = await Assignment.find({ courseId: rawCourseId, scope: 'course' })
+            .populate('createdBy', 'name email')
+            .populate('course', 'title')
+            .populate('instructor', 'name email')
+            .sort({ createdAt: -1 });
+
+        return res.json(
+            new ApiResponse(200, assignments, "Assignments retrieved successfully")
+        );
+    } catch (err) {
+        console.error("getAssignmentsByCourse - DB error:", err);
+        return res.status(500).json(new ApiResponse(500, [], "Error fetching assignments"));
+    }
+});
+
+// Get assignments by module scope (similar to resources)
+export const getAssignmentsByModule = asyncHandler(async (req, res) => {
+    const rawModuleId = req.params?.moduleId ?? req.body?.moduleId;
+
+    if (!rawModuleId || rawModuleId === 'undefined' || rawModuleId === 'null') {
+        return res.status(400).json(new ApiResponse(400, [], "Module ID is required"));
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(rawModuleId)) {
+        return res.status(400).json(new ApiResponse(400, [], "Invalid module ID format"));
+    }
+
+    try {
+        const assignments = await Assignment.find({ moduleId: rawModuleId, scope: 'module' })
+            .populate('createdBy', 'name email')
+            .populate('course', 'title')
+            .populate('module', 'title')
+            .populate('instructor', 'name email')
+            .sort({ createdAt: -1 });
+
+        return res.json(
+            new ApiResponse(200, assignments, "Assignments retrieved successfully")
+        );
+    } catch (err) {
+        console.error("getAssignmentsByModule - DB error:", err);
+        return res.status(500).json(new ApiResponse(500, [], "Error fetching assignments"));
+    }
+});
+
+// Get assignments by lesson scope (similar to resources)
+export const getAssignmentsByLesson = asyncHandler(async (req, res) => {
+    const rawLessonId = req.params?.lessonId ?? req.body?.lessonId;
+
+    if (!rawLessonId || rawLessonId === 'undefined' || rawLessonId === 'null') {
+        return res.status(400).json(new ApiResponse(400, [], "Lesson ID is required"));
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(rawLessonId)) {
+        return res.status(400).json(new ApiResponse(400, [], "Invalid lesson ID format"));
+    }
+
+    try {
+        const assignments = await Assignment.find({ lessonId: rawLessonId, scope: 'lesson' })
+            .populate('createdBy', 'name email')
+            .populate('course', 'title')
+            .populate('module', 'title')
+            .populate('instructor', 'name email')
+            .sort({ createdAt: -1 });
+
+        return res.json(
+            new ApiResponse(200, assignments, "Assignments retrieved successfully")
+        );
+    } catch (err) {
+        console.error("getAssignmentsByLesson - DB error:", err);
+        return res.status(500).json(new ApiResponse(500, [], "Error fetching assignments"));
+    }
 });

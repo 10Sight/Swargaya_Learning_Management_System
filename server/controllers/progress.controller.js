@@ -206,7 +206,6 @@ export const markModuleComplete = asyncHandler(async (req, res) => {
         module => module.moduleId.toString() === moduleId.toString()
     );
 
-    // let course;
     let levelUpgraded = false;
     let oldLevel = progress.currentLevel;
 
@@ -217,23 +216,30 @@ export const markModuleComplete = asyncHandler(async (req, res) => {
         });
 
         // Update progress percentage based on module completion
-        course = await Course.findById(courseId);
-        if (course && course.modules) {
-            const totalModules = course.modules.length;
+        const courseForProgress = await Course.findById(courseId);
+        if (courseForProgress && courseForProgress.modules) {
+            const totalModules = courseForProgress.modules.length;
             const completedModulesCount = progress.completedModules.length;
             progress.progressPercent = Math.min(100, Math.round((completedModulesCount / totalModules) * 100));
-            
-            // Automatic level progression logic
-            if (progress.currentLevel === "L1" && completedModulesCount >= 1) {
-                // Upgrade to L2 after completing first module
-                progress.currentLevel = "L2";
-                levelUpgraded = true;
-            } else if (progress.currentLevel === "L2" && progress.progressPercent >= 75) {
-                // Upgrade to L3 after completing 75% of the course
-                progress.currentLevel = "L3";
-                levelUpgraded = true;
+
+            // Respect admin level lock: when enabled, skip auto promotion and enforce lockedLevel if provided
+            if (progress.levelLockEnabled) {
+                if (progress.lockedLevel && progress.currentLevel !== progress.lockedLevel) {
+                    progress.currentLevel = progress.lockedLevel;
+                }
+            } else {
+                // Automatic level progression logic (only when not locked)
+                if (progress.currentLevel === "L1" && completedModulesCount >= 1) {
+                    // Upgrade to L2 after completing first module
+                    progress.currentLevel = "L2";
+                    levelUpgraded = true;
+                } else if (progress.currentLevel === "L2" && progress.progressPercent >= 75) {
+                    // Upgrade to L3 after completing 75% of the course
+                    progress.currentLevel = "L3";
+                    levelUpgraded = true;
+                }
             }
-            
+
             // Log level upgrade for debugging
             if (levelUpgraded) {
             }
@@ -262,6 +268,11 @@ export const upgradeLevel = asyncHandler(async (req, res) => {
 
     const progress = await Progress.findOne({ student: userId, course: courseId });
     if(!progress) throw new ApiError("Progress not found", 404);
+
+    // Respect admin lock: no manual upgrades when locked
+    if (progress.levelLockEnabled) {
+        throw new ApiError("Level changes are locked by admin", 403);
+    }
 
     if(progress.progressPercent < 100) {
         throw new ApiError("Cannot upgrade level until progress is 100%", 400);
@@ -349,6 +360,49 @@ export const getOrInitializeProgress = asyncHandler(async (req, res) => {
     };
 
     res.json(new ApiResponse(200, transformedProgress, "Progress fetched successfully"));
+});
+
+export const setStudentLevel = asyncHandler(async (req, res) => {
+    const { studentId, courseId, level, lock } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(studentId) || !mongoose.Types.ObjectId.isValid(courseId)) {
+        throw new ApiError("Invalid student or course ID", 400);
+    }
+
+    if (level && !["L1","L2","L3"].includes(level)) {
+        throw new ApiError("Invalid level value", 400);
+    }
+
+    let progress = await Progress.findOne({ student: studentId, course: courseId });
+    if (!progress) {
+        progress = await Progress.create({
+            student: studentId,
+            course: courseId,
+            currentLevel: level || "L1",
+            completedLessons: [],
+            completedModules: [],
+            quizzes: [],
+            assignments: [],
+            progressPercent: 0,
+        });
+    }
+
+    if (level) {
+        progress.currentLevel = level;
+    }
+
+    if (typeof lock === 'boolean') {
+        progress.levelLockEnabled = lock;
+        progress.lockedLevel = lock ? (level || progress.currentLevel) : null;
+        // When locking, enforce the level immediately
+        if (lock && progress.lockedLevel && progress.currentLevel !== progress.lockedLevel) {
+            progress.currentLevel = progress.lockedLevel;
+        }
+    }
+
+    await progress.save();
+
+    return res.json(new ApiResponse(200, progress, "Student level updated successfully"));
 });
 
 export const getCourseProgress = asyncHandler(async (req, res) => {
@@ -454,4 +508,207 @@ export const getStudentProgress = asyncHandler(async (req, res) => {
     res.json(
         new ApiResponse(200, transformedProgresses, "Student progress fetched successfully")
     );
+});
+
+// Get all progress for the authenticated student
+export const getMyAllProgress = asyncHandler(async (req, res) => {
+    const userId = req.user._id;
+
+    const progresses = await Progress.find({ student: userId })
+        .populate("course", "title description")
+        .populate({
+            path: "student",
+            select: "fullName email batch",
+            populate: {
+                path: "batch",
+                select: "name startDate endDate"
+            }
+        })
+        .populate({
+            path: "course",
+            populate: {
+                path: "modules",
+                select: "title order"
+            }
+        })
+        .sort({ createdAt: -1 });
+
+    // Transform progress data to frontend-compatible format
+    const transformedProgresses = progresses.map(progress => {
+        const courseProgress = {
+            ...progress.toObject(),
+            courseTitle: progress.course?.title,
+            // Extract lessonIds from completed lessons for frontend compatibility
+            completedLessonIds: progress.completedLessons.map(lesson => lesson.lessonId.toString()),
+            // Extract moduleIds from completed modules for frontend compatibility
+            completedModuleIds: progress.completedModules.map(module => module.moduleId.toString()),
+            // Keep original arrays for detailed information if needed
+            lessonsCompleted: progress.completedLessons.map(lesson => lesson.lessonId.toString()),
+            modulesCompleted: progress.completedModules.map(module => module.moduleId.toString()),
+            // Add total modules count if available
+            totalModules: progress.course?.modules?.length || 0,
+            // Include batch information from student populate
+            batch: progress.student?.batch || null
+        };
+        return courseProgress;
+    });
+
+    res.json(
+        new ApiResponse(200, transformedProgresses, "My progress fetched successfully")
+    );
+});
+
+// Get course completion report data for a student
+export const getCourseCompletionReport = asyncHandler(async (req, res) => {
+    const userId = req.user._id;
+    const { courseId } = req.params;
+    
+    console.log('Course Completion Report Request:', {
+        userId: userId,
+        courseId: courseId,
+        userRole: req.user.role,
+        userName: req.user.userName
+    });
+
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+        throw new ApiError("Invalid course ID", 400);
+    }
+
+    // Get student details
+    const User = (await import("../models/auth.model.js")).default;
+    const Batch = (await import("../models/batch.model.js")).default;
+    
+    const student = await User.findById(userId).populate('batch');
+    if (!student) {
+        throw new ApiError("Student not found", 404);
+    }
+
+    if (!student.batch) {
+        throw new ApiError("Student not assigned to any batch", 404);
+    }
+
+    // Get batch details with instructor and course
+    const batch = await Batch.findById(student.batch._id)
+        .populate('instructor', 'fullName email')
+        .populate('course', 'title description');
+    
+    if (!batch) {
+        throw new ApiError("Batch not found", 404);
+    }
+
+    if (batch.course._id.toString() !== courseId) {
+        throw new ApiError("Course does not match student's batch course", 400);
+    }
+
+    // Get course with modules
+    const course = await Course.findById(courseId).populate('modules');
+    if (!course) {
+        throw new ApiError("Course not found", 404);
+    }
+
+    // Get student progress
+    const progress = await Progress.findOne({ student: userId, course: courseId });
+    if (!progress) {
+        throw new ApiError("No progress found for this course", 404);
+    }
+
+    // Check if course is completed (all modules completed)
+    const totalModules = course.modules?.length || 0;
+    const completedModules = progress.completedModules?.length || 0;
+    const isCourseCompleted = totalModules > 0 && completedModules >= totalModules;
+
+    if (!isCourseCompleted) {
+        throw new ApiError(`Course not completed. ${completedModules}/${totalModules} modules completed.`, 400);
+    }
+
+    // Get quiz attempts for this course
+    const AttemptedQuiz = (await import("../models/attemptedQuiz.model.js")).default;
+    const Quiz = (await import("../models/quiz.model.js")).default;
+    
+    const quizAttempts = await AttemptedQuiz.find({ student: userId })
+        .populate({
+            path: 'quiz',
+            match: { course: courseId },
+            select: 'title questions passingScore type'
+        })
+        .sort({ createdAt: -1 });
+
+    // Filter out attempts where quiz is null (doesn't belong to this course)
+    const courseQuizAttempts = quizAttempts.filter(attempt => attempt.quiz);
+
+    // Transform quiz attempts with pass/fail status
+    const quizResults = courseQuizAttempts.map(attempt => {
+        const totalQuestions = attempt.quiz.questions?.length || 0;
+        const scorePercent = totalQuestions > 0 ? Math.round((attempt.score / totalQuestions) * 100) : 0;
+        const passingScore = attempt.quiz.passingScore || 70;
+        const passed = scorePercent >= passingScore;
+
+        return {
+            quizId: attempt.quiz._id,
+            quizTitle: attempt.quiz.title,
+            quizType: attempt.quiz.type,
+            score: attempt.score,
+            totalQuestions,
+            scorePercent,
+            passingScore,
+            passed,
+            status: passed ? 'PASSED' : 'FAILED',
+            attemptDate: attempt.createdAt,
+            timeTaken: attempt.timeTaken
+        };
+    });
+
+    // Calculate overall quiz performance
+    const totalQuizzes = quizResults.length;
+    const passedQuizzes = quizResults.filter(q => q.passed).length;
+    const overallQuizPassRate = totalQuizzes > 0 ? Math.round((passedQuizzes / totalQuizzes) * 100) : 0;
+    const averageQuizScore = totalQuizzes > 0 
+        ? Math.round(quizResults.reduce((sum, q) => sum + q.scorePercent, 0) / totalQuizzes)
+        : 0;
+
+    // Prepare report data
+    const reportData = {
+        student: {
+            _id: student._id,
+            fullName: student.fullName,
+            email: student.email,
+            userName: student.userName
+        },
+        batch: {
+            _id: batch._id,
+            name: batch.name,
+            startDate: batch.startDate,
+            endDate: batch.endDate
+        },
+        instructor: {
+            _id: batch.instructor._id,
+            fullName: batch.instructor.fullName,
+            email: batch.instructor.email
+        },
+        course: {
+            _id: course._id,
+            title: course.title,
+            description: course.description
+        },
+        progress: {
+            completedModules,
+            totalModules,
+            completedLessons: progress.completedLessons?.length || 0,
+            currentLevel: progress.currentLevel,
+            progressPercent: Math.round((completedModules / totalModules) * 100),
+            completedAt: progress.updatedAt
+        },
+        quizResults,
+        quizSummary: {
+            totalQuizzes,
+            passedQuizzes,
+            failedQuizzes: totalQuizzes - passedQuizzes,
+            passRate: overallQuizPassRate,
+            averageScore: averageQuizScore
+        },
+        generatedAt: new Date(),
+        isCourseCompleted
+    };
+
+    res.json(new ApiResponse(200, reportData, "Course completion report generated successfully"));
 });

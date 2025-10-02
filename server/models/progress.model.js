@@ -55,6 +55,18 @@ const progressSchema = new Schema(
       default: "L1"
     },
 
+    // Admin-controlled level lock: when enabled, automatic promotions are disabled
+    levelLockEnabled: {
+      type: Boolean,
+      default: false
+    },
+    // If set, currentLevel will be enforced to this value while lock is enabled
+    lockedLevel: {
+      type: String,
+      enum: ["L1", "L2", "L3", null],
+      default: null
+    },
+
     progressPercent: {
       type: Number,
       default: 0,

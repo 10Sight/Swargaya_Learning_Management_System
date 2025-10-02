@@ -17,6 +17,7 @@ import { enrollmentApi } from "./AllApi/EnrollmentApi";
 import { progressApi } from "./AllApi/ProgressApi";
 import { submissionApi } from "./AllApi/SubmissionApi";
 import { certificateApi } from "./AllApi/CertificateApi";
+import { certificateTemplateApi } from "./AllApi/CertificateTemplateApi";
 import { auditApi } from "./AllApi/AuditApi";
 import { attemptedQuizApi } from "./AllApi/AttemptedQuizApi";
 import { resourceApi } from "./AllApi/resourceApi";
@@ -43,6 +44,7 @@ const store = configureStore({
         [progressApi.reducerPath]: progressApi.reducer,
         [submissionApi.reducerPath]: submissionApi.reducer,
         [certificateApi.reducerPath]: certificateApi.reducer,
+        [certificateTemplateApi.reducerPath]: certificateTemplateApi.reducer,
         [auditApi.reducerPath]: auditApi.reducer,
         [attemptedQuizApi.reducerPath]: attemptedQuizApi.reducer,
         [resourceApi.reducerPath]: resourceApi.reducer,
@@ -63,6 +65,7 @@ const store = configureStore({
             progressApi.middleware,
             submissionApi.middleware,
             certificateApi.middleware,
+            certificateTemplateApi.middleware,
             auditApi.middleware,
             attemptedQuizApi.middleware,
             resourceApi.middleware,

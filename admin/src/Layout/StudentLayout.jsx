@@ -14,17 +14,23 @@ import {
   IconLayoutSidebarRightCollapse,
   IconLogout,
   IconFolder,
+  IconBooks,
+  IconFileText,
+  IconAward,
 } from "@tabler/icons-react";
 import { HomeIcon } from "lucide-react";
 
 const tabs = [
   { link: "/student", label: "Dashboard", icon: IconLayoutDashboardFilled },
   { link: "/student/batch", label: "Batch", icon: IconFolder },
+  { link: "/student/course", label: "Course", icon: IconBooks },
+  { link: "/student/reports", label: "Reports", icon: IconFileText },
+  { link: "/student/certificates", label: "Certificates", icon: IconAward },
 ];
 
 export function StudentLayout() {
   const [collapsed, setCollapsed] = useState(
-    window.innerWidth >= 820 ? false : true
+    window.innerWidth >= 768 ? false : true
   );
   const [pageName, setPageName] = useState("Dashboard");
 
@@ -35,18 +41,22 @@ export function StudentLayout() {
 
   // Update page name based on current route
   useEffect(() => {
-    const currentTab = tabs.find(tab => 
-      pathname === tab.link || 
-      (tab.link !== "/student" && pathname.startsWith(tab.link))
-    );
-    
-    if (currentTab) {
-      setPageName(currentTab.label);
-    } else if (pathname === "/student") {
-      setPageName("Dashboard");
+    if (pathname.startsWith("/student/report")) {
+      setPageName("Course Report");
     } else {
-      const routeName = pathname.split("/").pop();
-      setPageName(routeName.charAt(0).toUpperCase() + routeName.slice(1));
+      const currentTab = tabs.find(tab => 
+        pathname === tab.link || 
+        (tab.link !== "/student" && pathname.startsWith(tab.link))
+      );
+      
+      if (currentTab) {
+        setPageName(currentTab.label);
+      } else if (pathname === "/student") {
+        setPageName("Dashboard");
+      } else {
+        const routeName = pathname.split("/").pop();
+        setPageName(routeName.charAt(0).toUpperCase() + routeName.slice(1));
+      }
     }
   }, [pathname]);
 
@@ -78,6 +88,14 @@ export function StudentLayout() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
+      {/* Mobile Overlay */}
+      {!collapsed && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-10 md:hidden" 
+          onClick={toggleSidebar}
+        />
+      )}
+      
       {/* Sidebar */}
       <nav
         className={`fixed top-0 left-0 h-screen bg-white text-black shadow-lg transition-all duration-300 z-20
@@ -158,13 +176,13 @@ export function StudentLayout() {
       {/* Main Content Area */}
       <div
         className={`flex-1 transition-all duration-300 ${
-          collapsed ? "ml-16" : "ml-64"
+          collapsed ? "ml-16" : "ml-16 md:ml-64"
         }`}
       >
         {/* Header */}
         <header
-          className={`px-6 bg-white shadow-sm flex h-16 items-center justify-between gap-4 fixed right-0 top-0 border-b border-gray-200 z-10 transition-all duration-300 ${
-            collapsed ? "w-[calc(100%-4rem)]" : "w-[calc(100%-16rem)]"
+          className={`px-3 sm:px-6 bg-white shadow-sm flex h-16 items-center justify-between gap-2 sm:gap-4 fixed right-0 top-0 border-b border-gray-200 z-10 transition-all duration-300 ${
+            collapsed ? "w-[calc(100%-4rem)]" : "w-[calc(100%-4rem)] md:w-[calc(100%-16rem)]"
           }`}
         >
           {/* Left side (Breadcrumb) */}
@@ -210,8 +228,8 @@ export function StudentLayout() {
         </header>
 
         {/* Page Content */}
-        <div className="pt-20 pb-6 px-6 min-h-screen">
-          <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="pt-20 pb-6 px-3 sm:px-6 min-h-screen">
+          <div className="bg-white rounded-lg shadow-sm p-3 sm:p-6">
             <Outlet />
           </div>
         </div>

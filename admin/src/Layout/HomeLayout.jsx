@@ -23,6 +23,8 @@ import {
   IconUsers,
   IconChartPie,
   IconUser,
+  IconSettings,
+  IconTemplate,
 } from "@tabler/icons-react";
 import { HomeIcon } from "lucide-react";
 
@@ -32,6 +34,8 @@ const tabs = [
   { link: "/admin/courses", label: "Courses", icon: IconCertificate },
   { link: "/admin/batches", label: "Batches", icon: IconFolder },
   { link: "/admin/students", label: "Students", icon: IconUsers },
+  { link: "/admin/student-levels", label: "Student Levels", icon: IconSettings },
+  { link: "/admin/certificate-templates", label: "Certificate Templates", icon: IconTemplate },
   { link: "/admin/analytics", label: "Analytics", icon: IconChartPie },
 ];
 

@@ -56,6 +56,22 @@ export const progressApi = createApi({
             }),
             providesTags: (result, error, studentId) => [{ type: 'Progress', id: `student-${studentId}` }],
         }),
+
+        getMyAllProgress: builder.query({
+            query: () => ({
+                url: `/api/progress/my`,
+                method: "GET",
+            }),
+            providesTags: ['Progress'],
+        }),
+
+        getCourseCompletionReport: builder.query({
+            query: (courseId) => ({
+                url: `/api/progress/report/${courseId}`,
+                method: "GET",
+            }),
+            providesTags: (result, error, courseId) => [{ type: 'Progress', id: `report-${courseId}` }],
+        }),
     }),
 });
 
@@ -66,4 +82,6 @@ export const {
     useGetMyProgressQuery,
     useGetCourseProgressQuery,
     useGetStudentProgressQuery,
+    useGetMyAllProgressQuery,
+    useGetCourseCompletionReportQuery,
 } = progressApi;

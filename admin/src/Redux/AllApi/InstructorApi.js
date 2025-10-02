@@ -202,6 +202,40 @@ export const instructorApi = createApi({
                 { type: 'InstructorStudent', id: studentId }
             ],
         }),
+
+        // Get submission details with files and grading info
+        getInstructorSubmissionDetails: builder.query({
+            query: (submissionId) => ({
+                url: `/api/instructor/submissions/${submissionId}`,
+                method: "GET",
+            }),
+            providesTags: (result, error, submissionId) => [
+                { type: 'InstructorAssignment', id: submissionId }
+            ],
+        }),
+
+        // Grade a submission
+        gradeInstructorSubmission: builder.mutation({
+            query: ({ submissionId, grade, feedback }) => ({
+                url: `/api/instructor/submissions/${submissionId}/grade`,
+                method: "PATCH",
+                data: { grade, feedback }
+            }),
+            invalidatesTags: (result, error, { submissionId }) => [
+                { type: 'InstructorAssignment', id: submissionId },
+                'InstructorAssignment'
+            ],
+        }),
+
+        // Download submission file
+        downloadInstructorSubmissionFile: builder.query({
+            query: ({ submissionId, fileIndex }) => ({
+                url: `/api/instructor/submissions/${submissionId}/files/${fileIndex}`,
+                method: "GET",
+                responseHandler: (response) => response.data,
+            }),
+            keepUnusedDataFor: 0, // Don't cache file downloads
+        }),
     }),
 });
 
@@ -227,4 +261,6 @@ export const {
     useGetInstructorBatchAssignmentSubmissionsQuery,
     useGetInstructorAssignmentDetailsQuery,
     useGetInstructorStudentAssignmentSubmissionsQuery,
+    useGetInstructorSubmissionDetailsQuery,
+    useGradeInstructorSubmissionMutation,
 } = instructorApi;

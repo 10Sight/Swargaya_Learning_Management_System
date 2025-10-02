@@ -16,12 +16,37 @@ const submissionSchema = new Schema(
         },
         fileUrl: {
             type: String,
-            required: true,
+            required: false, // Made optional for backward compatibility
         },
+        attachments: [{
+            filename: {
+                type: String,
+                required: true
+            },
+            originalName: {
+                type: String,
+                required: true
+            },
+            filePath: {
+                type: String,
+                required: true
+            },
+            fileSize: {
+                type: Number,
+                required: true
+            },
+            mimeType: {
+                type: String,
+                required: true
+            },
+            uploadedAt: {
+                type: Date,
+                default: Date.now
+            }
+        }],
         grade: {
             type: Number,
             min: 0,
-            max: 100,
             default: null,
         },
         feedback: {
@@ -39,6 +64,20 @@ const submissionSchema = new Schema(
         resubmissionCount: {
             type: Number,
             default: 0,
+        },
+        status: {
+            type: String,
+            enum: ['DRAFT', 'SUBMITTED', 'GRADED', 'RETURNED'],
+            default: 'SUBMITTED'
+        },
+        gradedAt: {
+            type: Date,
+            default: null
+        },
+        gradedBy: {
+            type: Schema.Types.ObjectId,
+            ref: "User",
+            default: null
         },
     },
     {
