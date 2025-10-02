@@ -33,6 +33,7 @@ const courseSchema = new Schema(
             type: Schema.Types.ObjectId,
             ref: "User",
             required: true,
+            index: true, // Index for instructor queries
         },
         students: [
             {
@@ -53,6 +54,7 @@ const courseSchema = new Schema(
             type: String,
             enum: AvailableCourseStatus,
             default: "DRAFT",
+            index: true, // Index for filtering by status
         },
         modules: [
             {

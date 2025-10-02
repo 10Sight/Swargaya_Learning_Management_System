@@ -39,7 +39,7 @@ const Analytics = ({ pageName = "Analytics" }) => {
   });
 
   const activities = auditsData?.data?.audits || [];
-  const totalActivities = auditsData?.data?.total || 0;
+  const totalActivities = auditsData?.data?.pagination?.total || 0;
 
   // Calculate some basic stats
   const totalStudents = studentsData?.data?.totalUsers || 0;

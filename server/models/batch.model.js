@@ -17,6 +17,7 @@ const batchSchema = new Schema(
             type: Schema.Types.ObjectId,
             ref: "User",
             required: false,
+            index: true, // Index for instructor queries
         },
         students: [
             {
@@ -40,6 +41,7 @@ const batchSchema = new Schema(
             type: String,
             enum: ["UPCOMING", "ONGOING", "COMPLETED", "CANCELLED"],
             default: "UPCOMING",
+            index: true, // Index for status filtering
         },
         schedule: [
             {

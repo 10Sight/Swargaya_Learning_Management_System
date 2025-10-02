@@ -23,6 +23,7 @@ const userSchema = new Schema(
             type: String,
             required: true,
             unique: true,
+            index: true, // Compound index will be created automatically due to unique
         },
         phoneNumber: {
             type: String,
@@ -50,6 +51,7 @@ const userSchema = new Schema(
             type: String,
             enum: AvailableUserRoles,
             default: AvailableUserRoles.STUDENT,
+            index: true, // Index for role-based filtering
         },
         status: {
             type: String,
@@ -81,6 +83,7 @@ const userSchema = new Schema(
         batch: {
             type: Schema.Types.ObjectId,
             ref: "Batch",
+            index: true, // Index for batch-based queries
         },
     },
     {

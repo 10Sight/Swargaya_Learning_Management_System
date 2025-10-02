@@ -1,9 +1,13 @@
 import express from "express";
+import { createServer } from "http";
+import { Server } from "socket.io";
+import compression from "compression";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import ENV from "./configs/env.config.js";
 import logger from "./logger/winston.logger.js";
 import connectDB from "./db/connectDB.js";
+import socketIOService from "./utils/socketIO.js";
 // import morganMiddleware from "./logger/morgan.logger.js";
 // Routes
 import authRoutes from "./routes/auth.route.js";
@@ -28,14 +32,39 @@ import instructorRoutes from "./routes/instructor.routes.js";
 // import cleanupOldFiles from './scripts/cleanup.js';
 
 const app = express();
-app.use(express.json());
-app.use(cookieParser()); // Add cookie parser middleware
-// app.use(morganMiddleware);
+const server = createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: ["https://swargaya-learning-management-system.onrender.com", "http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176", "http://localhost:5177"],
+        credentials: true,
+        methods: ["GET", "POST"]
+    }
+});
 
-app.use(cors({
+// Performance optimizations
+app.use(compression()); // Enable gzip/deflate compression
+
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' })); // Increased limit for file uploads
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(cookieParser()); // Add cookie parser middleware
+
+// CORS with caching for preflight
+const corsOptions = {
     origin: ["https://swargaya-learning-management-system.onrender.com", "http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176", "http://localhost:5177"],
     credentials: true,
-}));
+    optionsSuccessStatus: 200, // For legacy browser support
+    maxAge: 86400, // Cache preflight for 24 hours
+};
+app.use(cors(corsOptions));
+
+// Security headers
+app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    next();
+});
 
 const PORT = ENV.PORT;
 
@@ -75,6 +104,120 @@ app.use("/api/resources", resourceRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/instructor", instructorRoutes);
+
+// Initialize Socket.IO service
+socketIOService.initialize(io);
+
+// Socket.IO connection handling
+io.on('connection', (socket) => {
+    logger.info(`User connected: ${socket.id}`);
+    
+    // Handle user authentication and room joining
+    socket.on('authenticate', (userData) => {
+        socket.userId = userData.userId;
+        socket.userRole = userData.role;
+        socket.userName = userData.name;
+        
+        // Auto-join user to their batches/courses
+        if (userData.batches && Array.isArray(userData.batches)) {
+            userData.batches.forEach(batchId => {
+                socket.join(`batch-${batchId}`);
+                logger.info(`User ${userData.name} joined batch room: batch-${batchId}`);
+            });
+        }
+        
+        // Join user-specific room for direct notifications
+        socket.join(`user-${userData.userId}`);
+        
+        // Notify user of successful connection
+        socket.emit('authenticated', {
+            message: 'Successfully connected to real-time notifications',
+            connectedUsers: socketIOService.getConnectedUsersCount()
+        });
+    });
+    
+    // Handle manual room joining
+    socket.on('join-room', (roomId) => {
+        socket.join(roomId);
+        logger.info(`User ${socket.id} joined room: ${roomId}`);
+        socket.to(roomId).emit('user-joined', { 
+            userId: socket.userId, 
+            userName: socket.userName,
+            roomId 
+        });
+    });
+    
+    // Handle leaving rooms
+    socket.on('leave-room', (roomId) => {
+        socket.leave(roomId);
+        logger.info(`User ${socket.id} left room: ${roomId}`);
+        socket.to(roomId).emit('user-left', { 
+            userId: socket.userId, 
+            userName: socket.userName,
+            roomId 
+        });
+    });
+    
+    // Handle quiz events
+    socket.on('quiz-started', (data) => {
+        socketIOService.notifyQuizStarted(data.batchId, data.quizData);
+    });
+    
+    socket.on('quiz-submitted', (data) => {
+        socketIOService.notifyQuizSubmitted(data.batchId, {
+            ...data.submissionData,
+            studentName: socket.userName
+        });
+    });
+    
+    // Handle assignment events
+    socket.on('assignment-created', (data) => {
+        socketIOService.notifyAssignmentCreated(data.batchId, data.assignmentData);
+    });
+    
+    socket.on('assignment-submitted', (data) => {
+        socketIOService.notifyAssignmentSubmitted(data.batchId, {
+            ...data.submissionData,
+            studentName: socket.userName
+        });
+    });
+    
+    // Handle general notifications
+    socket.on('send-notification', (data) => {
+        socketIOService.emitToRoom(data.targetRoom, 'notification', {
+            message: data.message,
+            type: data.type,
+            timestamp: new Date(),
+            from: socket.userName || data.from
+        });
+    });
+    
+    // Handle typing indicators (for chat features)
+    socket.on('typing', (data) => {
+        socket.to(data.roomId).emit('user-typing', {
+            userId: socket.userId,
+            userName: socket.userName,
+            roomId: data.roomId
+        });
+    });
+    
+    socket.on('stop-typing', (data) => {
+        socket.to(data.roomId).emit('user-stopped-typing', {
+            userId: socket.userId,
+            userName: socket.userName,
+            roomId: data.roomId
+        });
+    });
+    
+    // Handle disconnection
+    socket.on('disconnect', () => {
+        logger.info(`User disconnected: ${socket.id} (${socket.userName || 'Unknown'})`);
+    });
+});
+
+// Make io and socketIOService accessible to other parts of the application
+app.set('socketio', io);
+app.set('socketIOService', socketIOService);
 
 // Global Error Handler (must be after all routes)
 app.use((err, req, res, next) => {
@@ -116,8 +259,8 @@ const startServer = async () => {
     try {
 
         await connectDB();
-        app.listen(PORT, () => {
-            logger.info(`Server running at http://localhost:${PORT}`);
+        server.listen(PORT, () => {
+            logger.info(`Server with Socket.IO running at http://localhost:${PORT}`);
         });
     } catch (error) {
         process.exit(1); 

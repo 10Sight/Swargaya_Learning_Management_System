@@ -645,7 +645,7 @@ const Students = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
           title="Total Students"
-          value={students.length}
+          value={studentsData?.data?.totalUsers || 0}
           description="All registered students"
           icon={IconUsers}
           iconBgColor="bg-blue-100"
@@ -976,7 +976,7 @@ const Students = () => {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
             Showing {filteredStudents.length} of{" "}
-            {studentsData?.data?.totalCount || 0} students
+            {studentsData?.data?.totalUsers || 0} students
           </p>
           <div className="flex space-x-2">
             <Button

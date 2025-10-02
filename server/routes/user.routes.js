@@ -18,8 +18,8 @@ import { AvailableUserRoles } from "../constants.js";
 const router = Router();
 const upload = multer({ dest: "uploads/" }); // temp storage for avatar uploads
 
-// Note: User creation now handled via /api/v1/auth/register endpoint
-// router.post("/", verifyJWT, authorizeRoles("ADMIN", "SUPER_ADMIN"), createUser);
+// Create user (admin/super-admin only) - sends welcome email with credentials
+router.post("/", verifyJWT, authorizeRoles("ADMIN", "SUPER_ADMIN"), createUser);
 
 // Get all users (admin/super-admin only)
 router.get("/", verifyJWT, authorizeRoles("ADMIN", "SUPER_ADMIN"), getAllUsers);

@@ -66,7 +66,8 @@ export const getCourses = asyncHandler(async (req, res) => {
         .populate("assignments", "title") 
         .skip((page - 1) * limit)
         .limit(Number(limit))
-        .sort({ createdAt: -1 });
+        .sort({ createdAt: -1 })
+        .lean(); // Use lean for read-only data
 
     const total = await Course.countDocuments(query);
 
@@ -80,7 +81,8 @@ export const getCourseById = asyncHandler(async (req, res) => {
 
     const course = await Course.findById(id)
         .populate("createdBy", "fullName email role")
-        .populate("quizzes assignments");
+        .populate("quizzes assignments")
+        .lean(); // Use lean for read-only data
 
     if(!course) throw new ApiError("Course not found", 404);
 
@@ -165,7 +167,8 @@ export const getCourseAnalytics = asyncHandler(async (req, res) => {
 
     const course = await Course.findById(courseId)
         .populate('modules', '_id title order')
-        .populate('students', '_id fullName');
+        .populate('students', '_id fullName')
+        .lean(); // Use lean for performance
 
     if(!course) {
         throw new ApiError("Course not found", 404);

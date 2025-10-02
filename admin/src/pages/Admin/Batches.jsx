@@ -691,7 +691,7 @@ const Batches = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
           title="Total Batches"
-          value={batches.length}
+          value={totalCount}
           description="All created batches"
           icon={IconSchool}
           iconBgColor="bg-blue-100"

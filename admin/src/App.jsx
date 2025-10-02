@@ -1,49 +1,67 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { Navigate } from "react-router-dom";
+
+// Core components that should load immediately
 import { HomeLayout } from "./Layout/HomeLayout";
 import { InstructorLayout } from "./Layout/InstructorLayout";
 import { SuperAdminLayout } from "./Layout/SuperAdminLayout";
 import { StudentLayout } from "./Layout/StudentLayout";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
-import Instructor from "./pages/Admin/Instructor";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PublicRoute from "./components/PublicRoute";
-import Course from "./pages/Admin/Course";
-import AddModulePage from "./pages/Admin/AddModulePage";
-import AddCourse from "./pages/Admin/AddCourse";
-import Batches from "./pages/Admin/Batches";
-import Students from "./pages/Admin/Students";
-import BatchDetail from "./pages/Admin/BatchDetail";
-import CourseDetailPage from "./pages/Admin/CourseDetailPage";
-import AddQuizPage from "./pages/Admin/AddQuizPage";
-import AddAssignmentPage from "./pages/Admin/AddAssignmentPage";
-import AddResourcePage from "./pages/Admin/AddResourcePage";
-import AddLessonPage from "./pages/Admin/AddLessonPage";
-import InstructorDetail from "./pages/Admin/InstructorDetail";
-import StudentDetail from "./pages/Admin/StudentDetail";
-import Analytics from "./pages/Admin/Analytics";
-import StudentLevelManagement from "./pages/Admin/StudentLevelManagement";
-import { useSelector } from "react-redux";
-import { Navigate } from "react-router-dom";
-import InstructorDashboard from "./pages/Instructor/Dashboard";
-import InstructorCourses from "./pages/Instructor/Courses";
-import InstructorBatches from "./pages/Instructor/Batches";
-import InstructorStudents from "./pages/Instructor/Students";
-import InstructorCourseDetailPage from "./pages/Instructor/InstructorCourseDetailPage";
-import QuizMonitoring from "./pages/Instructor/QuizMonitoring";
-import AssignmentMonitoring from "./pages/Instructor/AssignmentMonitoring";
-import SuperAdminDashboard from "./pages/SuperAdmin/Dashboard";
-import StudentDashboard from "./pages/Student/Dashboard";
-import StudentBatch from "./pages/Student/Batch";
-import BatchCourse from "./pages/Student/BatchCourse";
-import LessonDetail from "./pages/Student/LessonDetail";
-import TakeQuiz from "./pages/Student/TakeQuiz";
-import CourseReport from "./pages/Student/CourseReport";
-import Reports from "./pages/Student/Reports";
-import CertificateTemplates from "./pages/Admin/CertificateTemplates";
-import CertificateIssuance from "./pages/Instructor/CertificateIssuance";
-import StudentCertificates from "./pages/Student/Certificates";
+
+// Loading component
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+  </div>
+);
+
+// Lazy load heavy page components for code splitting
+// Admin Pages
+const Instructor = lazy(() => import("./pages/Admin/Instructor"));
+const Course = lazy(() => import("./pages/Admin/Course"));
+const AddModulePage = lazy(() => import("./pages/Admin/AddModulePage"));
+const AddCourse = lazy(() => import("./pages/Admin/AddCourse"));
+const Batches = lazy(() => import("./pages/Admin/Batches"));
+const Students = lazy(() => import("./pages/Admin/Students"));
+const BatchDetail = lazy(() => import("./pages/Admin/BatchDetail"));
+const CourseDetailPage = lazy(() => import("./pages/Admin/CourseDetailPage"));
+const AddQuizPage = lazy(() => import("./pages/Admin/AddQuizPage"));
+const AddAssignmentPage = lazy(() => import("./pages/Admin/AddAssignmentPage"));
+const AddResourcePage = lazy(() => import("./pages/Admin/AddResourcePage"));
+const AddLessonPage = lazy(() => import("./pages/Admin/AddLessonPage"));
+const InstructorDetail = lazy(() => import("./pages/Admin/InstructorDetail"));
+const StudentDetail = lazy(() => import("./pages/Admin/StudentDetail"));
+const Analytics = lazy(() => import("./pages/Admin/Analytics"));
+const StudentLevelManagement = lazy(() => import("./pages/Admin/StudentLevelManagement"));
+const CertificateTemplates = lazy(() => import("./pages/Admin/CertificateTemplates"));
+
+// Instructor Pages
+const InstructorDashboard = lazy(() => import("./pages/Instructor/Dashboard"));
+const InstructorCourses = lazy(() => import("./pages/Instructor/Courses"));
+const InstructorBatches = lazy(() => import("./pages/Instructor/Batches"));
+const InstructorStudents = lazy(() => import("./pages/Instructor/Students"));
+const InstructorCourseDetailPage = lazy(() => import("./pages/Instructor/InstructorCourseDetailPage"));
+const QuizMonitoring = lazy(() => import("./pages/Instructor/QuizMonitoring"));
+const AssignmentMonitoring = lazy(() => import("./pages/Instructor/AssignmentMonitoring"));
+const CertificateIssuance = lazy(() => import("./pages/Instructor/CertificateIssuance"));
+
+// SuperAdmin Pages
+const SuperAdminDashboard = lazy(() => import("./pages/SuperAdmin/Dashboard"));
+
+// Student Pages
+const StudentDashboard = lazy(() => import("./pages/Student/Dashboard"));
+const StudentBatch = lazy(() => import("./pages/Student/Batch"));
+const BatchCourse = lazy(() => import("./pages/Student/BatchCourse"));
+const LessonDetail = lazy(() => import("./pages/Student/LessonDetail"));
+const TakeQuiz = lazy(() => import("./pages/Student/TakeQuiz"));
+const CourseReport = lazy(() => import("./pages/Student/CourseReport"));
+const Reports = lazy(() => import("./pages/Student/Reports"));
+const StudentCertificates = lazy(() => import("./pages/Student/Certificates"));
 
 const RoleRedirect = () => {
   const { user } = useSelector((state) => state.auth);
@@ -59,7 +77,8 @@ const RoleRedirect = () => {
 const App = () => {
   return (
     <Router>
-      <Routes>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
         {/* Public route for login */}
         <Route
           path="/login"
@@ -169,7 +188,8 @@ const App = () => {
           <Route path="report/:courseId" element={<CourseReport />} />
           <Route path="certificates" element={<StudentCertificates />} />
         </Route>
-      </Routes>
+        </Routes>
+      </Suspense>
     </Router>
   );
 };

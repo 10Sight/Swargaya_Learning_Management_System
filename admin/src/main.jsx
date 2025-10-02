@@ -6,24 +6,27 @@ import App from './App.jsx'
 import { Provider } from 'react-redux'
 import store from './Redux/store.js'
 import AuthProvider from './components/AuthProvider.jsx'
+import { SocketProvider } from './contexts/SocketContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <Provider store={store}>
     <AuthProvider>
-      <App />
-      <Toaster 
-        position="bottom-right" 
-        richColors 
-        closeButton 
-        expand={true}
-        duration={4000}
-        toastOptions={{
-          style: {
-            borderRadius: '12px',
-            fontSize: '14px',
-          },
-        }}
-      />
+      <SocketProvider>
+        <App />
+        <Toaster 
+          position="bottom-right" 
+          richColors 
+          closeButton 
+          expand={true}
+          duration={4000}
+          toastOptions={{
+            style: {
+              borderRadius: '12px',
+              fontSize: '14px',
+            },
+          }}
+        />
+      </SocketProvider>
     </AuthProvider>
   </Provider>,
 )

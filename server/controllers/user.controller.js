@@ -10,6 +10,9 @@ import cloudinary from "../configs/cloudinary.config.js";
 import { AvailableUserRoles } from "../constants.js";
 import logAudit from "../utils/auditLogger.js";
 import Batch from "../models/batch.model.js";
+import sendMail from "../utils/mail.util.js";
+import { generateWelcomeEmail } from "../utils/emailTemplates.js";
+import ENV from "../configs/env.config.js";
 
 // Get All Users
 export const getAllUsers = asyncHandler(async (req, res) => {
@@ -52,10 +55,11 @@ export const getAllUsers = asyncHandler(async (req, res) => {
 
   const users = await User.find(searchQuery)
     .select(safeFields)
-    .populate("batch", "name") 
+    .populate("batch", "name")
     .skip(skip)
     .limit(limit)
-    .sort(sortOptions);
+    .sort(sortOptions)
+    .lean(); // Use lean for better performance
 
   res.json(
     new ApiResponse(
@@ -80,7 +84,8 @@ export const getUserById = asyncHandler(async (req, res) => {
 
   const user = await User.findById(req.params.id)
     .select("-password -refreshToken")
-    .populate("batch", "name");
+    .populate("batch", "name")
+    .lean(); // Use lean for read-only data
 
   if (!user) throw new ApiError("User not found!", 404);
 
@@ -195,6 +200,9 @@ export const createUser = asyncHandler(async (req, res) => {
     throw new ApiError("Invalid role", 400);
   }
 
+  // Store plain text password for email before hashing
+  const plainTextPassword = password;
+
   const user = await User.create({
     fullName,
     userName: userName.toLowerCase(),
@@ -211,8 +219,39 @@ export const createUser = asyncHandler(async (req, res) => {
 
   await logAudit(req.user._id, "CREATE_USER", { userId: user._id, role });
 
+  // Send welcome email with credentials
+  try {
+    // Determine login URL based on role
+    let loginUrl = ENV.FRONTEND_URL || 'http://localhost:3000';
+    if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
+      loginUrl = ENV.ADMIN_URL || 'http://localhost:5173';
+    } else if (role === 'INSTRUCTOR') {
+      loginUrl = ENV.INSTRUCTOR_URL || 'http://localhost:5174';
+    } else if (role === 'STUDENT') {
+      loginUrl = ENV.STUDENT_URL || 'http://localhost:5175';
+    }
+
+    const userData = {
+      fullName,
+      email: email.toLowerCase(),
+      userName: userName.toLowerCase(),
+      phoneNumber,
+      password: plainTextPassword,
+      role
+    };
+
+    const emailHtml = generateWelcomeEmail(userData, loginUrl);
+    const subject = `Welcome to 10Sight LMS - Your Account Has Been Created`;
+
+    await sendMail(email.toLowerCase(), subject, emailHtml);
+    console.log(`Welcome email sent successfully to ${email}`);
+  } catch (emailError) {
+    console.error('Failed to send welcome email:', emailError);
+    // Don't throw error - user creation was successful, email is optional
+  }
+
   res.status(201).json(
-    new ApiResponse(201, safeUser, "User created successfully")
+    new ApiResponse(201, safeUser, "User created successfully and welcome email sent")
   );
 });
 

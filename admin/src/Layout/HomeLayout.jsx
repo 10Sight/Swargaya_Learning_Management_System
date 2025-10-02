@@ -27,6 +27,7 @@ import {
   IconTemplate,
 } from "@tabler/icons-react";
 import { HomeIcon } from "lucide-react";
+import NotificationCenter from "../components/common/NotificationCenter";
 
 const tabs = [
   { link: "/admin", label: "Dashboard", icon: IconLayoutDashboardFilled },
@@ -210,8 +211,9 @@ export function HomeLayout() {
             </BreadcrumbList>
           </Breadcrumb>
 
-          {/* Right side (Avatar) */}
-          <div className="relative flex items-center">
+          {/* Right side (Notifications & Avatar) */}
+          <div className="relative flex items-center gap-2">
+            <NotificationCenter />
             <div className="mr-3 text-right hidden md:block">
               <p className="text-sm font-medium text-gray-800">
                 {user?.fullName || user?.userName || 'Admin User'}

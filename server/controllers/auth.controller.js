@@ -11,6 +11,7 @@ import ENV from "../configs/env.config.js";
 import logAudit from "../utils/auditLogger.js";
 import { AvailableUserRoles } from "../constants.js";
 import validator from "validator";
+import { generateWelcomeEmail } from "../utils/emailTemplates.js";
 
 // Generate tokens
 export const generateAuthTokens = async (userId) => {

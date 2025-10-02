@@ -91,7 +91,7 @@ export function StudentLayout() {
       {/* Mobile Overlay */}
       {!collapsed && (
         <div 
-          className="fixed inset-0 bg-black/50 z-10 md:hidden" 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm backdrop-saturate-150 z-10 md:hidden" 
           onClick={toggleSidebar}
         />
       )}
