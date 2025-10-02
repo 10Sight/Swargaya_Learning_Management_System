@@ -20,7 +20,6 @@ const ProtectedRoute = ({ children }) => {
           await dispatch(profile()).unwrap();
         } catch (error) {
           // If profile check fails, user will be redirected to login
-          console.log('Authentication check failed:', error);
         }
       }
     };

@@ -16,12 +16,8 @@ import {
   useRemoveStudentFromBatchMutation,
   useRemoveInstructorMutation,
 } from "@/Redux/AllApi/BatchApi";
-import {
-  useGetAllInstructorsQuery,
-  useGetAllStudentsQuery,
-} from "@/Redux/AllApi/InstructorApi";
+import { useGetAllUsersQuery } from "@/Redux/AllApi/UserApi";
 import { useGetCoursesQuery } from "@/Redux/AllApi/CourseApi";
-import { useEnrollStudentMutation } from "@/Redux/AllApi/EnrollmentApi";
 import {
   Table,
   TableBody,
@@ -152,8 +148,8 @@ const Batches = () => {
     data: instructorsData,
     isLoading: instructorsLoading,
     error: instructorsError,
-  } = useGetAllInstructorsQuery(
-    { page: 1, limit: 100, status: "ACTIVE" },
+  } = useGetAllUsersQuery(
+    { page: 1, limit: 100, role: "INSTRUCTOR" },
     {
       refetchOnFocus: false,
       refetchOnReconnect: false,
@@ -164,11 +160,12 @@ const Batches = () => {
     data: studentsData,
     isLoading: studentsLoading,
     error: studentsError,
-  } = useGetAllStudentsQuery(
-    { page: 1, limit: 200, status: "ACTIVE" },
+  } = useGetAllUsersQuery(
+    { page: 1, limit: 200, role: "STUDENT" },
     {
       refetchOnFocus: false,
       refetchOnReconnect: false,
+      skip: !isManageStudentsDialogOpen,
     }
   );
 
@@ -191,15 +188,15 @@ const Batches = () => {
   const [assignInstructor] = useAssignInstructorMutation();
   const [addStudentToBatch] = useAddStudentToBatchMutation();
   const [removeStudentFromBatch] = useRemoveStudentFromBatchMutation();
-  const [enrollStudent] = useEnrollStudentMutation();
   const [removeInstructor, { isLoading: isRemovingInstructor }] =
     useRemoveInstructorMutation();
 
   const batches = batchesData?.data?.batches || [];
   const totalPages = batchesData?.data?.totalPages || 1;
+  const totalCount = batchesData?.data?.totalBatches || 0;
   const instructors = instructorsData?.data?.users || [];
   const students = studentsData?.data?.users || [];
-  const courses = coursesData?.data?.courses || []; // Adjust based on your API response structure
+  const courses = coursesData?.data?.courses || [];
 
   // Filter options
   const statusOptions = [
@@ -332,6 +329,11 @@ const Batches = () => {
       return;
     }
 
+    if (!selectedBatch?._id) {
+      showToast("error", "No batch selected for update");
+      return;
+    }
+
     if (isSubmitting) return;
     setIsSubmitting(true);
 
@@ -360,6 +362,11 @@ const Batches = () => {
   };
 
   const handleDeleteBatch = async () => {
+    if (!selectedBatch?._id) {
+      showToast("error", "No batch selected for deletion");
+      return;
+    }
+
     try {
       await deleteBatch(selectedBatch._id).unwrap();
       showToast("success", "Batch deleted successfully!");
@@ -375,6 +382,11 @@ const Batches = () => {
   };
 
   const handleAssignInstructor = async (instructorId) => {
+    if (!selectedBatch?._id) {
+      showToast("error", "No batch selected for instructor assignment");
+      return;
+    }
+
     try {
       await assignInstructor({
         batchId: selectedBatch._id,
@@ -394,6 +406,11 @@ const Batches = () => {
   };
 
   const handleRemoveInstructor = async () => {
+    if (!selectedBatch?._id) {
+      showToast("error", "No batch selected for instructor removal");
+      return;
+    }
+
     try {
       await removeInstructor(selectedBatch._id).unwrap();
       showToast("success", "Instructor removed successfully!");
@@ -411,6 +428,11 @@ const Batches = () => {
   const handleAddStudents = async () => {
     if (selectedStudents.length === 0) {
       showToast("error", "Please select at least one student");
+      return;
+    }
+
+    if (!selectedBatch?._id) {
+      showToast("error", "No batch selected for adding students");
       return;
     }
 
@@ -441,13 +463,28 @@ const Batches = () => {
     }
   };
 
-  const handleRemoveStudent = async (studentId) => {
+  const handleRemoveStudent = async ({ batchId, studentId, studentName }) => {
+    // Defensive: allow fallback to selectedBatch if caller didn't pass batchId
+    const safeBatchId = batchId ?? selectedBatch?._id ?? null;
+    if (!safeBatchId || !studentId) {
+      showToast(
+        "error",
+        "Unable to remove student: missing batch or student. Please try again."
+      );
+      return;
+    }
+
     try {
       await removeStudentFromBatch({
-        batchId: selectedBatch._id,
+        batchId: safeBatchId,
         studentId,
       }).unwrap();
-      showToast("success", "Student removed from batch!");
+      showToast(
+        "success",
+        studentName
+          ? `${studentName} removed from batch!`
+          : "Student removed from batch!"
+      );
       refetch();
     } catch (error) {
       console.error("Remove student error:", error);
@@ -458,7 +495,7 @@ const Batches = () => {
   };
 
   const handleBatchClick = (batch) => {
-    navigate(`${batch._id}`);
+    navigate(`/admin/batches/${batch._id}`);
   };
 
   const openEditDialog = (batch) => {
@@ -701,21 +738,33 @@ const Batches = () => {
       {/* Tabs for filtering */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <TabsList className="grid grid-cols-4 w-full sm:w-auto">
-            <TabsTrigger value="all" onClick={() => clearFilters()}>
-              All
+          <TabsList className="grid grid-cols-3 w-full sm:w-auto">
+            <TabsTrigger 
+              value="all" 
+              onClick={() => {
+                setActiveTab("all");
+                setStatusFilter("ALL");
+              }}
+            >
+              All ({batches.length})
             </TabsTrigger>
             <TabsTrigger
               value="assigned"
-              onClick={() => setStatusFilter("HAS_INSTRUCTOR")}
+              onClick={() => {
+                setActiveTab("assigned");
+                setStatusFilter("HAS_INSTRUCTOR");
+              }}
             >
-              Assigned
+              Assigned ({batches.filter(b => b.instructor).length})
             </TabsTrigger>
             <TabsTrigger
               value="unassigned"
-              onClick={() => setStatusFilter("NO_INSTRUCTOR")}
+              onClick={() => {
+                setActiveTab("unassigned");
+                setStatusFilter("NO_INSTRUCTOR");
+              }}
             >
-              Unassigned
+              Unassigned ({batches.filter(b => !b.instructor).length})
             </TabsTrigger>
           </TabsList>
 
@@ -870,9 +919,9 @@ const Batches = () => {
                                   {batch.students.slice(0, 5).map((student) => (
                                     <DropdownMenuItem
                                       key={student._id}
-                                      onClick={() => {
-                                        setSelectedBatch(batch);
-                                        handleRemoveStudent(student._id);
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRemoveStudent({ batchId: batch._id, studentId: student._id, studentName: student.fullName });
                                       }}
                                       className="text-red-600 focus:text-red-600"
                                     >
@@ -980,8 +1029,7 @@ const Batches = () => {
       {totalPages > 1 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            Showing {filteredBatches.length} of{" "}
-            {batchesData?.data?.totalCount || 0} batches
+            Showing {filteredBatches.length} of {totalCount} batches
           </p>
           <div className="flex space-x-2">
             <Button
@@ -1050,7 +1098,7 @@ const Batches = () => {
                   <SelectValue placeholder="Select a course">
                     {formData.courseId
                       ? courses.find((c) => c._id === formData.courseId)
-                          ?.title || "Selected Course"
+                          ?.title || courses.find((c) => c._id === formData.courseId)?.name || "Selected Course"
                       : "Select a course"}
                   </SelectValue>
                 </SelectTrigger>
@@ -1069,7 +1117,7 @@ const Batches = () => {
                   ) : courses.length > 0 ? (
                     courses.map((course) => (
                       <SelectItem key={course._id} value={course._id}>
-                        {course.title} - {course.difficulty}
+                        {course.title || course.name} - {course.difficulty || 'Not specified'}
                       </SelectItem>
                     ))
                   ) : (
@@ -1209,7 +1257,7 @@ const Batches = () => {
                   <SelectValue placeholder="Select a course">
                     {formData.courseId
                       ? courses.find((c) => c._id === formData.courseId)
-                          ?.title || "Selected Course"
+                          ?.title || courses.find((c) => c._id === formData.courseId)?.name || "Selected Course"
                       : "Select a course"}
                   </SelectValue>
                 </SelectTrigger>
@@ -1228,7 +1276,7 @@ const Batches = () => {
                   ) : courses.length > 0 ? (
                     courses.map((course) => (
                       <SelectItem key={course._id} value={course._id}>
-                        {course.title} - {course.difficulty}
+                        {course.title || course.name} - {course.difficulty || 'Not specified'}
                       </SelectItem>
                     ))
                   ) : (
@@ -1629,8 +1677,9 @@ const Batches = () => {
                         <Button
                           variant="destructive"
                           size="sm"
-                          onClick={() => handleRemoveStudent(student._id)}
+                          onClick={() => handleRemoveStudent({ batchId: selectedBatch?._id, studentId: student._id, studentName: student.fullName })}
                           className="gap-1"
+                          disabled={!selectedBatch?._id}
                         >
                           <IconTrash className="h-3 w-3" />
                           Remove

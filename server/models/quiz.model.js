@@ -57,6 +57,15 @@ const quizSchema = new Schema(
             required: false,
             index: true,
         },
+        type: {
+            type: String,
+            enum: ["MODULE", "COURSE"],
+            default: function() {
+                // If module is provided, it's a module quiz, otherwise course quiz
+                return this.module ? "MODULE" : "COURSE";
+            },
+            index: true,
+        },
         title: {
             type: String,
             required: [true, "Quiz title is required"],

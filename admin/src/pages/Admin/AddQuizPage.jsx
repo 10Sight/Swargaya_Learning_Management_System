@@ -54,7 +54,8 @@ const AddQuizPage = () => {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    moduleId: "", // Add module selection
+    quizType: "MODULE", // New field for quiz type
+    moduleId: "", // Module selection (only for MODULE type)
     passingScore: 70,
     timeLimit: 30,
     attemptsAllowed: 1,
@@ -166,8 +167,9 @@ const AddQuizPage = () => {
   };
 
   const validateForm = () => {
-    if (!formData.moduleId) {
-      toast.error("Please select a module");
+    // Only require module selection for MODULE type quizzes
+    if (formData.quizType === "MODULE" && !formData.moduleId) {
+      toast.error("Please select a module for module quiz");
       return false;
     }
     
@@ -232,16 +234,22 @@ const handleSubmit = async (e) => {
   }
 
   try {
-    await createQuiz({
+    const quizData = {
       courseId,
-      moduleId: formData.moduleId, // Include moduleId
       title: formData.title,
       description: formData.description,
       questions: formData.questions,
       passingScore: parseInt(formData.passingScore),
       timeLimit: formData.timeLimit ? parseInt(formData.timeLimit) : undefined,
       attemptsAllowed: parseInt(formData.attemptsAllowed),
-    }).unwrap();
+    };
+
+    // Only include moduleId for MODULE type quizzes
+    if (formData.quizType === "MODULE" && formData.moduleId) {
+      quizData.moduleId = formData.moduleId;
+    }
+    
+    await createQuiz(quizData).unwrap();
 
     toast.success("Quiz created successfully!");
     
@@ -286,84 +294,120 @@ const handleSubmit = async (e) => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Module Selection */}
+            {/* Quiz Type Selection */}
             <div className="grid gap-2">
-              <Label htmlFor="moduleId">Module *</Label>
+              <Label htmlFor="quizType">Quiz Type *</Label>
               <Select
-                value={formData.moduleId}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({ ...prev, moduleId: value }))
-                }
+                value={formData.quizType}
+                onValueChange={(value) => {
+                  setFormData((prev) => ({ 
+                    ...prev, 
+                    quizType: value,
+                    moduleId: value === "COURSE" ? "" : prev.moduleId // Clear module when switching to course
+                  }))
+                }}
                 required
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a module" />
+                  <SelectValue placeholder="Select quiz type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {modulesLoading ? (
-                    <SelectItem value="loading" disabled>
-                      <div className="flex items-center gap-2">
-                        <IconLoader className="h-4 w-4 animate-spin" />
-                        Loading modules...
-                      </div>
-                    </SelectItem>
-                  ) : modulesError ? (
-                    <SelectItem value="error" disabled>
-                      Error loading modules
-                    </SelectItem>
-                  ) : modules.length === 0 ? (
-                    <SelectItem value="none" disabled>
-                      No modules available. Create modules first.
-                    </SelectItem>
-                  ) : (
-                    modules.map((module) => (
-                      <SelectItem key={module._id} value={module._id}>
-                        {module.title}
-                      </SelectItem>
-                    ))
-                  )}
+                  <SelectItem value="MODULE">
+                    📝 Module Quiz - Assess specific module completion
+                  </SelectItem>
+                  <SelectItem value="COURSE">
+                    🏆 Course Final Quiz - Assess entire course completion
+                  </SelectItem>
                 </SelectContent>
               </Select>
-              
-              {/* Show error message if no modules */}
-              {!modulesLoading && !modulesError && modules.length === 0 && (
-                <div className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-md p-3">
-                  <p className="font-medium">No modules found for this course.</p>
-                  <p className="text-xs mt-1">
-                    You need to create modules first before adding quizzes.
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="mt-2 gap-1"
-                    onClick={() => navigate(`/admin/courses/${courseId}`)}
-                  >
-                    <IconPlus className="h-3 w-3" />
-                    Go to Course
-                  </Button>
-                </div>
-              )}
-              
-              {/* Show error message if modules failed to load */}
-              {modulesError && (
-                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
-                  <p className="font-medium">Failed to load modules.</p>
-                  <p className="text-xs mt-1">
-                    {modulesError?.message || "Please try again later."}
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="mt-2"
-                    onClick={() => refetchModules()}
-                  >
-                    Retry
-                  </Button>
-                </div>
-              )}
+              <p className="text-xs text-muted-foreground">
+                {formData.quizType === "MODULE" 
+                  ? "Module quizzes unlock after completing all lessons in the selected module"
+                  : "Course quizzes unlock only after completing ALL modules in the course"
+                }
+              </p>
             </div>
+
+            {/* Module Selection - Only show for MODULE type */}
+            {formData.quizType === "MODULE" && (
+              <div className="grid gap-2">
+                <Label htmlFor="moduleId">Module *</Label>
+                <Select
+                  value={formData.moduleId}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, moduleId: value }))
+                  }
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a module" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {modulesLoading ? (
+                      <SelectItem value="loading" disabled>
+                        <div className="flex items-center gap-2">
+                          <IconLoader className="h-4 w-4 animate-spin" />
+                          Loading modules...
+                        </div>
+                      </SelectItem>
+                    ) : modulesError ? (
+                      <SelectItem value="error" disabled>
+                        Error loading modules
+                      </SelectItem>
+                    ) : modules.length === 0 ? (
+                      <SelectItem value="none" disabled>
+                        No modules available. Create modules first.
+                      </SelectItem>
+                    ) : (
+                      modules.map((module) => (
+                        <SelectItem key={module._id} value={module._id}>
+                          {module.title}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              
+                {/* Show error message if no modules */}
+                {!modulesLoading && !modulesError && modules.length === 0 && (
+                  <div className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-md p-3">
+                    <p className="font-medium">No modules found for this course.</p>
+                    <p className="text-xs mt-1">
+                      You need to create modules first before adding quizzes.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 gap-1"
+                      onClick={() => navigate(`/admin/courses/${courseId}`)}
+                    >
+                      <IconPlus className="h-3 w-3" />
+                      Go to Course
+                    </Button>
+                  </div>
+                )}
+                
+                {/* Show error message if modules failed to load */}
+                {modulesError && (
+                  <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
+                    <p className="font-medium">Failed to load modules.</p>
+                    <p className="text-xs mt-1">
+                      {modulesError?.message || "Please try again later."}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-2"
+                      onClick={() => refetchModules()}
+                    >
+                      Retry
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
             
             <div className="grid gap-2">
               <Label htmlFor="title">Quiz Title *</Label>

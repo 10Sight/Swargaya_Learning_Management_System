@@ -1,5 +1,6 @@
 import Module from "../models/module.model.js";
 import Course from "../models/course.model.js";
+import mongoose from "mongoose";
 
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -37,6 +38,30 @@ export const getModulesByCourse = asyncHandler(async (req, res) => {
         .populate("lessons")
         .sort({ order: 1 });
     res.status(200).json(new ApiResponse(200, modules, "Modules fetched successfully"));
+});
+
+export const getModuleById = asyncHandler(async (req, res) => {
+    const { moduleId } = req.params;
+
+
+    if (!moduleId || moduleId === 'undefined' || moduleId === 'null') {
+        return res.status(400).json(new ApiResponse(400, null, "Module ID is required"));
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(moduleId)) {
+        return res.status(400).json(new ApiResponse(400, null, "Invalid module ID format"));
+    }
+
+    const module = await Module.findById(moduleId)
+        .populate("course", "title description")
+        .populate("resources")
+        .populate("lessons");
+    
+    if (!module) {
+        return res.status(404).json(new ApiResponse(404, null, "Module not found"));
+    }
+
+    res.status(200).json(new ApiResponse(200, module, "Module fetched successfully"));
 });
 
 export const updateModule = asyncHandler(async (req, res) => {

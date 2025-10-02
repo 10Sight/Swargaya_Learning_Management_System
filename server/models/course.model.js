@@ -92,6 +92,12 @@ const courseSchema = new Schema(
                 ref: "Assignment",
             },
         ],
+        resources: [
+            {
+                type: Schema.Types.ObjectId,
+                ref: "Resource",
+            },
+        ],
     },
     {
         timestamps: true,

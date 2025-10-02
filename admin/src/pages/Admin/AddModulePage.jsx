@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
   IconArrowLeft,
   IconPlus,
@@ -289,14 +290,12 @@ const AddModulePage = () => {
 
                 <div className="grid gap-2">
                   <Label htmlFor={`lesson-content-${lIndex}`}>Content</Label>
-                  <Textarea
-                    id={`lesson-content-${lIndex}`}
+                  <RichTextEditor
                     value={lesson.content}
-                    onChange={(e) =>
-                      handleLessonChange(lIndex, "content", e.target.value)
+                    onChange={(value) =>
+                      handleLessonChange(lIndex, "content", value)
                     }
                     placeholder="Enter lesson content (optional)"
-                    rows={3}
                   />
                 </div>
 

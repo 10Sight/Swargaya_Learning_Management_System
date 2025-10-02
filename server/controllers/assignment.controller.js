@@ -231,3 +231,36 @@ export const getAccessibleAssignments = asyncHandler(async (req, res) => {
         }, "Accessible assignments fetched successfully"));
     }
 });
+
+// Get all assignments for a course (course-level assignments)
+export const getCourseAssignments = asyncHandler(async (req, res) => {
+    const { courseId } = req.params;
+    const userId = req.user._id;
+
+    if(!mongoose.Types.ObjectId.isValid(courseId)) {
+        throw new ApiError("Invalid course ID", 400);
+    }
+
+    // Verify course exists and user has access
+    const course = await Course.findById(courseId);
+    if(!course) throw new ApiError("Course not found", 404);
+
+    // Get course-level assignments (assignments without specific module assignment or course-wide assignments)
+    const assignments = await Assignment.find({ 
+        course: courseId,
+        $or: [
+            { module: null },
+            { module: { $exists: false }}
+        ]
+    })
+        .populate("course", "title")
+        .populate("module", "title")
+        .populate("instructor", "fullName email")
+        .populate("createdBy", "fullName email")
+        .sort({ createdAt: -1 });
+
+    res.json(new ApiResponse(200, {
+        assignments,
+        courseTitle: course.title
+    }, "Course assignments fetched successfully"));
+});

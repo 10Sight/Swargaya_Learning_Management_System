@@ -19,6 +19,7 @@ import CourseDetailPage from "./pages/Admin/CourseDetailPage";
 import AddQuizPage from "./pages/Admin/AddQuizPage";
 import AddAssignmentPage from "./pages/Admin/AddAssignmentPage";
 import AddResourcePage from "./pages/Admin/AddResourcePage";
+import AddLessonPage from "./pages/Admin/AddLessonPage";
 import InstructorDetail from "./pages/Admin/InstructorDetail";
 import StudentDetail from "./pages/Admin/StudentDetail";
 import Analytics from "./pages/Admin/Analytics";
@@ -35,6 +36,7 @@ import SuperAdminDashboard from "./pages/SuperAdmin/Dashboard";
 import StudentDashboard from "./pages/Student/Dashboard";
 import StudentBatch from "./pages/Student/Batch";
 import BatchCourse from "./pages/Student/BatchCourse";
+import LessonDetail from "./pages/Student/LessonDetail";
 import TakeQuiz from "./pages/Student/TakeQuiz";
 
 const RoleRedirect = () => {
@@ -93,6 +95,7 @@ const App = () => {
           <Route path="batches/:batchId" element={<BatchDetail pageName="Batch Detail" />} />
           <Route path="add-quiz/:courseId" element={<AddQuizPage />} />
           <Route path="add-module/:courseId" element={<AddModulePage />} />
+          <Route path="add-lesson/:moduleId" element={<AddLessonPage />} />
           <Route path="add-assignment/:courseId" element={<AddAssignmentPage />} />
           <Route path="add-resource/:courseId" element={<AddResourcePage />} />
           <Route path="analytics" element={<Analytics pageName="Analytics" />} />
@@ -149,6 +152,7 @@ const App = () => {
           <Route index element={<StudentDashboard />} />
           <Route path="batch" element={<StudentBatch />} />
           <Route path="course" element={<BatchCourse />} />
+          <Route path="lesson/:lessonId" element={<LessonDetail />} />
           <Route path="quiz/:quizId" element={<TakeQuiz />} />
         </Route>
       </Routes>

@@ -1,6 +1,8 @@
 import mongoose from "mongoose";
 import Resource from "../models/resource.model.js";
 import Module from "../models/module.model.js";
+import Course from "../models/course.model.js";
+import Lesson from "../models/lesson.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -9,29 +11,51 @@ import fs from 'fs';
 import path from 'path';
 
 export const createResource = asyncHandler(async (req, res) => {
-    const { moduleId, title, type, description, url } = req.body;
+    const { courseId, moduleId, lessonId, scope, title, type, description, url } = req.body;
     const file = req.file;
 
-    console.log("Received data:", { moduleId, title, type, description, url });
-    console.log("File:", file ? "Present" : "Not present");
-
-    if (!moduleId) {
-        throw new ApiError("Module ID is required", 400);
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(moduleId)) {
-        throw new ApiError("Invalid module ID format", 400);
-    }
-
-    // Check if module exists
-    const module = await Module.findById(moduleId);
-    if (!module) {
-        throw new ApiError("Module not found", 404);
-    }
 
     // Validate required fields
-    if (!title || !type) {
-        throw new ApiError("Title and type are required", 400);
+    if (!title || !type || !scope) {
+        throw new ApiError("Title, type, and scope are required", 400);
+    }
+
+    // Validate scope
+    if (!['course', 'module', 'lesson'].includes(scope)) {
+        throw new ApiError("Scope must be 'course', 'module', or 'lesson'", 400);
+    }
+
+    // Validate and check existence of parent entity
+    let parentEntity;
+    let parentId;
+
+    if (scope === 'course') {
+        if (!courseId || !mongoose.Types.ObjectId.isValid(courseId)) {
+            throw new ApiError("Valid Course ID is required for course-scoped resources", 400);
+        }
+        parentEntity = await Course.findById(courseId);
+        if (!parentEntity) {
+            throw new ApiError("Course not found", 404);
+        }
+        parentId = courseId;
+    } else if (scope === 'module') {
+        if (!moduleId || !mongoose.Types.ObjectId.isValid(moduleId)) {
+            throw new ApiError("Valid Module ID is required for module-scoped resources", 400);
+        }
+        parentEntity = await Module.findById(moduleId);
+        if (!parentEntity) {
+            throw new ApiError("Module not found", 404);
+        }
+        parentId = moduleId;
+    } else if (scope === 'lesson') {
+        if (!lessonId || !mongoose.Types.ObjectId.isValid(lessonId)) {
+            throw new ApiError("Valid Lesson ID is required for lesson-scoped resources", 400);
+        }
+        parentEntity = await Lesson.findById(lessonId);
+        if (!parentEntity) {
+            throw new ApiError("Lesson not found", 404);
+        }
+        parentId = lessonId;
     }
 
     // Check if file or URL is provided
@@ -40,18 +64,27 @@ export const createResource = asyncHandler(async (req, res) => {
     }
 
     let resourceData = {
-        moduleId,
+        scope,
         title,
         type,
         description: description || "",
         createdBy: req.user._id
     };
 
+    // Set the appropriate ID based on scope
+    if (scope === 'course') {
+        resourceData.courseId = parentId;
+    } else if (scope === 'module') {
+        resourceData.moduleId = parentId;
+    } else if (scope === 'lesson') {
+        resourceData.lessonId = parentId;
+    }
+
     // Handle file upload
     if (file) {
         try {
             // Upload to Cloudinary
-            const uploadResult = await uploadToCloudinary(file.path, 'learning-management/resources');
+            const uploadResult = await uploadToCloudinary(file.path, `learning-management/resources/${scope}s`);
             
             if (uploadResult.success) {
                 resourceData.url = uploadResult.url;
@@ -76,10 +109,20 @@ export const createResource = asyncHandler(async (req, res) => {
     // Create resource
     const resource = await Resource.create(resourceData);
 
-    // Update module with new resource
-    await Module.findByIdAndUpdate(moduleId, {
-        $push: { resources: resource._id }
-    });
+    // Update parent entity with new resource
+    if (scope === 'course') {
+        await Course.findByIdAndUpdate(parentId, {
+            $push: { resources: resource._id }
+        });
+    } else if (scope === 'module') {
+        await Module.findByIdAndUpdate(parentId, {
+            $push: { resources: resource._id }
+        });
+    } else if (scope === 'lesson') {
+        await Lesson.findByIdAndUpdate(parentId, {
+            $push: { resources: resource._id }
+        });
+    }
 
     res.status(201).json(
         new ApiResponse(201, resource, "Resource created successfully")
@@ -87,25 +130,81 @@ export const createResource = asyncHandler(async (req, res) => {
 });
 
 export const getResourcesByModule = asyncHandler(async (req, res) => {
-    const { moduleId } = req.params;
+    const rawModuleId = req.params?.moduleId ?? req.body?.moduleId;
 
-    console.log("Getting resources for module:", moduleId);
 
-    if (!moduleId) {
-        throw new ApiError("Module ID is required", 400);
+    if (!rawModuleId || rawModuleId === 'undefined' || rawModuleId === 'null') {
+        return res.status(400).json(new ApiResponse(400, [], "Module ID is required"));
     }
 
-    if (!mongoose.Types.ObjectId.isValid(moduleId)) {
-        throw new ApiError("Invalid module ID format", 400);
+    if (!mongoose.Types.ObjectId.isValid(rawModuleId)) {
+        return res.status(400).json(new ApiResponse(400, [], "Invalid module ID format"));
     }
 
-    const resources = await Resource.find({ moduleId })
-        .populate('createdBy', 'name email')
-        .sort({ createdAt: -1 });
+    try {
+        const resources = await Resource.find({ moduleId: rawModuleId, scope: 'module' })
+            .populate('createdBy', 'name email')
+            .sort({ createdAt: -1 });
 
-    res.json(
-        new ApiResponse(200, resources, "Resources retrieved successfully")
-    );
+        return res.json(
+            new ApiResponse(200, resources, "Resources retrieved successfully")
+        );
+    } catch (err) {
+        console.error("getResourcesByModule - DB error:", err);
+        return res.status(500).json(new ApiResponse(500, [], "Error fetching resources"));
+    }
+});
+
+export const getResourcesByCourse = asyncHandler(async (req, res) => {
+    const rawCourseId = req.params?.courseId ?? req.body?.courseId;
+
+
+    if (!rawCourseId || rawCourseId === 'undefined' || rawCourseId === 'null') {
+        return res.status(400).json(new ApiResponse(400, [], "Course ID is required"));
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(rawCourseId)) {
+        return res.status(400).json(new ApiResponse(400, [], "Invalid course ID format"));
+    }
+
+    try {
+        const resources = await Resource.find({ courseId: rawCourseId, scope: 'course' })
+            .populate('createdBy', 'name email')
+            .sort({ createdAt: -1 });
+
+        return res.json(
+            new ApiResponse(200, resources, "Resources retrieved successfully")
+        );
+    } catch (err) {
+        console.error("getResourcesByCourse - DB error:", err);
+        return res.status(500).json(new ApiResponse(500, [], "Error fetching resources"));
+    }
+});
+
+export const getResourcesByLesson = asyncHandler(async (req, res) => {
+    const rawLessonId = req.params?.lessonId ?? req.body?.lessonId;
+
+
+    if (!rawLessonId || rawLessonId === 'undefined' || rawLessonId === 'null') {
+        return res.status(400).json(new ApiResponse(400, [], "Lesson ID is required"));
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(rawLessonId)) {
+        return res.status(400).json(new ApiResponse(400, [], "Invalid lesson ID format"));
+    }
+
+    try {
+        const resources = await Resource.find({ lessonId: rawLessonId, scope: 'lesson' })
+            .populate('createdBy', 'name email')
+            .sort({ createdAt: -1 });
+
+        return res.json(
+            new ApiResponse(200, resources, "Resources retrieved successfully")
+        );
+    } catch (err) {
+        console.error("getResourcesByLesson - DB error:", err);
+        return res.status(500).json(new ApiResponse(500, [], "Error fetching resources"));
+    }
 });
 
 export const deleteResource = asyncHandler(async (req, res) => {
@@ -132,10 +231,20 @@ export const deleteResource = asyncHandler(async (req, res) => {
         }
     }
 
-    // Remove resource from module
-    await Module.findByIdAndUpdate(resource.moduleId, {
-        $pull: { resources: resourceId }
-    });
+    // Remove resource from parent entity based on scope
+    if (resource.scope === 'course' && resource.courseId) {
+        await Course.findByIdAndUpdate(resource.courseId, {
+            $pull: { resources: resourceId }
+        });
+    } else if (resource.scope === 'module' && resource.moduleId) {
+        await Module.findByIdAndUpdate(resource.moduleId, {
+            $pull: { resources: resourceId }
+        });
+    } else if (resource.scope === 'lesson' && resource.lessonId) {
+        await Lesson.findByIdAndUpdate(resource.lessonId, {
+            $pull: { resources: resourceId }
+        });
+    }
 
     // Delete resource from database
     await Resource.findByIdAndDelete(resourceId);

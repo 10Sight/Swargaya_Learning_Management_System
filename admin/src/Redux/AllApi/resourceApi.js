@@ -20,7 +20,19 @@ export const resourceApi = createApi({
         getResourcesByModule: builder.query({
             query: (moduleId) => `/api/resources/module/${moduleId}`,
             providesTags: (result, error, moduleId) => [
-                { type: 'Resource', id: moduleId },
+                { type: 'Resource', id: `module-${moduleId}` },
+            ],
+        }),
+        getResourcesByCourse: builder.query({
+            query: (courseId) => `/api/resources/course/${courseId}`,
+            providesTags: (result, error, courseId) => [
+                { type: 'Resource', id: `course-${courseId}` },
+            ],
+        }),
+        getResourcesByLesson: builder.query({
+            query: (lessonId) => `/api/resources/lesson/${lessonId}`,
+            providesTags: (result, error, lessonId) => [
+                { type: 'Resource', id: `lesson-${lessonId}` },
             ],
         }),
         deleteResource: builder.mutation({
@@ -47,6 +59,8 @@ export const resourceApi = createApi({
 export const {
     useCreateResourceMutation,
     useGetResourcesByModuleQuery,
+    useGetResourcesByCourseQuery,
+    useGetResourcesByLessonQuery,
     useDeleteResourceMutation,
     useUpdateResourceMutation,
 } = resourceApi;

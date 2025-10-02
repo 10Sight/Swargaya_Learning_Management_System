@@ -16,7 +16,6 @@ const AuthProvider = ({ children }) => {
         try {
           await dispatch(profile()).unwrap();
         } catch (error) {
-          console.log('Failed to restore authentication:', error);
           // Clear localStorage if authentication fails
           localStorage.setItem('isLoggedIn', 'false');
         }

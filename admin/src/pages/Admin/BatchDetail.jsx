@@ -289,6 +289,7 @@ const BatchDetail = () => {
             students={batch.students} 
             batchId={batchId}
             batchName={batch.name}
+            onRefetch={refetchBatch}
           />
         </TabsContent>
 

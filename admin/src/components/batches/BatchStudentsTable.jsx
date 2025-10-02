@@ -15,6 +15,26 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,15 +67,27 @@ import {
   IconTrendingUp,
   IconFilter,
   IconRefresh,
+  IconLoader,
+  IconCheck,
+  IconUserMinus,
 } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
-import { useGetBatchProgressQuery } from "@/Redux/AllApi/BatchApi";
+import { useGetBatchProgressQuery, useAddStudentToBatchMutation, useRemoveStudentFromBatchMutation } from "@/Redux/AllApi/BatchApi";
+import { useGetAllUsersQuery } from "@/Redux/AllApi/UserApi";
+import { toast } from "sonner";
 
-const BatchStudentsTable = ({ students, batchId, batchName }) => {
+const BatchStudentsTable = ({ students, batchId, batchName, onRefetch }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [progressFilter, setProgressFilter] = useState("all");
+  const [addStudentDialogOpen, setAddStudentDialogOpen] = useState(false);
+  const [selectedStudents, setSelectedStudents] = useState([]);
+  const [studentSearchTerm, setStudentSearchTerm] = useState("");
   const navigate = useNavigate();
+
+  // Mutation hooks
+  const [addStudentToBatch, { isLoading: isAddingStudent }] = useAddStudentToBatchMutation();
+  const [removeStudentFromBatch, { isLoading: isRemovingStudent }] = useRemoveStudentFromBatchMutation();
 
   // Fetch batch progress data
   const {
@@ -67,7 +99,26 @@ const BatchStudentsTable = ({ students, batchId, batchName }) => {
     refetchOnMountOrArgChange: true,
   });
 
+  // Fetch available students for adding
+  const {
+    data: usersData,
+    isLoading: usersLoading,
+    error: usersError,
+  } = useGetAllUsersQuery(
+    { 
+      role: "STUDENT", 
+      limit: 100, 
+      search: studentSearchTerm 
+    }, 
+    { skip: !addStudentDialogOpen }
+  );
+
   const batchProgress = progressData?.data?.batchProgress || [];
+  const availableStudents = usersData?.data?.users || [];
+  const currentStudentIds = students.map(s => s._id);
+  const studentsNotInBatch = availableStudents.filter(
+    student => !currentStudentIds.includes(student._id)
+  );
 
   // Enhanced filtering
   const filteredStudents = students.filter((student) => {
@@ -110,6 +161,60 @@ const BatchStudentsTable = ({ students, batchId, batchName }) => {
     );
   };
 
+  // Handle adding students to batch
+  const handleAddStudents = async () => {
+    if (selectedStudents.length === 0) {
+      toast.error("Please select at least one student");
+      return;
+    }
+
+    try {
+      const promises = selectedStudents.map(studentId =>
+        addStudentToBatch({ batchId, studentId }).unwrap()
+      );
+      
+      await Promise.all(promises);
+      
+      toast.success(`${selectedStudents.length} student(s) added to batch successfully`);
+      setAddStudentDialogOpen(false);
+      setSelectedStudents([]);
+      setStudentSearchTerm("");
+      
+      // Refetch batch data
+      if (onRefetch) {
+        onRefetch();
+      }
+    } catch (error) {
+      toast.error(error?.data?.message || "Failed to add students to batch");
+      console.error("Error adding students:", error);
+    }
+  };
+
+  // Handle removing student from batch
+  const handleRemoveStudent = async (studentId, studentName) => {
+    try {
+      await removeStudentFromBatch({ batchId, studentId }).unwrap();
+      toast.success(`${studentName} removed from batch successfully`);
+      
+      // Refetch batch data
+      if (onRefetch) {
+        onRefetch();
+      }
+    } catch (error) {
+      toast.error(error?.data?.message || "Failed to remove student from batch");
+      console.error("Error removing student:", error);
+    }
+  };
+
+  // Toggle student selection for adding
+  const toggleStudentSelection = (studentId) => {
+    setSelectedStudents(prev => 
+      prev.includes(studentId)
+        ? prev.filter(id => id !== studentId)
+        : [...prev, studentId]
+    );
+  };
+
   if (!students || students.length === 0) {
     return (
       <Card>
@@ -124,13 +229,113 @@ const BatchStudentsTable = ({ students, batchId, batchName }) => {
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <Button
-              onClick={() => navigate(`/batches?manageStudents=${batchId}`)}
-              className="gap-2"
-            >
-              <IconUserPlus className="h-4 w-4" />
-              Add Students
-            </Button>
+              <Dialog open={addStudentDialogOpen} onOpenChange={setAddStudentDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2">
+                    <IconUserPlus className="h-4 w-4" />
+                    Add Students
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Add Students to Batch</DialogTitle>
+                    <DialogDescription>
+                      Select students to add to {batchName}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="relative">
+                      <IconSearch className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="search"
+                        placeholder="Search students..."
+                        className="pl-8"
+                        value={studentSearchTerm}
+                        onChange={(e) => setStudentSearchTerm(e.target.value)}
+                      />
+                    </div>
+                    
+                    <div className="max-h-60 overflow-y-auto border rounded-lg">
+                      {usersLoading ? (
+                        <div className="p-4 space-y-3">
+                          {[1, 2, 3].map(i => (
+                            <div key={i} className="flex items-center space-x-3">
+                              <Skeleton className="h-10 w-10 rounded-full" />
+                              <div className="space-y-1 flex-1">
+                                <Skeleton className="h-4 w-32" />
+                                <Skeleton className="h-3 w-48" />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : studentsNotInBatch.length > 0 ? (
+                        <div className="p-2 space-y-1">
+                          {studentsNotInBatch.map(student => (
+                            <div
+                              key={student._id}
+                              className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 ${
+                                selectedStudents.includes(student._id) ? 'bg-blue-50 border border-blue-200' : ''
+                              }`}
+                              onClick={() => toggleStudentSelection(student._id)}
+                            >
+                              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                                selectedStudents.includes(student._id) 
+                                  ? 'bg-blue-600 border-blue-600 text-white' 
+                                  : 'border-gray-300'
+                              }`}>
+                                {selectedStudents.includes(student._id) && (
+                                  <IconCheck className="h-3 w-3" />
+                                )}
+                              </div>
+                              <Avatar className="h-10 w-10">
+                                <AvatarImage src={student.avatar?.url} />
+                                <AvatarFallback>
+                                  {student.fullName?.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1">
+                                <p className="font-medium">{student.fullName}</p>
+                                <p className="text-sm text-muted-foreground">{student.email}</p>
+                              </div>
+                              <Badge variant="outline">{student.status}</Badge>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-8 text-center text-muted-foreground">
+                          <IconUser className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                          <p>No available students found</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {selectedStudents.length > 0 && (
+                      <div className="text-sm text-muted-foreground">
+                        {selectedStudents.length} student(s) selected
+                      </div>
+                    )}
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setAddStudentDialogOpen(false);
+                        setSelectedStudents([]);
+                        setStudentSearchTerm("");
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleAddStudents}
+                      disabled={selectedStudents.length === 0 || isAddingStudent}
+                    >
+                      {isAddingStudent && <IconLoader className="h-4 w-4 mr-2 animate-spin" />}
+                      Add {selectedStudents.length > 0 ? `${selectedStudents.length} ` : ''}Student(s)
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
           </div>
         </CardContent>
       </Card>
@@ -162,13 +367,113 @@ const BatchStudentsTable = ({ students, batchId, batchName }) => {
                 <IconRefresh className={`h-4 w-4 ${progressLoading ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
-              <Button
-                onClick={() => navigate(`/batches?manageStudents=${batchId}`)}
-                className="gap-2"
-              >
-                <IconUserPlus className="h-4 w-4" />
-                Manage
-              </Button>
+              <Dialog open={addStudentDialogOpen} onOpenChange={setAddStudentDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2">
+                    <IconUserPlus className="h-4 w-4" />
+                    Add Students
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Add Students to Batch</DialogTitle>
+                    <DialogDescription>
+                      Select students to add to {batchName}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="relative">
+                      <IconSearch className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="search"
+                        placeholder="Search students..."
+                        className="pl-8"
+                        value={studentSearchTerm}
+                        onChange={(e) => setStudentSearchTerm(e.target.value)}
+                      />
+                    </div>
+                    
+                    <div className="max-h-60 overflow-y-auto border rounded-lg">
+                      {usersLoading ? (
+                        <div className="p-4 space-y-3">
+                          {[1, 2, 3].map(i => (
+                            <div key={i} className="flex items-center space-x-3">
+                              <Skeleton className="h-10 w-10 rounded-full" />
+                              <div className="space-y-1 flex-1">
+                                <Skeleton className="h-4 w-32" />
+                                <Skeleton className="h-3 w-48" />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : studentsNotInBatch.length > 0 ? (
+                        <div className="p-2 space-y-1">
+                          {studentsNotInBatch.map(student => (
+                            <div
+                              key={student._id}
+                              className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 ${
+                                selectedStudents.includes(student._id) ? 'bg-blue-50 border border-blue-200' : ''
+                              }`}
+                              onClick={() => toggleStudentSelection(student._id)}
+                            >
+                              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                                selectedStudents.includes(student._id) 
+                                  ? 'bg-blue-600 border-blue-600 text-white' 
+                                  : 'border-gray-300'
+                              }`}>
+                                {selectedStudents.includes(student._id) && (
+                                  <IconCheck className="h-3 w-3" />
+                                )}
+                              </div>
+                              <Avatar className="h-10 w-10">
+                                <AvatarImage src={student.avatar?.url} />
+                                <AvatarFallback>
+                                  {student.fullName?.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1">
+                                <p className="font-medium">{student.fullName}</p>
+                                <p className="text-sm text-muted-foreground">{student.email}</p>
+                              </div>
+                              <Badge variant="outline">{student.status}</Badge>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-8 text-center text-muted-foreground">
+                          <IconUser className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                          <p>No available students found</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {selectedStudents.length > 0 && (
+                      <div className="text-sm text-muted-foreground">
+                        {selectedStudents.length} student(s) selected
+                      </div>
+                    )}
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setAddStudentDialogOpen(false);
+                        setSelectedStudents([]);
+                        setStudentSearchTerm("");
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleAddStudents}
+                      disabled={selectedStudents.length === 0 || isAddingStudent}
+                    >
+                      {isAddingStudent && <IconLoader className="h-4 w-4 mr-2 animate-spin" />}
+                      Add {selectedStudents.length > 0 ? `${selectedStudents.length} ` : ''}Student(s)
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
 
@@ -342,15 +647,37 @@ const BatchStudentsTable = ({ students, batchId, batchName }) => {
                             <IconMail className="h-4 w-4 mr-2" />
                             Send Message
                           </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => {
-                              // Handle remove student logic
-                            }}
-                            className="text-red-600"
-                          >
-                            <IconX className="h-4 w-4 mr-2" />
-                            Remove from Batch
-                          </DropdownMenuItem>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <DropdownMenuItem
+                                onSelect={(e) => e.preventDefault()}
+                                className="text-red-600"
+                              >
+                                <IconUserMinus className="h-4 w-4 mr-2" />
+                                Remove from Batch
+                              </DropdownMenuItem>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Remove Student</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to remove {student.fullName} from this batch?
+                                  This will remove their access to the batch course content and progress.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleRemoveStudent(student._id, student.fullName)}
+                                  className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+                                  disabled={isRemovingStudent}
+                                >
+                                  {isRemovingStudent && <IconLoader className="h-4 w-4 mr-2 animate-spin" />}
+                                  Remove Student
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>

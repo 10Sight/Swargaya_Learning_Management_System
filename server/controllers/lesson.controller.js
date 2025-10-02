@@ -1,20 +1,30 @@
 import Lesson from "../models/lesson.model.js";
 import Module from "../models/module.model.js";
-import {asyncHandler} from "../utils/asyncHandler.js";
-import {ApiResponse} from "../utils/ApiResponse.js";
-import {ApiError} from "../utils/ApiError.js";
+import mongoose from "mongoose";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import { ApiError } from "../utils/ApiError.js";
 
 export const createLesson = asyncHandler(async (req, res) => {
-  const { moduleId } = req.params;
-  const { title, content, duration, order } = req.body;
+  const rawModuleId = req.params?.moduleId ?? req.body?.moduleId;
+  const { title, content, duration, order } = req.body || {};
 
-  const module = await Module.findById(moduleId);
+
+  if (!rawModuleId || rawModuleId === "undefined" || rawModuleId === "null") {
+    return res.status(400).json(new ApiResponse(400, null, "Module ID is required"));
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(rawModuleId)) {
+    return res.status(400).json(new ApiResponse(400, null, "Invalid module ID format"));
+  }
+
+  const module = await Module.findById(rawModuleId);
   if (!module) {
-    throw new ApiError("Module not found", 404);
+    return res.status(404).json(new ApiResponse(404, null, "Module not found"));
   }
 
   const lesson = await Lesson.create({
-    module: moduleId,
+    module: rawModuleId,
     title,
     content,
     duration,
@@ -24,59 +34,105 @@ export const createLesson = asyncHandler(async (req, res) => {
   module.lessons.push(lesson._id);
   await module.save();
 
-  res
+  return res
     .status(201)
     .json(new ApiResponse(201, lesson, "Lesson created successfully"));
 });
 
 export const getLessonsByModule = asyncHandler(async (req, res) => {
-  const { moduleId } = req.params;
-  const lessons = await Lesson.find({ module: moduleId }).sort({ order: 1 });
-  res
-    .status(200)
-    .json(new ApiResponse(200, lessons, "Lessons fetched successfully"));
+  const rawModuleId = req.params?.moduleId ?? req.body?.moduleId;
+
+  if (!rawModuleId || rawModuleId === 'undefined' || rawModuleId === 'null') {
+    return res.status(400).json(new ApiResponse(400, [], "Module ID is required"));
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(rawModuleId)) {
+    return res.status(400).json(new ApiResponse(400, [], "Invalid module ID format"));
+  }
+
+  try {
+    const lessons = await Lesson.find({ module: rawModuleId }).sort({ order: 1 });
+    return res
+      .status(200)
+      .json(new ApiResponse(200, lessons, "Lessons fetched successfully"));
+  } catch (err) {
+    console.error("getLessonsByModule - DB error:", err);
+    return res.status(500).json(new ApiResponse(500, [], "Error fetching lessons"));
+  }
 });
 
 export const getLessonById = asyncHandler(async (req, res) => {
-  const { lessonId } = req.params;
-  const lesson = await Lesson.findById(lessonId);
-  if (!lesson) {
-    throw new ApiError("Lesson not found", 404);
+  const rawLessonId = req.params?.lessonId ?? req.body?.lessonId;
+
+  if (!rawLessonId || rawLessonId === 'undefined' || rawLessonId === 'null') {
+    return res.status(400).json(new ApiResponse(400, null, "Lesson ID is required"));
   }
-  res
+
+  if (!mongoose.Types.ObjectId.isValid(rawLessonId)) {
+    return res.status(400).json(new ApiResponse(400, null, "Invalid lesson ID format"));
+  }
+
+  const lesson = await Lesson.findById(rawLessonId);
+  if (!lesson) {
+    return res.status(404).json(new ApiResponse(404, null, "Lesson not found"));
+  }
+  return res
     .status(200)
     .json(new ApiResponse(200, lesson, "Lesson fetched successfully"));
 });
 
 export const updateLesson = asyncHandler(async (req, res) => {
-  const { lessonId } = req.params;
-  const updates = req.body;
+  const rawLessonId = req.params?.lessonId ?? req.body?.lessonId;
+  const updates = req.body || {};
 
-  const lesson = await Lesson.findByIdAndUpdate(lessonId, updates, {
+  if (!rawLessonId || rawLessonId === 'undefined' || rawLessonId === 'null') {
+    return res.status(400).json(new ApiResponse(400, null, "Lesson ID is required"));
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(rawLessonId)) {
+    return res.status(400).json(new ApiResponse(400, null, "Invalid lesson ID format"));
+  }
+
+  const lesson = await Lesson.findByIdAndUpdate(rawLessonId, updates, {
     new: true,
     runValidators: true,
   });
 
   if (!lesson) {
-    throw new ApiError("Lesson not found", 404);
+    return res.status(404).json(new ApiResponse(404, null, "Lesson not found"));
   }
 
-  res
+  return res
     .status(200)
     .json(new ApiResponse(200, lesson, "Lesson updated successfully"));
 });
 
 export const deleteLesson = asyncHandler(async (req, res) => {
-  const { moduleId, lessonId } = req.params;
+  const rawModuleId = req.params?.moduleId ?? req.body?.moduleId;
+  const rawLessonId = req.params?.lessonId ?? req.body?.lessonId;
 
-  const lesson = await Lesson.findByIdAndDelete(lessonId);
-  if (!lesson) {
-    throw new ApiError("Lesson not found", 404);
+  if (!rawModuleId || rawModuleId === 'undefined' || rawModuleId === 'null') {
+    return res.status(400).json(new ApiResponse(400, null, "Module ID is required"));
+  }
+  if (!mongoose.Types.ObjectId.isValid(rawModuleId)) {
+    return res.status(400).json(new ApiResponse(400, null, "Invalid module ID format"));
   }
 
-  await Module.findByIdAndUpdate(moduleId, { $pull: { lessons: lessonId } });
+  if (!rawLessonId || rawLessonId === 'undefined' || rawLessonId === 'null') {
+    return res.status(400).json(new ApiResponse(400, null, "Lesson ID is required"));
+  }
+  if (!mongoose.Types.ObjectId.isValid(rawLessonId)) {
+    return res.status(400).json(new ApiResponse(400, null, "Invalid lesson ID format"));
+  }
 
-  res
+  const lesson = await Lesson.findByIdAndDelete(rawLessonId);
+  if (!lesson) {
+    return res.status(404).json(new ApiResponse(404, null, "Lesson not found"));
+  }
+
+  await Module.findByIdAndUpdate(rawModuleId, { $pull: { lessons: rawLessonId } });
+
+  return res
     .status(200)
     .json(new ApiResponse(200, null, "Lesson deleted successfully"));
 });

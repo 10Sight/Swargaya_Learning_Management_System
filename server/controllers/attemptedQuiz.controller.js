@@ -18,9 +18,40 @@ export const attemptQuiz = asyncHandler(async (req, res) => {
         throw new ApiError("Invalid quiz ID", 400);
     }
 
-    const quiz = await Quiz.findById(quizId);
+    const quiz = await Quiz.findById(quizId).populate('course').populate('module');
     if(!quiz) {
         throw new ApiError("Quiz not found", 400);
+    }
+    
+    // Validate access permissions
+    if(quiz.module && quiz.type === "MODULE") {
+        // Module quiz - check module completion
+        const accessCheck = await checkModuleAccessForAssessments(userId, quiz.course._id, quiz.module._id);
+        if(!accessCheck.hasAccess) {
+            throw new ApiError(accessCheck.reason || "Access denied. Complete all lessons in the module first.", 403);
+        }
+    } else if(quiz.type === "COURSE") {
+        // Course quiz - check if all modules are completed
+        const course = await Course.findById(quiz.course._id).populate('modules');
+        if(!course) {
+            throw new ApiError("Course not found", 404);
+        }
+
+        const progress = await Progress.findOne({ 
+            student: userId, 
+            course: quiz.course._id 
+        });
+
+        if(!progress) {
+            throw new ApiError("No progress found. Complete all modules first.", 403);
+        }
+
+        const totalModules = course.modules?.length || 0;
+        const completedModules = progress.completedModules?.length || 0;
+        
+        if(completedModules < totalModules) {
+            throw new ApiError(`Complete all ${totalModules} modules to access this course quiz. Currently completed: ${completedModules}`, 403);
+        }
     }
 
     if(!answers || answers.length === 0) {
@@ -170,11 +201,37 @@ export const startQuiz = asyncHandler(async (req, res) => {
         throw new ApiError("Quiz not found", 404);
     }
 
-    // Check if user has access to this quiz based on module completion
-    if(quiz.module) {
+    // Check if user has access to this quiz based on type
+    if(quiz.module && quiz.type === "MODULE") {
+        // Module quiz - check module completion
         const accessCheck = await checkModuleAccessForAssessments(userId, quiz.course._id, quiz.module._id);
         if(!accessCheck.hasAccess) {
-            throw new ApiError(accessCheck.reason || "Access denied to this quiz", 403);
+            throw new ApiError(accessCheck.reason || "Access denied to this quiz. Complete all lessons in the module first.", 403);
+        }
+    } else if(quiz.type === "COURSE") {
+        // Course quiz - check if all modules are completed
+        const Progress = (await import("../models/progress.model.js")).default;
+        const Course = (await import("../models/course.model.js")).default;
+        
+        const course = await Course.findById(quiz.course._id).populate('modules');
+        if(!course) {
+            throw new ApiError("Course not found", 404);
+        }
+
+        const progress = await Progress.findOne({ 
+            student: userId, 
+            course: quiz.course._id 
+        });
+
+        if(!progress) {
+            throw new ApiError("No progress found. Complete all modules first.", 403);
+        }
+
+        const totalModules = course.modules?.length || 0;
+        const completedModules = progress.completedModules?.length || 0;
+        
+        if(completedModules < totalModules) {
+            throw new ApiError(`Complete all ${totalModules} modules to access this course quiz. Currently completed: ${completedModules}`, 403);
         }
     }
 
@@ -234,11 +291,6 @@ export const submitQuiz = asyncHandler(async (req, res) => {
     const { quizId, answers, timeTaken } = req.body;
     const userId = req.user._id;
 
-    console.log('=== SUBMIT QUIZ DEBUG ===');
-    console.log('quizId:', quizId);
-    console.log('answers:', JSON.stringify(answers, null, 2));
-    console.log('timeTaken:', timeTaken);
-    console.log('userId:', userId);
 
     // Validate input payload
     if(!quizId) {
@@ -271,16 +323,6 @@ export const submitQuiz = asyncHandler(async (req, res) => {
         throw new ApiError("Quiz has no questions", 400);
     }
 
-    console.log('Quiz found:', {
-        id: quiz._id,
-        title: quiz.title,
-        questionsCount: quiz.questions.length,
-        firstQuestion: quiz.questions[0] ? {
-            _id: quiz.questions[0]._id,
-            questionText: quiz.questions[0].questionText?.substring(0, 50),
-            optionsCount: quiz.questions[0].options?.length
-        } : null
-    });
 
     // Validate answers array length matches quiz questions
     if(answers.length !== quiz.questions.length) {

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Card,
   CardContent,
@@ -9,21 +9,55 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   IconPlus,
   IconPencil,
   IconTrash,
   IconClipboardList,
   IconCalendar,
+  IconLoader,
 } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
+import { useDeleteAssignmentMutation } from "@/Redux/AllApi/AssignmentApi";
+import { toast } from "sonner";
 
-const AssignmentList = ({ assignments, courseId, modules = [] }) => {
+const AssignmentList = ({ assignments, courseId, modules = [], onRefetch }) => {
   const navigate = useNavigate();
+  const [deleteAssignment, { isLoading: isDeleting }] = useDeleteAssignmentMutation();
+  const [deletingId, setDeletingId] = useState(null);
   
   // Helper function to get module name
   const getModuleName = (moduleId) => {
     const module = modules.find(m => m._id === moduleId || m.id === moduleId);
     return module ? module.title : 'Unknown Module';
+  };
+
+  // Handle assignment deletion
+  const handleDeleteAssignment = async (assignmentId, assignmentTitle) => {
+    try {
+      setDeletingId(assignmentId);
+      await deleteAssignment(assignmentId).unwrap();
+      toast.success(`Assignment "${assignmentTitle}" deleted successfully`);
+      // Refetch assignments data to update the UI
+      if (onRefetch) {
+        onRefetch();
+      }
+    } catch (error) {
+      toast.error(error?.data?.message || "Failed to delete assignment");
+      console.error("Error deleting assignment:", error);
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   if (assignments.length === 0) {
@@ -78,13 +112,41 @@ const AssignmentList = ({ assignments, courseId, modules = [] }) => {
                   >
                     <IconPencil className="h-4 w-4" />
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-red-600 hover:text-red-800 hover:bg-red-50"
-                  >
-                    <IconTrash className="h-4 w-4" />
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                        disabled={isDeleting && deletingId === assignment._id}
+                      >
+                        {isDeleting && deletingId === assignment._id ? (
+                          <IconLoader className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <IconTrash className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Assignment</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete the assignment "{assignment.title}"?
+                          This will also delete all student submissions for this assignment.
+                          This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDeleteAssignment(assignment._id, assignment.title)}
+                          className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+                        >
+                          Delete Assignment
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
             </CardHeader>

@@ -53,7 +53,8 @@ const AddAssignmentPage = () => {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    moduleId: "", // Add module selection
+    assignmentType: "MODULE", // New field for assignment type
+    moduleId: "", // Module selection (only for MODULE type)
     dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Default: 7 days from now
   });
 
@@ -68,8 +69,9 @@ const AddAssignmentPage = () => {
   };
 
   const validateForm = () => {
-    if (!formData.moduleId) {
-      toast.error("Please select a module");
+    // Only require module selection for MODULE type assignments
+    if (formData.assignmentType === "MODULE" && !formData.moduleId) {
+      toast.error("Please select a module for module assignment");
       return false;
     }
     
@@ -99,13 +101,19 @@ const AddAssignmentPage = () => {
     }
 
     try {
-      await createAssignment({
+      const assignmentData = {
         courseId,
-        moduleId: formData.moduleId, // Include moduleId
         title: formData.title,
         description: formData.description,
         dueDate: formData.dueDate.toISOString(),
-      }).unwrap();
+      };
+
+      // Only include moduleId for MODULE type assignments
+      if (formData.assignmentType === "MODULE" && formData.moduleId) {
+        assignmentData.moduleId = formData.moduleId;
+      }
+      
+      await createAssignment(assignmentData).unwrap();
 
       toast.success("Assignment created successfully!");
       
@@ -151,9 +159,44 @@ const AddAssignmentPage = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Module Selection */}
+            {/* Assignment Type Selection */}
             <div className="grid gap-2">
-              <Label htmlFor="moduleId">Module *</Label>
+              <Label htmlFor="assignmentType">Assignment Type *</Label>
+              <Select
+                value={formData.assignmentType}
+                onValueChange={(value) => {
+                  setFormData((prev) => ({ 
+                    ...prev, 
+                    assignmentType: value,
+                    moduleId: value === "COURSE" ? "" : prev.moduleId // Clear module when switching to course
+                  }))
+                }}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select assignment type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="MODULE">
+                    📝 Module Assignment - Assess specific module completion
+                  </SelectItem>
+                  <SelectItem value="COURSE">
+                    🏆 Course Final Assignment - Assess entire course completion
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {formData.assignmentType === "MODULE" 
+                  ? "Module assignments unlock after completing all lessons in the selected module"
+                  : "Course assignments unlock only after completing ALL modules in the course"
+                }
+              </p>
+            </div>
+
+            {/* Module Selection - Only show for MODULE type */}
+            {formData.assignmentType === "MODULE" && (
+              <div className="grid gap-2">
+                <Label htmlFor="moduleId">Module *</Label>
               <Select
                 value={formData.moduleId}
                 onValueChange={(value) =>
@@ -179,26 +222,27 @@ const AddAssignmentPage = () => {
                 </SelectContent>
               </Select>
               
-              {/* Show error message if no modules */}
-              {modules.length === 0 && (
-                <div className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-md p-3">
-                  <p className="font-medium">No modules found for this course.</p>
-                  <p className="text-xs mt-1">
-                    You need to create modules first before adding assignments.
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="mt-2 gap-1"
-                    onClick={() => navigate(`/admin/courses/${courseId}`)}
-                  >
-                    <IconPlus className="h-3 w-3" />
-                    Go to Course
-                  </Button>
-                </div>
-              )}
-            </div>
+                {/* Show error message if no modules */}
+                {modules.length === 0 && (
+                  <div className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-md p-3">
+                    <p className="font-medium">No modules found for this course.</p>
+                    <p className="text-xs mt-1">
+                      You need to create modules first before adding assignments.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 gap-1"
+                      onClick={() => navigate(`/admin/courses/${courseId}`)}
+                    >
+                      <IconPlus className="h-3 w-3" />
+                      Go to Course
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
             
             <div className="grid gap-2">
               <Label htmlFor="title">Assignment Title *</Label>

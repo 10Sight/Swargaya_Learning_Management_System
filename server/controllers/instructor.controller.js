@@ -20,8 +20,6 @@ const generateToken = (userId) => {
 // @access  Public
 export const login = async (req, res) => {
   try {
-    console.log('Instructor login attempt:', { email: req.body.email });
-    console.log('ENV JWT_ACCESS_SECRET exists:', !!ENV.JWT_ACCESS_SECRET);
     
     const { email, password } = req.body;
 

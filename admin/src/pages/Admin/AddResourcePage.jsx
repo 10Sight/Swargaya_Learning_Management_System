@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useCreateResourceMutation } from "@/Redux/AllApi/resourceApi";
 import { useGetModulesByCourseQuery } from "@/Redux/AllApi/moduleApi";
+import { useGetLessonsByModuleQuery } from "@/Redux/AllApi/LessonApi";
+import { useGetCourseByIdQuery } from "@/Redux/AllApi/CourseApi";
 import {
   Card,
   CardContent,
@@ -33,65 +35,84 @@ import {
 } from "@/components/ui/select";
 
 const AddResourcePage = () => {
-  const { courseId } = useParams(); // Only courseId from URL
+  const { courseId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const [createResource, { isLoading }] = useCreateResourceMutation();
+  
+  // Get initial scope and entity from URL params or location state
+  const urlParams = new URLSearchParams(location.search);
+  const initialScope = urlParams.get('scope') || 'course';
+  const initialModuleId = urlParams.get('moduleId') || '';
+  const initialLessonId = urlParams.get('lessonId') || '';
+  
+  const [formData, setFormData] = useState({
+    scope: initialScope,
+    courseId: courseId || '',
+    moduleId: initialModuleId,
+    lessonId: initialLessonId,
+    title: '',
+    type: 'pdf',
+    description: '',
+    url: '',
+    file: null,
+  });
+
+  // Fetch course data
+  const { data: courseData } = useGetCourseByIdQuery(courseId, {
+    skip: !courseId,
+  });
   
   // Fetch modules for the course
   const { 
     data: modulesData, 
     isLoading: modulesLoading, 
-    error: modulesError,
-    refetch: refetchModules 
+    error: modulesError 
   } = useGetModulesByCourseQuery(courseId, {
-    skip: !courseId, // Skip if no courseId
+    skip: !courseId || formData.scope === 'course',
   });
   
-  const modules = modulesData?.data || [];
-
-  const [formData, setFormData] = useState({
-    moduleId: "", // Start with empty moduleId
-    title: "",
-    type: "PDF",
-    url: "",
-    file: null,
-    duration: "",
-    order: 1,
+  // Fetch lessons for selected module
+  const { 
+    data: lessonsData, 
+    isLoading: lessonsLoading 
+  } = useGetLessonsByModuleQuery(formData.moduleId, {
+    skip: !formData.moduleId || formData.scope !== 'lesson',
   });
+  
+  const course = courseData?.data || {};
+  const modules = modulesData?.data || [];
+  const lessons = lessonsData?.data || [];
 
   const [filePreview, setFilePreview] = useState(null);
 
-  // Debug logging
+  // Clear dependent fields when scope changes
   useEffect(() => {
-    console.log("Course ID:", courseId);
-    console.log("Modules data:", modulesData);
-    console.log("Modules:", modules);
-    console.log("Modules loading:", modulesLoading);
-    console.log("Modules error:", modulesError);
-  }, [courseId, modulesData, modules, modulesLoading, modulesError]);
+    if (formData.scope === 'course') {
+      setFormData(prev => ({ ...prev, moduleId: '', lessonId: '' }));
+    } else if (formData.scope === 'module') {
+      setFormData(prev => ({ ...prev, lessonId: '' }));
+    }
+  }, [formData.scope]);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
+  const handleFileSelect = (event) => {
+    const file = event.target.files[0];
     if (!file) return;
 
-    // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("File size must be less than 10MB");
+    // Validate file size (max 50MB)
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error("File size must be less than 50MB");
       return;
     }
 
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
-      file,
-      url: "", // Clear URL if file is selected
+      file: file,
+      url: "" // Clear URL when file is selected
     }));
 
     // Create preview for images
@@ -104,120 +125,104 @@ const AddResourcePage = () => {
     }
   };
 
-  const handleUrlChange = (e) => {
-    const url = e.target.value;
-    setFormData((prev) => ({
+  const handleUrlChange = (value) => {
+    setFormData(prev => ({
       ...prev,
-      url,
-      file: null, // Clear file if URL is entered
+      url: value,
+      file: null // Clear file when URL is entered
     }));
     setFilePreview(null);
   };
 
-  const validateForm = () => {
-    if (!formData.moduleId) {
-      toast.error("Please select a module");
-      return false;
-    }
+  const removeFile = () => {
+    setFormData(prev => ({ ...prev, file: null }));
+    setFilePreview(null);
+  };
 
+  const validateForm = () => {
     if (!formData.title.trim()) {
       toast.error("Resource title is required");
       return false;
     }
 
-    if (!formData.file && !formData.url) {
-      toast.error("Please either upload a file or provide a URL");
+    if (!formData.type) {
+      toast.error("Resource type is required");
       return false;
     }
 
-    if (formData.url && !isValidUrl(formData.url)) {
-      toast.error("Please enter a valid URL");
+    if (formData.scope === 'module' && !formData.moduleId) {
+      toast.error("Please select a module");
       return false;
     }
 
-    if (formData.duration && (formData.duration < 0 || formData.duration > 1000)) {
-      toast.error("Duration must be between 0 and 1000 minutes");
+    if (formData.scope === 'lesson' && !formData.lessonId) {
+      toast.error("Please select a lesson");
       return false;
     }
 
-    if (formData.order && (formData.order < 1 || formData.order > 100)) {
-      toast.error("Order must be between 1 and 100");
+    if (!formData.file && !formData.url.trim()) {
+      toast.error("Either a file or URL must be provided");
       return false;
     }
 
     return true;
   };
 
-  const isValidUrl = (string) => {
-    try {
-      new URL(string);
-      return true;
-    } catch (_) {
-      return false;
-    }
-  };
-
-  const getResourceTypeFromFile = (file) => {
-    if (!file) return "LINK";
-    
-    const type = file.type;
-    if (type.startsWith("video/")) return "VIDEO";
-    if (type === "application/pdf") return "PDF";
-    if (type.startsWith("image/")) return "IMAGE";
-    if (type.startsWith("text/")) return "TEXT";
-    return "LINK";
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    console.log("Form data:", formData); // Add this for debugging
-    
-    if (!formData.moduleId) {
-      toast.error("Please select a module");
-      return;
-    }
-
-    if (!formData.title.trim()) {
-      toast.error("Resource title is required");
-      return;
-    }
-
-    if (!formData.file && !formData.url) {
-      toast.error("Please upload a file or provide a URL");
-      return;
-    }
+    if (!validateForm()) return;
 
     try {
       const formDataToSend = new FormData();
-      formDataToSend.append('moduleId', formData.moduleId);
-      formDataToSend.append('title', formData.title);
-      formDataToSend.append('type', formData.type);
-      formDataToSend.append('description', formData.description || '');
       
-      if (formData.file) {
-        formDataToSend.append('file', formData.file);
-      } else if (formData.url) {
-        formDataToSend.append('url', formData.url);
+      // Add required fields
+      formDataToSend.append("title", formData.title.trim());
+      formDataToSend.append("type", formData.type);
+      formDataToSend.append("scope", formData.scope);
+      
+      if (formData.description.trim()) {
+        formDataToSend.append("description", formData.description.trim());
       }
 
-      console.log("Sending data:", formDataToSend); // Add this for debugging
-      
+      // Add the appropriate ID based on scope
+      if (formData.scope === "course" && courseId) {
+        formDataToSend.append("courseId", courseId);
+      } else if (formData.scope === "module" && formData.moduleId) {
+        formDataToSend.append("moduleId", formData.moduleId);
+      } else if (formData.scope === "lesson" && formData.lessonId) {
+        formDataToSend.append("lessonId", formData.lessonId);
+      }
+
+      // Add file or URL
+      if (formData.file) {
+        formDataToSend.append("file", formData.file);
+      } else if (formData.url.trim()) {
+        formDataToSend.append("url", formData.url.trim());
+      }
+
       await createResource(formDataToSend).unwrap();
       
-      toast.success("Resource created successfully!");
+      toast.success(`Resource added to ${formData.scope} successfully!`);
       navigate(`/admin/courses/${courseId}`);
     } catch (error) {
       console.error("Create resource error:", error);
-      let errorMessage = "Failed to create resource";
-      
-      if (error?.data?.message) {
-        errorMessage = error.data.message;
-      } else if (error?.message) {
-        errorMessage = error.message;
-      }
-      
-      toast.error(errorMessage);
+      toast.error(error?.data?.message || `Failed to add resource to ${formData.scope}`);
+    }
+  };
+
+  const getEntityName = () => {
+    switch (formData.scope) {
+      case 'course':
+        return course.title || 'Course';
+      case 'module':
+        const selectedModule = modules.find(m => m._id === formData.moduleId);
+        return selectedModule?.title || 'Module';
+      case 'lesson':
+        const selectedLesson = lessons.find(l => l._id === formData.lessonId);
+        return selectedLesson?.title || 'Lesson';
+      default:
+        return '';
     }
   };
 
@@ -261,7 +266,111 @@ const AddResourcePage = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Basic Information */}
+        {/* Target Selection */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Resource Target</CardTitle>
+            <CardDescription>
+              Choose where this resource should be attached
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Scope Selection */}
+            <div className="grid gap-2">
+              <Label>Add Resource To *</Label>
+              <Select
+                value={formData.scope}
+                onValueChange={(value) => handleInputChange('scope', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select target" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="course">Entire Course</SelectItem>
+                  <SelectItem value="module">Specific Module</SelectItem>
+                  <SelectItem value="lesson">Specific Lesson</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500">
+                Current target: <span className="font-medium">{getEntityName()}</span>
+              </p>
+            </div>
+
+            {/* Module Selection (for module and lesson scopes) */}
+            {(formData.scope === 'module' || formData.scope === 'lesson') && (
+              <div className="grid gap-2">
+                <Label>Module *</Label>
+                <Select
+                  value={formData.moduleId}
+                  onValueChange={(value) => handleInputChange('moduleId', value)}
+                  disabled={modulesLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a module" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {modulesLoading ? (
+                      <SelectItem value="loading" disabled>
+                        <div className="flex items-center gap-2">
+                          <IconLoader className="h-4 w-4 animate-spin" />
+                          Loading modules...
+                        </div>
+                      </SelectItem>
+                    ) : modules.length === 0 ? (
+                      <SelectItem value="none" disabled>
+                        No modules available
+                      </SelectItem>
+                    ) : (
+                      modules.map((module) => (
+                        <SelectItem key={module._id} value={module._id}>
+                          {module.title}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Lesson Selection (for lesson scope) */}
+            {formData.scope === 'lesson' && formData.moduleId && (
+              <div className="grid gap-2">
+                <Label>Lesson *</Label>
+                <Select
+                  value={formData.lessonId}
+                  onValueChange={(value) => handleInputChange('lessonId', value)}
+                  disabled={lessonsLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a lesson" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {lessonsLoading ? (
+                      <SelectItem value="loading" disabled>
+                        <div className="flex items-center gap-2">
+                          <IconLoader className="h-4 w-4 animate-spin" />
+                          Loading lessons...
+                        </div>
+                      </SelectItem>
+                    ) : lessons.length === 0 ? (
+                      <SelectItem value="none" disabled>
+                        No lessons in this module
+                      </SelectItem>
+                    ) : (
+                      lessons.map((lesson) => (
+                        <SelectItem key={lesson._id} value={lesson._id}>
+                          {lesson.title}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Resource Information */}
         <Card>
           <CardHeader>
             <CardTitle>Resource Information</CardTitle>
@@ -270,92 +379,12 @@ const AddResourcePage = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Module Selection */}
-            <div className="grid gap-2">
-              <Label htmlFor="moduleId">Module *</Label>
-              <Select
-                value={formData.moduleId}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({ ...prev, moduleId: value }))
-                }
-                required
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a module" />
-                </SelectTrigger>
-                <SelectContent>
-                  {modulesLoading ? (
-                    <SelectItem value="loading" disabled>
-                      <div className="flex items-center gap-2">
-                        <IconLoader className="h-4 w-4 animate-spin" />
-                        Loading modules...
-                      </div>
-                    </SelectItem>
-                  ) : modulesError ? (
-                    <SelectItem value="error" disabled>
-                      Error loading modules
-                    </SelectItem>
-                  ) : modules.length === 0 ? (
-                    <SelectItem value="none" disabled>
-                      No modules available. Create modules first.
-                    </SelectItem>
-                  ) : (
-                    modules.map((module) => (
-                      <SelectItem key={module._id} value={module._id}>
-                        {module.title}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              
-              {/* Show error message if no modules */}
-              {!modulesLoading && !modulesError && modules.length === 0 && (
-                <div className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-md p-3">
-                  <p className="font-medium">No modules found for this course.</p>
-                  <p className="text-xs mt-1">
-                    You need to create modules first before adding resources.
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="mt-2 gap-1"
-                    onClick={() => navigate(`/admin/courses/${courseId}`)}
-                  >
-                    <IconPlus className="h-3 w-3" />
-                    Go to Course
-                  </Button>
-                </div>
-              )}
-              
-              {/* Show error message if modules failed to load */}
-              {modulesError && (
-                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
-                  <p className="font-medium">Failed to load modules.</p>
-                  <p className="text-xs mt-1">
-                    {modulesError?.message || "Please try again later."}
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="mt-2"
-                    onClick={() => refetchModules()}
-                  >
-                    Retry
-                  </Button>
-                </div>
-              )}
-            </div>
-
             <div className="grid gap-2">
               <Label htmlFor="title">Resource Title *</Label>
               <Input
                 id="title"
-                name="title"
                 value={formData.title}
-                onChange={handleInputChange}
+                onChange={(e) => handleInputChange('title', e.target.value)}
                 placeholder="Enter resource title"
                 required
               />
@@ -365,21 +394,30 @@ const AddResourcePage = () => {
               <Label htmlFor="type">Resource Type *</Label>
               <Select
                 value={formData.type}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({ ...prev, type: value }))
-                }
+                onValueChange={(value) => handleInputChange('type', value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select resource type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="VIDEO">Video</SelectItem>
-                  <SelectItem value="PDF">PDF Document</SelectItem>
-                  <SelectItem value="IMAGE">Image</SelectItem>
-                  <SelectItem value="TEXT">Text</SelectItem>
-                  <SelectItem value="LINK">External Link</SelectItem>
+                  <SelectItem value="pdf">PDF Document</SelectItem>
+                  <SelectItem value="video">Video</SelectItem>
+                  <SelectItem value="image">Image</SelectItem>
+                  <SelectItem value="text">Text Document</SelectItem>
+                  <SelectItem value="link">External Link</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="description">Description (Optional)</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => handleInputChange('description', e.target.value)}
+                placeholder="Describe this resource..."
+                rows={3}
+              />
             </div>
           </CardContent>
         </Card>
@@ -395,30 +433,53 @@ const AddResourcePage = () => {
           <CardContent className="space-y-4">
             {/* File Upload */}
             <div className="grid gap-2">
-              <Label htmlFor="file">Upload File</Label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                <Input
-                  id="file"
-                  name="file"
+              <Label>Upload File</Label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                <input
                   type="file"
-                  onChange={handleFileChange}
+                  onChange={handleFileSelect}
                   className="hidden"
+                  id="file-upload"
                 />
-                <Label
-                  htmlFor="file"
-                  className="flex flex-col items-center justify-center gap-2 cursor-pointer"
-                >
-                  <IconUpload className="h-8 w-8 text-gray-400" />
-                  <div>
-                    <span className="font-medium text-blue-600">
-                      Click to upload
-                    </span>
-                    <span className="text-gray-500"> or drag and drop</span>
+                
+                {formData.file ? (
+                  <div className="flex items-center justify-between bg-blue-50 p-4 rounded-md">
+                    <div className="flex items-center gap-3">
+                      <IconFileText className="h-6 w-6 text-blue-600" />
+                      <div className="text-left">
+                        <p className="text-sm font-medium truncate">{formData.file.name}</p>
+                        <p className="text-xs text-gray-600">
+                          {(formData.file.size / (1024 * 1024)).toFixed(2)} MB
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={removeFile}
+                      className="h-8 w-8 p-0 text-gray-500 hover:text-red-600"
+                    >
+                      ❌
+                    </Button>
                   </div>
-                  <p className="text-xs text-gray-500">
-                    Supported formats: PDF, Images, Videos, Text files
-                  </p>
-                </Label>
+                ) : (
+                  <label htmlFor="file-upload" className="cursor-pointer block">
+                    <IconUpload className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                    <div>
+                      <p className="text-sm text-gray-600">
+                        Drop a file here or{" "}
+                        <span className="text-blue-600 hover:text-blue-800 font-medium">
+                          browse files
+                        </span>
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        File will be uploaded to Cloudinary (Max 50MB)
+                      </p>
+                    </div>
+                  </label>
+                )}
+                
                 {filePreview && (
                   <div className="mt-4">
                     <img
@@ -431,47 +492,29 @@ const AddResourcePage = () => {
               </div>
             </div>
 
-            {/* URL Input */}
-            <div className="grid gap-2">
-              <Label htmlFor="url">Or provide URL</Label>
-              <Input
-                id="url"
-                name="url"
-                value={formData.url}
-                onChange={handleUrlChange}
-                placeholder="https://example.com/resource.pdf"
-                type="url"
-              />
+            {/* OR separator */}
+            <div className="relative flex items-center">
+              <div className="flex-grow border-t border-gray-300"></div>
+              <span className="mx-4 text-sm text-gray-500 bg-white px-2">OR</span>
+              <div className="flex-grow border-t border-gray-300"></div>
             </div>
 
-            {/* Additional Options */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="duration">Duration (minutes)</Label>
-                <Input
-                  id="duration"
-                  name="duration"
-                  type="number"
-                  min="0"
-                  max="1000"
-                  value={formData.duration}
-                  onChange={handleInputChange}
-                  placeholder="Optional"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="order">Display Order</Label>
-                <Input
-                  id="order"
-                  name="order"
-                  type="number"
-                  min="1"
-                  max="100"
-                  value={formData.order}
-                  onChange={handleInputChange}
-                  placeholder="1"
-                />
-              </div>
+            {/* URL Input */}
+            <div className="grid gap-2">
+              <Label htmlFor="url">External URL</Label>
+              <Input
+                id="url"
+                value={formData.url}
+                onChange={(e) => handleUrlChange(e.target.value)}
+                placeholder="https://example.com/resource.pdf"
+                disabled={!!formData.file}
+              />
+              <p className="text-xs text-gray-500">
+                {formData.file 
+                  ? "URL input is disabled when a file is selected"
+                  : "Provide a URL to an external resource"
+                }
+              </p>
             </div>
           </CardContent>
         </Card>

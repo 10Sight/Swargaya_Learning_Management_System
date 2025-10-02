@@ -17,7 +17,7 @@ export const moduleApi = createApi({
 
         getModulesByCourse: builder.query({
             query: (courseId) => ({
-                url: `/api/modules/${courseId}`,
+                url: `/api/modules/course/${courseId}`,
                 method: "GET",
             }),
             providesTags: ["Module"],

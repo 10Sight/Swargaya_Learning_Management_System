@@ -24,6 +24,12 @@ const lessonSchema = new Schema(
       type: Number,
       default: 1,
     },
+    resources: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Resource",
+      },
+    ],
   },
   { timestamps: true }
 );

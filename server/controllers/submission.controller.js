@@ -14,8 +14,43 @@ export const createSubmission = asyncHandler(async (req, res) => {
         throw new ApiError("Invalid assignment ID", 400);
     }
 
-    const assignment = await Assignment.findById(assignmentId);
+    const assignment = await Assignment.findById(assignmentId).populate('course').populate('module');
     if(!assignment) throw new ApiError("Assignment not found", 404);
+    
+    // Validate access permissions for assignments
+    if(assignment.module && assignment.type === "MODULE") {
+        // Module assignment - check module completion
+        const { checkModuleAccessForAssessments } = await import("../utils/moduleCompletion.js");
+        const accessCheck = await checkModuleAccessForAssessments(req.user._id, assignment.course._id, assignment.module._id);
+        if(!accessCheck.hasAccess) {
+            throw new ApiError(accessCheck.reason || "Access denied. Complete all lessons in the module first.", 403);
+        }
+    } else if(assignment.type === "COURSE") {
+        // Course assignment - check if all modules are completed
+        const Progress = (await import("../models/progress.model.js")).default;
+        const Course = (await import("../models/course.model.js")).default;
+        
+        const course = await Course.findById(assignment.course._id).populate('modules');
+        if(!course) {
+            throw new ApiError("Course not found", 404);
+        }
+
+        const progress = await Progress.findOne({ 
+            student: req.user._id, 
+            course: assignment.course._id 
+        });
+
+        if(!progress) {
+            throw new ApiError("No progress found. Complete all modules first.", 403);
+        }
+
+        const totalModules = course.modules?.length || 0;
+        const completedModules = progress.completedModules?.length || 0;
+        
+        if(completedModules < totalModules) {
+            throw new ApiError(`Complete all ${totalModules} modules to access this course assignment. Currently completed: ${completedModules}`, 403);
+        }
+    }
 
     const existing = await Submission.findOne({
         assignment: assignmentId,

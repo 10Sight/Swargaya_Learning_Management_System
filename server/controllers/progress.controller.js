@@ -63,6 +63,28 @@ export const markLessonComplete = asyncHandler(async (req, res) => {
         throw new ApiError("Invalid course ID or lesson ID", 400);
     }
 
+    // Validate sequential lesson completion
+    const Lesson = (await import("../models/lesson.model.js")).default;
+    const Module = (await import("../models/module.model.js")).default;
+    
+    const lesson = await Lesson.findById(lessonId);
+    if (!lesson) {
+        throw new ApiError("Lesson not found", 404);
+    }
+    
+    const module = await Module.findById(lesson.module).populate('lessons');
+    if (!module) {
+        throw new ApiError("Module not found", 404);
+    }
+    
+    // Sort lessons by order
+    const sortedLessons = module.lessons.sort((a, b) => (a.order || 0) - (b.order || 0));
+    const lessonIndex = sortedLessons.findIndex(l => l._id.toString() === lessonId);
+    
+    if (lessonIndex === -1) {
+        throw new ApiError("Lesson not found in module", 404);
+    }
+
     let progress = await Progress.findOne({ student: userId, course: courseId });
     if(!progress) {
         // Initialize progress if it doesn't exist
@@ -76,6 +98,19 @@ export const markLessonComplete = asyncHandler(async (req, res) => {
             assignments: [],
             progressPercent: 0,
         });
+    }
+    
+    // Check if this lesson can be completed (sequential validation)
+    if (lessonIndex > 0) {
+        // Check if the previous lesson is completed
+        const previousLesson = sortedLessons[lessonIndex - 1];
+        const isPreviousCompleted = progress.completedLessons.some(
+            lesson => lesson.lessonId.toString() === previousLesson._id.toString()
+        );
+        
+        if (!isPreviousCompleted) {
+            throw new ApiError("You must complete the previous lesson first", 400);
+        }
     }
 
     // Check if lesson is already completed
@@ -103,6 +138,23 @@ export const markModuleComplete = asyncHandler(async (req, res) => {
     if(!mongoose.Types.ObjectId.isValid(courseId) || !mongoose.Types.ObjectId.isValid(moduleId)) {
         throw new ApiError("Invalid course ID or module ID", 400);
     }
+    
+    // Validate sequential module completion
+    const Course = (await import("../models/course.model.js")).default;
+    const Module = (await import("../models/module.model.js")).default;
+    
+    const course = await Course.findById(courseId).populate('modules');
+    if (!course) {
+        throw new ApiError("Course not found", 404);
+    }
+    
+    // Sort modules by order
+    const sortedModules = course.modules.sort((a, b) => (a.order || 0) - (b.order || 0));
+    const moduleIndex = sortedModules.findIndex(m => m._id.toString() === moduleId);
+    
+    if (moduleIndex === -1) {
+        throw new ApiError("Module not found in course", 404);
+    }
 
     let progress = await Progress.findOne({ student: userId, course: courseId });
     if(!progress) {
@@ -118,13 +170,43 @@ export const markModuleComplete = asyncHandler(async (req, res) => {
             progressPercent: 0,
         });
     }
+    
+    // Check if this module can be completed (sequential validation)
+    if (moduleIndex > 0) {
+        // Check if the previous module is completed
+        const previousModule = sortedModules[moduleIndex - 1];
+        const isPreviousCompleted = progress.completedModules.some(
+            module => module.moduleId.toString() === previousModule._id.toString()
+        );
+        
+        if (!isPreviousCompleted) {
+            throw new ApiError("You must complete the previous module first", 400);
+        }
+    }
+    
+    // Validate that all lessons in this module are completed
+    const currentModule = await Module.findById(moduleId).populate('lessons');
+    if (!currentModule) {
+        throw new ApiError("Module not found", 404);
+    }
+    
+    if (currentModule.lessons && currentModule.lessons.length > 0) {
+        const completedLessonIds = progress.completedLessons.map(l => l.lessonId.toString());
+        const allLessonsCompleted = currentModule.lessons.every(lesson => 
+            completedLessonIds.includes(lesson._id.toString())
+        );
+        
+        if (!allLessonsCompleted) {
+            throw new ApiError("You must complete all lessons in this module first", 400);
+        }
+    }
 
     // Check if module is already completed
     const isAlreadyCompleted = progress.completedModules.some(
         module => module.moduleId.toString() === moduleId.toString()
     );
 
-    let course;
+    // let course;
     let levelUpgraded = false;
     let oldLevel = progress.currentLevel;
 
@@ -154,7 +236,6 @@ export const markModuleComplete = asyncHandler(async (req, res) => {
             
             // Log level upgrade for debugging
             if (levelUpgraded) {
-                console.log(`Student ${req.user.fullName || req.user.email} upgraded from ${oldLevel} to ${progress.currentLevel}`);
             }
         }
     }

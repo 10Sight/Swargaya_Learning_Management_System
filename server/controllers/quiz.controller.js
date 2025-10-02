@@ -239,3 +239,82 @@ export const getAccessibleQuizzes = asyncHandler(async (req, res) => {
         }, "Accessible quizzes fetched successfully"));
     }
 });
+
+// Get course-level quizzes accessible to a student
+export const getCourseQuizzes = asyncHandler(async (req, res) => {
+    const { courseId } = req.params;
+    const userId = req.user._id;
+
+    if(!mongoose.Types.ObjectId.isValid(courseId)) {
+        throw new ApiError("Invalid course ID", 400);
+    }
+
+    // Check if user has completed all modules in the course
+    const Progress = (await import("../models/progress.model.js")).default;
+    const Course = (await import("../models/course.model.js")).default;
+    
+    const course = await Course.findById(courseId).populate('modules');
+    if(!course) {
+        throw new ApiError("Course not found", 404);
+    }
+
+    const progress = await Progress.findOne({ 
+        student: userId, 
+        course: courseId 
+    });
+
+    if(!progress) {
+        return res.json(new ApiResponse(200, {
+            quizzes: [],
+            accessInfo: {
+                hasAccess: false,
+                reason: "No progress found for this course"
+            }
+        }, "Course quizzes locked - complete all modules to unlock"));
+    }
+
+    // Check if all modules are completed
+    const totalModules = course.modules?.length || 0;
+    const completedModules = progress.completedModules?.length || 0;
+    
+    if(totalModules === 0) {
+        return res.json(new ApiResponse(200, {
+            quizzes: [],
+            accessInfo: {
+                hasAccess: false,
+                reason: "No modules found in this course"
+            }
+        }, "Course quizzes locked - no modules found"));
+    }
+
+    if(completedModules < totalModules) {
+        return res.json(new ApiResponse(200, {
+            quizzes: [],
+            accessInfo: {
+                hasAccess: false,
+                reason: `Complete all ${totalModules} modules to unlock course quizzes. Currently completed: ${completedModules}`
+            }
+        }, "Course quizzes locked - complete all modules to unlock"));
+    }
+
+    // User has access, fetch course-level quizzes
+    const quizzes = await Quiz.find({ 
+        course: courseId, 
+        type: "COURSE",
+        $or: [
+            { module: null },
+            { module: { $exists: false } }
+        ]
+    })
+        .populate("course", "title")
+        .populate("module", "title")
+        .sort({ createdAt: -1 });
+
+    return res.json(new ApiResponse(200, {
+        quizzes,
+        accessInfo: {
+            hasAccess: true,
+            reason: "All modules completed"
+        }
+    }, "Course quizzes fetched successfully"));
+});
