@@ -37,68 +37,75 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import axiosInstance from "@/Helper/axiosInstance";
+import { useGetAllBatchesQuery, useGetBatchProgressQuery } from "@/Redux/AllApi/BatchApi";
 
 const StudentLevelManager = () => {
   const [students, setStudents] = useState([]);
-  const [courses, setCourses] = useState([]);
-  const [selectedCourse, setSelectedCourse] = useState("");
+  const [selectedBatch, setSelectedBatch] = useState(() => {
+    // Restore last selected batch from localStorage if available
+    try {
+      return localStorage.getItem("selectedBatchId") || "";
+    } catch {
+      return "";
+    }
+  });
   const [loading, setLoading] = useState(false);
   const [updating, setUpdating] = useState({});
 
-  // Fetch courses on component mount
-  useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        const response = await axiosInstance.get("/api/courses");
-        // The backend returns { data: { total, page, limit, courses } }
-        const coursesData = response.data?.data?.courses || [];
-        setCourses(Array.isArray(coursesData) ? coursesData : []);
-      } catch (error) {
-        console.error("Error fetching courses:", error);
-        toast.error("Failed to load courses");
-      }
-    };
-    fetchCourses();
-  }, []);
+  // Fetch all batches using RTK Query
+  const { data: batchesData, isLoading: batchesLoading } = useGetAllBatchesQuery({ limit: 100 });
+  const batches = batchesData?.data?.batches || [];
 
-  // Fetch students progress for selected course
-  const fetchStudentProgress = async (courseId) => {
-    if (!courseId) return;
-    
-    setLoading(true);
-    try {
-      const response = await axiosInstance.get(`/api/progress/course/${courseId}`);
-      const progressData = response.data?.data || [];
+  // Get course ID from selected batch
+  const selectedBatchData = batches.find(batch => batch._id === selectedBatch);
+  const courseId = selectedBatchData?.course?._id || selectedBatchData?.courseId;
+
+  // Auto-select first batch if none selected and batches are available
+  useEffect(() => {
+    if (!selectedBatch && batches.length > 0 && !batchesLoading) {
+      const firstBatch = batches[0];
+      setSelectedBatch(firstBatch._id);
+      try { localStorage.setItem("selectedBatchId", firstBatch._id); } catch {}
+    }
+  }, [batches, selectedBatch, batchesLoading]);
+
+  // Fetch batch progress using RTK Query
+  const { data: batchProgressData, isLoading: progressLoading, refetch: refetchProgress } = useGetBatchProgressQuery(
+    selectedBatch,
+    { skip: !selectedBatch }
+  );
+
+  // Update students when batch progress data changes
+  useEffect(() => {
+    if (batchProgressData?.data?.batchProgress && Array.isArray(batchProgressData.data.batchProgress)) {
+      const progressData = batchProgressData.data.batchProgress;
       
-      // Transform progress data to include student info
+      // Transform progress data to include student info with actual level data from API
       const studentsWithProgress = progressData.map(progress => ({
-        id: progress.student._id || progress.student.id,
-        name: progress.student.fullName || progress.student.name || "Unknown",
-        email: progress.student.email || "No email",
-        currentLevel: progress.currentLevel || "L1",
-        levelLockEnabled: progress.levelLockEnabled || false,
-        lockedLevel: progress.lockedLevel || null,
-        progressPercent: progress.progressPercent || 0,
-        completedModules: progress.completedModules?.length || 0,
-        lastAccessed: progress.lastAccessed,
-        progressId: progress._id
+        id: progress.student?._id || progress.student?.id,
+        name: progress.student?.fullName || progress.student?.name || "Unknown",
+        email: progress.student?.email || "No email",
+        currentLevel: progress.currentLevel || "L1", // Use actual level from API
+        levelLockEnabled: progress.levelLockEnabled || false, // Use actual lock status from API
+        lockedLevel: progress.lockedLevel || null, // Use actual locked level from API
+        progressPercent: progress.progressPercentage || 0,
+        completedModules: progress.completedModules || 0,
+        lastAccessed: progress.lastActivity,
+        progressId: null, // Not available in batch progress
+        courseId: selectedBatchData?.course?._id // Use course ID from selected batch
       }));
       
       setStudents(studentsWithProgress);
-    } catch (error) {
-      console.error("Error fetching student progress:", error);
-      toast.error("Failed to load student progress");
-    } finally {
-      setLoading(false);
+    } else if (selectedBatch && !progressLoading) {
+      setStudents([]);
     }
-  };
+  }, [batchProgressData, selectedBatch, progressLoading, selectedBatchData]);
 
-  // Handle course selection
-  const handleCourseChange = (courseId) => {
-    setSelectedCourse(courseId);
-    if (courseId) {
-      fetchStudentProgress(courseId);
-    } else {
+  // Handle batch selection
+  const handleBatchChange = (batchId) => {
+    setSelectedBatch(batchId);
+    try { localStorage.setItem("selectedBatchId", batchId || ""); } catch {}
+    if (!batchId) {
       setStudents([]);
     }
   };
@@ -111,7 +118,7 @@ const StudentLevelManager = () => {
     try {
       const response = await axiosInstance.patch("/api/progress/admin/set-level", {
         studentId,
-        courseId: selectedCourse,
+        courseId: courseId,
         level,
         lock
       });
@@ -185,32 +192,32 @@ const StudentLevelManager = () => {
             Student Level Manager
           </CardTitle>
           <CardDescription>
-            Control student level progression and set level locks to prevent automatic promotions
+            Control student level progression and set level locks to prevent automatic promotions. Select a batch to manage its students.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-4">
-            <Label htmlFor="course-select">Select Course:</Label>
-            <Select value={selectedCourse} onValueChange={handleCourseChange}>
+            <Label htmlFor="batch-select">Select Batch:</Label>
+            <Select value={selectedBatch} onValueChange={handleBatchChange} disabled={batchesLoading}>
               <SelectTrigger className="w-72">
-                <SelectValue placeholder="Choose a course to manage" />
+                <SelectValue placeholder={batchesLoading ? "Loading batches..." : "Choose a batch to manage"} />
               </SelectTrigger>
               <SelectContent>
-                {courses.map((course) => (
-                  <SelectItem key={course._id || course.id} value={course._id || course.id}>
-                    {course.title || course.name}
+                {batches.map((batch) => (
+                  <SelectItem key={batch._id} value={batch._id}>
+                    {batch.name} - {batch.course?.title || 'No Course'}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            {selectedCourse && (
+            {selectedBatch && (
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => fetchStudentProgress(selectedCourse)}
-                disabled={loading}
+                onClick={() => refetchProgress()}
+                disabled={progressLoading}
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 mr-2 ${progressLoading ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
             )}
@@ -219,7 +226,7 @@ const StudentLevelManager = () => {
       </Card>
 
       {/* Level Lock Info */}
-      {selectedCourse && (
+      {selectedBatch && (
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
@@ -230,26 +237,26 @@ const StudentLevelManager = () => {
       )}
 
       {/* Students Table */}
-      {selectedCourse && (
+      {selectedBatch && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
-              Students ({students.length})
+              Students ({students.length}) - {selectedBatchData?.name}
             </CardTitle>
             <CardDescription>
-              Manage individual student levels and lock settings
+              Manage individual student levels and lock settings for {selectedBatchData?.course?.title || 'this batch'}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {progressLoading ? (
               <div className="flex items-center justify-center py-8">
                 <RefreshCw className="h-6 w-6 animate-spin mr-2" />
                 Loading students...
               </div>
             ) : students.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                No students enrolled in this course
+                No students enrolled in this batch
               </div>
             ) : (
               <Table>

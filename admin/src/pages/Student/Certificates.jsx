@@ -35,7 +35,9 @@ const Certificates = () => {
   }
 
   const getGradeBadgeColor = (grade) => {
-    switch(grade?.toUpperCase()) {
+    if (!grade) return 'bg-gray-100 text-gray-800';
+    
+    switch(grade.toString().toUpperCase()) {
       case 'A+': 
       case 'A': return 'bg-green-100 text-green-800'
       case 'B+':
@@ -61,7 +63,7 @@ const Certificates = () => {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Certificate - ${certificateData.studentName || 'Student'}</title>
+        <title>Certificate - ${certificateData.studentName || 'Hello'}</title>
         <style>
           ${certificateData.styles || ''}
           @media print {

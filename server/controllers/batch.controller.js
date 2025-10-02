@@ -420,7 +420,10 @@ export const getBatchProgress = asyncHandler(async (req, res) => {
                 totalModules,
                 progressPercentage: 0,
                 lastActivity: null,
-                courseTitle: course?.title
+                courseTitle: course?.title,
+                currentLevel: 'L1',
+                levelLockEnabled: false,
+                lockedLevel: null
             };
         }
 
@@ -440,7 +443,10 @@ export const getBatchProgress = asyncHandler(async (req, res) => {
             totalModules,
             progressPercentage,
             lastActivity: studentProgress.updatedAt,
-            courseTitle: course?.title
+            courseTitle: course?.title,
+            currentLevel: studentProgress.currentLevel || 'L1',
+            levelLockEnabled: studentProgress.levelLockEnabled || false,
+            lockedLevel: studentProgress.lockedLevel || null
         };
     });
 

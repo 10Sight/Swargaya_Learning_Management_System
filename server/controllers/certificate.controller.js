@@ -26,13 +26,13 @@ export const issueCertificate = asyncHandler(async (req, res) => {
     const student = await User.findById(studentId);
     if(!student) throw new ApiError("Student not found", 404);
 
-    const existing = await Certificate.findOne({ user: studentId, course: courseId });
+    const existing = await Certificate.findOne({ student: studentId, course: courseId });
     if(existing) {
         throw new ApiError("Certificate already issued for this student & course", 400);
     }
 
     const certificate = await Certificate.create({
-        user: studentId,
+        student: studentId,
         course: courseId,
         issuedBy: req.user._id,
     });
@@ -49,7 +49,7 @@ export const getCertificateById = asyncHandler(async (req, res) => {
     } 
 
     const certificate = await Certificate.findById(id)
-        .populate("user", "fullName email")
+        .populate("student", "fullName email")
         .populate("course", "title")
         .populate("issuedBy", "fullName email");
 
@@ -78,9 +78,9 @@ export const getCourseCertificates = asyncHandler(async (req, res) => {
     }
 
     const certificates = await Certificate.find({ course: courseId })
-        .populate("user", "fullName email")
+        .populate("student", "fullName email")
         .populate("issuedBy", "fullName email")
-        .sort({ issuedAt: -1 });
+        .sort({ issueDate: -1 });
 
     res.json(new ApiResponse(200, certificates, "Course certificates fetched successfully"));
 });
@@ -170,7 +170,11 @@ export const checkCertificateEligibility = asyncHandler(async (req, res) => {
         return scorePercent >= passingScore;
     });
 
-    const quizPassed = courseQuizAttempts.length > 0 && passedQuizzes.length > 0;
+    // Check if course has any quizzes - if no quizzes exist, consider it passed
+    const Quiz = (await import('../models/quiz.model.js')).default;
+    const totalQuizzesInCourse = await Quiz.countDocuments({ course: courseId });
+    const hasQuizzes = totalQuizzesInCourse > 0;
+    const quizPassed = !hasQuizzes || (courseQuizAttempts.length > 0 && passedQuizzes.length > 0);
 
     // Check assignment submissions and grading
     const assignments = await Assignment.find({ course: courseId });
@@ -180,7 +184,10 @@ export const checkCertificateEligibility = asyncHandler(async (req, res) => {
     }).populate('assignment', 'title maxScore');
 
     const gradedSubmissions = submissions.filter(sub => sub.grade !== null && sub.grade !== undefined);
-    const assignmentsGraded = submissions.length > 0 && gradedSubmissions.length === submissions.length;
+    // If course has no assignments, consider it passed. 
+    // If has assignments, all assignments must have submissions and all submissions must be graded.
+    const assignmentsGraded = assignments.length === 0 || 
+        (assignments.length === submissions.length && gradedSubmissions.length === submissions.length);
 
     const eligible = courseCompleted && quizPassed && assignmentsGraded;
 
