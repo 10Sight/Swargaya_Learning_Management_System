@@ -318,10 +318,35 @@ export const getAssignedBatches = async (req, res) => {
 
     const batches = await Batch.find(query)
       .populate('course', 'title category level')
-      .populate('students', 'fullName email')
+      .populate('students', 'fullName email userName status')
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
+
+    // Enhance batches with student progress data
+    const batchesWithProgress = await Promise.all(
+      batches.map(async (batch) => {
+        const studentsWithProgress = await Promise.all(
+          batch.students.map(async (student) => {
+            // Get progress for the course
+            const progress = await Progress.findOne({
+              student: student._id,
+              course: batch.course?._id
+            });
+
+            return {
+              ...student.toObject(),
+              progress: progress?.progressPercent || 0
+            };
+          })
+        );
+
+        return {
+          ...batch.toObject(),
+          students: studentsWithProgress
+        };
+      })
+    );
 
     const total = await Batch.countDocuments(query);
     const totalPages = Math.ceil(total / limit);
@@ -329,7 +354,7 @@ export const getAssignedBatches = async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
-        batches,
+        batches: batchesWithProgress,
         totalPages,
         currentPage: parseInt(page),
         total

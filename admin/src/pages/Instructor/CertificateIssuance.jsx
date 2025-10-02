@@ -88,11 +88,43 @@ const CertificateIssuance = () => {
         courseId: selectedBatch.course._id,
         templateId: selectedTemplateId || undefined
       }).unwrap()
-      
-      setPreviewHtml(`
-        <style>${response.data.preview.styles}</style>
-        ${response.data.preview.html}
-      `)
+
+      const styles = response?.data?.preview?.styles || ''
+      const html = response?.data?.preview?.html || '<p>Preview not available</p>'
+
+      const finalHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Certificate Preview</title>
+  <style>
+    body { 
+      margin: 0; 
+      padding: 20px; 
+      font-family: Arial, sans-serif; 
+      background: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .preview-container {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    ${styles}
+  </style>
+</head>
+<body>
+  <div class="preview-container">
+    ${html}
+  </div>
+</body>
+</html>`
+
+      setPreviewHtml(finalHtml)
       setShowPreviewDialog(true)
     } catch (error) {
       toast.error(error?.data?.message || 'Failed to generate preview')
@@ -271,16 +303,16 @@ const CertificateIssuance = () => {
           ) : eligibilityData?.data ? (
             <div className="space-y-6">
               {/* Overall Eligibility */}
-              <Card className={eligibilityData.data.eligible ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}>
+              <Card className={eligibilityData?.data?.eligible ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}>
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3">
-                    {getEligibilityIcon(eligibilityData.data.eligible)}
+                    {getEligibilityIcon(eligibilityData?.data?.eligible)}
                     <div>
                       <h3 className="font-medium">
-                        {eligibilityData.data.eligible ? 'Eligible for Certificate' : 'Not Eligible'}
+                        {eligibilityData?.data?.eligible ? 'Eligible for Certificate' : 'Not Eligible'}
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        {eligibilityData.data.reason}
+                        {eligibilityData?.data?.reason || 'Checking eligibility...'}
                       </p>
                     </div>
                   </div>
@@ -292,12 +324,12 @@ const CertificateIssuance = () => {
                 <Card>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-3">
-                      {getRequirementIcon(eligibilityData.data.requirements.courseCompletion)}
+                      {getRequirementIcon(eligibilityData?.data?.requirements?.courseCompletion)}
                       <div>
                         <h4 className="font-medium">Course Completion</h4>
                         <p className="text-sm text-muted-foreground">
-                          {eligibilityData.data.details.progress.completedModules}/
-                          {eligibilityData.data.details.progress.totalModules} modules
+                          {eligibilityData?.data?.details?.progress?.completedModules || 0}/
+                          {eligibilityData?.data?.details?.progress?.totalModules || 0} modules
                         </p>
                       </div>
                     </div>
@@ -307,12 +339,12 @@ const CertificateIssuance = () => {
                 <Card>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-3">
-                      {getRequirementIcon(eligibilityData.data.requirements.quizPassed)}
+                      {getRequirementIcon(eligibilityData?.data?.requirements?.quizPassed)}
                       <div>
                         <h4 className="font-medium">Quiz Performance</h4>
                         <p className="text-sm text-muted-foreground">
-                          {eligibilityData.data.details.quizzes.passedQuizzes}/
-                          {eligibilityData.data.details.quizzes.totalAttempts} passed
+                          {eligibilityData?.data?.details?.quizzes?.passedQuizzes || 0}/
+                          {eligibilityData?.data?.details?.quizzes?.totalAttempts || 0} passed
                         </p>
                       </div>
                     </div>
@@ -322,12 +354,12 @@ const CertificateIssuance = () => {
                 <Card>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-3">
-                      {getRequirementIcon(eligibilityData.data.requirements.assignmentsGraded)}
+                      {getRequirementIcon(eligibilityData?.data?.requirements?.assignmentsGraded)}
                       <div>
                         <h4 className="font-medium">Assignments</h4>
                         <p className="text-sm text-muted-foreground">
-                          {eligibilityData.data.details.assignments.gradedSubmissions}/
-                          {eligibilityData.data.details.assignments.totalSubmissions} graded
+                          {eligibilityData?.data?.details?.assignments?.gradedSubmissions || 0}/
+                          {eligibilityData?.data?.details?.assignments?.totalSubmissions || 0} graded
                         </p>
                       </div>
                     </div>
@@ -336,7 +368,7 @@ const CertificateIssuance = () => {
               </div>
 
               {/* Assignment Details */}
-              {eligibilityData.data.details.assignments.submissions.length > 0 && (
+              {eligibilityData?.data?.details?.assignments?.submissions && eligibilityData.data.details.assignments.submissions.length > 0 && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-lg">Assignment Status</CardTitle>
@@ -382,7 +414,7 @@ const CertificateIssuance = () => {
                 >
                   Close
                 </Button>
-                {eligibilityData.data.eligible && (
+                {eligibilityData?.data?.eligible && (
                   <>
                     <Button 
                       variant="outline"
@@ -462,14 +494,20 @@ const CertificateIssuance = () => {
 
       {/* Preview Dialog */}
       <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Certificate Preview</DialogTitle>
           </DialogHeader>
-          <div className="border rounded-lg p-4 bg-white">
-            <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
+          <div className="flex-1 border rounded-lg bg-white overflow-hidden" style={{ minHeight: '500px', height: '70vh' }}>
+            <iframe 
+              srcDoc={previewHtml}
+              className="w-full h-full border-0"
+              sandbox="allow-same-origin allow-scripts"
+              title="Certificate Preview"
+              loading="eager"
+            />
           </div>
-          <div className="flex justify-end space-x-2">
+          <div className="flex justify-end space-x-2 pt-4">
             <Button variant="outline" onClick={() => setShowPreviewDialog(false)}>
               Close
             </Button>

@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Plus, Loader2, BookOpen } from "lucide-react";
+import { ArrowLeft, Plus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import axiosInstance from "@/Helper/axiosInstance";
 
@@ -20,39 +19,7 @@ const AddLessonPage = () => {
     order: 1,
   });
   
-  const [moduleData, setModuleData] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoadingModule, setIsLoadingModule] = useState(true);
-
-  // Fetch module data on component mount
-  useEffect(() => {
-    const fetchModuleData = async () => {
-      if (!moduleId) {
-        toast.error("Module ID is missing");
-        navigate(-1);
-        return;
-      }
-
-      try {
-        const response = await axiosInstance.get(`/api/modules/${moduleId}`);
-        if (response.data.success) {
-          setModuleData(response.data.data);
-        } else {
-          toast.error("Failed to fetch module data");
-        }
-      } catch (error) {
-        console.error("Error fetching module:", error);
-        const errorMessage = 
-          error.response?.data?.message || "Failed to fetch module data";
-        toast.error(errorMessage);
-        // Don't navigate back, just show error - user can still create lesson
-      } finally {
-        setIsLoadingModule(false);
-      }
-    };
-
-    fetchModuleData();
-  }, [moduleId, navigate]);
 
   const handleInputChange = (e) => {
     const { name, value, type } = e.target;
@@ -109,12 +76,7 @@ const AddLessonPage = () => {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Add New Lesson</h1>
           <p className="text-muted-foreground">
-            {isLoadingModule 
-              ? "Loading module information..." 
-              : moduleData 
-              ? `Create a new lesson for "${moduleData.title}"` 
-              : "Create a new lesson for the selected module"
-            }
+            Create a new lesson for the selected module
           </p>
         </div>
       </div>
@@ -129,35 +91,14 @@ const AddLessonPage = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Module Info Display */}
+            {/* Module ID Display */}
             <div>
               <label className="text-sm font-medium text-muted-foreground">
-                Module
+                Module ID
               </label>
-              {isLoadingModule ? (
-                <div className="mt-1 p-3 bg-muted rounded-md">
-                  <Skeleton className="h-4 w-3/4" />
-                </div>
-              ) : (
-                <div className="mt-1 p-3 bg-muted rounded-md">
-                  <div className="flex items-center gap-2">
-                    <BookOpen className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">
-                      {moduleData?.title || "Unknown Module"}
-                    </span>
-                  </div>
-                  {moduleData?.description && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {moduleData.description}
-                    </p>
-                  )}
-                  {moduleData?.course && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Course: {moduleData.course.title}
-                    </p>
-                  )}
-                </div>
-              )}
+              <div className="mt-1 p-3 bg-muted rounded-md text-sm font-mono">
+                {moduleId}
+              </div>
             </div>
 
             {/* Title */}
