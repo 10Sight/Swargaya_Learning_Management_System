@@ -10,6 +10,7 @@ import {
     deleteBatch, 
     removeInstructor,
     getMyBatch,
+    getMyBatches,
     getBatchAssessments,
     getBatchProgress,
     getBatchSubmissions,
@@ -45,6 +46,7 @@ router.post("/add-student", verifyJWT, authorizeRoles("ADMIN"), addStudentToBatc
 router.post("/remove-student", verifyJWT, authorizeRoles("ADMIN"), removeStudentFromBatch);
 // Specific routes first to avoid conflicts
 router.get("/me/my-batch", verifyJWT, authorizeRoles("STUDENT", "INSTRUCTOR", "ADMIN", "SUPERADMIN"), checkAccountStatus(true), getMyBatch);
+router.get("/me/my-batches", verifyJWT, authorizeRoles("STUDENT", "INSTRUCTOR", "ADMIN", "SUPERADMIN"), checkAccountStatus(true), getMyBatches);
 router.get("/me/course-content", verifyJWT, authorizeRoles("STUDENT", "INSTRUCTOR", "ADMIN", "SUPERADMIN"), checkAccountStatus(false), getBatchCourseContent);
 router.get("/me/assessments", verifyJWT, authorizeRoles("STUDENT"), checkAccountStatus(false), getBatchAssessments);
 

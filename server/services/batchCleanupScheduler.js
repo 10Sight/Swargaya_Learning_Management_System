@@ -12,14 +12,12 @@ class BatchCleanupScheduler {
   // Initialize the batch cleanup scheduler
   init() {
     if (this.isInitialized) {
-      console.log('Batch cleanup scheduler already initialized');
       return;
     }
 
     try {
       // Schedule batch cleanup to run daily at 2 AM UTC
       const cleanupJob = cron.schedule('0 2 * * *', async () => {
-        console.log('Running daily batch cleanup...');
         await this.cleanupOldBatches();
       }, {
         scheduled: false,
@@ -28,7 +26,6 @@ class BatchCleanupScheduler {
 
       // Schedule cleanup warning notifications to run daily at 1 AM UTC (1 hour before cleanup)
       const warningJob = cron.schedule('0 1 * * *', async () => {
-        console.log('Running batch cleanup warnings...');
         await this.sendCleanupWarnings();
       }, {
         scheduled: false,
@@ -44,12 +41,9 @@ class BatchCleanupScheduler {
       warningJob.start();
 
       this.isInitialized = true;
-      console.log('✅ Batch cleanup scheduler initialized successfully');
-      console.log('🗑️ Batch cleanup: Daily at 2 AM UTC');
-      console.log('⚠️ Cleanup warnings: Daily at 1 AM UTC');
 
     } catch (error) {
-      console.error('❌ Failed to initialize batch cleanup scheduler:', error);
+      // Failed to initialize batch cleanup scheduler
     }
   }
 
@@ -59,14 +53,12 @@ class BatchCleanupScheduler {
       this.jobs.forEach((job, name) => {
         job.stop();
         job.destroy();
-        console.log(`Batch cleanup scheduler job '${name}' stopped`);
       });
       
       this.jobs.clear();
       this.isInitialized = false;
-      console.log('Batch cleanup scheduler stopped');
     } catch (error) {
-      console.error('Error stopping batch cleanup scheduler:', error);
+      // Error stopping batch cleanup scheduler
     }
   }
 
@@ -75,31 +67,13 @@ class BatchCleanupScheduler {
     const startTime = Date.now();
     
     try {
-      console.log('🔍 Starting batch cleanup process...');
-      
       const result = await Batch.cleanupOldBatches();
       
       const duration = Date.now() - startTime;
-      console.log(`✅ Batch cleanup completed in ${duration}ms`);
-      console.log(`📊 Found: ${result.found}, Deleted: ${result.deleted}, Errors: ${result.errors.length}`);
       
-      // Log deleted batches
+      // Send cleanup completion notifications
       if (result.deletedBatches.length > 0) {
-        console.log('🗑️ Deleted batches:');
-        result.deletedBatches.forEach(batch => {
-          console.log(`  - ${batch.name} (${batch.status}, ${batch.studentCount} students)`);
-        });
-        
-        // Send cleanup completion notifications
         await this.sendCleanupCompletionNotifications(result.deletedBatches);
-      }
-      
-      // Log errors if any
-      if (result.errors.length > 0) {
-        console.log('❌ Cleanup errors:');
-        result.errors.forEach(error => {
-          console.log(`  - ${error.batchName || 'Unknown'}: ${error.error}`);
-        });
       }
       
       // Log to file
@@ -118,7 +92,6 @@ class BatchCleanupScheduler {
       return result;
       
     } catch (error) {
-      console.error('💥 Critical error in batch cleanup:', error);
       logger.error('Batch cleanup error:', error);
       return { found: 0, deleted: 0, errors: [{ error: error.message }], deletedBatches: [] };
     }
@@ -127,8 +100,6 @@ class BatchCleanupScheduler {
   // Send warning notifications before cleanup
   async sendCleanupWarnings() {
     try {
-      console.log('⚠️ Sending cleanup warning notifications...');
-      
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
       
@@ -141,11 +112,8 @@ class BatchCleanupScheduler {
         .populate('course', 'title');
       
       if (batchesToDelete.length === 0) {
-        console.log('ℹ️ No batches scheduled for cleanup - no warnings needed');
         return;
       }
-
-      console.log(`📧 Found ${batchesToDelete.length} batches scheduled for cleanup - sending warnings`);
       
       // Create warning notifications for each batch
       for (const batch of batchesToDelete) {
@@ -193,7 +161,6 @@ class BatchCleanupScheduler {
 
         // Here you would typically save these notifications to a notifications collection
         // or send them via email/push notifications
-        console.log(`⚠️ Would send ${notifications.length} cleanup warnings for batch "${batch.name}"`);
         
         // Log the notification for tracking
         logger.warn(`Batch cleanup warning sent`, {
@@ -206,7 +173,6 @@ class BatchCleanupScheduler {
       }
       
     } catch (error) {
-      console.error('❌ Error sending cleanup warnings:', error);
       logger.error('Batch cleanup warning error:', error);
     }
   }
@@ -214,8 +180,6 @@ class BatchCleanupScheduler {
   // Send notifications after cleanup completion
   async sendCleanupCompletionNotifications(deletedBatches) {
     try {
-      console.log('📧 Sending cleanup completion notifications...');
-      
       // This would typically be sent to system administrators
       const adminNotification = {
         type: 'SYSTEM',
@@ -234,17 +198,14 @@ class BatchCleanupScheduler {
 
       // Log completion notification
       logger.info('Batch cleanup completion notification', adminNotification);
-      console.log('📧 Batch cleanup completion notification logged');
       
     } catch (error) {
-      console.error('❌ Error sending cleanup completion notifications:', error);
       logger.error('Batch cleanup completion notification error:', error);
     }
   }
 
   // Manual cleanup trigger
   async triggerCleanup() {
-    console.log('🔧 Manual batch cleanup triggered');
     return await this.cleanupOldBatches();
   }
 
@@ -272,7 +233,6 @@ class BatchCleanupScheduler {
       }));
       
     } catch (error) {
-      console.error('❌ Error getting batches scheduled for cleanup:', error);
       return [];
     }
   }
@@ -288,7 +248,6 @@ class BatchCleanupScheduler {
 
   // Restart scheduler
   restart() {
-    console.log('Restarting batch cleanup scheduler...');
     this.stop();
     setTimeout(() => {
       this.init();

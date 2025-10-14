@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { useGetInstructorAssignedBatchesQuery } from '@/Redux/AllApi/InstructorApi'
+import { useGetMyBatchesQuery } from '@/Redux/AllApi/BatchApi'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -18,14 +18,31 @@ import {
 const InstructorBatches = () => {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
-  const { data, isLoading, error } = useGetInstructorAssignedBatchesQuery({ 
-    page, 
-    limit: 10,
-    search 
-  })
+  const { data, isLoading, error } = useGetMyBatchesQuery()
 
-  const batches = data?.data?.batches || []
-  const totalPages = data?.data?.totalPages || 1
+  // All batches from the API
+  const allBatches = data?.data?.batches || []
+  
+  // Filter batches based on search
+  const filteredBatches = useMemo(() => {
+    if (!search) return allBatches
+    return allBatches.filter(batch => 
+      batch.name.toLowerCase().includes(search.toLowerCase()) ||
+      batch.course?.title?.toLowerCase().includes(search.toLowerCase()) ||
+      batch.description?.toLowerCase().includes(search.toLowerCase())
+    )
+  }, [allBatches, search])
+  
+  // Apply pagination to filtered results
+  const itemsPerPage = 10
+  const totalPages = Math.ceil(filteredBatches.length / itemsPerPage)
+  const startIndex = (page - 1) * itemsPerPage
+  const batches = filteredBatches.slice(startIndex, startIndex + itemsPerPage)
+  
+  // Reset page when search changes
+  React.useEffect(() => {
+    setPage(1)
+  }, [search])
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -253,7 +270,7 @@ const InstructorBatches = () => {
               <h3 className="font-medium text-blue-900">Read-Only Access</h3>
               <p className="text-sm text-blue-700 mt-1">
                 You can view batch details and student information but cannot make modifications. 
-                Only batches assigned to you are visible.
+                All batches assigned to you are visible (you can now be assigned to multiple batches).
               </p>
             </div>
           </div>

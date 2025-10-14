@@ -1007,19 +1007,11 @@ export const downloadSubmissionFile = async (req, res) => {
     const instructorId = req.user._id;
     const { submissionId, fileIndex } = req.params;
 
-    console.log(`[DEBUG] Download request - Instructor: ${instructorId}, Submission: ${submissionId}, File: ${fileIndex}`);
-
     const submission = await Submission.findById(submissionId)
       .populate({
         path: 'assignment',
         select: 'course'
       });
-      
-    console.log(`[DEBUG] Submission found: ${!!submission}`);
-    if (submission) {
-      console.log(`[DEBUG] Legacy fileUrl: ${submission.fileUrl}`);
-      console.log(`[DEBUG] Attachments count: ${submission.attachments?.length || 0}`);
-    }
 
     if (!submission) {
       return res.status(404).json({

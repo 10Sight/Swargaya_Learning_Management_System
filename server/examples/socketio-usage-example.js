@@ -142,7 +142,6 @@ export const authenticateAndJoinRooms = async (req, res, next) => {
         
         if (req.user && req.user.batches) {
             // This is just an example - actual room joining happens in socket connection
-            console.log(`User ${req.user.name} should be in batches:`, req.user.batches);
         }
         
         next();

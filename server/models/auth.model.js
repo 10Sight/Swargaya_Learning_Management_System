@@ -83,8 +83,13 @@ const userSchema = new Schema(
         batch: {
             type: Schema.Types.ObjectId,
             ref: "Batch",
-            index: true, // Index for batch-based queries
+            index: true, // Index for batch-based queries (for students)
         },
+        batches: [{
+            type: Schema.Types.ObjectId,
+            ref: "Batch",
+            index: true, // Index for batch-based queries (for instructors)
+        }],
     },
     {
         timestamps: true,
@@ -96,19 +101,8 @@ userSchema.pre("save", async function (next) {
         if (!this.isModified("password")) return next();
         this.password = await bcrypt.hash(this.password, 10);
 
-        // Only validate for instructors
-        if (this.role === 'INSTRUCTOR' && this.batch) {
-            // Check if another instructor is already assigned to this batch
-            const existingInstructor = await this.constructor.findOne({
-                _id: { $ne: this._id },
-                role: 'INSTRUCTOR',
-                batch: this.batch
-            });
-            
-            if (existingInstructor) {
-                return next(new ApiError('Another instructor is already assigned to this batch', 400));
-            }
-        }
+        // Note: Instructors can now be assigned to multiple batches
+        // Batch assignment validation is now handled in the batch controller
         next();
     } catch (error) {
         return next(new ApiError(error.message, 500));

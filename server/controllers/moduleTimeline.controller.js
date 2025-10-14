@@ -341,7 +341,6 @@ export const processTimelineEnforcement = asyncHandler(async (req, res) => {
       processedCount++;
 
     } catch (error) {
-      console.error(`Error processing timeline ${timeline._id}:`, error);
       errors.push({
         timelineId: timeline._id,
         error: error.message
@@ -420,7 +419,6 @@ export const sendTimelineWarnings = asyncHandler(async (req, res) => {
       await timeline.save();
 
     } catch (error) {
-      console.error(`Error sending warnings for timeline ${timeline._id}:`, error);
       errors.push({
         timelineId: timeline._id,
         error: error.message

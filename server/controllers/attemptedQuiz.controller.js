@@ -383,7 +383,7 @@ export const submitQuiz = asyncHandler(async (req, res) => {
             
             // Handle case where no correct option is marked (data integrity issue)
             if(!correctOption) {
-                console.warn(`Question at index ${index} has no correct option marked`);
+                // Question has no correct option marked - data integrity issue
             }
             
             const isCorrect = userAnswer && correctOption && 
@@ -406,7 +406,6 @@ export const submitQuiz = asyncHandler(async (req, res) => {
             });
         });
     } catch(validationError) {
-        console.error('Quiz validation error:', validationError.message);
         throw new ApiError(`Quiz data validation failed: ${validationError.message}`, 400);
     }
 
@@ -449,7 +448,6 @@ export const submitQuiz = asyncHandler(async (req, res) => {
         
         attempt = await AttemptedQuiz.create(attemptData);
     } catch(createError) {
-        console.error('Error creating quiz attempt:', createError);
         throw new ApiError(`Failed to save quiz attempt: ${createError.message}`, 500);
     }
 
@@ -524,7 +522,7 @@ export const submitQuiz = asyncHandler(async (req, res) => {
                 }
             }
         } catch(progressError) {
-            console.error("Error updating progress:", progressError);
+            // Error updating progress
         }
     }
     

@@ -139,9 +139,7 @@ const AdvancedAnalytics = () => {
       const response = await generateCustomReport(reportData).unwrap();
       toast.success('Report generated successfully!');
       // Handle report data (could open in new tab, download, etc.)
-      console.log('Generated report:', response.data);
     } catch (error) {
-      console.error('Error generating report:', error);
       toast.error('Failed to generate report');
     }
   };
@@ -158,9 +156,7 @@ const AdvancedAnalytics = () => {
       const response = await exportAnalytics(exportData).unwrap();
       toast.success(`Data exported successfully in ${exportFormat.toUpperCase()} format!`);
       // Handle file download
-      console.log('Exported data:', response.data);
     } catch (error) {
-      console.error('Error exporting data:', error);
       toast.error('Failed to export data');
     }
   };

@@ -8,7 +8,6 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/learni
 async function createSampleAuditLogs() {
     try {
         await mongoose.connect(MONGODB_URI);
-        console.log('Connected to database');
 
         // Get some existing users for the audit logs
         const users = await User.find({}).limit(3);
@@ -123,19 +122,14 @@ async function createSampleAuditLogs() {
 
         // Clear existing audit logs
         await Audit.deleteMany({});
-        console.log('Cleared existing audit logs');
 
         // Insert sample logs
         const createdLogs = await Audit.insertMany(sampleLogs);
-        console.log(`Created ${createdLogs.length} sample audit logs`);
-
-        console.log('Sample audit logs created successfully!');
         
     } catch (error) {
-        console.error('Error creating sample audit logs:', error);
+        // Handle error silently or log appropriately
     } finally {
         await mongoose.disconnect();
-        console.log('Disconnected from database');
     }
 }
 

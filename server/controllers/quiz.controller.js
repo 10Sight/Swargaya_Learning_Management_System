@@ -388,7 +388,6 @@ export const getQuizzesByCourse = asyncHandler(async (req, res) => {
             new ApiResponse(200, quizzes, "Quizzes retrieved successfully")
         );
     } catch (err) {
-        console.error("getQuizzesByCourse - DB error:", err);
         return res.status(500).json(new ApiResponse(500, [], "Error fetching quizzes"));
     }
 });
@@ -416,7 +415,6 @@ export const getQuizzesByModule = asyncHandler(async (req, res) => {
             new ApiResponse(200, quizzes, "Quizzes retrieved successfully")
         );
     } catch (err) {
-        console.error("getQuizzesByModule - DB error:", err);
         return res.status(500).json(new ApiResponse(500, [], "Error fetching quizzes"));
     }
 });
@@ -444,7 +442,6 @@ export const getQuizzesByLesson = asyncHandler(async (req, res) => {
             new ApiResponse(200, quizzes, "Quizzes retrieved successfully")
         );
     } catch (err) {
-        console.error("getQuizzesByLesson - DB error:", err);
         return res.status(500).json(new ApiResponse(500, [], "Error fetching quizzes"));
     }
 });

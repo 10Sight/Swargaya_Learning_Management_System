@@ -125,7 +125,6 @@ export const createDatabaseBackup = asyncHandler(async (req, res) => {
         }, 'Backup created successfully'));
         
     } catch (error) {
-        console.error('Backup creation failed:', error);
         throw new ApiError('Failed to create database backup', 500);
     }
 });
@@ -186,7 +185,6 @@ export const getBackupHistory = asyncHandler(async (req, res) => {
         }, 'Backup history fetched successfully'));
         
     } catch (error) {
-        console.error('Failed to fetch backup history:', error);
         throw new ApiError('Failed to fetch backup history', 500);
     }
 });
@@ -312,7 +310,6 @@ export const restoreFromBackup = asyncHandler(async (req, res) => {
         }
         
     } catch (error) {
-        console.error('Restore failed:', error);
         throw new ApiError(error.message || 'Failed to restore from backup', error.statusCode || 500);
     }
 });
@@ -338,7 +335,7 @@ export const deleteBackup = asyncHandler(async (req, res) => {
         try {
             await fs.unlink(backupPath);
         } catch (error) {
-            console.warn('Backup file not found or already deleted:', error.message);
+            // Backup file not found or already deleted
         }
         
         // Update audit record to mark as deleted
@@ -353,7 +350,6 @@ export const deleteBackup = asyncHandler(async (req, res) => {
         }, 'Backup deleted successfully'));
         
     } catch (error) {
-        console.error('Failed to delete backup:', error);
         throw new ApiError(error.message || 'Failed to delete backup', error.statusCode || 500);
     }
 });
@@ -476,7 +472,6 @@ export const exportSystemData = asyncHandler(async (req, res) => {
         }
         
     } catch (error) {
-        console.error('Data export failed:', error);
         throw new ApiError('Failed to export data', 500);
     }
 });
@@ -589,7 +584,6 @@ export const importSystemData = asyncHandler(async (req, res) => {
                                     imported++;
                                 }
                             } catch (error) {
-                                console.warn(`Import error for record in ${collectionName}:`, error.message);
                                 errors++;
                             }
                         }
@@ -634,7 +628,6 @@ export const importSystemData = asyncHandler(async (req, res) => {
         }
         
     } catch (error) {
-        console.error('Data import failed:', error);
         throw new ApiError(error.message || 'Failed to import data', error.statusCode || 500);
     }
 });
@@ -688,7 +681,6 @@ export const getDataStatistics = asyncHandler(async (req, res) => {
         }, 'Data statistics fetched successfully'));
         
     } catch (error) {
-        console.error('Failed to fetch data statistics:', error);
         throw new ApiError('Failed to fetch data statistics', 500);
     }
 });
@@ -735,7 +727,6 @@ export const getDataOperationHistory = asyncHandler(async (req, res) => {
         }, 'Data operation history fetched successfully'));
         
     } catch (error) {
-        console.error('Failed to fetch operation history:', error);
         throw new ApiError('Failed to fetch operation history', 500);
     }
 });
@@ -794,7 +785,7 @@ export const cleanupOldData = asyncHandler(async (req, res) => {
                             await fs.unlink(backup.details.filePath);
                             deletedFiles++;
                         } catch (error) {
-                            console.warn('Failed to delete backup file:', error.message);
+                            // Failed to delete backup file
                         }
                     }
                 }
@@ -834,7 +825,6 @@ export const cleanupOldData = asyncHandler(async (req, res) => {
         }, 'Data cleanup completed'));
         
     } catch (error) {
-        console.error('Data cleanup failed:', error);
         throw new ApiError('Failed to cleanup old data', 500);
     }
 });

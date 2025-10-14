@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import axiosInstance from "@/Helper/axiosInstance";
 import AccountStatusWrapper from "../../components/student/AccountStatusWrapper";
+import DownloadAppPopup from "../../components/student/DownloadAppPopup";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ const StudentDashboard = () => {
     upcomingDeadlines: []
   });
   const [error, setError] = useState(null);
+  const [showDownloadPopup, setShowDownloadPopup] = useState(false);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -65,7 +67,6 @@ const StudentDashboard = () => {
         
         setError(null);
       } catch (err) {
-        console.error("Failed to fetch dashboard data:", err);
         setError("Failed to load dashboard. Please try again.");
       } finally {
         setLoading(false);
@@ -74,6 +75,60 @@ const StudentDashboard = () => {
 
     fetchDashboardData();
   }, []);
+
+  // Service Worker registration and download popup logic
+  useEffect(() => {
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then((registration) => {
+            // Service worker registered successfully
+          })
+          .catch((registrationError) => {
+            // Service worker registration failed
+          });
+      });
+    }
+
+    // Check if we should show download popup (only for students)
+    if (user?.role === 'STUDENT' && !loading) {
+      const shouldShowPopup = () => {
+        // Don't show if user has opted out
+        if (localStorage.getItem('downloadAppDontShow') === 'true') {
+          return false;
+        }
+
+        // Don't show if app is already installed
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+          return false;
+        }
+
+        // Check if remind later time has passed
+        const remindTime = localStorage.getItem('downloadAppRemindTime');
+        if (remindTime && Date.now() < parseInt(remindTime)) {
+          return false;
+        }
+
+        // Don't show if already shown in this session
+        if (sessionStorage.getItem('downloadPopupShown')) {
+          return false;
+        }
+
+        return true;
+      };
+
+      if (shouldShowPopup()) {
+        // Show popup after a short delay to let the page load
+        const timer = setTimeout(() => {
+          setShowDownloadPopup(true);
+          sessionStorage.setItem('downloadPopupShown', 'true');
+        }, 3000); // 3 second delay
+
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [user?.role, loading]);
 
   const calculateCourseProgress = () => {
     if (!dashboardData.courseContent?.course?.modules) return 0;
@@ -615,6 +670,13 @@ const StudentDashboard = () => {
         </CardContent>
       </Card>
       </div>
+      
+      {/* Download App Popup */}
+      <DownloadAppPopup 
+        isOpen={showDownloadPopup} 
+        onClose={() => setShowDownloadPopup(false)}
+        userRole={user?.role}
+      />
     </AccountStatusWrapper>
   );
 };

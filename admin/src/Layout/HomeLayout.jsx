@@ -26,6 +26,7 @@ import {
   IconSettings,
   IconTemplate,
   IconClock,
+  IconFileAnalytics,
 } from "@tabler/icons-react";
 import { HomeIcon } from "lucide-react";
 import NotificationCenter from "../components/common/NotificationCenter";

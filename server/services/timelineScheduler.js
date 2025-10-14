@@ -13,14 +13,12 @@ class TimelineScheduler {
   // Initialize the scheduler
   init() {
     if (this.isInitialized) {
-      console.log('Timeline scheduler already initialized');
       return;
     }
 
     try {
       // Schedule timeline enforcement every hour
       const enforcementJob = cron.schedule('0 * * * *', async () => {
-        console.log('Running timeline enforcement check...');
         await this.processTimelineEnforcement();
       }, {
         scheduled: false,
@@ -29,7 +27,6 @@ class TimelineScheduler {
 
       // Schedule warning notifications every 30 minutes
       const warningJob = cron.schedule('*/30 * * * *', async () => {
-        console.log('Checking for timeline warnings...');
         await this.sendTimelineWarnings();
       }, {
         scheduled: false,
@@ -45,12 +42,9 @@ class TimelineScheduler {
       warningJob.start();
 
       this.isInitialized = true;
-      console.log('✅ Timeline scheduler initialized successfully');
-      console.log('⏰ Timeline enforcement: Every hour');
-      console.log('⚠️ Timeline warnings: Every 30 minutes');
 
     } catch (error) {
-      console.error('❌ Failed to initialize timeline scheduler:', error);
+      // Failed to initialize timeline scheduler
     }
   }
 
@@ -60,14 +54,12 @@ class TimelineScheduler {
       this.jobs.forEach((job, name) => {
         job.stop();
         job.destroy();
-        console.log(`Timeline scheduler job '${name}' stopped`);
       });
       
       this.jobs.clear();
       this.isInitialized = false;
-      console.log('Timeline scheduler stopped');
     } catch (error) {
-      console.error('Error stopping timeline scheduler:', error);
+      // Error stopping timeline scheduler
     }
   }
 
@@ -79,25 +71,16 @@ class TimelineScheduler {
     const errors = [];
 
     try {
-      console.log('🔍 Starting timeline enforcement process...');
-
       // Get timelines that need processing
       const timelinesToProcess = await ModuleTimeline.getTimelinesToProcess();
-      
-      console.log(`Found ${timelinesToProcess.length} timelines to process`);
 
       for (const timeline of timelinesToProcess) {
         try {
           const result = await this.processSingleTimeline(timeline);
           processedCount++;
           demotionCount += result.demotions;
-          
-          if (result.demotions > 0) {
-            console.log(`📉 ${result.demotions} students demoted for module "${timeline.module.title}" in batch "${timeline.batch.name}"`);
-          }
 
         } catch (error) {
-          console.error(`Error processing timeline ${timeline._id}:`, error.message);
           errors.push({
             timelineId: timeline._id,
             moduleName: timeline.module?.title,
@@ -108,17 +91,12 @@ class TimelineScheduler {
       }
 
       const duration = Date.now() - startTime;
-      console.log(`✅ Timeline enforcement completed in ${duration}ms`);
-      console.log(`📊 Processed: ${processedCount}, Demotions: ${demotionCount}, Errors: ${errors.length}`);
 
-      if (errors.length > 0) {
-        console.error('❌ Timeline enforcement errors:', errors);
-      }
+      // Timeline enforcement errors tracked
 
       return { processedCount, demotionCount, errors };
 
     } catch (error) {
-      console.error('💥 Critical error in timeline enforcement:', error);
       return { processedCount: 0, demotionCount: 0, errors: [{ error: error.message }] };
     }
   }
@@ -209,24 +187,15 @@ class TimelineScheduler {
     const errors = [];
 
     try {
-      console.log('⚠️ Starting timeline warnings process...');
-
       const now = new Date();
       const upcomingTimelines = await ModuleTimeline.getUpcomingWarnings();
-      
-      console.log(`Found ${upcomingTimelines.length} timelines to check for warnings`);
 
       for (const timeline of upcomingTimelines) {
         try {
           const result = await this.processSingleTimelineWarnings(timeline, now);
           warningsSent += result.warnings;
 
-          if (result.warnings > 0) {
-            console.log(`⚠️ ${result.warnings} warnings sent for module "${timeline.module.title}" in batch "${timeline.batch.name}"`);
-          }
-
         } catch (error) {
-          console.error(`Error sending warnings for timeline ${timeline._id}:`, error.message);
           errors.push({
             timelineId: timeline._id,
             moduleName: timeline.module?.title,
@@ -237,17 +206,12 @@ class TimelineScheduler {
       }
 
       const duration = Date.now() - startTime;
-      console.log(`✅ Timeline warnings completed in ${duration}ms`);
-      console.log(`📧 Warnings sent: ${warningsSent}, Errors: ${errors.length}`);
 
-      if (errors.length > 0) {
-        console.error('❌ Timeline warning errors:', errors);
-      }
+      // Timeline warning errors tracked
 
       return { warningsSent, errors };
 
     } catch (error) {
-      console.error('💥 Critical error in timeline warnings:', error);
       return { warningsSent: 0, errors: [{ error: error.message }] };
     }
   }
@@ -321,7 +285,6 @@ class TimelineScheduler {
 
   // Restart scheduler
   restart() {
-    console.log('Restarting timeline scheduler...');
     this.stop();
     setTimeout(() => {
       this.init();

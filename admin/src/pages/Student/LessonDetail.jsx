@@ -52,10 +52,6 @@ const LessonDetail = () => {
     skip: !lessonId,
   });
 
-  console.log("LessonDetail - lessonId:", lessonId);
-  console.log("LessonDetail - resourcesData:", resourcesData);
-  console.log("LessonDetail - resourcesLoading:", resourcesLoading);
-  console.log("LessonDetail - resourcesError:", resourcesError);
 
   const resources = resourcesData?.data || [];
 
@@ -112,7 +108,6 @@ const LessonDetail = () => {
               break;
             }
           } catch (err) {
-            console.error(`Error fetching lessons for module ${moduleId}:`, err);
             continue;
           }
         }
@@ -125,7 +120,6 @@ const LessonDetail = () => {
         setLessonDataState(foundLesson);
         
       } catch (err) {
-        console.error('Error fetching lesson:', err);
         setError(err.message || 'Failed to load lesson');
       } finally {
         setLoading(false);
@@ -202,7 +196,6 @@ const LessonDetail = () => {
       }
       
     } catch (error) {
-      console.error("Error completing lesson:", error);
       const errorMessage = error.response?.data?.message || error.message || "Failed to mark lesson as complete";
       toast.error(errorMessage);
     } finally {

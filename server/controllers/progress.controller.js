@@ -564,13 +564,6 @@ export const getCourseCompletionReport = asyncHandler(async (req, res) => {
     const userId = req.user._id;
     const { courseId } = req.params;
     
-    console.log('Course Completion Report Request:', {
-        userId: userId,
-        courseId: courseId,
-        userRole: req.user.role,
-        userName: req.user.userName
-    });
-
     if (!mongoose.Types.ObjectId.isValid(courseId)) {
         throw new ApiError("Invalid course ID", 400);
     }

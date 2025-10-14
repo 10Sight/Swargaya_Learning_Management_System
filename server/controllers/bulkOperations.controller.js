@@ -145,7 +145,7 @@ export const bulkEnrollUsers = asyncHandler(async (req, res) => {
                         }
                     }
                 } catch (emailError) {
-                    console.warn('Failed to send enrollment notifications:', emailError.message);
+                    // Failed to send enrollment notifications
                 }
             }
 
@@ -185,7 +185,6 @@ export const bulkEnrollUsers = asyncHandler(async (req, res) => {
         }
 
     } catch (error) {
-        console.error('Bulk enrollment error:', error);
         throw new ApiError(error.message || 'Failed to perform bulk enrollment', error.statusCode || 500);
     }
 });
@@ -295,7 +294,6 @@ export const bulkSendEmails = asyncHandler(async (req, res) => {
                 });
 
             } catch (error) {
-                console.error(`Failed to send email to ${recipient.email}:`, error.message);
                 results.failed.push({
                     email: recipient.email,
                     name: recipient.name,
@@ -337,7 +335,6 @@ export const bulkSendEmails = asyncHandler(async (req, res) => {
         }, 'Bulk email operation completed'));
 
     } catch (error) {
-        console.error('Bulk email error:', error);
         throw new ApiError(error.message || 'Failed to send bulk emails', error.statusCode || 500);
     }
 });
@@ -483,7 +480,7 @@ export const bulkGenerateCertificates = asyncHandler(async (req, res) => {
                     }
                 }
             } catch (emailError) {
-                console.warn('Failed to send certificate notifications:', emailError.message);
+                // Failed to send certificate notifications
             }
 
             // Log bulk certificate generation
@@ -524,7 +521,6 @@ export const bulkGenerateCertificates = asyncHandler(async (req, res) => {
         }
 
     } catch (error) {
-        console.error('Bulk certificate generation error:', error);
         throw new ApiError(error.message || 'Failed to generate certificates in bulk', error.statusCode || 500);
     }
 });
@@ -598,7 +594,6 @@ export const getBulkOperationHistory = asyncHandler(async (req, res) => {
         }, 'Bulk operation history fetched successfully'));
 
     } catch (error) {
-        console.error('Failed to fetch bulk operation history:', error);
         throw new ApiError('Failed to fetch bulk operation history', 500);
     }
 });

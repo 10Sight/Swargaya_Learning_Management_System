@@ -21,6 +21,24 @@ const SYSTEM_PERMISSIONS = {
   COURSE_DELETE: "course:delete",
   COURSE_PUBLISH: "course:publish",
   
+  // Module Management
+  MODULE_CREATE: "module:create",
+  MODULE_READ: "module:read",
+  MODULE_UPDATE: "module:update",
+  MODULE_DELETE: "module:delete",
+  
+  // Lesson Management
+  LESSON_CREATE: "lesson:create",
+  LESSON_READ: "lesson:read",
+  LESSON_UPDATE: "lesson:update",
+  LESSON_DELETE: "lesson:delete",
+  
+  // Resource Management
+  RESOURCE_CREATE: "resource:create",
+  RESOURCE_READ: "resource:read",
+  RESOURCE_UPDATE: "resource:update",
+  RESOURCE_DELETE: "resource:delete",
+  
   // Batch Management
   BATCH_CREATE: "batch:create",
   BATCH_READ: "batch:read",
@@ -84,6 +102,9 @@ const DEFAULT_ROLES = {
     description: "Basic student access to courses and assignments",
     permissions: [
       SYSTEM_PERMISSIONS.COURSE_READ,
+      SYSTEM_PERMISSIONS.MODULE_READ,
+      SYSTEM_PERMISSIONS.LESSON_READ,
+      SYSTEM_PERMISSIONS.RESOURCE_READ,
       SYSTEM_PERMISSIONS.QUIZ_READ,
       SYSTEM_PERMISSIONS.ASSIGNMENT_READ,
       SYSTEM_PERMISSIONS.CERTIFICATE_READ
@@ -95,24 +116,48 @@ const DEFAULT_ROLES = {
     name: "Instructor",
     description: "Instructor access to manage courses and students",
     permissions: [
+      // Course Management
       SYSTEM_PERMISSIONS.COURSE_CREATE,
       SYSTEM_PERMISSIONS.COURSE_READ,
       SYSTEM_PERMISSIONS.COURSE_UPDATE,
+      SYSTEM_PERMISSIONS.COURSE_DELETE,
+      SYSTEM_PERMISSIONS.COURSE_PUBLISH,
+      // Module Management
+      SYSTEM_PERMISSIONS.MODULE_CREATE,
+      SYSTEM_PERMISSIONS.MODULE_READ,
+      SYSTEM_PERMISSIONS.MODULE_UPDATE,
+      SYSTEM_PERMISSIONS.MODULE_DELETE,
+      // Lesson Management
+      SYSTEM_PERMISSIONS.LESSON_CREATE,
+      SYSTEM_PERMISSIONS.LESSON_READ,
+      SYSTEM_PERMISSIONS.LESSON_UPDATE,
+      SYSTEM_PERMISSIONS.LESSON_DELETE,
+      // Resource Management
+      SYSTEM_PERMISSIONS.RESOURCE_CREATE,
+      SYSTEM_PERMISSIONS.RESOURCE_READ,
+      SYSTEM_PERMISSIONS.RESOURCE_UPDATE,
+      SYSTEM_PERMISSIONS.RESOURCE_DELETE,
+      // Batch Management
       SYSTEM_PERMISSIONS.BATCH_CREATE,
       SYSTEM_PERMISSIONS.BATCH_READ,
       SYSTEM_PERMISSIONS.BATCH_UPDATE,
       SYSTEM_PERMISSIONS.BATCH_MANAGE_STUDENTS,
+      // Assessment Management
       SYSTEM_PERMISSIONS.QUIZ_CREATE,
       SYSTEM_PERMISSIONS.QUIZ_READ,
       SYSTEM_PERMISSIONS.QUIZ_UPDATE,
+      SYSTEM_PERMISSIONS.QUIZ_DELETE,
       SYSTEM_PERMISSIONS.QUIZ_GRADE,
       SYSTEM_PERMISSIONS.ASSIGNMENT_CREATE,
       SYSTEM_PERMISSIONS.ASSIGNMENT_READ,
       SYSTEM_PERMISSIONS.ASSIGNMENT_UPDATE,
+      SYSTEM_PERMISSIONS.ASSIGNMENT_DELETE,
       SYSTEM_PERMISSIONS.ASSIGNMENT_GRADE,
+      // Certificate Management
       SYSTEM_PERMISSIONS.CERTIFICATE_CREATE,
       SYSTEM_PERMISSIONS.CERTIFICATE_READ,
       SYSTEM_PERMISSIONS.CERTIFICATE_ISSUE,
+      // Analytics & User Management
       SYSTEM_PERMISSIONS.ANALYTICS_READ,
       SYSTEM_PERMISSIONS.USER_READ
     ],
@@ -164,6 +209,24 @@ export const getRolesAndPermissions = asyncHandler(async (req, res) => {
         { id: SYSTEM_PERMISSIONS.COURSE_UPDATE, name: "Update Courses", description: "Edit course content and settings" },
         { id: SYSTEM_PERMISSIONS.COURSE_DELETE, name: "Delete Courses", description: "Delete courses from system" },
         { id: SYSTEM_PERMISSIONS.COURSE_PUBLISH, name: "Publish Courses", description: "Publish courses to students" }
+      ],
+      "Module Management": [
+        { id: SYSTEM_PERMISSIONS.MODULE_CREATE, name: "Create Modules", description: "Create new course modules" },
+        { id: SYSTEM_PERMISSIONS.MODULE_READ, name: "View Modules", description: "View module content and information" },
+        { id: SYSTEM_PERMISSIONS.MODULE_UPDATE, name: "Update Modules", description: "Edit module content and settings" },
+        { id: SYSTEM_PERMISSIONS.MODULE_DELETE, name: "Delete Modules", description: "Delete modules from courses" }
+      ],
+      "Lesson Management": [
+        { id: SYSTEM_PERMISSIONS.LESSON_CREATE, name: "Create Lessons", description: "Create new lessons in modules" },
+        { id: SYSTEM_PERMISSIONS.LESSON_READ, name: "View Lessons", description: "View lesson content and information" },
+        { id: SYSTEM_PERMISSIONS.LESSON_UPDATE, name: "Update Lessons", description: "Edit lesson content and settings" },
+        { id: SYSTEM_PERMISSIONS.LESSON_DELETE, name: "Delete Lessons", description: "Delete lessons from modules" }
+      ],
+      "Resource Management": [
+        { id: SYSTEM_PERMISSIONS.RESOURCE_CREATE, name: "Create Resources", description: "Upload and create learning resources" },
+        { id: SYSTEM_PERMISSIONS.RESOURCE_READ, name: "View Resources", description: "View uploaded resources" },
+        { id: SYSTEM_PERMISSIONS.RESOURCE_UPDATE, name: "Update Resources", description: "Edit and update resources" },
+        { id: SYSTEM_PERMISSIONS.RESOURCE_DELETE, name: "Delete Resources", description: "Delete uploaded resources" }
       ],
       "Batch Management": [
         { id: SYSTEM_PERMISSIONS.BATCH_CREATE, name: "Create Batches", description: "Create new student batches" },
@@ -244,7 +307,6 @@ export const getRolesAndPermissions = asyncHandler(async (req, res) => {
     }, "Roles and permissions fetched successfully"));
 
   } catch (error) {
-    console.error("Failed to fetch roles and permissions:", error);
     throw new ApiError("Failed to fetch roles and permissions", 500);
   }
 });
@@ -304,7 +366,6 @@ export const createCustomRole = asyncHandler(async (req, res) => {
     res.json(new ApiResponse(201, newRole, "Role created successfully"));
 
   } catch (error) {
-    console.error("Failed to create role:", error);
     throw new ApiError(error.message || "Failed to create role", error.statusCode || 500);
   }
 });
@@ -364,7 +425,6 @@ export const updateRolePermissions = asyncHandler(async (req, res) => {
     res.json(new ApiResponse(200, updatedRole, "Role updated successfully"));
 
   } catch (error) {
-    console.error("Failed to update role:", error);
     throw new ApiError(error.message || "Failed to update role", error.statusCode || 500);
   }
 });
@@ -410,7 +470,6 @@ export const deleteCustomRole = asyncHandler(async (req, res) => {
     res.json(new ApiResponse(200, {}, "Role deleted successfully"));
 
   } catch (error) {
-    console.error("Failed to delete role:", error);
     throw new ApiError(error.message || "Failed to delete role", error.statusCode || 500);
   }
 });
@@ -472,7 +531,6 @@ export const assignRoleToUser = asyncHandler(async (req, res) => {
     }, "Role assigned successfully"));
 
   } catch (error) {
-    console.error("Failed to assign role:", error);
     throw new ApiError(error.message || "Failed to assign role", error.statusCode || 500);
   }
 });
@@ -560,7 +618,6 @@ export const bulkAssignRoles = asyncHandler(async (req, res) => {
     }, "Bulk role assignment completed"));
 
   } catch (error) {
-    console.error("Failed to bulk assign roles:", error);
     throw new ApiError(error.message || "Failed to bulk assign roles", error.statusCode || 500);
   }
 });
@@ -614,7 +671,6 @@ export const getUsersByRole = asyncHandler(async (req, res) => {
     }, "Users fetched successfully"));
 
   } catch (error) {
-    console.error("Failed to get users by role:", error);
     throw new ApiError(error.message || "Failed to get users by role", error.statusCode || 500);
   }
 });

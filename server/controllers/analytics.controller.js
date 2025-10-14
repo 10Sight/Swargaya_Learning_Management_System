@@ -23,10 +23,34 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
         const activeBatches = await Batch.countDocuments({ status: "ACTIVE" });
         const publishedCourses = await Course.countDocuments({ status: "PUBLISHED" });
 
-        // Get recent activity count
-        const recentActivitiesCount = await Audit.countDocuments({
+        // Get recent activity count with role-based filtering
+        let recentActivityFilter = {
             createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } // Last 7 days
-        });
+        };
+        
+        // Apply role-based filtering for Admin users
+        if (req.user && req.user.role === 'ADMIN') {
+            // Get all SuperAdmin user IDs to exclude their activities
+            const superAdminUsers = await User.find({ role: 'SUPERADMIN' }).select('_id');
+            const superAdminIds = superAdminUsers.map(u => u._id);
+            
+            if (superAdminIds.length > 0) {
+                recentActivityFilter.$and = [
+                    {
+                        $or: [
+                            { user: { $nin: superAdminIds } }, // Exclude SuperAdmin user activities
+                            { user: { $exists: false } }, // Include system logs without user
+                        ]
+                    },
+                    {
+                        // Exclude sensitive system operations
+                        action: { $not: { $regex: 'SYSTEM_ADMIN|SUPERADMIN|PRIVILEGE|ROLE_CHANGE|SYSTEM_SETTINGS', $options: 'i' } }
+                    }
+                ];
+            }
+        }
+        
+        const recentActivitiesCount = await Audit.countDocuments(recentActivityFilter);
 
         // Calculate engagement metrics
         const studentEngagement = totalStudents > 0 ? Math.round((activeStudents / totalStudents) * 100) : 0;
@@ -81,12 +105,21 @@ export const getUserStats = asyncHandler(async (req, res) => {
                 startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
         }
 
+        // Build user aggregation match conditions with role-based filtering
+        let userMatchConditions = {
+            createdAt: { $gte: startDate }
+        };
+        
+        // Apply role-based filtering for Admin users
+        if (req.user && req.user.role === 'ADMIN') {
+            // Exclude SuperAdmin users from user registration analytics
+            userMatchConditions.role = { $ne: 'SUPERADMIN' };
+        }
+        
         // Get user registrations over time
         const userRegistrations = await User.aggregate([
             {
-                $match: {
-                    createdAt: { $gte: startDate }
-                }
+                $match: userMatchConditions
             },
             {
                 $group: {
@@ -102,8 +135,18 @@ export const getUserStats = asyncHandler(async (req, res) => {
             }
         ]);
 
+        // Build role aggregation match conditions
+        let roleMatchConditions = {};
+        
+        // Apply role-based filtering for Admin users
+        if (req.user && req.user.role === 'ADMIN') {
+            // Exclude SuperAdmin users from role statistics
+            roleMatchConditions.role = { $ne: 'SUPERADMIN' };
+        }
+
         // Get user statistics by role
         const usersByRole = await User.aggregate([
+            ...(Object.keys(roleMatchConditions).length > 0 ? [{ $match: roleMatchConditions }] : []),
             {
                 $group: {
                     _id: "$role",
@@ -234,11 +277,24 @@ export const getEngagementStats = asyncHandler(async (req, res) => {
             }
         ]);
 
-        // Get recent login activity from audit logs
-        const loginActivity = await Audit.countDocuments({
+        // Get recent login activity from audit logs with role-based filtering
+        let loginActivityFilter = {
             action: { $regex: /login/i },
             createdAt: { $gte: startDate }
-        });
+        };
+        
+        // Apply role-based filtering for Admin users
+        if (req.user && req.user.role === 'ADMIN') {
+            // Get all SuperAdmin user IDs to exclude their login activities
+            const superAdminUsers = await User.find({ role: 'SUPERADMIN' }).select('_id');
+            const superAdminIds = superAdminUsers.map(u => u._id);
+            
+            if (superAdminIds.length > 0) {
+                loginActivityFilter.user = { $nin: superAdminIds };
+            }
+        }
+        
+        const loginActivity = await Audit.countDocuments(loginActivityFilter);
 
         const stats = {
             quizAttemptsOverTime,

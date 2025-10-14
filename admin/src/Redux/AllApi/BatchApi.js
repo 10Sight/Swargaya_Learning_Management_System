@@ -135,6 +135,14 @@ export const batchApi = createApi({
             }),
             invalidatesTags: ['Batch'],
         }),
+
+        getMyBatches: builder.query({
+            query: () => ({
+                url: "/api/batches/me/my-batches",
+                method: "GET",
+            }),
+            providesTags: ['Batch'],
+        }),
     }),
 });
 
@@ -154,4 +162,5 @@ export const {
     useGetSoftDeletedBatchesQuery,
     useRestoreBatchMutation,
     useCancelBatchMutation,
+    useGetMyBatchesQuery,
 } = batchApi;

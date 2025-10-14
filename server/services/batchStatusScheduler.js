@@ -12,14 +12,12 @@ class BatchStatusScheduler {
   // Initialize the batch status scheduler
   init() {
     if (this.isInitialized) {
-      console.log('Batch status scheduler already initialized');
       return;
     }
 
     try {
       // Schedule batch status updates to run daily at midnight
       const statusUpdateJob = cron.schedule('0 0 * * *', async () => {
-        console.log('Running daily batch status update...');
         await this.updateBatchStatuses();
       }, {
         scheduled: false,
@@ -33,11 +31,9 @@ class BatchStatusScheduler {
       statusUpdateJob.start();
 
       this.isInitialized = true;
-      console.log('✅ Batch status scheduler initialized successfully');
-      console.log('📅 Batch status updates: Daily at midnight UTC');
 
     } catch (error) {
-      console.error('❌ Failed to initialize batch status scheduler:', error);
+      // Failed to initialize batch status scheduler
     }
   }
 
@@ -47,14 +43,12 @@ class BatchStatusScheduler {
       this.jobs.forEach((job, name) => {
         job.stop();
         job.destroy();
-        console.log(`Batch status scheduler job '${name}' stopped`);
       });
       
       this.jobs.clear();
       this.isInitialized = false;
-      console.log('Batch status scheduler stopped');
     } catch (error) {
-      console.error('Error stopping batch status scheduler:', error);
+      // Error stopping batch status scheduler
     }
   }
 
@@ -63,29 +57,18 @@ class BatchStatusScheduler {
     const startTime = Date.now();
     
     try {
-      console.log('🔍 Starting batch status update process...');
-      
       const result = await Batch.updateAllStatuses();
       
       const duration = Date.now() - startTime;
-      console.log(`✅ Batch status update completed in ${duration}ms`);
-      console.log(`📊 Processed: ${result.totalProcessed}, Updated: ${result.updatedCount}`);
       
-      // Log status changes
+      // Send notifications for status changes
       if (result.results.length > 0) {
-        console.log('📋 Status changes:');
-        result.results.forEach(change => {
-          console.log(`  - ${change.name}: ${change.oldStatus} → ${change.newStatus}`);
-        });
-        
-        // Send notifications for status changes
         await this.sendStatusChangeNotifications(result.results);
       }
       
       return result;
       
     } catch (error) {
-      console.error('💥 Critical error in batch status update:', error);
       logger.error('Batch status update error:', error);
       return { totalProcessed: 0, updatedCount: 0, results: [], error: error.message };
     }
@@ -163,7 +146,6 @@ class BatchStatusScheduler {
 
         // Here you would typically save these notifications to a notifications collection
         // or send them via email/push notifications
-        console.log(`📧 Would send ${notifications.length} notifications for batch "${batch.name}"`);
         
         // Log the notification for tracking
         logger.info(`Batch status change notification sent`, {
@@ -174,7 +156,6 @@ class BatchStatusScheduler {
         });
       }
     } catch (error) {
-      console.error('Error sending batch status notifications:', error);
       logger.error('Batch status notification error:', error);
     }
   }
@@ -243,7 +224,6 @@ class BatchStatusScheduler {
       return notifications;
 
     } catch (error) {
-      console.error('Error getting batch notifications for user:', error);
       return [];
     }
   }
@@ -259,7 +239,6 @@ class BatchStatusScheduler {
 
   // Restart scheduler
   restart() {
-    console.log('Restarting batch status scheduler...');
     this.stop();
     setTimeout(() => {
       this.init();

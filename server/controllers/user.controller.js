@@ -244,9 +244,7 @@ export const createUser = asyncHandler(async (req, res) => {
     const subject = `Welcome to 10Sight LMS - Your Account Has Been Created`;
 
     await sendMail(email.toLowerCase(), subject, emailHtml);
-    console.log(`Welcome email sent successfully to ${email}`);
   } catch (emailError) {
-    console.error('Failed to send welcome email:', emailError);
     // Don't throw error - user creation was successful, email is optional
   }
 
@@ -427,8 +425,14 @@ export const getAllStudents = asyncHandler(async (req, res) => {
   }
 
   // If the requesting user is an instructor, limit to their batches
-  if (req.user.role === "INSTRUCTOR" && req.user.batch) {
-    searchQuery.batch = req.user.batch;
+  if (req.user.role === "INSTRUCTOR") {
+    const instructor = await User.findById(req.user._id).select("batches");
+    if (instructor && instructor.batches && instructor.batches.length > 0) {
+      searchQuery.batch = { $in: instructor.batches };
+    } else {
+      // If instructor has no batches assigned, return empty result
+      searchQuery.batch = null;
+    }
   }
 
   // Safe fields only

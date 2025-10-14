@@ -8,6 +8,8 @@ import {
     updateResource 
 } from "../controllers/resource.controller.js";
 import verifyJWT from "../middlewares/auth.middleware.js";
+import { authorizeRole } from "../middlewares/roleAuth.middleware.js";
+import { SYSTEM_PERMISSIONS } from "../controllers/rolesPermissions.controller.js";
 import upload from "../middleware/upload.js";
 
 const router = express.Router();
@@ -15,18 +17,18 @@ const router = express.Router();
 // Apply JWT verification to all routes
 router.use(verifyJWT);
 
-// Get resources by different scopes
-router.get("/course/:courseId", getResourcesByCourse);
-router.get("/module/:moduleId", getResourcesByModule);
-router.get("/lesson/:lessonId", getResourcesByLesson);
+// Get resources by different scopes with permission-based authorization
+router.get("/course/:courseId", authorizeRole([SYSTEM_PERMISSIONS.RESOURCE_READ]), getResourcesByCourse);
+router.get("/module/:moduleId", authorizeRole([SYSTEM_PERMISSIONS.RESOURCE_READ]), getResourcesByModule);
+router.get("/lesson/:lessonId", authorizeRole([SYSTEM_PERMISSIONS.RESOURCE_READ]), getResourcesByLesson);
 
 // Create resource with file upload (supports course, module, and lesson scopes)
-router.post("/", upload.single('file'), createResource);
+router.post("/", upload.single('file'), authorizeRole([SYSTEM_PERMISSIONS.RESOURCE_CREATE]), createResource);
 
 // Update resource with file upload
-router.put("/:resourceId", upload.single('file'), updateResource);
+router.put("/:resourceId", upload.single('file'), authorizeRole([SYSTEM_PERMISSIONS.RESOURCE_UPDATE]), updateResource);
 
 // Delete resource
-router.delete("/:resourceId", deleteResource);
+router.delete("/:resourceId", authorizeRole([SYSTEM_PERMISSIONS.RESOURCE_DELETE]), deleteResource);
 
 export default router;

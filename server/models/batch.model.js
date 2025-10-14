@@ -209,8 +209,6 @@ batchSchema.statics.cleanupOldBatches = async function() {
         
         for (const batch of oldBatches) {
             try {
-                console.log(`🗑️ Cleaning up batch: ${batch.name} (${batch.status} since ${batch.statusUpdatedAt.toDateString()})`);
-                
                 // Store batch info for result
                 results.deletedBatches.push({
                     id: batch._id,
@@ -222,10 +220,19 @@ batchSchema.statics.cleanupOldBatches = async function() {
                 });
                 
                 // 1. Clean up user references (remove batch from users)
+                // Remove batch from students (single batch reference)
                 await User.updateMany(
-                    { _id: { $in: [...batch.students.map(s => s._id), batch.instructor].filter(Boolean) } },
+                    { _id: { $in: batch.students.map(s => s._id) } },
                     { $unset: { batch: 1 } }
                 );
+                
+                // Remove batch from instructor (array of batches)
+                if (batch.instructor) {
+                    await User.updateOne(
+                        { _id: batch.instructor },
+                        { $pull: { batches: batch._id } }
+                    );
+                }
                 
                 // 2. Clean up related data (optional - can be kept for historical purposes)
                 // Remove progress records for this batch's course and students
@@ -252,10 +259,8 @@ batchSchema.statics.cleanupOldBatches = async function() {
                 await batch.deleteOne();
                 
                 results.deleted++;
-                console.log(`✅ Successfully deleted batch: ${batch.name}`);
                 
             } catch (batchError) {
-                console.error(`❌ Error deleting batch ${batch.name}:`, batchError);
                 results.errors.push({
                     batchId: batch._id,
                     batchName: batch.name,

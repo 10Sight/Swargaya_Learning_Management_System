@@ -56,7 +56,6 @@ export const getLessonsByModule = asyncHandler(async (req, res) => {
       .status(200)
       .json(new ApiResponse(200, lessons, "Lessons fetched successfully"));
   } catch (err) {
-    console.error("getLessonsByModule - DB error:", err);
     return res.status(500).json(new ApiResponse(500, [], "Error fetching lessons"));
   }
 });

@@ -24,11 +24,11 @@ import { HomeIcon } from "lucide-react";
 
 const tabs = [
   { link: "/instructor", label: "Dashboard", icon: IconLayoutDashboardFilled },
-  { link: "/instructor/courses", label: "Courses", icon: IconCertificate },
-  { link: "/instructor/batches", label: "Batches", icon: IconFolder },
+  { link: "/instructor/courses", label: "My Courses", icon: IconCertificate },
+  { link: "/instructor/batches", label: "My Batches", icon: IconFolder },
   { link: "/instructor/students", label: "Students", icon: IconUsers },
-  { link: "/instructor/quiz-monitoring", label: "Quiz Monitoring", icon: IconClipboardList },
-  { link: "/instructor/assignment-monitoring", label: "Assignment Monitoring", icon: IconClipboard },
+  { link: "/instructor/quiz-monitoring", label: "Quiz Management", icon: IconClipboardList },
+  { link: "/instructor/assignment-monitoring", label: "Assignment Management", icon: IconClipboard },
   { link: "/instructor/certificate-issuance", label: "Certificate Issuance", icon: IconAward },
 ];
 

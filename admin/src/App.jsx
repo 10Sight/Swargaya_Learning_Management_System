@@ -40,6 +40,7 @@ const Analytics = lazy(() => import("./pages/Admin/Analytics"));
 const StudentLevelManagement = lazy(() => import("./pages/Admin/StudentLevelManagement"));
 const CertificateTemplates = lazy(() => import("./pages/Admin/CertificateTemplates"));
 const ModuleTimelines = lazy(() => import("./pages/Admin/ModuleTimelines"));
+const AuditLogs = lazy(() => import("./pages/Admin/AuditLogs"));
 
 // Instructor Pages
 const InstructorDashboard = lazy(() => import("./pages/Instructor/Dashboard"));
@@ -136,6 +137,7 @@ const App = () => {
           <Route path="add-assignment/:courseId" element={<AddAssignmentPage />} />
           <Route path="add-resource/:courseId" element={<AddResourcePage />} />
           <Route path="analytics" element={<Analytics pageName="Analytics" />} />
+          <Route path="audit-logs" element={<AuditLogs />} />
           <Route path="student-levels" element={<StudentLevelManagement />} />
           <Route path="certificate-templates" element={<CertificateTemplates pageName="Certificate Templates" />} />
           <Route path="module-timelines" element={<ModuleTimelines pageName="Module Timelines" />} />

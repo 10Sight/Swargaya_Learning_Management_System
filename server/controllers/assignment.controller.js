@@ -339,7 +339,6 @@ export const getAssignmentsByCourse = asyncHandler(async (req, res) => {
             new ApiResponse(200, assignments, "Assignments retrieved successfully")
         );
     } catch (err) {
-        console.error("getAssignmentsByCourse - DB error:", err);
         return res.status(500).json(new ApiResponse(500, [], "Error fetching assignments"));
     }
 });
@@ -368,7 +367,6 @@ export const getAssignmentsByModule = asyncHandler(async (req, res) => {
             new ApiResponse(200, assignments, "Assignments retrieved successfully")
         );
     } catch (err) {
-        console.error("getAssignmentsByModule - DB error:", err);
         return res.status(500).json(new ApiResponse(500, [], "Error fetching assignments"));
     }
 });
@@ -397,7 +395,6 @@ export const getAssignmentsByLesson = asyncHandler(async (req, res) => {
             new ApiResponse(200, assignments, "Assignments retrieved successfully")
         );
     } catch (err) {
-        console.error("getAssignmentsByLesson - DB error:", err);
         return res.status(500).json(new ApiResponse(500, [], "Error fetching assignments"));
     }
 });

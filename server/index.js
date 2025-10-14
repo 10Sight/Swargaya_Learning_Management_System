@@ -282,14 +282,12 @@ const startServer = async () => {
         
         // Graceful shutdown handling
         process.on('SIGINT', () => {
-            console.log('\n🛑 Shutting down gracefully...');
             timelineScheduler.stop();
             batchStatusScheduler.stop();
             process.exit(0);
         });
         
         process.on('SIGTERM', () => {
-            console.log('\n🛑 SIGTERM received, shutting down gracefully...');
             timelineScheduler.stop();
             batchStatusScheduler.stop();
             process.exit(0);

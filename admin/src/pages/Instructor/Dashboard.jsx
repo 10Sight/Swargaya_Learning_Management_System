@@ -80,10 +80,10 @@ const InstructorDashboard = () => {
           Welcome to your Instructor Dashboard
         </h2>
         <p className="text-muted-foreground">
-          Monitor your assigned courses and batches. Track student progress and performance.
+          Create and manage your courses, modules, lessons, quizzes, and assignments. Monitor student progress and performance.
         </p>
         <Badge variant="success" className="mt-2">
-          Read-only Access
+          Full Content Management Access
         </Badge>
       </div>
 
@@ -228,19 +228,19 @@ const InstructorDashboard = () => {
         </Card>
       </div>
 
-      {/* Important Note */}
-      <Card className="bg-amber-50 border-amber-200">
+      {/* Content Management Capabilities */}
+      <Card className="bg-green-50 border-green-200">
         <CardContent className="pt-6">
           <div className="flex items-start space-x-3">
-            <div className="w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center mt-0.5">
-              <span className="text-white text-xs font-bold">!</span>
+            <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center mt-0.5">
+              <span className="text-white text-xs font-bold">✓</span>
             </div>
             <div>
-              <h3 className="font-medium text-amber-900">Read-Only Access</h3>
-              <p className="text-sm text-amber-700 mt-1">
-                You have view-only access to courses, batches, and student data. 
-                You cannot create, edit, or delete any content. For administrative 
-                actions, please contact your system administrator.
+              <h3 className="font-medium text-green-900">Full Content Management</h3>
+              <p className="text-sm text-green-700 mt-1">
+                You now have full authority to create, edit, and delete courses, modules, lessons, 
+                resources, quizzes, and assignments. You can also manage student batches, 
+                grade submissions, and issue certificates for your courses.
               </p>
             </div>
           </div>

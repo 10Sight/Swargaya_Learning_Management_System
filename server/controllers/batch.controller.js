@@ -30,6 +30,46 @@ export const getMyBatch = asyncHandler(async (req, res) => {
     return res.json(new ApiResponse(200, batch, "My batch fetched successfully"));
 });
 
+// Get all batches assigned to an instructor
+export const getMyBatches = asyncHandler(async (req, res) => {
+    const userId = req.user._id;
+    const userRole = req.user.role;
+    
+    let batches;
+    
+    if (userRole === "INSTRUCTOR") {
+        // For instructors, find all batches where they are assigned as instructor
+        batches = await Batch.find({
+            instructor: userId,
+            isDeleted: { $ne: true }
+        })
+        .populate("course", "title name")
+        .populate("students", "fullName email")
+        .select("name status startDate endDate capacity students course createdAt")
+        .sort({ createdAt: -1 });
+    } else if (userRole === "STUDENT") {
+        // For students, return their single assigned batch
+        if (!req.user.batch) {
+            return res.json(new ApiResponse(200, [], "No batch assigned"));
+        }
+        
+        const batch = await Batch.findById(req.user.batch)
+            .populate("instructor", "fullName email")
+            .populate("course", "title name")
+            .select("name status startDate endDate capacity schedule instructor course");
+            
+        batches = batch ? [batch] : [];
+    } else {
+        // For admins and superadmins, they don't have assigned batches
+        batches = [];
+    }
+
+    return res.json(new ApiResponse(200, {
+        batches,
+        totalBatches: batches.length
+    }, "My batches fetched successfully"));
+});
+
 export const createBatch = asyncHandler(async (req, res) => {
     const { name, instructorId, courseId, startDate, endDate, capacity } = req.body;
 
@@ -95,25 +135,31 @@ export const assignInstructor = asyncHandler(async (req, res) => {
         throw new ApiError("Invalid instructor selected", 400);
     }
 
-    // Check if instructor is already assigned to another batch
-    if(instructor.batch && instructor.batch.toString() !== batchId) {
-        throw new ApiError("Instructor is already assigned to another batch", 400);
+    // Check if batch already has this instructor assigned
+    if(batch.instructor && batch.instructor.toString() === instructorId) {
+        throw new ApiError("Instructor is already assigned to this batch", 400);
     }
 
-    // Check if batch already has an instructor
+    // Check if batch already has a different instructor
     if(batch.instructor && batch.instructor.toString() !== instructorId) {
-        throw new ApiError("Batch already has an instructor assigned", 400);
+        throw new ApiError("Batch already has a different instructor assigned", 400);
     }
 
     // Update batch with instructor
     batch.instructor = instructorId;
     await batch.save();
 
-    // Update instructor with batch
-    instructor.batch = batchId;
-    await instructor.save();
+    // Add batch to instructor's batches array if not already present
+    if (!instructor.batches) {
+        instructor.batches = [];
+    }
+    if (!instructor.batches.includes(batchId)) {
+        instructor.batches.push(batchId);
+        await instructor.save();
+    }
 
-    res.json(new ApiResponse(200, batch, "Instructor assigned successfully"));
+    const updatedBatch = await Batch.findById(batchId).populate("instructor", "fullName email");
+    res.json(new ApiResponse(200, updatedBatch, "Instructor assigned successfully"));
 });
 
 export const removeInstructor = asyncHandler(async (req, res) => {
@@ -137,10 +183,10 @@ export const removeInstructor = asyncHandler(async (req, res) => {
     batch.instructor = undefined;
     await batch.save();
 
-    // Remove batch from instructor
+    // Remove batch from instructor's batches array
     const instructor = await User.findById(instructorId);
-    if (instructor && instructor.batch && instructor.batch.toString() === batchId) {
-        instructor.batch = undefined;
+    if (instructor && instructor.batches && instructor.batches.includes(batchId)) {
+        instructor.batches = instructor.batches.filter(id => id.toString() !== batchId.toString());
         await instructor.save();
     }
 
@@ -242,7 +288,7 @@ export const getAllBatches = asyncHandler(async (req, res) => {
     try {
         await Batch.updateAllStatuses();
     } catch (error) {
-        console.log('Non-critical: Failed to update batch statuses during fetch:', error.message);
+        // Silently ignore non-critical errors during status update
     }
 
     const total = await Batch.countDocuments(searchQuery);
@@ -835,8 +881,7 @@ export const cancelBatch = asyncHandler(async (req, res) => {
     }
     
     // Here you would typically save these notifications to a notifications collection
-    // For now, we'll log them
-    console.log(`📧 Batch cancelled notifications prepared for ${notifications.length} users`);
+    // notifications would be saved to database here
     
     res.json(new ApiResponse(200, {
         batch: {

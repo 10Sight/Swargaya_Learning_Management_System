@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useGetAllBatchesQuery } from "@/Redux/AllApi/BatchApi";
+import { useGetAllBatchesQuery, useGetMyBatchesQuery } from "@/Redux/AllApi/BatchApi";
 import {
   Table,
   TableBody,
@@ -13,22 +13,46 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { IconExternalLink, IconUsers, IconCalendar } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 const InstructorBatches = ({ instructorId }) => {
   const [page, setPage] = useState(1);
   const navigate = useNavigate();
-  const { data, isLoading, error } = useGetAllBatchesQuery({
+  const currentUser = useSelector(state => state.auth.user);
+  const isCurrentUser = currentUser?._id === instructorId;
+
+  // Use getMyBatches for current user, filtered query for others
+  const { data: myBatchesData, isLoading: isMyBatchesLoading, error: myBatchesError } = useGetMyBatchesQuery(
+    undefined, 
+    { skip: !isCurrentUser }
+  );
+  
+  const { data: allBatchesData, isLoading: isAllBatchesLoading, error: allBatchesError } = useGetAllBatchesQuery({
     page,
     limit: 5
-  });
+  }, { skip: isCurrentUser });
 
-  // Filter batches by instructor
-  const batches = data?.data?.batches 
-    ? data.data.batches.filter(batch => 
-        batch.instructor && batch.instructor._id === instructorId)
-    : [];
+  // Get the appropriate data based on whether it's current user or not
+  let batches = [];
+  let isLoading, error, totalPages = 1;
 
-  const totalPages = data?.data?.totalPages || 1;
+  if (isCurrentUser) {
+    batches = myBatchesData?.data?.batches || [];
+    isLoading = isMyBatchesLoading;
+    error = myBatchesError;
+    totalPages = Math.ceil(batches.length / 5); // Calculate pages for client-side pagination
+    // Apply client-side pagination for current user's batches
+    batches = batches.slice((page - 1) * 5, page * 5);
+  } else {
+    // Filter batches by instructor for other users
+    batches = allBatchesData?.data?.batches 
+      ? allBatchesData.data.batches.filter(batch => 
+          batch.instructor && batch.instructor._id === instructorId)
+      : [];
+    isLoading = isAllBatchesLoading;
+    error = allBatchesError;
+    totalPages = allBatchesData?.data?.totalPages || 1;
+  }
 
   const getStatusBadge = (status) => {
     switch (status) {
