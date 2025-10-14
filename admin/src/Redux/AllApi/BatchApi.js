@@ -108,6 +108,33 @@ export const batchApi = createApi({
             }),
             providesTags: (result, error, batchId) => [{ type: 'Batch', id: `attempts-${batchId}` }],
         }),
+
+        // Super Admin functions
+        getSoftDeletedBatches: builder.query({
+            query: ({ page = 1, limit = 20, search = "" } = {}) => ({
+                url: "/api/batches/deleted/all",
+                method: "GET",
+                params: { page, limit, search }
+            }),
+            providesTags: ['Batch'],
+        }),
+
+        restoreBatch: builder.mutation({
+            query: (id) => ({
+                url: `/api/batches/deleted/${id}/restore`,
+                method: "PATCH",
+            }),
+            invalidatesTags: ['Batch'],
+        }),
+
+        cancelBatch: builder.mutation({
+            query: ({ id, reason }) => ({
+                url: `/api/batches/${id}/cancel`,
+                method: "POST",
+                data: { reason }
+            }),
+            invalidatesTags: ['Batch'],
+        }),
     }),
 });
 
@@ -124,4 +151,7 @@ export const {
     useGetBatchProgressQuery,
     useGetBatchSubmissionsQuery,
     useGetBatchAttemptsQuery,
+    useGetSoftDeletedBatchesQuery,
+    useRestoreBatchMutation,
+    useCancelBatchMutation,
 } = batchApi;

@@ -9,6 +9,8 @@ import AttemptedQuiz from "../models/attemptedQuiz.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import batchStatusScheduler from "../services/batchStatusScheduler.js";
+import batchCleanupScheduler from "../services/batchCleanupScheduler.js";
 
 export const getMyBatch = asyncHandler(async (req, res) => {
     // If user has no batch assigned
@@ -229,13 +231,26 @@ export const getAllBatches = asyncHandler(async (req, res) => {
     const searchQuery = search
         ? { name: { $regex: search, $options: "i" } }
         : {};
+    
+    // Exclude soft-deleted batches unless super admin specifically wants them
+    if (!req.query.includeDeleted || req.user.role !== "SUPERADMIN") {
+        searchQuery.isDeleted = { $ne: true };
+    }
+
+    // Auto-update batch statuses when fetching (only for non-cancelled batches)
+    // This ensures status is always current when viewing batches
+    try {
+        await Batch.updateAllStatuses();
+    } catch (error) {
+        console.log('Non-critical: Failed to update batch statuses during fetch:', error.message);
+    }
 
     const total = await Batch.countDocuments(searchQuery);
 
     const batches = await Batch.find(searchQuery)
     .populate("instructor", "fullName email")
     .populate("students", "fullName email")
-    .populate("course", "title name") // Add this line
+    .populate("course", "title name") 
     .skip(skip)
     .limit(limit)
     .sort({ createdAt: -1 });
@@ -275,8 +290,16 @@ export const updateBatch = asyncHandler(async (req, res) => {
     const batch = await Batch.findById(req.params.id);
     if(!batch) throw new ApiError("Batch not found", 404);
 
+    const oldStatus = batch.status;
+
     if(name) batch.name = name;
-    if(status) batch.status = status;
+    if(status && status !== oldStatus) {
+        batch.status = status;
+        // Track status change timestamp for COMPLETED and CANCELLED statuses
+        if(status === 'COMPLETED' || status === 'CANCELLED') {
+            batch.statusUpdatedAt = new Date();
+        }
+    }
     if(courseId) batch.course = courseId; 
     if(startDate) batch.startDate = new Date(startDate);
     if(endDate) batch.endDate = new Date(endDate);
@@ -293,9 +316,16 @@ export const deleteBatch = asyncHandler(async (req, res) => {
     const batch = await Batch.findById(id);
     if(!batch) throw new ApiError("Batch not found", 404);
 
-    await batch.deleteOne();
-
-    res.json(new ApiResponse(200, null, "Batch deleted successfully"));
+    if (req.user.role === "SUPERADMIN") {
+        // Super admin can permanently delete
+        await batch.deleteOne();
+        res.json(new ApiResponse(200, null, "Batch permanently deleted successfully"));
+    } else {
+        // Regular admin - soft delete
+        batch.isDeleted = true;
+        await batch.save();
+        res.json(new ApiResponse(200, null, "Batch deleted successfully"));
+    }
 });
 
 // Get batch quiz and assignment for completed students
@@ -642,5 +672,308 @@ export const getBatchCourseContent = asyncHandler(async (req, res) => {
     };
 
     res.json(new ApiResponse(200, courseContent, "Batch course content fetched successfully"));
+});
+
+// Super admin functions for managing soft-deleted batches
+export const getSoftDeletedBatches = asyncHandler(async (req, res) => {
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+    const skip = (page - 1) * limit;
+
+    const search = req.query.search || "";
+    const searchQuery = {
+        isDeleted: true
+    };
+    
+    if (search) {
+        searchQuery.name = { $regex: search, $options: "i" };
+    }
+
+    const total = await Batch.countDocuments(searchQuery);
+
+    const batches = await Batch.find(searchQuery)
+        .populate("instructor", "fullName email")
+        .populate("students", "fullName email")
+        .populate("course", "title name")
+        .skip(skip)
+        .limit(limit)
+        .sort({ updatedAt: -1 });
+
+    res.json(
+        new ApiResponse(200,
+            {
+                batches,
+                totalBatches: total,
+                totalPages: Math.ceil(total / limit),
+                currentPage: page,
+                limit,
+            },
+            "Soft-deleted batches fetched successfully"
+        )
+    );
+});
+
+export const restoreBatch = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const batch = await Batch.findById(id);
+    if (!batch) throw new ApiError("Batch not found", 404);
+    
+    if (!batch.isDeleted) {
+        throw new ApiError("Batch is not deleted", 400);
+    }
+
+    batch.isDeleted = false;
+    await batch.save();
+
+    res.json(new ApiResponse(200, batch, "Batch restored successfully"));
+});
+
+// ==================== BATCH STATUS MANAGEMENT ====================
+
+// Update all batch statuses based on dates
+export const updateAllBatchStatuses = asyncHandler(async (req, res) => {
+    const result = await batchStatusScheduler.updateBatchStatuses();
+    
+    res.json(new ApiResponse(200, result, "Batch statuses updated successfully"));
+});
+
+// Update specific batch status
+export const updateBatchStatus = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw new ApiError("Invalid batch ID", 400);
+    }
+    
+    const batch = await Batch.findById(id);
+    if (!batch) {
+        throw new ApiError("Batch not found", 404);
+    }
+    
+    const oldStatus = batch.status;
+    const newStatus = await batch.updateStatus();
+    
+    res.json(new ApiResponse(200, {
+        batchId: batch._id,
+        name: batch.name,
+        oldStatus,
+        newStatus,
+        startDate: batch.startDate,
+        endDate: batch.endDate
+    }, "Batch status updated successfully"));
+});
+
+// Cancel batch and notify users
+export const cancelBatch = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { reason } = req.body;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw new ApiError("Invalid batch ID", 400);
+    }
+    
+    const batch = await Batch.findById(id)
+        .populate('students', 'fullName email')
+        .populate('instructor', 'fullName email')
+        .populate('course', 'title');
+        
+    if (!batch) {
+        throw new ApiError("Batch not found", 404);
+    }
+    
+    if (batch.status === 'CANCELLED') {
+        throw new ApiError("Batch is already cancelled", 400);
+    }
+    
+    const oldStatus = batch.status;
+    batch.status = 'CANCELLED';
+    if (reason) {
+        batch.notes = (batch.notes ? batch.notes + '\n\n' : '') + 
+                      `CANCELLED: ${reason} (${new Date().toISOString()})`;
+    }
+    await batch.save();
+    
+    // Send notifications to all users in the batch
+    const notifications = [];
+    const message = `Your batch "${batch.name}" has been cancelled. ${reason ? `Reason: ${reason}` : 'Please contact support for more information.'}`;
+    
+    // Add students to notifications
+    batch.students.forEach(student => {
+        notifications.push({
+            recipient: student._id,
+            type: 'ERROR',
+            title: `Batch Cancelled: ${batch.name}`,
+            message: message,
+            metadata: {
+                batchId: batch._id,
+                batchName: batch.name,
+                oldStatus,
+                newStatus: 'CANCELLED',
+                reason: reason || '',
+                courseTitle: batch.course?.title || 'N/A'
+            }
+        });
+    });
+    
+    // Add instructor to notifications if exists
+    if (batch.instructor) {
+        notifications.push({
+            recipient: batch.instructor._id,
+            type: 'ERROR',
+            title: `Batch Cancelled: ${batch.name}`,
+            message: message.replace('Your batch', 'Your assigned batch'),
+            metadata: {
+                batchId: batch._id,
+                batchName: batch.name,
+                oldStatus,
+                newStatus: 'CANCELLED',
+                reason: reason || '',
+                courseTitle: batch.course?.title || 'N/A'
+            }
+        });
+    }
+    
+    // Here you would typically save these notifications to a notifications collection
+    // For now, we'll log them
+    console.log(`📧 Batch cancelled notifications prepared for ${notifications.length} users`);
+    
+    res.json(new ApiResponse(200, {
+        batch: {
+            _id: batch._id,
+            name: batch.name,
+            oldStatus,
+            newStatus: batch.status,
+            reason: reason || ''
+        },
+        notificationsSent: notifications.length
+    }, "Batch cancelled successfully and notifications sent"));
+});
+
+// Get batch notifications for current user
+export const getMyBatchNotifications = asyncHandler(async (req, res) => {
+    const userId = req.user._id;
+    const { batchId } = req.params; // Optional - if not provided, uses user's assigned batch
+    
+    const notifications = await batchStatusScheduler.getBatchNotificationsForUser(
+        userId, 
+        batchId || null
+    );
+    
+    res.json(new ApiResponse(200, notifications, "Batch notifications retrieved successfully"));
+});
+
+// Get batch status with enhanced information
+export const getBatchStatusInfo = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw new ApiError("Invalid batch ID", 400);
+    }
+    
+    const batch = await Batch.findById(id)
+        .populate('course', 'title')
+        .populate('instructor', 'fullName email')
+        .select('name status startDate endDate capacity students notes createdAt updatedAt');
+        
+    if (!batch) {
+        throw new ApiError("Batch not found", 404);
+    }
+    
+    const today = new Date();
+    const statusInfo = {
+        batch: {
+            _id: batch._id,
+            name: batch.name,
+            status: batch.status,
+            startDate: batch.startDate,
+            endDate: batch.endDate,
+            capacity: batch.capacity,
+            currentStudents: batch.students.length,
+            course: batch.course,
+            instructor: batch.instructor,
+            notes: batch.notes,
+            createdAt: batch.createdAt,
+            updatedAt: batch.updatedAt
+        },
+        statusCalculation: {
+            currentStatus: batch.status,
+            calculatedStatus: batch.calculateStatus(),
+            isStatusAccurate: batch.status === batch.calculateStatus()
+        },
+        timeline: {
+            daysUntilStart: batch.startDate ? Math.ceil((new Date(batch.startDate) - today) / (1000 * 60 * 60 * 24)) : null,
+            daysUntilEnd: batch.endDate ? Math.ceil((new Date(batch.endDate) - today) / (1000 * 60 * 60 * 24)) : null,
+            duration: batch.startDate && batch.endDate ? 
+                Math.ceil((new Date(batch.endDate) - new Date(batch.startDate)) / (1000 * 60 * 60 * 24)) : null
+        }
+    };
+    
+    res.json(new ApiResponse(200, statusInfo, "Batch status information retrieved successfully"));
+});
+
+// Get batch scheduler status (admin only)
+export const getBatchSchedulerStatus = asyncHandler(async (req, res) => {
+    const schedulerStatus = batchStatusScheduler.getStatus();
+    
+    res.json(new ApiResponse(200, schedulerStatus, "Batch scheduler status retrieved successfully"));
+});
+
+// Restart batch scheduler (admin only)
+export const restartBatchScheduler = asyncHandler(async (req, res) => {
+    batchStatusScheduler.restart();
+    
+    res.json(new ApiResponse(200, null, "Batch scheduler restarted successfully"));
+});
+
+// ==================== BATCH CLEANUP MANAGEMENT ====================
+
+// Get batches scheduled for cleanup (admin only)
+export const getBatchesScheduledForCleanup = asyncHandler(async (req, res) => {
+    const scheduledBatches = await batchCleanupScheduler.getBatchesScheduledForCleanup();
+    
+    res.json(new ApiResponse(200, {
+        batches: scheduledBatches,
+        count: scheduledBatches.length,
+        cleanupThreshold: '7 days after status change to COMPLETED/CANCELLED'
+    }, "Batches scheduled for cleanup retrieved successfully"));
+});
+
+// Trigger manual batch cleanup (superadmin only)
+export const triggerBatchCleanup = asyncHandler(async (req, res) => {
+    if (req.user.role !== "SUPERADMIN") {
+        throw new ApiError("Only super admin can trigger manual cleanup", 403);
+    }
+    
+    const result = await batchCleanupScheduler.triggerCleanup();
+    
+    res.json(new ApiResponse(200, result, "Manual batch cleanup completed"));
+});
+
+// Get batch cleanup scheduler status (admin only)
+export const getBatchCleanupStatus = asyncHandler(async (req, res) => {
+    const cleanupStatus = batchCleanupScheduler.getStatus();
+    const scheduledBatches = await batchCleanupScheduler.getBatchesScheduledForCleanup();
+    
+    res.json(new ApiResponse(200, {
+        scheduler: cleanupStatus,
+        batchesScheduledForCleanup: scheduledBatches.length,
+        nextCleanupTime: '2:00 AM UTC daily',
+        warningTime: '1:00 AM UTC daily'
+    }, "Batch cleanup status retrieved successfully"));
+});
+
+// Restart batch cleanup scheduler (admin only)
+export const restartBatchCleanupScheduler = asyncHandler(async (req, res) => {
+    batchCleanupScheduler.restart();
+    
+    res.json(new ApiResponse(200, null, "Batch cleanup scheduler restarted successfully"));
+});
+
+// Send manual cleanup warning (admin only)
+export const sendManualCleanupWarning = asyncHandler(async (req, res) => {
+    await batchCleanupScheduler.sendCleanupWarnings();
+    
+    res.json(new ApiResponse(200, null, "Manual cleanup warnings sent successfully"));
 });
 

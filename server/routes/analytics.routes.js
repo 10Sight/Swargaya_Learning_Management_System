@@ -4,7 +4,14 @@ import {
     getUserStats,
     getCourseStats,
     getEngagementStats,
-    getSystemHealth
+    getSystemHealth,
+    getServerMetrics,
+    getDatabaseMetrics,
+    getSystemAlerts,
+    getSystemPerformanceHistory,
+    getComprehensiveAnalytics,
+    generateCustomReport,
+    exportAnalyticsData
 } from "../controllers/analytics.controller.js";
 import verifyJWT from "../middlewares/auth.middleware.js";
 import authorizeRoles from "../middlewares/authrization.middleware.js";
@@ -15,11 +22,22 @@ const router = Router();
 router.use(verifyJWT);
 router.use(authorizeRoles("ADMIN", "SUPERADMIN"));
 
-// Analytics endpoints
+// Basic Analytics endpoints
 router.get("/dashboard", getDashboardStats);
 router.get("/users", getUserStats);
 router.get("/courses", getCourseStats);
 router.get("/engagement", getEngagementStats);
 router.get("/health", getSystemHealth);
+
+// System Health Monitoring endpoints
+router.get("/system/server-metrics", getServerMetrics);
+router.get("/system/database-metrics", getDatabaseMetrics);
+router.get("/system/alerts", getSystemAlerts);
+router.get("/system/performance-history", getSystemPerformanceHistory);
+
+// Advanced Analytics endpoints
+router.get("/comprehensive", getComprehensiveAnalytics);
+router.post("/reports/generate", generateCustomReport);
+router.post("/export", exportAnalyticsData);
 
 export default router;

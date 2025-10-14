@@ -8,13 +8,11 @@ const progressSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      index: true,
     },
     course: {
       type: Schema.Types.ObjectId,
       ref: "Course",
       required: true,
-      index: true,
     },
 
     completedLessons: [
@@ -78,6 +76,67 @@ const progressSchema = new Schema(
       type: Date,
       default: Date.now,
     },
+
+    // Timeline-based module access control
+    currentAccessibleModule: {
+      type: Schema.Types.ObjectId,
+      ref: "Module",
+    },
+    
+    // Track timeline violations and demotions
+    timelineViolations: [{
+      module: {
+        type: Schema.Types.ObjectId,
+        ref: "Module",
+        required: true,
+      },
+      deadline: {
+        type: Date,
+        required: true,
+      },
+      violatedAt: {
+        type: Date,
+        default: Date.now,
+      },
+      demotedFromModule: {
+        type: Schema.Types.ObjectId,
+        ref: "Module",
+      },
+      demotedToModule: {
+        type: Schema.Types.ObjectId,
+        ref: "Module",
+      },
+      reason: {
+        type: String,
+        default: 'TIMELINE_VIOLATION',
+      },
+    }],
+    
+    // Track notifications sent to student
+    timelineNotifications: [{
+      type: {
+        type: String,
+        enum: ['WARNING', 'DEMOTION', 'DEADLINE_REMINDER'],
+        required: true,
+      },
+      module: {
+        type: Schema.Types.ObjectId,
+        ref: "Module",
+        required: true,
+      },
+      message: {
+        type: String,
+        required: true,
+      },
+      sentAt: {
+        type: Date,
+        default: Date.now,
+      },
+      read: {
+        type: Boolean,
+        default: false,
+      },
+    }],
   },
   { timestamps: true }
 );
@@ -88,6 +147,9 @@ progressSchema.index({ student: 1 });
 progressSchema.index({ "completedLessons.lessonId": 1 });
 progressSchema.index({ "completedModules.moduleId": 1 });
 progressSchema.index({ lastAccessed: 1 });
+progressSchema.index({ currentAccessibleModule: 1 });
+progressSchema.index({ "timelineViolations.module": 1 });
+progressSchema.index({ "timelineNotifications.read": 1 });
 
 progressSchema.methods.calculateProgress = async function () {
   const course = await Course.findById(this.course).lean();
@@ -134,9 +196,126 @@ progressSchema.methods.calculateProgress = async function () {
   return this.progressPercent;
 };
 
+// Method to determine current accessible module based on completed modules and timeline
+progressSchema.methods.updateCurrentAccessibleModule = async function() {
+  try {
+    const course = await Course.findById(this.course).populate('modules');
+    if (!course || !course.modules || course.modules.length === 0) {
+      return;
+    }
+
+    // Sort modules by order
+    const sortedModules = course.modules.sort((a, b) => a.order - b.order);
+    
+    // Find the next incomplete module
+    let nextModule = null;
+    for (const module of sortedModules) {
+      const isCompleted = this.completedModules.some(
+        completed => completed.moduleId.toString() === module._id.toString()
+      );
+      
+      if (!isCompleted) {
+        nextModule = module;
+        break;
+      }
+    }
+    
+    // If all modules are completed, set to null
+    this.currentAccessibleModule = nextModule ? nextModule._id : null;
+  } catch (error) {
+    console.error('Error updating current accessible module:', error);
+  }
+};
+
+// Method to demote student to previous module
+progressSchema.methods.demoteToModule = async function(targetModuleId, reason = 'TIMELINE_VIOLATION') {
+  try {
+    // Remove completion records for modules after the target module
+    const course = await Course.findById(this.course).populate('modules');
+    if (!course) return;
+
+    const targetModule = course.modules.find(m => m._id.toString() === targetModuleId.toString());
+    if (!targetModule) return;
+
+    // Get all modules that come after the target module
+    const modulesToRemove = course.modules
+      .filter(m => m.order > targetModule.order)
+      .map(m => m._id.toString());
+
+    // Remove completion records for these modules
+    this.completedModules = this.completedModules.filter(
+      completed => !modulesToRemove.includes(completed.moduleId.toString())
+    );
+
+    // Also remove lesson completions for lessons in these modules
+    const ModuleModel = this.constructor.base.model('Module');
+    const modulesData = await ModuleModel.find({
+      _id: { $in: modulesToRemove }
+    }).select('lessons');
+    
+    const lessonsToRemove = modulesData.reduce((acc, mod) => {
+      return acc.concat(mod.lessons.map(l => l.toString()));
+    }, []);
+
+    this.completedLessons = this.completedLessons.filter(
+      completed => !lessonsToRemove.includes(completed.lessonId.toString())
+    );
+
+    // Update current accessible module
+    this.currentAccessibleModule = targetModuleId;
+    
+    return true;
+  } catch (error) {
+    console.error('Error demoting student:', error);
+    return false;
+  }
+};
+
+// Method to add timeline violation record
+progressSchema.methods.addTimelineViolation = function(moduleId, deadline, demotedFromModuleId, demotedToModuleId) {
+  this.timelineViolations.push({
+    module: moduleId,
+    deadline: deadline,
+    violatedAt: new Date(),
+    demotedFromModule: demotedFromModuleId,
+    demotedToModule: demotedToModuleId,
+    reason: 'TIMELINE_VIOLATION',
+  });
+};
+
+// Method to add timeline notification
+progressSchema.methods.addTimelineNotification = function(type, moduleId, message) {
+  this.timelineNotifications.push({
+    type: type,
+    module: moduleId,
+    message: message,
+    sentAt: new Date(),
+    read: false,
+  });
+};
+
+// Method to get unread timeline notifications
+progressSchema.methods.getUnreadTimelineNotifications = function() {
+  return this.timelineNotifications.filter(notification => !notification.read);
+};
+
+// Method to mark notification as read
+progressSchema.methods.markNotificationRead = function(notificationId) {
+  const notification = this.timelineNotifications.id(notificationId);
+  if (notification) {
+    notification.read = true;
+  }
+};
+
 progressSchema.pre("save", async function (next) {
   try {
     await this.calculateProgress();
+    
+    // Update current accessible module if not manually set
+    if (this.isModified('completedModules') && !this.isModified('currentAccessibleModule')) {
+      await this.updateCurrentAccessibleModule();
+    }
+    
     next();
   } catch (err) {
     next(err);

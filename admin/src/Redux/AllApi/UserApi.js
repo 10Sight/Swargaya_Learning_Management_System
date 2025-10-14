@@ -61,6 +61,24 @@ export const userApi = createApi({
             invalidatesTags: ['User'],
         }),
 
+        // Super Admin functions
+        getSoftDeletedUsers: builder.query({
+            query: ({ page = 1, limit = 20, sortBy = "updatedAt", order = "desc", search = "", role = "" } = {}) => ({
+                url: "/api/users/deleted/all",
+                method: "GET",
+                params: { page, limit, sortBy, order, search, role }
+            }),
+            providesTags: ['User'],
+        }),
+
+        restoreUser: builder.mutation({
+            query: (id) => ({
+                url: `/api/users/deleted/${id}/restore`,
+                method: "PATCH",
+            }),
+            invalidatesTags: ['User'],
+        }),
+
     }),
 });
 
@@ -71,4 +89,6 @@ export const {
     useUpdateAvatarMutation,
     useUpdateUserMutation,
     useDeleteUserMutation,
+    useGetSoftDeletedUsersQuery,
+    useRestoreUserMutation,
 } = userApi;

@@ -21,7 +21,7 @@ export const generateWelcomeEmail = (userData, loginUrl) => {
     'STUDENT': 'Student',
     'INSTRUCTOR': 'Instructor',
     'ADMIN': 'Administrator',
-    'SUPER_ADMIN': 'Super Administrator'
+    'SUPERADMIN': 'Super Administrator'
   }[role] || role;
 
   return `

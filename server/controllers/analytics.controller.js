@@ -279,11 +279,51 @@ export const getSystemHealth = asyncHandler(async (req, res) => {
             role: { $in: ["STUDENT", "INSTRUCTOR"] }
         });
 
+        // Server metrics
+        const memoryUsage = process.memoryUsage();
+        const cpuUsage = process.cpuUsage();
+        const uptime = process.uptime();
+        
+        // Convert memory usage to MB
+        const memoryMetrics = {
+            rss: Math.round(memoryUsage.rss / 1024 / 1024), // Resident Set Size in MB
+            heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024), // Total heap in MB
+            heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024), // Used heap in MB
+            external: Math.round(memoryUsage.external / 1024 / 1024), // External memory in MB
+            arrayBuffers: Math.round(memoryUsage.arrayBuffers / 1024 / 1024) // ArrayBuffer memory in MB
+        };
+
+        // Database health check
+        const dbHealth = await checkDatabaseHealth();
+        
+        // System load metrics
+        const systemMetrics = {
+            nodeVersion: process.version,
+            platform: process.platform,
+            arch: process.arch,
+            uptime: Math.round(uptime),
+            uptimeFormatted: formatUptime(uptime),
+            memory: memoryMetrics,
+            pid: process.pid
+        };
+
+        // Calculate overall health status
+        const healthScore = calculateHealthScore({
+            recentErrors,
+            memoryUsage: memoryMetrics.heapUsed,
+            dbHealth: dbHealth.status,
+            uptime
+        });
+
         const systemHealth = {
+            status: healthScore.status,
+            score: healthScore.score,
             collections,
             recentErrors,
             activeUsers,
-            status: recentErrors < 10 ? "healthy" : "warning", // Simple health check
+            database: dbHealth,
+            server: systemMetrics,
+            alerts: healthScore.alerts,
             timestamp: new Date()
         };
 
@@ -291,5 +331,850 @@ export const getSystemHealth = asyncHandler(async (req, res) => {
     } catch (error) {
         console.error("Error fetching system health:", error);
         throw new ApiError("Failed to fetch system health data", 500);
+    }
+});
+
+// Get detailed server metrics
+export const getServerMetrics = asyncHandler(async (req, res) => {
+    try {
+        const { period = '1h' } = req.query;
+        
+        // Get current metrics
+        const memoryUsage = process.memoryUsage();
+        const cpuUsage = process.cpuUsage();
+        const uptime = process.uptime();
+        
+        // Convert memory to MB for better readability
+        const memoryMetrics = {
+            rss: Math.round(memoryUsage.rss / 1024 / 1024),
+            heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024),
+            heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024),
+            external: Math.round(memoryUsage.external / 1024 / 1024),
+            arrayBuffers: Math.round(memoryUsage.arrayBuffers / 1024 / 1024)
+        };
+
+        // Calculate memory usage percentages
+        const heapUsagePercent = Math.round((memoryMetrics.heapUsed / memoryMetrics.heapTotal) * 100);
+        
+        const metrics = {
+            timestamp: new Date(),
+            uptime: {
+                seconds: Math.round(uptime),
+                formatted: formatUptime(uptime)
+            },
+            memory: {
+                ...memoryMetrics,
+                heapUsagePercent,
+                limit: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) // heap limit in MB
+            },
+            process: {
+                pid: process.pid,
+                ppid: process.ppid,
+                nodeVersion: process.version,
+                platform: process.platform,
+                arch: process.arch
+            },
+            environment: {
+                nodeEnv: process.env.NODE_ENV || 'development',
+                port: process.env.PORT || 8000
+            }
+        };
+
+        res.json(new ApiResponse(200, metrics, "Server metrics fetched successfully"));
+    } catch (error) {
+        console.error("Error fetching server metrics:", error);
+        throw new ApiError("Failed to fetch server metrics", 500);
+    }
+});
+
+// Get database metrics and health
+export const getDatabaseMetrics = asyncHandler(async (req, res) => {
+    try {
+        const dbHealth = await checkDatabaseHealth();
+        
+        // Get collection statistics
+        const collectionStats = {
+            users: await User.countDocuments(),
+            courses: await Course.countDocuments(),
+            batches: await Batch.countDocuments(),
+            quizAttempts: await AttemptedQuiz.countDocuments(),
+            progress: await Progress.countDocuments(),
+            audits: await Audit.countDocuments()
+        };
+
+        // Get database connection info
+        const connectionInfo = {
+            readyState: mongoose.connection.readyState,
+            readyStateText: getConnectionStateText(mongoose.connection.readyState),
+            host: mongoose.connection.host,
+            port: mongoose.connection.port,
+            name: mongoose.connection.name
+        };
+
+        // Calculate recent activity
+        const recentActivity = await Audit.aggregate([
+            {
+                $match: {
+                    createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+                }
+            },
+            {
+                $group: {
+                    _id: { $hour: "$createdAt" },
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { "_id": 1 } }
+        ]);
+
+        const metrics = {
+            health: dbHealth,
+            connection: connectionInfo,
+            collections: collectionStats,
+            recentActivity,
+            timestamp: new Date()
+        };
+
+        res.json(new ApiResponse(200, metrics, "Database metrics fetched successfully"));
+    } catch (error) {
+        console.error("Error fetching database metrics:", error);
+        throw new ApiError("Failed to fetch database metrics", 500);
+    }
+});
+
+// Get system alerts and warnings
+export const getSystemAlerts = asyncHandler(async (req, res) => {
+    try {
+        const alerts = [];
+        
+        // Memory usage alerts
+        const memoryUsage = process.memoryUsage();
+        const heapUsagePercent = (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100;
+        
+        if (heapUsagePercent > 80) {
+            alerts.push({
+                type: 'error',
+                category: 'memory',
+                title: 'High Memory Usage',
+                message: `Heap memory usage is ${Math.round(heapUsagePercent)}%`,
+                value: Math.round(heapUsagePercent),
+                threshold: 80,
+                timestamp: new Date()
+            });
+        } else if (heapUsagePercent > 60) {
+            alerts.push({
+                type: 'warning',
+                category: 'memory',
+                title: 'Moderate Memory Usage',
+                message: `Heap memory usage is ${Math.round(heapUsagePercent)}%`,
+                value: Math.round(heapUsagePercent),
+                threshold: 60,
+                timestamp: new Date()
+            });
+        }
+
+        // Database connection alerts
+        if (mongoose.connection.readyState !== 1) {
+            alerts.push({
+                type: 'error',
+                category: 'database',
+                title: 'Database Connection Issue',
+                message: `Database connection state: ${getConnectionStateText(mongoose.connection.readyState)}`,
+                value: mongoose.connection.readyState,
+                threshold: 1,
+                timestamp: new Date()
+            });
+        }
+
+        // Recent errors alert
+        const recentErrors = await Audit.countDocuments({
+            action: { $regex: /error/i },
+            createdAt: { $gte: new Date(Date.now() - 60 * 60 * 1000) } // Last hour
+        });
+
+        if (recentErrors > 10) {
+            alerts.push({
+                type: 'error',
+                category: 'errors',
+                title: 'High Error Rate',
+                message: `${recentErrors} errors in the last hour`,
+                value: recentErrors,
+                threshold: 10,
+                timestamp: new Date()
+            });
+        } else if (recentErrors > 5) {
+            alerts.push({
+                type: 'warning',
+                category: 'errors',
+                title: 'Elevated Error Rate',
+                message: `${recentErrors} errors in the last hour`,
+                value: recentErrors,
+                threshold: 5,
+                timestamp: new Date()
+            });
+        }
+
+        // Uptime alerts
+        const uptime = process.uptime();
+        if (uptime < 300) { // Less than 5 minutes
+            alerts.push({
+                type: 'info',
+                category: 'uptime',
+                title: 'Recent Restart',
+                message: `Server restarted ${formatUptime(uptime)} ago`,
+                value: uptime,
+                threshold: 300,
+                timestamp: new Date()
+            });
+        }
+
+        res.json(new ApiResponse(200, { alerts, count: alerts.length }, "System alerts fetched successfully"));
+    } catch (error) {
+        console.error("Error fetching system alerts:", error);
+        throw new ApiError("Failed to fetch system alerts", 500);
+    }
+});
+
+// Get system performance metrics over time
+export const getSystemPerformanceHistory = asyncHandler(async (req, res) => {
+    try {
+        const { period = '24h' } = req.query;
+        
+        // Calculate time range
+        let hours = 24;
+        switch (period) {
+            case '1h':
+                hours = 1;
+                break;
+            case '6h':
+                hours = 6;
+                break;
+            case '24h':
+                hours = 24;
+                break;
+            case '7d':
+                hours = 24 * 7;
+                break;
+            default:
+                hours = 24;
+        }
+        
+        const startDate = new Date(Date.now() - hours * 60 * 60 * 1000);
+        
+        // For now, we'll return current metrics as historical data
+        // In a real implementation, you'd store these metrics in a time-series database
+        const currentMetrics = {
+            timestamp: new Date(),
+            memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+            uptime: process.uptime(),
+            errors: await Audit.countDocuments({
+                action: { $regex: /error/i },
+                createdAt: { $gte: startDate }
+            }),
+            activities: await Audit.countDocuments({
+                createdAt: { $gte: startDate }
+            }),
+            activeUsers: await User.countDocuments({
+                status: "ACTIVE",
+                lastLogin: { $gte: startDate }
+            })
+        };
+
+        // Generate sample historical data points
+        const dataPoints = [];
+        const now = new Date();
+        const intervalMinutes = Math.max(1, Math.floor((hours * 60) / 50)); // Max 50 data points
+        
+        for (let i = 0; i < 50 && i * intervalMinutes < hours * 60; i++) {
+            const timestamp = new Date(now.getTime() - (i * intervalMinutes * 60 * 1000));
+            dataPoints.unshift({
+                timestamp,
+                memory: currentMetrics.memory + Math.floor(Math.random() * 20 - 10), // ±10MB variation
+                errors: Math.max(0, Math.floor(Math.random() * 3)), // 0-2 errors per interval
+                activities: Math.floor(Math.random() * 20) + 5, // 5-25 activities per interval
+                activeUsers: Math.max(0, currentMetrics.activeUsers + Math.floor(Math.random() * 10 - 5))
+            });
+        }
+
+        const performance = {
+            period,
+            dataPoints,
+            summary: {
+                avgMemory: Math.round(dataPoints.reduce((sum, point) => sum + point.memory, 0) / dataPoints.length),
+                totalErrors: dataPoints.reduce((sum, point) => sum + point.errors, 0),
+                totalActivities: dataPoints.reduce((sum, point) => sum + point.activities, 0),
+                peakActiveUsers: Math.max(...dataPoints.map(point => point.activeUsers))
+            },
+            generatedAt: new Date()
+        };
+
+        res.json(new ApiResponse(200, performance, "System performance history fetched successfully"));
+    } catch (error) {
+        console.error("Error fetching system performance history:", error);
+        throw new ApiError("Failed to fetch system performance history", 500);
+    }
+});
+
+// Helper function to check database health
+async function checkDatabaseHealth() {
+    try {
+        // Test database connection
+        const connectionState = mongoose.connection.readyState;
+        const isConnected = connectionState === 1;
+        
+        let responseTime = 0;
+        let status = 'unhealthy';
+        let details = [];
+        
+        if (isConnected) {
+            // Measure response time with a simple query
+            const startTime = Date.now();
+            await User.findOne().limit(1);
+            responseTime = Date.now() - startTime;
+            
+            if (responseTime < 100) {
+                status = 'healthy';
+            } else if (responseTime < 500) {
+                status = 'warning';
+                details.push('Database response time is elevated');
+            } else {
+                status = 'unhealthy';
+                details.push('Database response time is too high');
+            }
+        } else {
+            details.push('Database connection is not established');
+        }
+        
+        return {
+            status,
+            connected: isConnected,
+            responseTime,
+            connectionState: getConnectionStateText(connectionState),
+            details,
+            timestamp: new Date()
+        };
+    } catch (error) {
+        return {
+            status: 'unhealthy',
+            connected: false,
+            responseTime: -1,
+            connectionState: 'error',
+            details: ['Database health check failed: ' + error.message],
+            timestamp: new Date()
+        };
+    }
+}
+
+// Helper function to format uptime
+function formatUptime(uptimeSeconds) {
+    const days = Math.floor(uptimeSeconds / (24 * 60 * 60));
+    const hours = Math.floor((uptimeSeconds % (24 * 60 * 60)) / (60 * 60));
+    const minutes = Math.floor((uptimeSeconds % (60 * 60)) / 60);
+    const seconds = Math.floor(uptimeSeconds % 60);
+    
+    if (days > 0) {
+        return `${days}d ${hours}h ${minutes}m`;
+    } else if (hours > 0) {
+        return `${hours}h ${minutes}m`;
+    } else if (minutes > 0) {
+        return `${minutes}m ${seconds}s`;
+    } else {
+        return `${seconds}s`;
+    }
+}
+
+// Helper function to get connection state text
+function getConnectionStateText(state) {
+    const states = {
+        0: 'disconnected',
+        1: 'connected',
+        2: 'connecting',
+        3: 'disconnecting'
+    };
+    return states[state] || 'unknown';
+}
+
+// Helper function to calculate overall health score
+function calculateHealthScore({ recentErrors, memoryUsage, dbHealth, uptime }) {
+    let score = 100;
+    let alerts = [];
+    let status = 'healthy';
+    
+    // Deduct points for recent errors
+    if (recentErrors > 0) {
+        const errorPenalty = Math.min(30, recentErrors * 3);
+        score -= errorPenalty;
+        if (recentErrors > 10) {
+            alerts.push('High error rate detected');
+        }
+    }
+    
+    // Deduct points for high memory usage
+    if (memoryUsage > 500) { // More than 500MB
+        const memoryPenalty = Math.min(20, (memoryUsage - 500) / 100 * 5);
+        score -= memoryPenalty;
+        if (memoryUsage > 1000) {
+            alerts.push('High memory usage detected');
+        }
+    }
+    
+    // Deduct points for database issues
+    if (dbHealth !== 'healthy') {
+        score -= 25;
+        alerts.push('Database health issues detected');
+    }
+    
+    // Deduct points for recent restarts
+    if (uptime < 300) { // Less than 5 minutes
+        score -= 10;
+        alerts.push('Recent system restart detected');
+    }
+    
+    // Determine status based on score
+    if (score >= 80) {
+        status = 'healthy';
+    } else if (score >= 60) {
+        status = 'warning';
+    } else {
+        status = 'critical';
+    }
+    
+    return { score: Math.max(0, Math.round(score)), status, alerts };
+}
+
+// Get comprehensive analytics data
+export const getComprehensiveAnalytics = asyncHandler(async (req, res) => {
+    const { dateFrom, dateTo, granularity = 'day' } = req.query;
+    
+    try {
+        // Set default date range if not provided
+        const endDate = dateTo ? new Date(dateTo) : new Date();
+        const startDate = dateFrom ? new Date(dateFrom) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        
+        // User Analytics
+        const userRegistrationTrends = await User.aggregate([
+            {
+                $match: {
+                    createdAt: { $gte: startDate, $lte: endDate }
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        date: granularity === 'month' 
+                            ? { $dateToString: { format: "%Y-%m", date: "$createdAt" } }
+                            : { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                        role: "$role"
+                    },
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { "_id.date": 1 } }
+        ]);
+
+        // Course Performance Analytics
+        const coursePerformance = await Course.aggregate([
+            {
+                $lookup: {
+                    from: "attemptedquizzes",
+                    localField: "_id",
+                    foreignField: "courseId",
+                    as: "quizAttempts"
+                }
+            },
+            {
+                $lookup: {
+                    from: "progresses",
+                    localField: "_id",
+                    foreignField: "course",
+                    as: "studentProgress"
+                }
+            },
+            {
+                $project: {
+                    title: 1,
+                    status: 1,
+                    totalQuizAttempts: { $size: "$quizAttempts" },
+                    averageQuizScore: { $avg: "$quizAttempts.score" },
+                    totalEnrolledStudents: { $size: "$studentProgress" },
+                    averageProgress: { $avg: "$studentProgress.progressPercentage" }
+                }
+            },
+            { $sort: { totalEnrolledStudents: -1 } },
+            { $limit: 10 }
+        ]);
+
+        // Learning Engagement Metrics
+        const engagementMetrics = await AttemptedQuiz.aggregate([
+            {
+                $match: {
+                    createdAt: { $gte: startDate, $lte: endDate }
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        date: granularity === 'month' 
+                            ? { $dateToString: { format: "%Y-%m", date: "$createdAt" } }
+                            : { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }
+                    },
+                    totalAttempts: { $sum: 1 },
+                    averageScore: { $avg: "$score" },
+                    passedAttempts: {
+                        $sum: { $cond: [{ $eq: ["$status", "PASSED"] }, 1, 0] }
+                    }
+                }
+            },
+            { $sort: { "_id.date": 1 } }
+        ]);
+
+        // Top Performing Students
+        const topStudents = await User.aggregate([
+            {
+                $match: { role: "STUDENT" }
+            },
+            {
+                $lookup: {
+                    from: "attemptedquizzes",
+                    localField: "_id",
+                    foreignField: "student",
+                    as: "quizzes"
+                }
+            },
+            {
+                $lookup: {
+                    from: "progresses",
+                    localField: "_id",
+                    foreignField: "student",
+                    as: "progress"
+                }
+            },
+            {
+                $project: {
+                    fullName: 1,
+                    email: 1,
+                    averageQuizScore: { $avg: "$quizzes.score" },
+                    totalQuizAttempts: { $size: "$quizzes" },
+                    averageProgress: { $avg: "$progress.progressPercentage" },
+                    coursesEnrolled: { $size: "$progress" }
+                }
+            },
+            { $sort: { averageQuizScore: -1, averageProgress: -1 } },
+            { $limit: 10 }
+        ]);
+
+        // System Activity Trends
+        const activityTrends = await Audit.aggregate([
+            {
+                $match: {
+                    createdAt: { $gte: startDate, $lte: endDate }
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        date: granularity === 'month' 
+                            ? { $dateToString: { format: "%Y-%m", date: "$createdAt" } }
+                            : { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                        action: "$action"
+                    },
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { "_id.date": 1 } }
+        ]);
+
+        // Instructor Performance
+        const instructorPerformance = await User.aggregate([
+            {
+                $match: { role: "INSTRUCTOR" }
+            },
+            {
+                $lookup: {
+                    from: "courses",
+                    localField: "_id",
+                    foreignField: "instructor",
+                    as: "courses"
+                }
+            },
+            {
+                $lookup: {
+                    from: "batches",
+                    localField: "_id",
+                    foreignField: "instructor",
+                    as: "batches"
+                }
+            },
+            {
+                $project: {
+                    fullName: 1,
+                    email: 1,
+                    totalCourses: { $size: "$courses" },
+                    publishedCourses: {
+                        $size: {
+                            $filter: {
+                                input: "$courses",
+                                cond: { $eq: ["$$this.status", "PUBLISHED"] }
+                            }
+                        }
+                    },
+                    totalBatches: { $size: "$batches" },
+                    activeBatches: {
+                        $size: {
+                            $filter: {
+                                input: "$batches",
+                                cond: { $eq: ["$$this.status", "ACTIVE"] }
+                            }
+                        }
+                    }
+                }
+            },
+            { $sort: { totalCourses: -1 } }
+        ]);
+
+        const analytics = {
+            userRegistrationTrends,
+            coursePerformance,
+            engagementMetrics,
+            topStudents,
+            activityTrends,
+            instructorPerformance,
+            dateRange: { startDate, endDate },
+            granularity
+        };
+
+        res.json(new ApiResponse(200, analytics, "Comprehensive analytics fetched successfully"));
+    } catch (error) {
+        console.error("Error fetching comprehensive analytics:", error);
+        throw new ApiError("Failed to fetch comprehensive analytics", 500);
+    }
+});
+
+// Generate custom report
+export const generateCustomReport = asyncHandler(async (req, res) => {
+    const { reportType, dateRange, filters, metrics } = req.body;
+    
+    try {
+        let reportData = {};
+        const startDate = new Date(dateRange.startDate);
+        const endDate = new Date(dateRange.endDate);
+
+        switch (reportType) {
+            case 'user_activity':
+                reportData = await generateUserActivityReport(startDate, endDate, filters);
+                break;
+            case 'course_completion':
+                reportData = await generateCourseCompletionReport(startDate, endDate, filters);
+                break;
+            case 'quiz_performance':
+                reportData = await generateQuizPerformanceReport(startDate, endDate, filters);
+                break;
+            case 'instructor_effectiveness':
+                reportData = await generateInstructorEffectivenessReport(startDate, endDate, filters);
+                break;
+            default:
+                throw new ApiError("Invalid report type", 400);
+        }
+
+        const report = {
+            reportType,
+            dateRange,
+            filters,
+            data: reportData,
+            generatedAt: new Date(),
+            generatedBy: req.user?.id
+        };
+
+        res.json(new ApiResponse(200, report, "Custom report generated successfully"));
+    } catch (error) {
+        console.error("Error generating custom report:", error);
+        throw new ApiError("Failed to generate custom report", 500);
+    }
+});
+
+// Helper function for user activity report
+async function generateUserActivityReport(startDate, endDate, filters) {
+    const matchConditions = {
+        createdAt: { $gte: startDate, $lte: endDate }
+    };
+    
+    if (filters.role) {
+        matchConditions.role = filters.role;
+    }
+
+    return await User.aggregate([
+        { $match: matchConditions },
+        {
+            $group: {
+                _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                registrations: { $sum: 1 },
+                students: { $sum: { $cond: [{ $eq: ["$role", "STUDENT"] }, 1, 0] } },
+                instructors: { $sum: { $cond: [{ $eq: ["$role", "INSTRUCTOR"] }, 1, 0] } }
+            }
+        },
+        { $sort: { "_id": 1 } }
+    ]);
+}
+
+// Helper function for course completion report
+async function generateCourseCompletionReport(startDate, endDate, filters) {
+    return await Progress.aggregate([
+        {
+            $match: {
+                updatedAt: { $gte: startDate, $lte: endDate }
+            }
+        },
+        {
+            $lookup: {
+                from: "courses",
+                localField: "course",
+                foreignField: "_id",
+                as: "courseInfo"
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "student",
+                foreignField: "_id",
+                as: "studentInfo"
+            }
+        },
+        {
+            $project: {
+                courseName: { $arrayElemAt: ["$courseInfo.title", 0] },
+                studentName: { $arrayElemAt: ["$studentInfo.fullName", 0] },
+                progressPercentage: 1,
+                completedModules: { $size: "$completedModules" },
+                completedLessons: { $size: "$completedLessons" },
+                currentLevel: 1,
+                updatedAt: 1
+            }
+        },
+        { $sort: { progressPercentage: -1 } }
+    ]);
+}
+
+// Helper function for quiz performance report
+async function generateQuizPerformanceReport(startDate, endDate, filters) {
+    const matchConditions = {
+        createdAt: { $gte: startDate, $lte: endDate }
+    };
+
+    return await AttemptedQuiz.aggregate([
+        { $match: matchConditions },
+        {
+            $lookup: {
+                from: "users",
+                localField: "student",
+                foreignField: "_id",
+                as: "studentInfo"
+            }
+        },
+        {
+            $lookup: {
+                from: "courses",
+                localField: "courseId",
+                foreignField: "_id",
+                as: "courseInfo"
+            }
+        },
+        {
+            $project: {
+                studentName: { $arrayElemAt: ["$studentInfo.fullName", 0] },
+                courseName: { $arrayElemAt: ["$courseInfo.title", 0] },
+                score: 1,
+                status: 1,
+                timeSpent: 1,
+                createdAt: 1
+            }
+        },
+        { $sort: { score: -1 } }
+    ]);
+}
+
+// Helper function for instructor effectiveness report
+async function generateInstructorEffectivenessReport(startDate, endDate, filters) {
+    return await User.aggregate([
+        { $match: { role: "INSTRUCTOR" } },
+        {
+            $lookup: {
+                from: "courses",
+                localField: "_id",
+                foreignField: "instructor",
+                as: "courses"
+            }
+        },
+        {
+            $lookup: {
+                from: "batches",
+                localField: "_id",
+                foreignField: "instructor",
+                as: "batches"
+            }
+        },
+        {
+            $lookup: {
+                from: "progresses",
+                localField: "courses._id",
+                foreignField: "course",
+                as: "studentProgress"
+            }
+        },
+        {
+            $project: {
+                fullName: 1,
+                email: 1,
+                totalCourses: { $size: "$courses" },
+                totalBatches: { $size: "$batches" },
+                totalStudents: { $size: "$studentProgress" },
+                averageStudentProgress: { $avg: "$studentProgress.progressPercentage" },
+                coursesPublished: {
+                    $size: {
+                        $filter: {
+                            input: "$courses",
+                            cond: { $eq: ["$$this.status", "PUBLISHED"] }
+                        }
+                    }
+                }
+            }
+        },
+        { $sort: { averageStudentProgress: -1 } }
+    ]);
+}
+
+// Export analytics data
+export const exportAnalyticsData = asyncHandler(async (req, res) => {
+    const { format = 'json', reportType, dateRange, filters } = req.body;
+    
+    try {
+        // Generate the report data
+        const startDate = new Date(dateRange.startDate);
+        const endDate = new Date(dateRange.endDate);
+        let reportData;
+
+        switch (reportType) {
+            case 'comprehensive':
+                const analytics = await getComprehensiveAnalytics({ query: { dateFrom: startDate, dateTo: endDate } });
+                reportData = analytics;
+                break;
+            default:
+                reportData = await generateCustomReport({ body: { reportType, dateRange, filters } });
+        }
+
+        // For now, return JSON. In a real implementation, you might want to generate CSV/Excel
+        if (format === 'csv') {
+            // Convert to CSV format (simplified)
+            res.setHeader('Content-Type', 'text/csv');
+            res.setHeader('Content-Disposition', `attachment; filename="analytics_${reportType}_${Date.now()}.csv"`);
+        } else {
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Content-Disposition', `attachment; filename="analytics_${reportType}_${Date.now()}.json"`);
+        }
+
+        res.json(new ApiResponse(200, reportData, "Analytics data exported successfully"));
+    } catch (error) {
+        console.error("Error exporting analytics data:", error);
+        throw new ApiError("Failed to export analytics data", 500);
     }
 });

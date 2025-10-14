@@ -39,6 +39,7 @@ const StudentDetail = lazy(() => import("./pages/Admin/StudentDetail"));
 const Analytics = lazy(() => import("./pages/Admin/Analytics"));
 const StudentLevelManagement = lazy(() => import("./pages/Admin/StudentLevelManagement"));
 const CertificateTemplates = lazy(() => import("./pages/Admin/CertificateTemplates"));
+const ModuleTimelines = lazy(() => import("./pages/Admin/ModuleTimelines"));
 
 // Instructor Pages
 const InstructorDashboard = lazy(() => import("./pages/Instructor/Dashboard"));
@@ -52,9 +53,20 @@ const CertificateIssuance = lazy(() => import("./pages/Instructor/CertificateIss
 
 // SuperAdmin Pages
 const SuperAdminDashboard = lazy(() => import("./pages/SuperAdmin/Dashboard"));
+const AllUsersManagement = lazy(() => import("./pages/SuperAdmin/AllUsersManagement"));
+const SoftDeletedUsersManagement = lazy(() => import("./pages/SuperAdmin/SoftDeletedUsersManagement"));
+const SystemAuditLogs = lazy(() => import("./pages/SuperAdmin/SystemAuditLogs"));
+const SystemSettings = lazy(() => import("./pages/SuperAdmin/SystemSettings"));
+const AdvancedAnalytics = lazy(() => import("./pages/SuperAdmin/AdvancedAnalytics"));
+const DataManagement = lazy(() => import("./pages/SuperAdmin/DataManagement"));
+const RolesPermissions = lazy(() => import("./pages/SuperAdmin/RolesPermissions"));
+const SystemMonitoring = lazy(() => import("./pages/SuperAdmin/SystemMonitoring"));
+const BulkOperations = lazy(() => import("./pages/SuperAdmin/BulkOperations"));
+const CertificateManagement = lazy(() => import("./pages/SuperAdmin/CertificateManagement"));
 
 // Student Pages
 const StudentDashboard = lazy(() => import("./pages/Student/Dashboard"));
+const StudentProfile = lazy(() => import("./pages/Student/Profile"));
 const StudentBatch = lazy(() => import("./pages/Student/Batch"));
 const BatchCourse = lazy(() => import("./pages/Student/BatchCourse"));
 const LessonDetail = lazy(() => import("./pages/Student/LessonDetail"));
@@ -126,6 +138,7 @@ const App = () => {
           <Route path="analytics" element={<Analytics pageName="Analytics" />} />
           <Route path="student-levels" element={<StudentLevelManagement />} />
           <Route path="certificate-templates" element={<CertificateTemplates pageName="Certificate Templates" />} />
+          <Route path="module-timelines" element={<ModuleTimelines pageName="Module Timelines" />} />
         </Route>
 
         {/* Instructor routes */}
@@ -157,15 +170,41 @@ const App = () => {
           }
         >
           <Route index element={<SuperAdminDashboard />} />
-          {/* Reuse admin pages for now */}
-          <Route path="instructor" element={<Instructor pageName="Instructor" />} />
-          <Route path="instructor/:id" element={<InstructorDetail />} />
-          <Route path="courses" element={<Course pageName="Courses" />} />
-          <Route path="courses/:courseId" element={<CourseDetailPage pageName="Add Modules" />} />
-          <Route path="batches" element={<Batches pageName="Batches" />} />
+          
+          {/* User Management Routes */}
+          <Route path="all-users" element={<AllUsersManagement />} />
+          <Route path="instructors" element={<Instructor pageName="Instructors" />} />
+          <Route path="instructors/:id" element={<InstructorDetail />} />
           <Route path="students" element={<Students pageName="Students" />} />
           <Route path="students/:studentId" element={<StudentDetail />} />
+          <Route path="soft-deleted-users" element={<SoftDeletedUsersManagement />} />
+          <Route path="roles-permissions" element={<RolesPermissions />} />
+          
+          {/* Content Management Routes */}
+          <Route path="courses" element={<Course pageName="Courses" />} />
+          <Route path="courses/:courseId" element={<CourseDetailPage pageName="Course Management" />} />
+          <Route path="add-course" element={<AddCourse />} />
+          <Route path="add-quiz/:courseId" element={<AddQuizPage />} />
+          <Route path="add-module/:courseId" element={<AddModulePage />} />
+          <Route path="add-lesson/:moduleId" element={<AddLessonPage />} />
+          <Route path="add-assignment/:courseId" element={<AddAssignmentPage />} />
+          <Route path="add-resource/:courseId" element={<AddResourcePage />} />
+          <Route path="batches" element={<Batches pageName="Batches" />} />
           <Route path="batches/:batchId" element={<BatchDetail pageName="Batch Detail" />} />
+          <Route path="certificates" element={<CertificateManagement />} />
+          <Route path="module-timelines" element={<ModuleTimelines pageName="Module Timelines" />} />
+          
+          {/* System Management Routes */}
+          <Route path="audit-logs" element={<SystemAuditLogs />} />
+          <Route path="system-settings" element={<SystemSettings />} />
+          <Route path="analytics-reports" element={<AdvancedAnalytics />} />
+          <Route path="system-monitoring" element={<SystemMonitoring />} />
+          
+          {/* Advanced Operations Routes */}
+          <Route path="data-management" element={<DataManagement />} />
+          <Route path="bulk-operations" element={<BulkOperations />} />
+          
+          {/* Legacy Routes for Compatibility */}
           <Route path="student-levels" element={<StudentLevelManagement />} />
           <Route path="certificate-templates" element={<CertificateTemplates pageName="Certificate Templates" />} />
         </Route>
@@ -180,6 +219,7 @@ const App = () => {
           }
         >
           <Route index element={<StudentDashboard />} />
+          <Route path="profile" element={<StudentProfile />} />
           <Route path="batch" element={<StudentBatch />} />
           <Route path="course" element={<BatchCourse />} />
           <Route path="lesson/:lessonId" element={<LessonDetail />} />

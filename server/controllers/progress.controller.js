@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import Progress from "../models/progress.model.js";
 import Course from "../models/course.model.js";
 import Certificate from "../models/certificate.model.js";
+import ModuleTimeline from "../models/moduleTimeline.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -711,4 +712,141 @@ export const getCourseCompletionReport = asyncHandler(async (req, res) => {
     };
 
     res.json(new ApiResponse(200, reportData, "Course completion report generated successfully"));
+});
+
+// Get timeline violations for a student
+export const getTimelineViolations = asyncHandler(async (req, res) => {
+    const { studentId } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(studentId)) {
+        throw new ApiError("Invalid student ID", 400);
+    }
+    
+    const progress = await Progress.findOne({ student: studentId })
+        .populate({
+            path: 'timelineViolations.fromModule',
+            select: 'title order'
+        })
+        .populate({
+            path: 'timelineViolations.toModule', 
+            select: 'title order'
+        })
+        .populate({
+            path: 'course',
+            select: 'title'
+        });
+    
+    if (!progress) {
+        return res.json(new ApiResponse(200, [], "No timeline violations found"));
+    }
+    
+    const violations = progress.timelineViolations || [];
+    
+    res.json(new ApiResponse(200, violations, "Timeline violations fetched successfully"));
+});
+
+// Check module access with timeline enforcement
+export const checkModuleAccessWithTimeline = asyncHandler(async (req, res) => {
+    const { courseId, moduleId } = req.params;
+    const userId = req.user._id;
+    
+    if (!mongoose.Types.ObjectId.isValid(courseId) || !mongoose.Types.ObjectId.isValid(moduleId)) {
+        throw new ApiError("Invalid course ID or module ID", 400);
+    }
+    
+    // Get user batch for timeline checking
+    const User = (await import("../models/auth.model.js")).default;
+    const user = await User.findById(userId).select('batch');
+    if (!user || !user.batch) {
+        throw new ApiError("User or batch not found", 404);
+    }
+    
+    // Get progress
+    const progress = await Progress.findOne({ student: userId, course: courseId });
+    if (!progress) {
+        // If no progress exists, check if this is the first module
+        const course = await Course.findById(courseId).populate('modules');
+        const firstModule = course.modules.sort((a, b) => (a.order || 0) - (b.order || 0))[0];
+        const isFirstModule = firstModule && firstModule._id.toString() === moduleId;
+        
+        return res.json(new ApiResponse(200, {
+            hasAccess: isFirstModule,
+            reason: isFirstModule ? 'First module accessible' : 'Only first module accessible',
+            currentAccessibleModule: firstModule ? firstModule._id : null,
+            isTimelineRestricted: false
+        }, "Module access checked"));
+    }
+    
+    // Get course with modules
+    const course = await Course.findById(courseId).populate('modules');
+    if (!course) {
+        throw new ApiError("Course not found", 404);
+    }
+    
+    const sortedModules = course.modules.sort((a, b) => (a.order || 0) - (b.order || 0));
+    const requestedModuleIndex = sortedModules.findIndex(m => m._id.toString() === moduleId);
+    
+    if (requestedModuleIndex === -1) {
+        throw new ApiError("Module not found in course", 404);
+    }
+    
+    // Check timeline restrictions
+    let currentAccessibleModule = progress.currentAccessibleModule;
+    if (!currentAccessibleModule) {
+        // Set to the first module if not set
+        currentAccessibleModule = sortedModules[0]._id;
+        progress.currentAccessibleModule = currentAccessibleModule;
+        await progress.save();
+    }
+    
+    const accessibleModuleIndex = sortedModules.findIndex(m => m._id.toString() === currentAccessibleModule.toString());
+    const hasTimelineAccess = requestedModuleIndex <= accessibleModuleIndex;
+    
+    // Check regular sequential access (completed previous modules)
+    const completedModuleIds = progress.completedModules.map(m => m.moduleId.toString());
+    const hasSequentialAccess = requestedModuleIndex === 0 || 
+        sortedModules.slice(0, requestedModuleIndex).every(m => completedModuleIds.includes(m._id.toString()));
+    
+    const hasAccess = hasTimelineAccess && hasSequentialAccess;
+    let reason = '';
+    
+    if (!hasSequentialAccess) {
+        reason = 'Previous modules must be completed first';
+    } else if (!hasTimelineAccess) {
+        reason = `Module access restricted due to timeline enforcement. Current accessible module: ${accessibleModuleIndex + 1}`;
+    } else {
+        reason = 'Access granted';
+    }
+    
+    res.json(new ApiResponse(200, {
+        hasAccess,
+        reason,
+        currentAccessibleModule,
+        currentAccessibleModuleIndex: accessibleModuleIndex + 1,
+        requestedModuleIndex: requestedModuleIndex + 1,
+        isTimelineRestricted: !hasTimelineAccess,
+        completedModulesCount: completedModuleIds.length
+    }, "Module access with timeline checked"));
+});
+
+// Update current accessible module (used by timeline enforcement)
+export const updateCurrentAccessibleModule = asyncHandler(async (req, res) => {
+    const { studentId, courseId, moduleId } = req.body;
+    
+    if (!mongoose.Types.ObjectId.isValid(studentId) || 
+        !mongoose.Types.ObjectId.isValid(courseId) || 
+        !mongoose.Types.ObjectId.isValid(moduleId)) {
+        throw new ApiError("Invalid student, course, or module ID", 400);
+    }
+    
+    const progress = await Progress.findOne({ student: studentId, course: courseId });
+    if (!progress) {
+        throw new ApiError("Progress not found", 404);
+    }
+    
+    progress.currentAccessibleModule = moduleId;
+    progress.lastAccessed = new Date();
+    await progress.save();
+    
+    res.json(new ApiResponse(200, progress, "Current accessible module updated"));
 });

@@ -7,11 +7,38 @@ export const auditApi = createApi({
     tagTypes: ['Audit'],
     endpoints: (builder) => ({
         getAllAudits: builder.query({
-            query: ({ page = 1, limit = 20, userId = "", action = "" } = {}) => ({
-                url: "/api/audits",
-                method: "GET",
-                params: { page, limit, ...(userId && { userId }), ...(action && { action }) }
-            }),
+            query: ({ 
+                page = 1, 
+                limit = 20, 
+                userId = "", 
+                action = "", 
+                sortBy = "createdAt",
+                order = "desc",
+                search = "",
+                dateFrom = null,
+                dateTo = null,
+                ipAddress = "",
+                userAgent = ""
+            } = {}) => {
+                const params = { page, limit };
+                
+                // Only add non-empty parameters
+                if (userId) params.userId = userId;
+                if (action) params.action = action;
+                if (sortBy) params.sortBy = sortBy;
+                if (order) params.order = order;
+                if (search) params.search = search;
+                if (dateFrom) params.dateFrom = dateFrom;
+                if (dateTo) params.dateTo = dateTo;
+                if (ipAddress) params.ipAddress = ipAddress;
+                if (userAgent) params.userAgent = userAgent;
+                
+                return {
+                    url: "/api/audits",
+                    method: "GET",
+                    params
+                };
+            },
             providesTags: ['Audit'],
         }),
 

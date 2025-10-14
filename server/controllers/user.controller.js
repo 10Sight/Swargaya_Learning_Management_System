@@ -223,7 +223,7 @@ export const createUser = asyncHandler(async (req, res) => {
   try {
     // Determine login URL based on role
     let loginUrl = ENV.FRONTEND_URL || 'http://localhost:3000';
-    if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
+    if (role === 'ADMIN' || role === 'SUPERADMIN') {
       loginUrl = ENV.ADMIN_URL || 'http://localhost:5173';
     } else if (role === 'INSTRUCTOR') {
       loginUrl = ENV.INSTRUCTOR_URL || 'http://localhost:5174';
@@ -475,7 +475,7 @@ export const deleteUser = asyncHandler(async (req, res) => {
     await cloudinary.uploader.destroy(user.avatar.publicId);
   }
 
-  if (req.user.role === "SUPER_ADMIN") {
+  if (req.user.role === "SUPERADMIN") {
     await user.deleteOne();
     await logAudit(req.user._id, "DELETE_USER_PERMANENT", { userId: user._id });
   } else {
@@ -484,5 +484,97 @@ export const deleteUser = asyncHandler(async (req, res) => {
     await logAudit(req.user._id, "DELETE_USER_SOFT", { userId: user._id });
   }
 
-  res.json(new ApiResponse(200, null, "User deleted successfully"));
+    res.json(new ApiResponse(200, null, "User deleted successfully"));
+});
+
+// Super admin functions for managing soft-deleted users
+export const getSoftDeletedUsers = asyncHandler(async (req, res) => {
+    // Pagination
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+    const skip = (page - 1) * limit;
+
+    // Sorting
+    const allowedSortFields = ["updatedAt", "fullName", "email", "role"];
+    const sortBy = allowedSortFields.includes(req.query.sortBy)
+        ? req.query.sortBy
+        : "updatedAt";
+    const order = req.query.order === "asc" ? 1 : -1;
+    const sortOptions = { [sortBy]: order };
+
+    // Search by name/email
+    const escapeRegex = (str) =>
+        str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const search = req.query.search ? escapeRegex(req.query.search) : "";
+    
+    // Base query - only soft-deleted users
+    const searchQuery = {
+        isDeleted: true
+    };
+    
+    // Add search conditions
+    if (search) {
+        searchQuery.$or = [
+            { fullName: { $regex: search, $options: "i" } },
+            { email: { $regex: search, $options: "i" } },
+            { userName: { $regex: search, $options: "i" } },
+        ];
+    }
+
+    // Role filter
+    const role = req.query.role;
+    if (role && Object.values(AvailableUserRoles).includes(role)) {
+        searchQuery.role = role;
+    }
+
+    // Safe fields only
+    const safeFields = "fullName userName email phoneNumber role status batch createdAt updatedAt avatar";
+
+    const totalUsers = await User.countDocuments(searchQuery);
+
+    const users = await User.find(searchQuery)
+        .select(safeFields)
+        .populate("batch", "name")
+        .skip(skip)
+        .limit(limit)
+        .sort(sortOptions)
+        .lean(); // Use lean for better performance
+
+    res.json(
+        new ApiResponse(
+            200,
+            {
+                users,
+                totalUsers,
+                totalPages: Math.ceil(totalUsers / limit),
+                currentPage: page,
+                limit,
+            },
+            "Soft-deleted users fetched successfully"
+        )
+    );
+});
+
+export const restoreUser = asyncHandler(async (req, res) => {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        throw new ApiError("Invalid User ID!", 400);
+    }
+
+    const user = await User.findById(req.params.id);
+    if (!user) throw new ApiError("User not found", 404);
+    
+    if (!user.isDeleted) {
+        throw new ApiError("User is not deleted", 400);
+    }
+
+    user.isDeleted = false;
+    await user.save();
+
+    const safeUser = await User.findById(user._id)
+        .select("-password -refreshToken")
+        .populate("batch", "name");
+
+    await logAudit(req.user._id, "RESTORE_USER", { userId: user._id });
+
+    res.json(new ApiResponse(200, safeUser, "User restored successfully"));
 });

@@ -1,7 +1,7 @@
 import axios from "axios";
 
-const BASE_URL = "https://swargaya-learning-management-system-3vcz.onrender.com"
-// const BASE_URL = "http://localhost:3000"
+// const BASE_URL = "https://swargaya-learning-management-system-3vcz.onrender.com"
+const BASE_URL = "http://localhost:3000"
 
 const axiosInstance = axios.create();
 
@@ -11,10 +11,17 @@ axiosInstance.defaults.withCredentials = true
 // Request interceptor - for authentication token handling
 axiosInstance.interceptors.request.use(
     (config) => {
+        // Since we're using HTTP-only cookies for authentication,
+        // we don't need to manually set Authorization headers.
+        // The cookies will be sent automatically with each request.
+        
+        // However, if there's a token in localStorage (for fallback),
+        // we can still use it
         const token = localStorage.getItem('token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
+        
         return config;
     },
     (error) => {

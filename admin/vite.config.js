@@ -8,6 +8,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@emotion/styled": path.resolve(__dirname, "node_modules/@emotion/styled"),
+      "@emotion/react": path.resolve(__dirname, "node_modules/@emotion/react"),
     },
   },
   build: {
@@ -83,7 +85,12 @@ export default defineConfig({
       'react-redux',
       'axios',
       'lucide-react',
-      'date-fns'
+      'date-fns',
+      '@emotion/react',
+      '@emotion/styled',
+      '@mui/material',
+      '@mui/styled-engine',
+      '@mui/system'
     ]
   }
 });

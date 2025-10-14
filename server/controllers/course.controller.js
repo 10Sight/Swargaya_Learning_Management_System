@@ -53,6 +53,11 @@ export const getCourses = asyncHandler(async (req, res) => {
             { description: { $regex: search, $options: "i" } }
         ];
     }
+    
+    // Exclude soft-deleted courses unless super admin specifically wants them
+    if (!req.query.includeDeleted || req.user.role !== "SUPERADMIN") {
+        query.isDeleted = { $ne: true };
+    }
 
     // Include all necessary fields
     const safeFields = "title description category difficulty students status totalEnrollments modules quizzes assignments instructor createdBy createdAt";
@@ -115,19 +120,33 @@ export const updatedCourse = asyncHandler(async (req, res) => {
 export const deleteCourse = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
-    const course = await Course.findByIdAndDelete(id);
-
+    const course = await Course.findById(id);
     if(!course) throw new ApiError("Course not found", 404);
 
-    await Audit.create({
-        user: req.user._id,
-        action: "DELETE_COURSE",
-        details: { courseId: course._id, title: course.title },
-    });
-
-    return res
-        .status(200)
-        .json(new ApiResponse(200, {}, "Course deleted successfully"));
+    if (req.user.role === "SUPERADMIN") {
+        // Super admin can permanently delete
+        await course.deleteOne();
+        await Audit.create({
+            user: req.user._id,
+            action: "DELETE_COURSE_PERMANENT",
+            details: { courseId: course._id, title: course.title },
+        });
+        return res
+            .status(200)
+            .json(new ApiResponse(200, {}, "Course permanently deleted successfully"));
+    } else {
+        // Regular admin - soft delete
+        course.isDeleted = true;
+        await course.save();
+        await Audit.create({
+            user: req.user._id,
+            action: "DELETE_COURSE_SOFT",
+            details: { courseId: course._id, title: course.title },
+        });
+        return res
+            .status(200)
+            .json(new ApiResponse(200, {}, "Course deleted successfully"));
+    }
 });
 
 export const togglePublishCourse = asyncHandler(async (req, res) => {
@@ -349,4 +368,59 @@ export const getCourseStudents = asyncHandler(async (req, res) => {
         totalStudents: course.students?.length || 0,
         students: studentsWithProgress
     }, "Course students fetched successfully"));
+});
+
+// Super admin functions for managing soft-deleted courses
+export const getSoftDeletedCourses = asyncHandler(async (req, res) => {
+    const { page = 1, limit = 10, search } = req.query;
+
+    const query = {
+        isDeleted: true
+    };
+    
+    if (search && search.trim() !== '') {
+        query.$or = [
+            { title: { $regex: search, $options: "i" } },
+            { description: { $regex: search, $options: "i" } }
+        ];
+    }
+
+    const courses = await Course.find(query)
+        .select("title description category difficulty status totalEnrollments instructor createdBy createdAt updatedAt")
+        .populate("createdBy", "fullName email role")
+        .populate("instructor", "fullName email")
+        .skip((page - 1) * limit)
+        .limit(Number(limit))
+        .sort({ updatedAt: -1 })
+        .lean();
+
+    const total = await Course.countDocuments(query);
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, { total, page, limit, courses }, "Soft-deleted courses fetched successfully"));
+});
+
+export const restoreCourse = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const course = await Course.findById(id);
+    if (!course) throw new ApiError("Course not found", 404);
+    
+    if (!course.isDeleted) {
+        throw new ApiError("Course is not deleted", 400);
+    }
+
+    course.isDeleted = false;
+    await course.save();
+
+    await Audit.create({
+        user: req.user._id,
+        action: "RESTORE_COURSE",
+        details: { courseId: course._id, title: course.title },
+    });
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, course, "Course restored successfully"));
 });

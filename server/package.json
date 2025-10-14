@@ -12,7 +12,9 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "archiver": "^7.0.1",
     "bcryptjs": "^3.0.2",
+    "child_process": "^1.0.2",
     "cloudinary": "^2.7.0",
     "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",
@@ -24,9 +26,11 @@
     "mongoose": "^8.18.0",
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
+    "node-cron": "^4.2.1",
     "nodemailer": "^7.0.6",
     "nodemon": "^3.1.10",
     "socket.io": "^4.8.1",
+    "util": "^0.12.5",
     "validator": "^13.15.15",
     "winston": "^3.17.0"
   },

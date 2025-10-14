@@ -15,6 +15,7 @@ import {
   useAddStudentToBatchMutation,
   useRemoveStudentFromBatchMutation,
   useRemoveInstructorMutation,
+  useCancelBatchMutation,
 } from "@/Redux/AllApi/BatchApi";
 import { useGetAllUsersQuery } from "@/Redux/AllApi/UserApi";
 import { useGetCoursesQuery } from "@/Redux/AllApi/CourseApi";
@@ -85,6 +86,8 @@ import FilterSelect from "@/components/common/FilterSelect";
 import StatCard from "@/components/common/StatCard";
 import FilterBar from "@/components/common/FilterBar";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from 'react-redux';
+import BatchStatusNotifications, { BatchStatusSummary } from "@/components/batches/BatchStatusNotifications";
 
 const Batches = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -97,8 +100,10 @@ const Batches = () => {
     useState(false);
   const [isManageStudentsDialogOpen, setIsManageStudentsDialogOpen] =
     useState(false);
+  const [isCancelBatchDialogOpen, setIsCancelBatchDialogOpen] = useState(false);
   const [selectedBatch, setSelectedBatch] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCancelingBatch, setIsCancelingBatch] = useState(false);
   const [lastToastId, setLastToastId] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -112,8 +117,12 @@ const Batches = () => {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [activeTab, setActiveTab] = useState("all");
   const [selectedStudents, setSelectedStudents] = useState([]);
+  const [cancelReason, setCancelReason] = useState("");
 
   const navigate = useNavigate();
+  
+  // Get current user from Redux store
+  const { user } = useSelector((state) => state.auth);
 
   // Debounce search term
   useEffect(() => {
@@ -190,6 +199,7 @@ const Batches = () => {
   const [removeStudentFromBatch] = useRemoveStudentFromBatchMutation();
   const [removeInstructor, { isLoading: isRemovingInstructor }] =
     useRemoveInstructorMutation();
+  const [cancelBatch] = useCancelBatchMutation();
 
   const batches = batchesData?.data?.batches || [];
   const totalPages = batchesData?.data?.totalPages || 1;
@@ -494,6 +504,36 @@ const Batches = () => {
     }
   };
 
+  const handleCancelBatch = async () => {
+    if (!selectedBatch?._id) {
+      showToast("error", "No batch selected for cancellation");
+      return;
+    }
+
+    if (isCancelingBatch) return;
+    setIsCancelingBatch(true);
+
+    try {
+      await cancelBatch({
+        id: selectedBatch._id,
+        reason: cancelReason.trim() || undefined
+      }).unwrap();
+
+      showToast("success", "Batch cancelled successfully! Students and instructors have been notified.");
+      setIsCancelBatchDialogOpen(false);
+      setSelectedBatch(null);
+      setCancelReason("");
+      refetch();
+    } catch (error) {
+      console.error("Cancel batch error:", error);
+      const errorMessage =
+        error?.data?.message || error?.message || "Failed to cancel batch";
+      showToast("error", errorMessage);
+    } finally {
+      setIsCancelingBatch(false);
+    }
+  };
+
   const handleBatchClick = (batch) => {
     navigate(`/admin/batches/${batch._id}`);
   };
@@ -593,18 +633,42 @@ const Batches = () => {
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      UPCOMING: { variant: "secondary", label: "Upcoming" },
-      ONGOING: { variant: "default", label: "Ongoing" },
-      COMPLETED: { variant: "success", label: "Completed" },
-      CANCELLED: { variant: "destructive", label: "Cancelled" },
+      UPCOMING: { 
+        variant: "secondary", 
+        label: "Upcoming",
+        className: "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200"
+      },
+      ONGOING: { 
+        variant: "default", 
+        label: "Ongoing",
+        className: "bg-green-100 text-green-800 border-green-200 hover:bg-green-200"
+      },
+      COMPLETED: { 
+        variant: "outline", 
+        label: "Completed",
+        className: "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200"
+      },
+      CANCELLED: { 
+        variant: "destructive", 
+        label: "Cancelled",
+        className: "bg-red-100 text-red-800 border-red-200 hover:bg-red-200 font-medium"
+      },
     };
 
     const config = statusConfig[status] || {
       variant: "outline",
-      label: status,
+      label: status || 'Unknown',
+      className: "bg-yellow-100 text-yellow-800 border-yellow-200"
     };
 
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+    return (
+      <Badge 
+        variant={config.variant} 
+        className={config.className}
+      >
+        {config.label}
+      </Badge>
+    );
   };
 
   const clearFilters = () => {
@@ -734,6 +798,14 @@ const Batches = () => {
           valueColor="text-purple-900"
         />
       </div>
+
+      {/* Batch Status Notifications */}
+      {user?._id && (
+        <BatchStatusNotifications 
+          userId={user._id} 
+          className="mb-6"
+        />
+      )}
 
       {/* Tabs for filtering */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -969,6 +1041,30 @@ const Batches = () => {
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
+
+                        {batch.status !== 'CANCELLED' && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedBatch(batch);
+                                    setIsCancelBatchDialogOpen(true);
+                                  }}
+                                  className="h-8 w-8 p-0 text-orange-600 hover:text-orange-800 hover:bg-orange-50"
+                                >
+                                  <IconX className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Cancel batch</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
 
                         <TooltipProvider>
                           <Tooltip>
@@ -1699,6 +1795,59 @@ const Batches = () => {
               </DialogFooter>
             </TabsContent>
           </Tabs>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancel Batch Confirmation Dialog */}
+      <Dialog open={isCancelBatchDialogOpen} onOpenChange={setIsCancelBatchDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-orange-600">
+              <IconX className="h-5 w-5" />
+              Cancel Batch
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel the batch "{selectedBatch?.name}"?
+              This will notify all enrolled students and the instructor.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="cancel-reason">Reason for Cancellation (Optional)</Label>
+              <Input
+                id="cancel-reason"
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Enter reason for cancelling this batch..."
+                disabled={isCancelingBatch}
+              />
+              <p className="text-sm text-muted-foreground">
+                This reason will be included in notifications sent to affected users.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsCancelBatchDialogOpen(false)}
+              disabled={isCancelingBatch}
+            >
+              Keep Batch
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleCancelBatch}
+              disabled={isCancelingBatch}
+              className="gap-2 bg-orange-600 hover:bg-orange-700"
+            >
+              {isCancelingBatch ? (
+                <IconLoader className="h-4 w-4 animate-spin" />
+              ) : (
+                <IconX className="h-4 w-4" />
+              )}
+              {isCancelingBatch ? "Canceling..." : "Cancel Batch"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

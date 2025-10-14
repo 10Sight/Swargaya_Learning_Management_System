@@ -2,7 +2,7 @@ export const UserRolesEnum = {
     ADMIN: "ADMIN",
     INSTRUCTOR: "INSTRUCTOR",
     STUDENT: "STUDENT",
-    SUPER_ADMIN: "SUPER_ADMIN"
+    SUPERADMIN: "SUPERADMIN"
 };
 
 export const AvailableUserRoles = Object.values(UserRolesEnum);

@@ -35,6 +35,13 @@ import {
   AlertCircle,
   ArrowRight,
   ArrowLeft,
+  Star,
+  Target,
+  BookMarked,
+  GraduationCap,
+  Lightbulb,
+  TrendingUp,
+  Zap,
 } from "lucide-react";
 import axiosInstance from "@/Helper/axiosInstance";
 import { useGetResourcesByCourseQuery } from "@/Redux/AllApi/resourceApi";
@@ -823,68 +830,218 @@ const BatchCourse = () => {
     }
   }, [modules, completedModuleIds, batch?.course, courseContentLoaded, courseContentLoading, loadCourseContent, getCompletedModulesCount]);
 
-  // Loading state
+  // Loading state with responsive design optimized for 320px
   if (loading) {
     return (
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-7 w-64" />
-            <Skeleton className="h-4 w-48" />
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-6 w-40" />
-            <Skeleton className="h-4 w-60" />
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center gap-3 flex-1">
-                  <Skeleton className="h-4 w-4 rounded-full" />
-                  <div className="space-y-2 flex-1">
-                    <Skeleton className="h-4 w-48" />
-                    <Skeleton className="h-3 w-64" />
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-2 xs:p-4 sm:p-6">
+        <div className="max-w-7xl mx-auto space-y-3 xs:space-y-4 sm:space-y-6">
+          {/* Header Skeleton */}
+          <Card className="overflow-hidden">
+            <CardHeader className="space-y-3 xs:space-y-4 p-3 xs:p-4 sm:p-6">
+              <div className="flex flex-col gap-3 xs:gap-4">
+                <div className="space-y-2 xs:space-y-3">
+                  <Skeleton className="h-5 xs:h-6 sm:h-7 w-full max-w-48 xs:max-w-64" />
+                  <Skeleton className="h-3 xs:h-4 w-full max-w-32 xs:max-w-48" />
+                </div>
+                <div className="flex flex-col xs:flex-row gap-2">
+                  <Skeleton className="h-7 xs:h-8 w-16 xs:w-20" />
+                  <Skeleton className="h-7 xs:h-8 w-14 xs:w-16" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-2 xs:h-3 w-full" />
+                <Skeleton className="h-3 xs:h-4 w-20 xs:w-24" />
+              </div>
+            </CardHeader>
+          </Card>
+
+          {/* Module Cards Skeleton */}
+          <Card>
+            <CardHeader className="p-3 xs:p-4 sm:p-6">
+              <Skeleton className="h-4 xs:h-5 sm:h-6 w-28 xs:w-32 sm:w-40" />
+              <Skeleton className="h-3 xs:h-4 w-40 xs:w-48 sm:w-60" />
+            </CardHeader>
+            <CardContent className="space-y-2 xs:space-y-3 sm:space-y-4 p-3 xs:p-4 sm:p-6">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="p-2 xs:p-4 sm:p-6 border rounded-lg space-y-3 xs:space-y-4">
+                  <div className="flex flex-col gap-3 xs:gap-4">
+                    <div className="flex items-start gap-2 xs:gap-3 flex-1">
+                      <Skeleton className="h-6 w-6 xs:h-8 xs:w-8 rounded-full shrink-0" />
+                      <div className="space-y-1 xs:space-y-2 flex-1 min-w-0">
+                        <div className="flex flex-col gap-1 xs:gap-2">
+                          <Skeleton className="h-3 xs:h-4 w-full max-w-32 xs:max-w-48" />
+                          <Skeleton className="h-4 xs:h-5 w-10 xs:w-12" />
+                        </div>
+                        <Skeleton className="h-2 xs:h-3 w-full max-w-40 xs:max-w-64" />
+                        <Skeleton className="h-2 xs:h-3 w-16 xs:w-24" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-7 xs:h-8 sm:h-9 w-full xs:w-20 xs:self-end" />
                   </div>
                 </div>
-                <Skeleton className="h-9 w-20" />
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
-  // Error state
+  // Error state with responsive design optimized for 320px
   if (error) {
     return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription className="flex items-center justify-between">
-          <span>{error}</span>
-          <Button variant="outline" size="sm" onClick={refresh}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Retry
-          </Button>
-        </AlertDescription>
-      </Alert>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-2 xs:p-4">
+        <div className="max-w-xs xs:max-w-md w-full">
+          <Card className="shadow-lg border-red-200">
+            <CardContent className="p-3 xs:p-6 text-center">
+              <div className="mb-4 xs:mb-6">
+                <AlertCircle className="h-10 w-10 xs:h-12 xs:w-12 sm:h-16 sm:w-16 text-red-500 mx-auto mb-3 xs:mb-4" />
+                <h3 className="text-base xs:text-lg sm:text-xl font-bold text-gray-900 mb-2">Something went wrong</h3>
+                <Alert variant="destructive" className="text-left">
+                  <AlertDescription className="text-xs xs:text-sm">
+                    {error}
+                  </AlertDescription>
+                </Alert>
+              </div>
+              <Button 
+                onClick={refresh} 
+                className="w-full"
+                disabled={refreshing}
+                size="sm"
+              >
+                <RefreshCw className={`h-3 w-3 xs:h-4 xs:w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                Try Again
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     );
   }
 
-  // No batch state
+  // No batch state with responsive design optimized for 320px
   if (!batch) {
     return (
-      <Card>
-        <CardContent className="p-6 text-center">
-          <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No Course Assigned</h3>
-          <p className="text-muted-foreground">
-            You are not currently enrolled in any course. Please contact your administrator.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-2 xs:p-4">
+        <div className="max-w-xs xs:max-w-md w-full">
+          <Card className="shadow-lg">
+            <CardContent className="p-4 xs:p-6 sm:p-8 text-center">
+              <div className="mb-4 xs:mb-6">
+                <BookOpen className="h-10 w-10 xs:h-12 xs:w-12 sm:h-16 sm:w-16 text-muted-foreground mx-auto mb-3 xs:mb-4" />
+                <h3 className="text-base xs:text-lg sm:text-xl font-bold text-gray-900 mb-2">No Course Assigned</h3>
+                <p className="text-xs xs:text-sm sm:text-base text-muted-foreground leading-relaxed">
+                  You are not currently enrolled in any course. Please contact your administrator for assistance.
+                </p>
+              </div>
+              <div className="p-3 xs:p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-center justify-center gap-2 text-blue-700">
+                  <Lightbulb className="h-3 w-3 xs:h-4 xs:w-4" />
+                  <p className="text-xs xs:text-sm">
+                    Once you're enrolled, your courses and learning materials will appear here.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if batch is cancelled - prevent access to course content
+  if (batch?.status === 'CANCELLED') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-2 xs:p-4">
+        <div className="max-w-xs xs:max-w-md lg:max-w-lg w-full">
+          <Card className="shadow-xl border-red-200 bg-gradient-to-br from-red-50 to-rose-50">
+            <CardContent className="p-4 xs:p-6 sm:p-8 text-center space-y-4 xs:space-y-6">
+              {/* Cancellation Icon */}
+              <div className="mx-auto w-16 h-16 xs:w-20 xs:h-20 sm:w-24 sm:h-24 bg-red-100 rounded-full flex items-center justify-center">
+                <AlertCircle className="h-8 w-8 xs:h-10 xs:w-10 sm:h-12 sm:w-12 text-red-600" />
+              </div>
+              
+              {/* Cancellation Message */}
+              <div className="space-y-2 xs:space-y-3">
+                <h2 className="text-lg xs:text-xl sm:text-2xl font-bold text-red-800">
+                  Batch Cancelled
+                </h2>
+                <p className="text-sm xs:text-base text-red-700 leading-relaxed">
+                  Unfortunately, your batch <span className="font-semibold">"{batch.name}"</span> has been cancelled.
+                </p>
+              </div>
+              
+              {/* Batch Info */}
+              <div className="bg-white/60 backdrop-blur-sm rounded-lg p-3 xs:p-4 border border-red-200">
+                <div className="space-y-2 text-sm xs:text-base">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Course:</span>
+                    <span className="font-medium text-gray-800">
+                      {batch.course?.title || batch.course?.name || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Status:</span>
+                    <Badge variant="destructive" className="text-xs">
+                      Cancelled
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Cancellation Reason (if available) */}
+              {batch.notes && (
+                <Alert className="text-left bg-orange-50 border-orange-200">
+                  <AlertCircle className="h-4 w-4 text-orange-600" />
+                  <AlertDescription className="text-sm text-orange-800">
+                    <strong>Reason:</strong> {batch.notes}
+                  </AlertDescription>
+                </Alert>
+              )}
+              
+              {/* Contact Information */}
+              <div className="space-y-3 xs:space-y-4">
+                <div className="bg-blue-50 rounded-lg p-3 xs:p-4 border border-blue-200">
+                  <div className="flex items-start gap-2 xs:gap-3">
+                    <div className="p-1 bg-blue-100 rounded-full shrink-0">
+                      <Lightbulb className="h-3 w-3 xs:h-4 xs:w-4 text-blue-600" />
+                    </div>
+                    <div className="text-left space-y-1">
+                      <p className="text-xs xs:text-sm font-medium text-blue-800">
+                        Need Help?
+                      </p>
+                      <p className="text-xs text-blue-700">
+                        Please contact your administrator or instructor for more information about alternative learning options.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Action Buttons */}
+                <div className="flex flex-col xs:flex-row gap-2 xs:gap-3">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => navigate('/student/dashboard')}
+                    className="flex items-center gap-2 text-xs xs:text-sm"
+                  >
+                    <ArrowLeft className="h-3 w-3 xs:h-4 xs:w-4" />
+                    Back to Dashboard
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => window.location.href = 'mailto:support@your-platform.com?subject=Cancelled Batch Inquiry'}
+                    className="flex items-center gap-2 text-xs xs:text-sm"
+                  >
+                    <ExternalLink className="h-3 w-3 xs:h-4 xs:w-4" />
+                    Contact Support
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     );
   }
 
@@ -895,172 +1052,228 @@ const BatchCourse = () => {
   const currentStage = currentModule ? getCurrentStage(currentModuleIndex) : 'complete';
 
   return (
-    <div className="space-y-6">
-      {/* Level Upgrade Message */}
-      {uiState.levelUpgradeMessage && (
-        <Alert className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-          <Trophy className="h-5 w-5 text-green-600" />
-          <AlertDescription className="flex items-center justify-between">
-            <span className="text-green-800 font-medium">
-              🎉 {uiState.levelUpgradeMessage}
-            </span>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => setUiState(prev => ({ ...prev, levelUpgradeMessage: null }))}
-              className="text-green-600 hover:text-green-700 hover:bg-green-100"
-            >
-              ✕
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Course Header */}
-      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-        <CardHeader className="pb-4">
-          <div className="flex justify-between items-start">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <CardTitle className="flex items-center gap-3 text-2xl">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <BookOpen className="h-6 w-6 text-blue-600" />
-                  </div>
-                  {batch.course?.title || batch.course?.name || "Course"}
-                </CardTitle>
-                {getLevelBadge(currentLevel)}
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="max-w-7xl mx-auto p-2 xs:p-4 sm:p-6 space-y-3 xs:space-y-4 sm:space-y-6">
+        {/* Level Upgrade Message */}
+        {uiState.levelUpgradeMessage && (
+          <Alert className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 shadow-lg">
+            <Trophy className="h-4 w-4 xs:h-5 xs:w-5 text-green-600" />
+            <AlertDescription className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-2 xs:gap-3">
+              <div className="flex items-center gap-2 text-green-800 font-medium text-xs xs:text-sm sm:text-base">
+                <Star className="h-3 w-3 xs:h-4 xs:w-4" />
+                <span>{uiState.levelUpgradeMessage}</span>
               </div>
-              <CardDescription className="text-base">
-                {batch.course?.description || "Complete the modules below to finish the course"}
-              </CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
               <Button 
-                variant="outline" 
+                variant="ghost" 
                 size="sm" 
-                onClick={refresh}
-                disabled={refreshing}
-                className="flex items-center gap-2"
+                onClick={() => setUiState(prev => ({ ...prev, levelUpgradeMessage: null }))}
+                className="text-green-600 hover:text-green-700 hover:bg-green-100 self-end xs:self-auto p-1 xs:p-2"
               >
-                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-                Refresh
+                <AlertCircle className="h-3 w-3 xs:h-4 xs:w-4" />
               </Button>
-              <Badge 
-                variant="outline" 
-                className={`text-sm px-3 py-1 ${STATUS_CONFIG[batch.status]?.color || 'bg-gray-100 text-gray-800'}`}
-              >
-                {STATUS_CONFIG[batch.status]?.name || batch.status}
-              </Badge>
-            </div>
-          </div>
-          
-          {/* Progress Section */}
-          <div className="mt-4 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-              <span className="text-sm font-medium">Course Progress</span>
-              <span className="text-sm text-muted-foreground">
-                {completedCount} of {modules.length} modules completed
-              </span>
-            </div>
-            <div className="space-y-2">
-              <Progress value={progress} className="h-3" />
-              <div className="text-xs text-muted-foreground">
-                <span className="font-medium">{progress}% Complete</span>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Enhanced Course Header */}
+        <Card className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border-blue-300 shadow-xl">
+          <CardHeader className="pb-3 xs:pb-4 sm:pb-6 p-3 xs:p-4 sm:p-6">
+            <div className="flex flex-col gap-3 xs:gap-4 sm:gap-6">
+              {/* Header Info */}
+              <div className="flex flex-col gap-3 xs:gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-col gap-2 xs:gap-3 mb-2 xs:mb-3">
+                    <CardTitle className="flex items-start xs:items-center gap-2 xs:gap-3 text-sm xs:text-lg sm:text-xl lg:text-2xl">
+                      <div className="p-1 xs:p-2 sm:p-3 bg-blue-100 rounded-lg shrink-0">
+                        <BookOpen className="h-4 w-4 xs:h-5 xs:w-5 sm:h-6 sm:w-6 text-blue-600" />
+                      </div>
+                      <span className="truncate leading-tight xs:leading-normal">{batch.course?.title || batch.course?.name || "Course"}</span>
+                    </CardTitle>
+                    <div className="ml-0 xs:ml-auto">
+                      {getLevelBadge(currentLevel)}
+                    </div>
+                  </div>
+                  <CardDescription className="text-xs xs:text-sm sm:text-base text-gray-700 leading-relaxed">
+                    {batch.course?.description || "Complete the modules below to finish the course"}
+                  </CardDescription>
+                </div>
+                
+                {/* Action Buttons */}
+                <div className="flex flex-row gap-2 shrink-0">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={refresh}
+                    disabled={refreshing}
+                    className="flex items-center gap-1 xs:gap-2 bg-white/80 hover:bg-white border-blue-200 hover:border-blue-300 text-blue-700 text-xs xs:text-sm px-2 xs:px-3"
+                  >
+                    <RefreshCw className={`h-3 w-3 xs:h-4 xs:w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                    <span className="hidden xs:inline">Refresh</span>
+                  </Button>
+                  <Badge 
+                    variant="outline" 
+                    className={`text-xs px-2 py-1 font-medium ${STATUS_CONFIG[batch.status]?.color || 'bg-gray-100 text-gray-800'}`}
+                  >
+                    {STATUS_CONFIG[batch.status]?.name || batch.status}
+                  </Badge>
+                </div>
+              </div>
+              
+              {/* Enhanced Progress Section */}
+              <div className="space-y-3 xs:space-y-4">
+                <div className="flex flex-col xs:flex-row xs:justify-between xs:items-center gap-2">
+                  <span className="text-xs xs:text-sm sm:text-base font-semibold text-gray-900">Course Progress</span>
+                  <div className="flex flex-col xs:flex-row items-start xs:items-center gap-1 xs:gap-2">
+                    <span className="text-xs bg-white/70 px-2 py-1 rounded-full text-gray-600">
+                      {completedCount}/{modules.length} modules
+                    </span>
+                    <div className="text-xs font-bold text-blue-700 bg-blue-100 px-2 py-1 rounded-full">
+                      {progress}%
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Progress value={progress} className="h-2 xs:h-3 sm:h-4 bg-blue-100" />
+                  <div className="grid grid-cols-2 gap-1 xs:gap-2 text-xs">
+                    <div className="flex items-center gap-1 text-gray-600">
+                      <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />
+                      <span className="truncate">Done: {completedCount}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-gray-600">
+                      <BookOpen className="h-3 w-3 text-blue-500 shrink-0" />
+                      <span className="truncate">Total: {modules.length}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-gray-600">
+                      <Trophy className="h-3 w-3 text-yellow-500 shrink-0" />
+                      <span className="truncate">{currentLevel}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-gray-600">
+                      <TrendingUp className="h-3 w-3 text-purple-500 shrink-0" />
+                      <span className="truncate">{progress}%</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </CardHeader>
-      </Card>
-
-      {/* Completion Banner */}
-      {allModulesCompleted && (
-        <Alert className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-          <Trophy className="h-5 w-5 text-green-600" />
-          <AlertDescription>
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-green-800 font-medium text-lg">
-                  🎉 Congratulations! You've completed the entire course!
-                </span>
-                <p className="text-green-700 mt-1">
-                  You have successfully finished all modules. Great work on your learning journey!
-                </p>
-              </div>
-              <Badge className="bg-green-600 text-white">
-                Course Complete
-              </Badge>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Course-Level Assessments Section */}
-      {allModulesCompleted && courseContentLoaded && (courseQuizzes.length > 0 || courseAssignments.length > 0) && (
-        <Card className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-purple-600" />
-              Course Final Assessments
-              <Badge variant="secondary" className="ml-2 bg-purple-100 text-purple-800">
-                {courseQuizzes.length + courseAssignments.length} assessments
-              </Badge>
-            </CardTitle>
-            <CardDescription>
-              🎯 Congratulations on completing all modules! You can now access the final course assessments.
-            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              {/* Course Quizzes */}
+        </Card>
+
+        {/* Enhanced Completion Banner */}
+        {allModulesCompleted && (
+          <Alert className="bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 border-green-300 shadow-xl">
+            <Trophy className="h-4 w-4 xs:h-5 xs:w-5 sm:h-6 sm:w-6 text-green-600" />
+            <AlertDescription>
+              <div className="flex flex-col xs:flex-row xs:items-start xs:justify-between gap-3 xs:gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 text-green-800 font-bold text-sm xs:text-lg sm:text-xl mb-2">
+                    <GraduationCap className="h-4 w-4 xs:h-5 xs:w-5" />
+                    <span>Congratulations! Course Completed!</span>
+                  </div>
+                  <p className="text-green-700 text-xs xs:text-sm sm:text-base leading-relaxed">
+                    Outstanding achievement! You have successfully finished all modules. Your dedication to learning is truly commendable.
+                  </p>
+                  <div className="mt-2 xs:mt-3 flex flex-wrap gap-1 xs:gap-2">
+                    <Badge className="bg-green-600 text-white px-2 xs:px-3 py-1 text-xs">
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      All Complete
+                    </Badge>
+                    <Badge className="bg-yellow-500 text-white px-2 xs:px-3 py-1 text-xs">
+                      <Award className="h-3 w-3 mr-1" />
+                      Achievement
+                    </Badge>
+                  </div>
+                </div>
+                <div className="shrink-0 self-center xs:self-start">
+                  <div className="text-center p-2 xs:p-4 bg-green-100 rounded-lg border border-green-200">
+                    <Trophy className="h-6 w-6 xs:h-8 xs:w-8 sm:h-10 sm:w-10 text-yellow-500 mx-auto mb-1 xs:mb-2" />
+                    <Badge className="bg-green-600 text-white text-xs">
+                      Complete
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Enhanced Course-Level Assessments Section - 320px optimized */}
+        {allModulesCompleted && courseContentLoaded && (courseQuizzes.length > 0 || courseAssignments.length > 0) && (
+          <Card className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200 shadow-xl">
+            <CardHeader className="pb-3 xs:pb-4 sm:pb-6 p-3 xs:p-4 sm:p-6">
+              <div className="flex flex-col gap-3">
+                <div className="flex-1">
+                  <CardTitle className="flex flex-col xs:flex-row xs:items-center gap-2 xs:gap-3 mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1 xs:p-2 bg-purple-100 rounded-lg">
+                        <Trophy className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5 text-purple-600" />
+                      </div>
+                      <span className="text-sm xs:text-base sm:text-lg lg:text-xl">Final Assessments</span>
+                    </div>
+                    <Badge className="bg-purple-500 text-white px-2 xs:px-3 py-1 text-xs self-start xs:self-auto">
+                      {courseQuizzes.length + courseAssignments.length} tests
+                    </Badge>
+                  </CardTitle>
+                  <CardDescription className="text-xs xs:text-sm sm:text-base leading-relaxed flex items-center gap-2">
+                    <Target className="h-3 w-3 xs:h-4 xs:w-4 text-purple-600 shrink-0" />
+                    <span>Congratulations on completing all modules! You can now access the final course assessments.</span>
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4 xs:space-y-6 p-3 xs:p-4 sm:p-6">
+              {/* Enhanced Course Quizzes */}
               {courseQuizzes.length > 0 && (
                 <div>
-                  <h3 className="font-semibold mb-4 flex items-center gap-2 text-purple-800">
-                    <Award className="h-5 w-5" />
+                  <h3 className="font-bold mb-3 xs:mb-4 flex items-center gap-2 text-purple-800 text-xs xs:text-sm sm:text-base">
+                    <Award className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5" />
                     Final Course Quizzes ({courseQuizzes.length})
                   </h3>
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-3 xs:gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
                     {courseQuizzes.map((quiz, index) => (
-                      <Card key={index} className="border-purple-200 hover:shadow-md transition-shadow">
-                        <CardHeader className="pb-3">
-                          <CardTitle className="text-lg flex items-center gap-2">
-                            <Trophy className="h-5 w-5 text-purple-600" />
-                            {quiz.title || 'Final Course Quiz'}
-                            <Badge className="bg-purple-600 text-white text-xs">
+                      <Card key={index} className="border-purple-200 hover:shadow-lg hover:border-purple-300 transition-all duration-300">
+                        <CardHeader className="pb-2 xs:pb-3 p-3 xs:p-4 sm:p-6">
+                          <CardTitle className="text-xs xs:text-sm sm:text-base lg:text-lg flex flex-col gap-2">
+                            <div className="flex items-center gap-2 flex-1">
+                              <Trophy className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5 text-purple-600" />
+                              <span className="truncate text-xs xs:text-sm sm:text-base">{quiz.title || 'Final Course Quiz'}</span>
+                            </div>
+                            <Badge className="bg-purple-600 text-white text-xs px-2 py-1 self-start">
                               COURSE LEVEL
                             </Badge>
                           </CardTitle>
                           {quiz.description && (
-                            <CardDescription className="text-sm">
+                            <CardDescription className="text-xs sm:text-sm leading-relaxed">
                               {quiz.description}
                             </CardDescription>
                           )}
                         </CardHeader>
-                        <CardContent>
-                          <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+                        <CardContent className="p-3 xs:p-4 sm:p-6">
+                          <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 xs:gap-3 sm:gap-4 text-xs mb-3 xs:mb-4">
                             <div className="flex items-center gap-1">
-                              <FileText className="h-4 w-4 text-muted-foreground" />
-                              Questions: {quiz.questions?.length || 0}
+                              <FileText className="h-3 w-3 text-muted-foreground" />
+                              <span className="truncate">Q: {quiz.questions?.length || 0}</span>
                             </div>
                             <div className="flex items-center gap-1">
-                              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                              Passing: {quiz.passingScore || 70}%
+                              <BarChart3 className="h-3 w-3 text-muted-foreground" />
+                              <span className="truncate">Pass: {quiz.passingScore || 70}%</span>
                             </div>
                             <div className="flex items-center gap-1">
-                              <Clock className="h-4 w-4 text-muted-foreground" />
-                              Time: {quiz.timeLimit || 60} min
+                              <Clock className="h-3 w-3 text-muted-foreground" />
+                              <span className="truncate">{quiz.timeLimit || 60}min</span>
                             </div>
                             <div className="flex items-center gap-1">
-                              <RefreshCw className="h-4 w-4 text-muted-foreground" />
-                              Attempts: {quiz.attemptsAllowed || 1}
+                              <RefreshCw className="h-3 w-3 text-muted-foreground" />
+                              <span className="truncate">{quiz.attemptsAllowed || 1} tries</span>
                             </div>
                           </div>
                           <Button 
-                            className="w-full bg-purple-600 hover:bg-purple-700"
+                            className="w-full bg-purple-600 hover:bg-purple-700 text-xs xs:text-sm"
                             onClick={() => handleStartQuiz(quiz)}
-                            size="lg"
+                            size="sm"
                           >
-                            <Trophy className="h-4 w-4 mr-2" />
-                            Start Final Quiz
+                            <Trophy className="h-3 w-3 mr-2" />
+                            <span className="hidden xs:inline">Start Final Quiz</span>
+                            <span className="xs:hidden">Start Quiz</span>
                           </Button>
                         </CardContent>
                       </Card>
@@ -1069,52 +1282,58 @@ const BatchCourse = () => {
                 </div>
               )}
               
-              {/* Course Assignments */}
+              {/* Enhanced Course Assignments */}
               {courseAssignments.length > 0 && (
                 <div>
-                  <h3 className="font-semibold mb-4 flex items-center gap-2 text-purple-800">
-                    <FileText className="h-5 w-5" />
+                  <h3 className="font-bold mb-3 xs:mb-4 flex items-center gap-2 text-purple-800 text-xs xs:text-sm sm:text-base">
+                    <FileText className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5" />
                     Final Course Assignments ({courseAssignments.length})
                   </h3>
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-3 xs:gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
                     {courseAssignments.map((assignment, index) => (
-                      <Card key={index} className="border-purple-200 hover:shadow-md transition-shadow">
-                        <CardHeader className="pb-3">
-                          <CardTitle className="text-lg flex items-center gap-2">
-                            <FileText className="h-5 w-5 text-purple-600" />
-                            {assignment.title || 'Final Course Assignment'}
-                            <Badge className="bg-purple-600 text-white text-xs">
+                      <Card key={index} className="border-purple-200 hover:shadow-lg hover:border-purple-300 transition-all duration-300">
+                        <CardHeader className="pb-2 xs:pb-3 p-3 xs:p-4 sm:p-6">
+                          <CardTitle className="text-xs xs:text-sm sm:text-base lg:text-lg flex flex-col gap-2">
+                            <div className="flex items-center gap-2 flex-1">
+                              <FileText className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5 text-purple-600" />
+                              <span className="truncate text-xs xs:text-sm sm:text-base">{assignment.title || 'Final Assignment'}</span>
+                            </div>
+                            <Badge className="bg-purple-600 text-white text-xs px-2 py-1 self-start">
                               COURSE LEVEL
                             </Badge>
                           </CardTitle>
                           {assignment.description && (
-                            <CardDescription className="text-sm">
+                            <CardDescription className="text-xs sm:text-sm leading-relaxed">
                               {assignment.description}
                             </CardDescription>
                           )}
                         </CardHeader>
-                        <CardContent>
-                          <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+                        <CardContent className="p-3 xs:p-4 sm:p-6">
+                          <div className="grid grid-cols-1 gap-2 xs:gap-3 text-xs mb-3 xs:mb-4">
                             <div className="flex items-center gap-1">
-                              <Clock className="h-4 w-4 text-muted-foreground" />
-                              Due: {assignment.dueDate 
-                                ? new Date(assignment.dueDate).toLocaleDateString() 
-                                : 'No deadline'
-                              }
+                              <Clock className="h-3 w-3 text-muted-foreground" />
+                              <span className="truncate">
+                                Due: {assignment.dueDate 
+                                  ? new Date(assignment.dueDate).toLocaleDateString() 
+                                  : 'No deadline'
+                                }
+                              </span>
                             </div>
                             <div className="flex items-center gap-1">
-                              <Award className="h-4 w-4 text-muted-foreground" />
-                              Max Score: {assignment.maxScore || 100} points
+                              <Award className="h-3 w-3 text-muted-foreground" />
+                              <span className="truncate">Max: {assignment.maxScore || 100} pts</span>
                             </div>
                           </div>
-                          <div className="flex gap-2">
-                            <Button variant="outline" className="flex-1">
-                              <Eye className="h-4 w-4 mr-2" />
-                              View Details
+                          <div className="flex flex-col gap-2">
+                            <Button variant="outline" className="w-full text-xs">
+                              <Eye className="h-3 w-3 mr-2" />
+                              <span className="hidden xs:inline">View Details</span>
+                              <span className="xs:hidden">View</span>
                             </Button>
-                            <Button className="flex-1 bg-purple-600 hover:bg-purple-700">
-                              <FileText className="h-4 w-4 mr-2" />
-                              Submit Work
+                            <Button className="w-full bg-purple-600 hover:bg-purple-700 text-xs">
+                              <FileText className="h-3 w-3 mr-2" />
+                              <span className="hidden xs:inline">Submit Work</span>
+                              <span className="xs:hidden">Submit</span>
                             </Button>
                           </div>
                         </CardContent>
@@ -1123,32 +1342,40 @@ const BatchCourse = () => {
                   </div>
                 </div>
               )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
+        )}
 
-      {/* Modules Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ListChecks className="h-5 w-5 text-blue-600" />
-            Course Modules
-            <Badge variant="secondary" className="ml-2">
-              {modules.length} modules
-            </Badge>
-          </CardTitle>
-          <CardDescription>
-            📚 Complete modules in strict sequence to unlock the next content. You must finish all lessons (and assessments if any) in a module before proceeding to the next one.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {modules.length === 0 ? (
-            <div className="text-center py-8">
-              <ListChecks className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No modules available for this course yet.</p>
+        {/* Enhanced Modules Section - 320px optimized */}
+        <Card className="shadow-lg">
+          <CardHeader className="pb-3 xs:pb-4 sm:pb-6 p-3 xs:p-4 sm:p-6">
+            <div className="flex flex-col gap-3">
+              <div className="flex-1">
+                <CardTitle className="flex flex-col xs:flex-row xs:items-center gap-2 xs:gap-3 mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1 xs:p-2 bg-blue-100 rounded-lg">
+                      <ListChecks className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5 text-blue-600" />
+                    </div>
+                    <span className="text-sm xs:text-base sm:text-lg lg:text-xl">Course Modules</span>
+                  </div>
+                  <Badge className="bg-blue-500 text-white px-2 xs:px-3 py-1 text-xs self-start xs:self-auto">
+                    {modules.length} modules
+                  </Badge>
+                </CardTitle>
+                <CardDescription className="text-xs xs:text-sm sm:text-base leading-relaxed flex items-start gap-2">
+                  <BookMarked className="h-3 w-3 xs:h-4 xs:w-4 text-blue-600 shrink-0 mt-0.5" />
+                  <span>Complete modules in strict sequence to unlock the next content. You must finish all lessons (and assessments if any) in a module before proceeding to the next one.</span>
+                </CardDescription>
+              </div>
             </div>
-          ) : (
+          </CardHeader>
+          <CardContent className="space-y-3 xs:space-y-4 sm:space-y-6 p-3 xs:p-4 sm:p-6">
+            {modules.length === 0 ? (
+              <div className="text-center py-6 xs:py-8 sm:py-12">
+                <ListChecks className="h-10 w-10 xs:h-12 xs:w-12 sm:h-16 sm:w-16 text-muted-foreground mx-auto mb-3 xs:mb-4" />
+                <p className="text-xs xs:text-sm sm:text-base text-muted-foreground">No modules available for this course yet.</p>
+              </div>
+            ) : (
             modules.map((module, index) => {
               const moduleId = getModuleId(module);
               const isCompleted = isModuleCompleted(module);
@@ -1175,7 +1402,7 @@ const BatchCourse = () => {
                   onAssessmentsLoaded={handleModuleAssessmentsLoaded}
                 >
                   <div
-                    className={`group relative p-6 rounded-xl border-2 transition-all duration-300 hover:shadow-lg ${
+                    className={`group relative p-2 xs:p-4 sm:p-6 rounded-xl border-2 transition-all duration-300 hover:shadow-lg ${
                       isCompleted
                         ? "bg-gradient-to-br from-green-50 to-green-100 border-green-300 shadow-sm"
                         : isCurrent
@@ -1185,11 +1412,11 @@ const BatchCourse = () => {
                         : "bg-white border-gray-200 hover:border-gray-300"
                     }`}
                   >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-start gap-4 flex-1">
+                  <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3 xs:gap-4">
+                    <div className="flex items-start gap-2 xs:gap-3 sm:gap-4 flex-1 min-w-0">
                       {/* Module Number/Status Indicator */}
-                      <div className="flex flex-col items-center">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                      <div className="flex flex-col items-center shrink-0">
+                        <div className={`w-6 h-6 xs:w-8 xs:h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs xs:text-sm font-medium ${
                           isCompleted
                             ? "bg-green-100 text-green-700"
                             : isCurrent
@@ -1197,13 +1424,13 @@ const BatchCourse = () => {
                             : "bg-gray-100 text-gray-500"
                         }`}>
                           {isCompleted ? (
-                            <CheckCircle2 className="h-4 w-4" />
+                            <CheckCircle2 className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5" />
                           ) : (
-                            index + 1
+                            <span className="text-xs font-bold">{index + 1}</span>
                           )}
                         </div>
                         {index < modules.length - 1 && (
-                          <div className={`w-0.5 h-8 mt-1 ${
+                          <div className={`w-0.5 h-4 xs:h-6 sm:h-8 mt-1 hidden xs:block ${
                             isCompleted ? "bg-green-200" : "bg-gray-200"
                           }`} />
                         )}
@@ -1211,8 +1438,8 @@ const BatchCourse = () => {
 
                       {/* Module Content */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className={`font-semibold ${
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                          <h3 className={`font-semibold text-sm sm:text-base lg:text-lg truncate ${
                             isCompleted ? "text-green-800" : 
                             isCurrent ? "text-blue-800" : 
                             "text-gray-700"
@@ -1220,44 +1447,48 @@ const BatchCourse = () => {
                             {module.title || `Module ${index + 1}`}
                           </h3>
                           
-                          {/* Module level badge */}
-                          {module.level && (
-                            <div className="flex items-center gap-1">
-                              {getLevelBadge(module.level)}
-                            </div>
-                          )}
-                          
-                          {isCurrent && (
-                            <Badge variant="default" className="text-xs">
-                              Current
-                            </Badge>
-                          )}
-                          {isCompleted && (
-                            <Badge variant="outline" className="text-xs bg-green-100 text-green-800">
-                              Completed
-                            </Badge>
-                          )}
-                          {isLevelLocked && (
-                            <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800 border-yellow-300">
-                              <Lock className="h-3 w-3 mr-1" />
-                              Level Locked
-                            </Badge>
-                          )}
+                          {/* Badges Container */}
+                          <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                            {/* Module level badge */}
+                            {module.level && (
+                              <div className="flex items-center">
+                                {getLevelBadge(module.level)}
+                              </div>
+                            )}
+                            
+                            {isCurrent && (
+                              <Badge variant="default" className="text-xs px-2 py-1">
+                                Current
+                              </Badge>
+                            )}
+                            {isCompleted && (
+                              <Badge variant="outline" className="text-xs bg-green-100 text-green-800 px-2 py-1">
+                                Completed
+                              </Badge>
+                            )}
+                            {isLevelLocked && (
+                              <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800 border-yellow-300 px-2 py-1">
+                                <Lock className="h-3 w-3 mr-1" />
+                                <span className="hidden sm:inline">Level Locked</span>
+                                <span className="sm:hidden">Locked</span>
+                              </Badge>
+                            )}
+                          </div>
                         </div>
-                        <p className="text-sm text-muted-foreground mb-2">
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-3 leading-relaxed line-clamp-2">
                           {module.description || "No description available"}
                         </p>
 
                         {/* Module Meta */}
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
-                            <CheckCircle2 className="h-3 w-3" />
-                            {completedLessonsInModule} of {moduleLessons.length} lessons
+                            <CheckCircle2 className="h-3 w-3 text-green-500" />
+                            <span>{completedLessonsInModule} of {moduleLessons.length} lessons</span>
                           </span>
                           {module.duration && (
                             <span className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {module.duration}
+                              <Clock className="h-3 w-3 text-blue-500" />
+                              <span>{module.duration}</span>
                             </span>
                           )}
                         </div>
@@ -1265,12 +1496,12 @@ const BatchCourse = () => {
                     </div>
 
                     {/* Action Button */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
                       <Button
                         size="sm"
                         onClick={() => handleModuleClick(module, index)}
                         disabled={isLocked || loadingStates[moduleId]}
-                        className={`${
+                        className={`w-full sm:w-auto text-xs sm:text-sm ${
                           isCompleted 
                             ? "bg-green-100 text-green-700 hover:bg-green-200" 
                             : isCurrent 
@@ -1279,51 +1510,60 @@ const BatchCourse = () => {
                         }`}
                       >
                         {loadingStates[moduleId] ? (
-                          <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                          <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 animate-spin" />
                         ) : isCompleted ? (
-                          <CheckCircle2 className="h-4 w-4 mr-1" />
+                          <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                         ) : isCurrent ? (
-                          <PlayCircle className="h-4 w-4 mr-1" />
+                          <PlayCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                         ) : (
-                          <Lock className="h-4 w-4 mr-1" />
+                          <Lock className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                         )}
-                        {isCompleted ? "Review" : 
-                         isCurrent ? (isActive ? "Hide" : "Start") : 
-                         isLevelLocked ? `Need ${module.level}` :
-                         "Locked"}
-                        <ChevronRight className={`h-4 w-4 ml-1 transition-transform ${
+                        <span>
+                          {isCompleted ? "Review" : 
+                           isCurrent ? (isActive ? "Hide" : "Start") : 
+                           isLevelLocked ? (
+                             <>
+                               <span className="hidden sm:inline">Need {module.level}</span>
+                               <span className="sm:hidden">Need {module.level}</span>
+                             </>
+                           ) :
+                           "Locked"}
+                        </span>
+                        <ChevronRight className={`h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2 transition-transform ${
                           isActive ? 'rotate-90' : ''
                         }`} />
                       </Button>
                     </div>
                   </div>
 
-                  {/* Module Content Panel */}
+                  {/* Enhanced Module Content Panel */}
                   {isActive && (
-                    <div className="mt-4 rounded-md border bg-white">
+                    <div className="mt-4 rounded-lg border bg-white shadow-sm">
                       <Tabs value={uiState.activeTab} onValueChange={(tab) => 
                         setUiState(prev => ({ ...prev, activeTab: tab }))
                       }>
                         <div className="border-b">
                           <TabsList className="grid w-full grid-cols-2 rounded-none bg-transparent h-auto p-0">
-                            <TabsTrigger value="lessons" className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-transparent py-3">
-                              <BookOpen className="h-4 w-4 mr-2" />
-                              Lessons ({moduleLessons.length})
+                            <TabsTrigger value="lessons" className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-transparent py-2 sm:py-3 text-xs sm:text-sm">
+                              <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                              <span className="hidden sm:inline">Lessons ({moduleLessons.length})</span>
+                              <span className="sm:hidden">Lessons</span>
                             </TabsTrigger>
-                            <TabsTrigger value="assessments" className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-transparent py-3">
-                              <BarChart3 className="h-4 w-4 mr-2" />
-                              Assessments ({(quizzesByModule[moduleId]?.length || 0) + (assignmentsByModule[moduleId]?.length || 0)})
+                            <TabsTrigger value="assessments" className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-transparent py-2 sm:py-3 text-xs sm:text-sm">
+                              <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                              <span className="hidden sm:inline">Assessments ({(quizzesByModule[moduleId]?.length || 0) + (assignmentsByModule[moduleId]?.length || 0)})</span>
+                              <span className="sm:hidden">Tests</span>
                             </TabsTrigger>
                           </TabsList>
                         </div>
 
-                        {/* Lessons Tab */}
-                        <TabsContent value="lessons" className="p-4">
-                          <div className="space-y-3">
+                        {/* Enhanced Lessons Tab */}
+                        <TabsContent value="lessons" className="p-3 sm:p-4 lg:p-6">
+                          <div className="space-y-3 sm:space-y-4">
                             {moduleLessons.length === 0 ? (
-                              <div className="text-center py-8">
-                                <BookOpen className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                                <p className="text-sm text-muted-foreground">
+                              <div className="text-center py-6 sm:py-8">
+                                <BookOpen className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-2 sm:mb-4" />
+                                <p className="text-xs sm:text-sm text-muted-foreground">
                                   No lessons found for this module.
                                 </p>
                               </div>
@@ -1344,7 +1584,7 @@ const BatchCourse = () => {
                                 return (
                                   <div 
                                     key={getLessonId(lesson) || lessonIndex} 
-                                    className={`flex items-start justify-between rounded-lg border p-4 ${
+                                    className={`flex flex-col sm:flex-row items-start justify-between rounded-lg border p-3 sm:p-4 gap-3 sm:gap-0 ${
                                       isLessonLocked 
                                         ? 'opacity-60 bg-gray-50' 
                                         : isLessonDone 
@@ -1352,8 +1592,8 @@ const BatchCourse = () => {
                                         : 'hover:bg-blue-50 border-blue-200 ring-2 ring-blue-100'
                                     }`}
                                   >
-                                    <div className="flex items-start gap-3 flex-1">
-                                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium shrink-0 ${
+                                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium shrink-0 ${
                                         isLessonDone 
                                           ? "bg-green-100 text-green-700" 
                                           : isLessonLocked 
@@ -1369,54 +1609,56 @@ const BatchCourse = () => {
                                         )}
                                       </div>
                                       <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                          <h4 className="text-sm font-semibold">
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                                          <h4 className="text-sm sm:text-base font-semibold truncate">
                                             {lesson.title || `Lesson ${lessonIndex + 1}`}
                                           </h4>
                                           {isLessonDone && (
-                                            <Badge variant="outline" className="text-xs bg-green-100 text-green-700">
+                                            <Badge variant="outline" className="text-xs bg-green-100 text-green-700 self-start sm:self-auto">
                                               Completed
                                             </Badge>
                                           )}
                                         </div>
                                         {lesson.description && (
-                                          <p className="text-xs text-muted-foreground mb-2">
+                                          <p className="text-xs sm:text-sm text-muted-foreground mb-2 leading-relaxed line-clamp-2">
                                             {lesson.description}
                                           </p>
                                         )}
                                         <div className="flex items-center gap-2">
-                                          <Badge variant="outline" className="text-xs">
+                                          <Badge variant="outline" className="text-xs px-2 py-1">
                                             <Clock className="h-3 w-3 mr-1" />
                                             {lesson.duration || "5 min"}
                                           </Badge>
                                         </div>
                                       </div>
                                     </div>
-                                    <div className="flex items-center gap-2 shrink-0 ml-3">
+                                    <div className="flex items-center gap-2 w-full sm:w-auto sm:shrink-0">
                                       {!isLessonLocked && (
                                         <Button
                                           size="sm"
                                           onClick={() => navigate(`/student/lesson/${getLessonId(lesson)}`)}
-                                          className={isLessonDone ? 
-                                            "bg-green-100 text-green-700 hover:bg-green-200" : 
-                                            "bg-blue-600 hover:bg-blue-700 text-white"
-                                          }
+                                          className={`w-full sm:w-auto text-xs sm:text-sm ${
+                                            isLessonDone ? 
+                                              "bg-green-100 text-green-700 hover:bg-green-200" : 
+                                              "bg-blue-600 hover:bg-blue-700 text-white"
+                                          }`}
                                         >
                                           {isLessonDone ? (
                                             <>
-                                              <Eye className="h-3 w-3 mr-1" />
-                                              Review
+                                              <Eye className="h-3 w-3 mr-1 sm:mr-2" />
+                                              <span>Review</span>
                                             </>
                                           ) : (
                                             <>
-                                              <PlayCircle className="h-3 w-3 mr-1" />
-                                              Start Lesson
+                                              <PlayCircle className="h-3 w-3 mr-1 sm:mr-2" />
+                                              <span className="hidden sm:inline">Start Lesson</span>
+                                              <span className="sm:hidden">Start</span>
                                             </>
                                           )}
                                         </Button>
                                       )}
                                       {isLessonLocked && (
-                                        <Badge variant="outline" className="text-xs bg-gray-100 text-gray-600">
+                                        <Badge variant="outline" className="text-xs bg-gray-100 text-gray-600 px-2 py-1 w-full sm:w-auto justify-center">
                                           <Lock className="h-3 w-3 mr-1" />
                                           Locked
                                         </Badge>
@@ -1477,15 +1719,17 @@ const BatchCourse = () => {
                                             )}
                                             Complete Module
                                           </Button>
-                                          <p className="text-xs text-muted-foreground text-center mt-2">
-                                            🎉 All lessons and assessments completed!
-                                          </p>
+                                          <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mt-2">
+                                            <Zap className="h-3 w-3 text-green-500" />
+                                            <span>All lessons and assessments completed!</span>
+                                          </div>
                                         </div>
                                       ) : (
                                         <div className="text-center">
-                                          <p className="text-sm text-muted-foreground mb-4">
-                                            📚 All lessons completed! Now complete the assessments in the "Assessments" tab to finish this module.
-                                          </p>
+                                          <div className="flex items-start gap-2 text-sm text-muted-foreground mb-4">
+                                            <BookMarked className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                                            <span>All lessons completed! Now complete the assessments in the "Assessments" tab to finish this module.</span>
+                                          </div>
                                           <Button 
                                             onClick={() => setUiState(prev => ({ ...prev, activeTab: "assessments" }))}
                                             variant="outline" 
@@ -1518,9 +1762,10 @@ const BatchCourse = () => {
                                           )}
                                           Complete Module
                                         </Button>
-                                        <p className="text-xs text-muted-foreground text-center mt-2">
-                                          🎉 All lessons completed! No assessments required for this module.
-                                        </p>
+                                        <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mt-2">
+                                          <Zap className="h-3 w-3 text-green-500" />
+                                          <span>All lessons completed! No assessments required for this module.</span>
+                                        </div>
                                       </div>
                                     )}
                                   </div>
@@ -1532,34 +1777,41 @@ const BatchCourse = () => {
                         </TabsContent>
 
 
-                        {/* Assessments Tab */}
-                        <TabsContent value="assessments" className="p-4">
+        {/* Assessments Tab - 320px optimized */}
+                        <TabsContent value="assessments" className="p-2 xs:p-4">
                           <div className="space-y-4">
                             {/* Assessment access control */}
                             {moduleLessons.length > 0 && (
-                              <div className={`rounded-lg p-4 mb-4 ${
+                              <div className={`rounded-lg p-3 xs:p-4 mb-3 xs:mb-4 ${
                                 completedLessonsInModule === moduleLessons.length
                                   ? 'bg-green-50 border border-green-200'
                                   : 'bg-amber-50 border border-amber-200'
                               }`}>
-                                <div className="flex items-start gap-3">
+                                <div className="flex items-start gap-2 xs:gap-3">
                                   {completedLessonsInModule === moduleLessons.length ? (
-                                    <Trophy className="h-5 w-5 text-green-600 mt-0.5" />
+                                    <Trophy className="h-4 w-4 xs:h-5 xs:w-5 text-green-600 mt-0.5" />
                                   ) : (
-                                    <Lock className="h-5 w-5 text-amber-600 mt-0.5" />
+                                    <Lock className="h-4 w-4 xs:h-5 xs:w-5 text-amber-600 mt-0.5" />
                                   )}
                                   <div>
-                                    <h4 className={`font-semibold mb-1 ${
+                                    <div className={`flex items-center gap-2 font-semibold mb-1 ${
                                       completedLessonsInModule === moduleLessons.length
                                         ? 'text-green-800'
                                         : 'text-amber-800'
                                     }`}>
-                                      {completedLessonsInModule === moduleLessons.length
-                                        ? '🎉 Assessments Unlocked!'
-                                        : '🔒 Complete All Lessons First'
-                                      }
-                                    </h4>
-                                    <p className={`text-sm ${
+                                      {completedLessonsInModule === moduleLessons.length ? (
+                                        <>
+                                          <Zap className="h-4 w-4 text-green-600" />
+                                          <span>Assessments Unlocked!</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Lock className="h-4 w-4 text-amber-600" />
+                                          <span>Complete All Lessons First</span>
+                                        </>
+                                      )}
+                                    </div>
+                                    <p className={`text-xs xs:text-sm leading-relaxed ${
                                       completedLessonsInModule === moduleLessons.length
                                         ? 'text-green-700'
                                         : 'text-amber-700'
@@ -1609,9 +1861,9 @@ const BatchCourse = () => {
                             {/* No Assessments */}
                             {(!quizzesByModule[moduleId] || quizzesByModule[moduleId].length === 0) &&
                              (!assignmentsByModule[moduleId] || assignmentsByModule[moduleId].length === 0) && (
-                              <div className="text-center py-8">
-                                <BarChart3 className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                                <p className="text-sm text-muted-foreground">
+                              <div className="text-center py-6 xs:py-8">
+                                <BarChart3 className="h-6 w-6 xs:h-8 xs:w-8 text-muted-foreground mx-auto mb-2" />
+                                <p className="text-xs xs:text-sm text-muted-foreground">
                                   No assessments available for this module.
                                 </p>
                               </div>
@@ -1622,15 +1874,18 @@ const BatchCourse = () => {
                     </div>
                   )}
 
-                  {/* Module Resources Component */}
-                  <div className="mt-4">
-                    <StudentModuleResources 
-                      moduleId={moduleId}
-                      resources={resourcesByModule[moduleId] || []}
-                      isModuleCompleted={isCompleted}
-                      completedLessons={completedLessonsInModule}
-                      totalLessons={moduleLessons.length}
-                    />
+                  {/* Module Resources Component - 320px optimized */}
+                  <div className="mt-3 xs:mt-4">
+                    <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                      <StudentModuleResources 
+                        moduleId={moduleId}
+                        resources={resourcesByModule[moduleId] || []}
+                        isModuleCompleted={isCompleted}
+                        completedLessons={completedLessonsInModule}
+                        totalLessons={moduleLessons.length}
+                        className="p-2 xs:p-4"
+                      />
+                    </div>
                   </div>
                 </div>
               </ModuleAssessmentProvider>
@@ -1662,6 +1917,7 @@ const BatchCourse = () => {
         onClose={handleCloseSubmissionModal}
         onSuccess={handleSubmissionSuccess}
       />
+      </div>
     </div>
   );
 };

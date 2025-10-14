@@ -13,6 +13,7 @@ import BatchCourseCard from "@/components/batches/BatchCourseCard";
 import BatchStudentsTable from "@/components/batches/BatchStudentsTable";
 import BatchStats from "@/components/batches/BatchStats";
 import BatchSkeleton from "@/components/batches/BatchSkeleton";
+import BatchCancellationBanner from "@/components/batches/BatchCancellationBanner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -213,6 +214,9 @@ const BatchDetail = () => {
           Refresh Data
         </Button>
       </div>
+
+      {/* Batch Cancellation Banner */}
+      <BatchCancellationBanner batch={batch} />
 
       {/* Enhanced Statistics Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

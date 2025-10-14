@@ -25,6 +25,7 @@ import {
   IconUser,
   IconSettings,
   IconTemplate,
+  IconClock,
 } from "@tabler/icons-react";
 import { HomeIcon } from "lucide-react";
 import NotificationCenter from "../components/common/NotificationCenter";
@@ -35,6 +36,7 @@ const tabs = [
   { link: "/admin/courses", label: "Courses", icon: IconCertificate },
   { link: "/admin/batches", label: "Batches", icon: IconFolder },
   { link: "/admin/students", label: "Students", icon: IconUsers },
+  { link: "/admin/module-timelines", label: "Module Timelines", icon: IconClock },
   { link: "/admin/student-levels", label: "Student Levels", icon: IconSettings },
   { link: "/admin/certificate-templates", label: "Certificate Templates", icon: IconTemplate },
   { link: "/admin/analytics", label: "Analytics", icon: IconChartPie },

@@ -76,6 +76,24 @@ export const courseApi = createApi({
             }),
             providesTags: (result, error, courseId) => [{ type: 'Course', id: `students-${courseId}` }],
         }),
+
+        // Super Admin functions
+        getSoftDeletedCourses: builder.query({
+            query: ({ page = 1, limit = 10, search = "" } = {}) => ({
+                url: "/api/courses/deleted/all",
+                method: "GET",
+                params: { page, limit, search }
+            }),
+            providesTags: ['Course'],
+        }),
+
+        restoreCourse: builder.mutation({
+            query: (id) => ({
+                url: `/api/courses/deleted/${id}/restore`,
+                method: "PATCH",
+            }),
+            invalidatesTags: ['Course'],
+        }),
     }),
 });
 
@@ -88,4 +106,6 @@ export const {
     useTogglePublishCourseMutation,
     useGetCourseAnalyticsQuery,
     useGetCourseStudentsQuery,
+    useGetSoftDeletedCoursesQuery,
+    useRestoreCourseMutation,
 } = courseApi;

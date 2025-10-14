@@ -15,15 +15,15 @@ import authorizeRoles from "../middlewares/authrization.middleware.js";
 const router = Router();
 
 // Existing routes
-router.post("/", verifyJWT, authorizeRoles("ADMIN", "INSTRUCTOR"), issueCertificate);
+router.post("/", verifyJWT, authorizeRoles("ADMIN", "SUPERADMIN", "INSTRUCTOR"), issueCertificate);
 router.get("/student", verifyJWT, authorizeRoles("STUDENT"), getStudentCertificates);
-router.get("/course/:courseId", verifyJWT, authorizeRoles("ADMIN", "INSTRUCTOR"), getCourseCertificates);
-router.get("/:id", verifyJWT, authorizeRoles("ADMIN", "INSTRUCTOR", "STUDENT"), getCertificateById);
-router.delete("/:id", verifyJWT, authorizeRoles("ADMIN", "INSTRUCTOR"), revokeCertificate);
+router.get("/course/:courseId", verifyJWT, authorizeRoles("ADMIN", "SUPERADMIN", "INSTRUCTOR"), getCourseCertificates);
+router.get("/:id", verifyJWT, authorizeRoles("ADMIN", "SUPERADMIN", "INSTRUCTOR", "STUDENT"), getCertificateById);
+router.delete("/:id", verifyJWT, authorizeRoles("ADMIN", "SUPERADMIN", "INSTRUCTOR"), revokeCertificate);
 
-// New instructor workflow routes
-router.get("/check-eligibility/:studentId/:courseId", verifyJWT, authorizeRoles("INSTRUCTOR"), checkCertificateEligibility);
-router.post("/issue-with-template", verifyJWT, authorizeRoles("INSTRUCTOR"), issueCertificateWithTemplate);
-router.post("/preview", verifyJWT, authorizeRoles("INSTRUCTOR"), generateCertificatePreview);
+// Certificate workflow routes (SuperAdmin, Admin, and Instructor access)
+router.get("/check-eligibility/:studentId/:courseId", verifyJWT, authorizeRoles("SUPERADMIN", "ADMIN", "INSTRUCTOR"), checkCertificateEligibility);
+router.post("/issue-with-template", verifyJWT, authorizeRoles("SUPERADMIN", "ADMIN", "INSTRUCTOR"), issueCertificateWithTemplate);
+router.post("/preview", verifyJWT, authorizeRoles("SUPERADMIN", "ADMIN", "INSTRUCTOR"), generateCertificatePreview);
 
 export default router;

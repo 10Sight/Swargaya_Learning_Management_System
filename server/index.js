@@ -29,6 +29,13 @@ import uploadRoutes from "./routes/upload.routes.js";
 import lessonRoutes from "./routes/lesson.routes.js";
 import analyticsRoutes from "./routes/analytics.routes.js";
 import instructorRoutes from "./routes/instructor.routes.js";
+import systemSettingsRoutes from "./routes/systemSettings.routes.js";
+import dataManagementRoutes from "./routes/dataManagement.routes.js";
+import bulkOperationsRoutes from "./routes/bulkOperations.routes.js";
+import rolesPermissionsRoutes from "./routes/rolesPermissions.routes.js";
+import moduleTimelineRoutes from "./routes/moduleTimeline.routes.js";
+import timelineScheduler from "./services/timelineScheduler.js";
+import batchStatusScheduler from "./services/batchStatusScheduler.js";
 // import cleanupOldFiles from './scripts/cleanup.js';
 
 const app = express();
@@ -104,6 +111,11 @@ app.use("/api/resources", resourceRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/instructor", instructorRoutes);
+app.use("/system/settings", systemSettingsRoutes);
+app.use("/api/data-management", dataManagementRoutes);
+app.use("/api/bulk-operations", bulkOperationsRoutes);
+app.use("/api/roles-permissions", rolesPermissionsRoutes);
+app.use("/api/module-timelines", moduleTimelineRoutes);
 
 // Initialize Socket.IO service
 socketIOService.initialize(io);
@@ -259,9 +271,30 @@ const startServer = async () => {
     try {
 
         await connectDB();
+        
+        // Initialize schedulers after DB connection
+        timelineScheduler.init();
+        batchStatusScheduler.init();
+        
         server.listen(PORT, () => {
             logger.info(`Server with Socket.IO running at http://localhost:${PORT}`);
         });
+        
+        // Graceful shutdown handling
+        process.on('SIGINT', () => {
+            console.log('\n🛑 Shutting down gracefully...');
+            timelineScheduler.stop();
+            batchStatusScheduler.stop();
+            process.exit(0);
+        });
+        
+        process.on('SIGTERM', () => {
+            console.log('\n🛑 SIGTERM received, shutting down gracefully...');
+            timelineScheduler.stop();
+            batchStatusScheduler.stop();
+            process.exit(0);
+        });
+        
     } catch (error) {
         process.exit(1); 
     }

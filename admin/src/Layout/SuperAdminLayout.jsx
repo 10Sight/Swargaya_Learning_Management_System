@@ -24,16 +24,60 @@ import {
   IconChartPie,
   IconUser,
   IconSettings,
+  IconDatabase,
+  IconShield,
+  IconReport,
+  IconTrash,
+  IconFileAnalytics,
+  IconServerBolt,
+  IconBulb,
+  IconDownload,
+  IconClock,
 } from "@tabler/icons-react";
 import { HomeIcon } from "lucide-react";
 
 const tabs = [
-  { link: "/superadmin", label: "Dashboard", icon: IconLayoutDashboardFilled },
-  { link: "/superadmin/instructor", label: "Instructors", icon: IconUser },
-  { link: "/superadmin/courses", label: "Courses", icon: IconCertificate },
-  { link: "/superadmin/batches", label: "Batches", icon: IconFolder },
-  { link: "/superadmin/students", label: "Students", icon: IconUsers },
-  { link: "/superadmin/student-levels", label: "Student Levels", icon: IconSettings },
+  { 
+    category: "Overview",
+    items: [
+      { link: "/superadmin", label: "Dashboard", icon: IconLayoutDashboardFilled },
+    ]
+  },
+  { 
+    category: "User Management",
+    items: [
+      { link: "/superadmin/all-users", label: "All Users", icon: IconUsers },
+      { link: "/superadmin/instructors", label: "Instructors", icon: IconUser },
+      { link: "/superadmin/students", label: "Students", icon: IconUsers },
+      { link: "/superadmin/soft-deleted-users", label: "Deleted Users", icon: IconTrash },
+      { link: "/superadmin/roles-permissions", label: "Roles & Permissions", icon: IconShield },
+    ]
+  },
+  { 
+    category: "Content Management",
+    items: [
+      { link: "/superadmin/courses", label: "Courses", icon: IconCertificate },
+      { link: "/superadmin/batches", label: "Batches", icon: IconFolder },
+      { link: "/superadmin/module-timelines", label: "Module Timelines", icon: IconClock },
+      { link: "/superadmin/certificates", label: "Certificates", icon: IconCertificate },
+    ]
+  },
+  { 
+    category: "System Management",
+    items: [
+      { link: "/superadmin/audit-logs", label: "Audit Logs", icon: IconFileAnalytics },
+      { link: "/superadmin/system-settings", label: "System Settings", icon: IconSettings },
+      { link: "/superadmin/analytics-reports", label: "Analytics & Reports", icon: IconReport },
+      { link: "/superadmin/system-monitoring", label: "System Health", icon: IconServerBolt },
+    ]
+  },
+  { 
+    category: "Advanced Operations",
+    items: [
+      { link: "/superadmin/data-management", label: "Data Management", icon: IconDatabase },
+      { link: "/superadmin/bulk-operations", label: "Bulk Operations", icon: IconBulb },
+    ]
+  },
 ];
 
 export function SuperAdminLayout() {
@@ -49,19 +93,25 @@ export function SuperAdminLayout() {
 
   // Update page name based on current route
   useEffect(() => {
-    const currentTab = tabs.find(tab => 
-      pathname === tab.link || 
-      (tab.link !== "/superadmin" && pathname.startsWith(tab.link))
-    );
+    let foundTab = null;
     
-    if (currentTab) {
-      setPageName(currentTab.label);
+    // Search through all categories and items
+    for (const category of tabs) {
+      foundTab = category.items.find(tab => 
+        pathname === tab.link || 
+        (tab.link !== "/superadmin" && pathname.startsWith(tab.link))
+      );
+      if (foundTab) break;
+    }
+    
+    if (foundTab) {
+      setPageName(foundTab.label);
     } else if (pathname === "/superadmin") {
       setPageName("Dashboard");
     } else {
-      // For nested routes, you might want to extract from pathname
+      // For nested routes, extract from pathname
       const routeName = pathname.split("/").pop();
-      setPageName(routeName.charAt(0).toUpperCase() + routeName.slice(1));
+      setPageName(routeName.charAt(0).toUpperCase() + routeName.slice(1).replace("-", " "));
     }
   }, [pathname]);
 
@@ -115,37 +165,51 @@ export function SuperAdminLayout() {
         </div>
 
         {/* Sidebar Tabs */}
-        <div className="px-2 flex flex-col w-full py-4 space-y-2">
-          {tabs.map((item) => {
-            const isActive =
-              pathname === item.link ||
-              (item.link === "/superadmin" && pathname === "/superadmin") ||
-              (item.link !== "/superadmin" && pathname.startsWith(item.link));
+        <div className="px-2 flex flex-col w-full py-4 space-y-1 overflow-y-auto max-h-[calc(100vh-8rem)]">
+          {tabs.map((category) => (
+            <div key={category.category} className="mb-4">
+              {!collapsed && (
+                <div className="px-2 mb-2">
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    {category.category}
+                  </h3>
+                </div>
+              )}
+              <div className="space-y-1">
+                {category.items.map((item) => {
+                  const isActive =
+                    pathname === item.link ||
+                    (item.link === "/superadmin" && pathname === "/superadmin") ||
+                    (item.link !== "/superadmin" && pathname.startsWith(item.link));
 
-            return (
-              <div
-                className={`flex items-center cursor-pointer w-full overflow-hidden h-11 rounded-lg transition-all duration-300
-                ${
-                  isActive
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "text-gray-600 hover:bg-blue-50 hover:text-blue-600"
-                }
-                ${collapsed ? "justify-center " : " items-center px-3"}`}
-                key={item.label}
-                onClick={() => navigate(item.link)}
-              >
-                <item.icon
-                  className={`${
-                    collapsed ? "w-5 h-5" : "min-w-5 min-h-5"
-                  } my-auto`}
-                  strokeWidth={isActive ? 2 : 1.5}
-                />
-                {!collapsed && (
-                  <span className="ml-3 text-sm font-medium">{item.label}</span>
-                )}
+                  return (
+                    <div
+                      className={`flex items-center cursor-pointer w-full overflow-hidden h-10 rounded-lg transition-all duration-300
+                      ${
+                        isActive
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : "text-gray-600 hover:bg-blue-50 hover:text-blue-600"
+                      }
+                      ${collapsed ? "justify-center " : " items-center px-3"}`}
+                      key={item.label}
+                      onClick={() => navigate(item.link)}
+                      title={collapsed ? item.label : ''}
+                    >
+                      <item.icon
+                        className={`${
+                          collapsed ? "w-4 h-4" : "min-w-4 min-h-4"
+                        } my-auto`}
+                        strokeWidth={isActive ? 2 : 1.5}
+                      />
+                      {!collapsed && (
+                        <span className="ml-3 text-sm font-medium">{item.label}</span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
 
         {/* Logout */}

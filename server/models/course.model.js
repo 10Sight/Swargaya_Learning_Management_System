@@ -100,6 +100,10 @@ const courseSchema = new Schema(
                 ref: "Resource",
             },
         ],
+        isDeleted: {
+            type: Boolean,
+            default: false,
+        },
     },
     {
         timestamps: true,

@@ -26,6 +26,9 @@ import {
   Trophy,
   ScrollText,
   RefreshCw,
+  Target,
+  AlertCircle,
+  Award,
 } from "lucide-react";
 import { useGetResourcesByLessonQuery } from "@/Redux/AllApi/resourceApi";
 import axiosInstance from "@/Helper/axiosInstance";
@@ -246,11 +249,25 @@ const LessonDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-3 sm:p-6">
-        <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
-          <div className="h-8 bg-gray-200 rounded animate-pulse" />
-          <div className="h-64 bg-gray-200 rounded animate-pulse" />
-          <div className="h-32 bg-gray-200 rounded animate-pulse" />
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="sticky top-0 bg-white border-b z-10 shadow-sm">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+            <div className="flex items-center gap-4">
+              <div className="h-8 w-16 bg-gray-200 rounded animate-pulse" />
+              <div className="h-6 w-48 bg-gray-200 rounded animate-pulse" />
+            </div>
+          </div>
+        </div>
+        <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
+          <div className="space-y-4">
+            <div className="h-8 w-32 bg-gray-200 rounded animate-pulse" />
+            <div className="h-64 sm:h-80 bg-gray-200 rounded-lg animate-pulse" />
+            <div className="h-32 bg-gray-200 rounded-lg animate-pulse" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="h-20 bg-gray-200 rounded-lg animate-pulse" />
+              <div className="h-20 bg-gray-200 rounded-lg animate-pulse" />
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -258,67 +275,110 @@ const LessonDetail = () => {
 
   if (error || !lesson) {
     return (
-      <div className="min-h-screen bg-gray-50 p-3 sm:p-6">
-        <div className="max-w-4xl mx-auto">
-          <Alert variant="destructive">
-            <AlertDescription>
-              {error || "Lesson not found. Please try again."}
-            </AlertDescription>
-          </Alert>
-          <Button onClick={handleBackToCourse} className="mt-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Course
-          </Button>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+        <div className="max-w-md mx-auto text-center">
+          <div className="p-6 sm:p-8 bg-white rounded-lg shadow-lg border">
+            <div className="mb-6">
+              <BookOpen className="h-12 w-12 sm:h-16 sm:w-16 text-red-500 mx-auto mb-4" />
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">Lesson Not Found</h3>
+              <Alert variant="destructive" className="mb-4">
+                <AlertDescription className="text-sm">
+                  {error || "The requested lesson could not be found. Please try again."}
+                </AlertDescription>
+              </Alert>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button onClick={handleBackToCourse} className="flex-1">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Course
+              </Button>
+              <Button 
+                onClick={() => window.location.reload()} 
+                variant="outline" 
+                className="flex-1"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Retry
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Fixed Header */}
-      <div className="sticky top-0 bg-white border-b z-10">
-        <div className="max-w-4xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
-            <div className="flex items-center gap-2 sm:gap-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Enhanced Fixed Header */}
+      <div className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-gray-200 z-20 shadow-sm">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+          <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+            {/* Left Section */}
+            <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleBackToCourse}
-                className="text-xs sm:text-sm"
+                className="shrink-0 text-xs sm:text-sm hover:bg-blue-50 hover:border-blue-300 transition-colors duration-200"
               >
                 <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 <span className="hidden sm:inline">Back to Course</span>
                 <span className="sm:hidden">Back</span>
               </Button>
-              <div>
-                <h1 className="text-lg sm:text-xl font-bold">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 leading-tight truncate">
                   {lesson.title || "Lesson"}
                 </h1>
-                <p className="text-xs sm:text-sm text-muted-foreground">
+                <div className="flex items-center gap-4 mt-1 text-xs sm:text-sm text-muted-foreground">
                   {lesson.duration && (
-                    <>
-                      <Clock className="h-3 w-3 inline mr-1" />
-                      {lesson.duration}
-                    </>
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      <span>{lesson.duration}</span>
+                    </div>
                   )}
-                </p>
+                  {lesson.order && (
+                    <div className="flex items-center gap-1">
+                      <BookOpen className="h-3 w-3" />
+                      <span>Lesson {lesson.order}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            
+            {/* Right Section - Progress/Status */}
+            <div className="flex items-center gap-3 sm:gap-4">
               {isCompleted ? (
-                <Badge className="bg-green-100 text-green-800">
-                  <CheckCircle2 className="h-3 w-3 mr-1" />
-                  Completed
-                </Badge>
-              ) : (
                 <div className="flex items-center gap-2">
-                  <div className="w-32">
-                    <Progress value={scrollProgress} className="h-2" />
+                  <Badge className="bg-green-100 text-green-800 border-green-300 px-3 py-1.5 text-xs sm:text-sm font-medium">
+                    <CheckCircle2 className="h-3 w-3 mr-1.5" />
+                    Completed
+                  </Badge>
+                  <div className="hidden sm:flex items-center text-xs text-green-600">
+                    <Trophy className="h-3 w-3 mr-1" />
+                    <span>Well done!</span>
                   </div>
-                  <span className="text-xs text-muted-foreground min-w-[3rem]">
-                    {Math.round(scrollProgress)}%
-                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="flex flex-col items-end">
+                    <div className="w-24 sm:w-32">
+                      <Progress 
+                        value={scrollProgress} 
+                        className="h-2 sm:h-2.5" 
+                      />
+                    </div>
+                    <span className="text-xs text-muted-foreground mt-1">
+                      {Math.round(scrollProgress)}% read
+                    </span>
+                  </div>
+                  {hasReachedBottom && (
+                    <div className="flex items-center text-xs text-blue-600">
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      <span className="hidden sm:inline">Almost done!</span>
+                      <span className="sm:hidden">Done!</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -326,114 +386,178 @@ const LessonDetail = () => {
         </div>
       </div>
 
-      {/* Scrollable Content */}
+      {/* Enhanced Scrollable Content */}
       <div 
         ref={scrollContainerRef}
-        className="max-w-4xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6 h-[calc(100vh-80px)] overflow-y-auto"
+        className="max-w-4xl mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6 h-[calc(100vh-80px)] sm:h-[calc(100vh-88px)] overflow-y-auto scroll-smooth"
+        style={{ scrollbarWidth: 'thin', scrollbarColor: '#CBD5E0 #F7FAFC' }}
       >
-        {/* Lesson Content */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5" />
-              Lesson Content
+        {/* Enhanced Lesson Content */}
+        <Card className="shadow-lg border-0 bg-white">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+              </div>
+              <span>Lesson Content</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="prose max-w-none">
-            {lesson.content ? (
-              <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
-                {lesson.content}
-              </div>
-            ) : (
-              <p className="text-muted-foreground">
-                No lesson content available.
-              </p>
-            )}
-            
-            {/* Add some sample content to make page scrollable for demo */}
-            <div className="mt-8 space-y-4">
-              <h3 className="text-lg font-semibold">Learning Objectives</h3>
-              <ul className="list-disc pl-6 space-y-2">
-                <li>Understand the core concepts covered in this lesson</li>
-                <li>Apply the knowledge to practical scenarios</li>
-                <li>Build upon previous lessons for comprehensive learning</li>
-              </ul>
+          <CardContent className="p-4 sm:p-6 lg:p-8">
+            <div className="prose prose-sm sm:prose-base max-w-none">
+              {lesson.content ? (
+                <div className="whitespace-pre-wrap text-gray-700 leading-relaxed text-sm sm:text-base">
+                  {lesson.content}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <ScrollText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No lesson content available.</p>
+                </div>
+              )}
               
-              <h3 className="text-lg font-semibold">Key Points</h3>
-              <div className="bg-blue-50 border-l-4 border-blue-500 p-4">
-                <p>Make sure to review all the materials and resources provided below to get the most out of this lesson.</p>
+              {/* Enhanced Educational Content */}
+              <div className="mt-8 sm:mt-12 space-y-6 sm:space-y-8">
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 sm:p-6">
+                  <h3 className="text-base sm:text-lg font-bold text-blue-900 mb-4 flex items-center gap-2">
+                    <Target className="h-4 w-4 sm:h-5 sm:w-5" />
+                    Learning Objectives
+                  </h3>
+                  <ul className="space-y-2 sm:space-y-3 text-sm sm:text-base">
+                    <li className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">1</div>
+                      <span>Understand the core concepts covered in this lesson</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">2</div>
+                      <span>Apply the knowledge to practical scenarios</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">3</div>
+                      <span>Build upon previous lessons for comprehensive learning</span>
+                    </li>
+                  </ul>
+                </div>
+                
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-orange-400 rounded-r-lg p-4 sm:p-6">
+                  <h3 className="text-base sm:text-lg font-bold text-orange-900 mb-3 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5" />
+                    Key Points
+                  </h3>
+                  <p className="text-orange-800 text-sm sm:text-base leading-relaxed">
+                    Make sure to review all the materials and resources provided below to get the most out of this lesson. 
+                    Take notes and refer back to this content as needed during your learning journey.
+                  </p>
+                </div>
+                
+                {/* Additional Interactive Elements */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mt-6">
+                  <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <span className="font-semibold text-green-800 text-sm">Remember</span>
+                    </div>
+                    <p className="text-green-700 text-sm leading-relaxed">
+                      Practice makes perfect. Apply these concepts in real scenarios.
+                    </p>
+                  </div>
+                  
+                  <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Trophy className="h-4 w-4 text-purple-600" />
+                      <span className="font-semibold text-purple-800 text-sm">Pro Tip</span>
+                    </div>
+                    <p className="text-purple-700 text-sm leading-relaxed">
+                      Review the lesson resources for additional insights.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Lesson Resources */}
+        {/* Enhanced Lesson Resources */}
         {resources.length > 0 && (
-          <Card className="border-green-200 bg-green-50/30">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Download className="h-5 w-5 text-green-600" />
-                Lesson Resources
-                <Badge variant="outline" className="ml-2 bg-green-100 text-green-800">
-                  {resources.length} resource{resources.length > 1 ? 's' : ''}
-                </Badge>
+          <Card className="border-green-300 bg-gradient-to-br from-green-50 to-emerald-50 shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-green-100 to-emerald-100 border-b border-green-200">
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-green-500 rounded-lg">
+                    <Download className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                  </div>
+                  <span className="text-base sm:text-lg">Lesson Resources</span>
+                  <Badge className="bg-green-500 text-white border-0 px-3 py-1 text-xs sm:text-sm">
+                    {resources.length} resource{resources.length > 1 ? 's' : ''}
+                  </Badge>
+                </div>
               </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Additional materials and references for this lesson
+              <p className="text-xs sm:text-sm text-green-700 mt-2">
+                Additional materials and references for enhanced learning
               </p>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
+            <CardContent className="p-4 sm:p-6">
+              <div className="space-y-3 sm:space-y-4">
                 {resources.map((resource, index) => {
                   const resourceId = resource._id || resource.id || index;
                   
                   return (
                     <div
                       key={resourceId}
-                      className="flex items-center justify-between p-3 rounded-lg border bg-white hover:shadow-sm transition-shadow"
+                      className="group flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg border-2 border-white bg-white/80 backdrop-blur-sm hover:shadow-md hover:border-green-200 transition-all duration-300"
                     >
-                      <div className="flex items-center gap-3 flex-1">
-                        <div className="p-2 bg-green-100 rounded-lg">
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <div className="p-2 sm:p-3 bg-green-100 rounded-lg group-hover:bg-green-200 transition-colors duration-300">
                           {getResourceIcon(resource.type)}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="text-sm font-medium">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                            <h4 className="text-sm sm:text-base font-semibold text-gray-900 truncate">
                               {resource.title || `Resource ${index + 1}`}
                             </h4>
-                            <Badge variant="outline" className="text-xs">
+                            <Badge 
+                              variant="outline" 
+                              className={`text-xs self-start sm:self-auto ${
+                                resource.type === 'video' ? 'border-red-200 text-red-700 bg-red-50' :
+                                resource.type === 'pdf' ? 'border-blue-200 text-blue-700 bg-blue-50' :
+                                resource.type === 'link' ? 'border-purple-200 text-purple-700 bg-purple-50' :
+                                'border-gray-200 text-gray-700 bg-gray-50'
+                              }`}
+                            >
                               {resource.type?.toUpperCase() || 'FILE'}
                             </Badge>
                           </div>
                           {resource.content && (
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs sm:text-sm text-gray-600 leading-relaxed line-clamp-2">
                               {resource.content}
                             </p>
                           )}
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-row sm:flex-col lg:flex-row items-center gap-2 shrink-0">
                         <Button
                           onClick={() => handleResourceView(resource.url, resource.type, resource.title)}
                           variant="outline"
                           size="sm"
-                          className="h-8"
+                          className="flex-1 sm:flex-none h-8 sm:h-9 text-xs sm:text-sm hover:bg-green-50 hover:border-green-300"
                         >
                           {resource.type === 'video' ? (
                             <>
-                              <Play className="h-3 w-3 mr-1" />
-                              Play
+                              <Play className="h-3 w-3 mr-1.5" />
+                              <span className="hidden sm:inline">Play</span>
+                              <span className="sm:hidden">▶️</span>
                             </>
                           ) : resource.type === 'link' ? (
                             <>
-                              <ExternalLink className="h-3 w-3 mr-1" />
-                              Visit
+                              <ExternalLink className="h-3 w-3 mr-1.5" />
+                              <span className="hidden sm:inline">Visit</span>
+                              <span className="sm:hidden">🔗</span>
                             </>
                           ) : (
                             <>
-                              <Eye className="h-3 w-3 mr-1" />
-                              Preview
+                              <Eye className="h-3 w-3 mr-1.5" />
+                              <span className="hidden sm:inline">Preview</span>
+                              <span className="sm:hidden">👁️</span>
                             </>
                           )}
                         </Button>
@@ -443,10 +567,11 @@ const LessonDetail = () => {
                             onClick={() => handleDownload(resource.url, resource.title)}
                             variant="outline"
                             size="sm"
-                            className="h-8"
+                            className="flex-1 sm:flex-none h-8 sm:h-9 text-xs sm:text-sm hover:bg-blue-50 hover:border-blue-300"
                           >
-                            <Download className="h-3 w-3 mr-1" />
-                            Download
+                            <Download className="h-3 w-3 mr-1.5" />
+                            <span className="hidden sm:inline">Download</span>
+                            <span className="sm:hidden">⬇️</span>
                           </Button>
                         )}
                       </div>
@@ -458,60 +583,129 @@ const LessonDetail = () => {
           </Card>
         )}
 
-        {/* Completion Status */}
+        {/* Enhanced Completion Status */}
         {!isCompleted && (
-          <Card className="border-blue-200 bg-blue-50">
-            <CardContent className="p-6 text-center">
-              <ScrollText className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">
+          <Card className="border-blue-300 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg">
+            <CardContent className="p-4 sm:p-6 text-center">
+              <div className="relative mb-4">
+                {hasReachedBottom ? (
+                  <CheckCircle2 className="h-12 w-12 sm:h-16 sm:w-16 text-green-500 mx-auto animate-bounce" />
+                ) : (
+                  <ScrollText className="h-12 w-12 sm:h-16 sm:w-16 text-blue-500 mx-auto" />
+                )}
+                <div className="absolute inset-0 bg-blue-200 rounded-full blur-xl opacity-30 animate-pulse"></div>
+              </div>
+              
+              <h3 className="text-base sm:text-lg font-bold mb-3 text-gray-900">
                 {hasReachedBottom ? (
                   completingLesson ? (
-                    <span className="flex items-center gap-2">
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                      Completing lesson...
+                    <span className="flex items-center justify-center gap-2 text-green-700">
+                      <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+                      <span className="hidden sm:inline">Completing lesson...</span>
+                      <span className="sm:hidden">Processing...</span>
                     </span>
                   ) : (
-                    "Great! Lesson will be marked complete shortly."
+                    <span className="text-green-700">🎉 Great! Lesson will be marked complete shortly.</span>
                   )
                 ) : (
-                  "Scroll down to complete this lesson"
+                  <span className="text-blue-700">📖 Continue reading to complete this lesson</span>
                 )}
               </h3>
-              <p className="text-sm text-muted-foreground">
+              
+              <p className="text-xs sm:text-sm text-gray-600 mb-4 leading-relaxed max-w-sm mx-auto">
                 {hasReachedBottom ? (
-                  "You've reviewed all the content. Well done!"
+                  "You've reviewed all the content. Well done on your dedication to learning!"
                 ) : (
-                  "Read through all the content to mark this lesson as complete."
+                  "Read through all the content and resources to mark this lesson as complete."
                 )}
               </p>
-              <div className="mt-4">
-                <Progress value={scrollProgress} className="h-2" />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {Math.round(scrollProgress)}% of lesson reviewed
-                </p>
+              
+              <div className="max-w-xs mx-auto">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs font-medium text-gray-600">Progress</span>
+                  <span className="text-xs font-bold text-blue-600">
+                    {Math.round(scrollProgress)}%
+                  </span>
+                </div>
+                <Progress 
+                  value={scrollProgress} 
+                  className="h-2.5 sm:h-3 bg-gray-200" 
+                />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>Start</span>
+                  <span>Complete</span>
+                </div>
               </div>
+              
+              {scrollProgress > 50 && !hasReachedBottom && (
+                <div className="mt-4 p-3 bg-blue-100 rounded-lg">
+                  <p className="text-xs text-blue-700 font-medium">
+                    🚀 You're making great progress! Keep going to finish the lesson.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
 
-        {/* Completion Success */}
+        {/* Enhanced Completion Success */}
         {isCompleted && (
-          <Card className="border-green-200 bg-gradient-to-r from-green-50 to-emerald-50">
-            <CardContent className="p-6 text-center">
-              <Trophy className="h-12 w-12 text-green-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-green-800 mb-2">
+          <Card className="border-green-300 bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 shadow-xl">
+            <CardContent className="p-6 sm:p-8 text-center">
+              <div className="relative mb-6">
+                <Trophy className="h-16 w-16 sm:h-20 sm:w-20 text-yellow-500 mx-auto animate-bounce" />
+                <div className="absolute inset-0 bg-yellow-300 rounded-full blur-xl opacity-30 animate-pulse"></div>
+                
+                {/* Confetti effect */}
+                <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-4">
+                  <div className="text-2xl sm:text-3xl animate-bounce">🎉</div>
+                </div>
+                <div className="absolute top-2 left-1/4 transform -translate-x-1/2">
+                  <div className="text-xl sm:text-2xl animate-bounce delay-100">⭐</div>
+                </div>
+                <div className="absolute top-2 right-1/4 transform translate-x-1/2">
+                  <div className="text-xl sm:text-2xl animate-bounce delay-200">✨</div>
+                </div>
+              </div>
+              
+              <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-800 mb-3">
                 🎉 Lesson Completed!
               </h3>
-              <p className="text-green-700 mb-4">
-                Excellent work! You have successfully completed this lesson.
+              
+              <p className="text-sm sm:text-base text-green-700 mb-6 max-w-md mx-auto leading-relaxed">
+                Excellent work! You have successfully completed this lesson. Your dedication to learning is commendable.
               </p>
-              <Button 
-                onClick={handleBackToCourse}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Continue Learning
-              </Button>
+              
+              <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-sm mx-auto">
+                <Button 
+                  onClick={handleBackToCourse}
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                  size="lg"
+                >
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Continue Learning</span>
+                  <span className="sm:hidden">Continue</span>
+                </Button>
+                
+                <Button 
+                  onClick={() => window.location.reload()}
+                  variant="outline"
+                  className="flex-1 border-green-300 text-green-700 hover:bg-green-50"
+                  size="lg"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Review Again</span>
+                  <span className="sm:hidden">Review</span>
+                </Button>
+              </div>
+              
+              {/* Achievement badge */}
+              <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-yellow-100 rounded-full border border-yellow-300">
+                <Award className="h-4 w-4 text-yellow-600" />
+                <span className="text-xs sm:text-sm font-medium text-yellow-800">
+                  Learning Achievement Unlocked!
+                </span>
+              </div>
             </CardContent>
           </Card>
         )}

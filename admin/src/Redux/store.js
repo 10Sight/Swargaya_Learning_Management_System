@@ -24,6 +24,7 @@ import { resourceApi } from "./AllApi/resourceApi";
 import { moduleApi } from "./AllApi/moduleApi";
 import { lessonApi } from "./AllApi/LessonApi";
 import { analyticsApi } from "./AllApi/AnalyticsApi";
+import { superAdminApi } from "./AllApi/SuperAdminApi";
 
 const store = configureStore({
     reducer: {
@@ -51,6 +52,7 @@ const store = configureStore({
         [moduleApi.reducerPath]: moduleApi.reducer,
         [lessonApi.reducerPath]: lessonApi.reducer,
         [analyticsApi.reducerPath]: analyticsApi.reducer,
+        [superAdminApi.reducerPath]: superAdminApi.reducer,
     },
     middleware: (getDefaultMiddleware) => 
         getDefaultMiddleware().concat(
@@ -72,6 +74,7 @@ const store = configureStore({
             moduleApi.middleware,
             lessonApi.middleware,
             analyticsApi.middleware,
+            superAdminApi.middleware,
         ),
 });
 

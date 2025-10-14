@@ -17,11 +17,15 @@ import {
   IconBooks,
   IconFileText,
   IconAward,
+  IconUser,
+  IconMenu2,
+  IconX,
 } from "@tabler/icons-react";
 import { HomeIcon } from "lucide-react";
 
 const tabs = [
   { link: "/student", label: "Dashboard", icon: IconLayoutDashboardFilled },
+  { link: "/student/profile", label: "Profile", icon: IconUser },
   { link: "/student/batch", label: "Batch", icon: IconFolder },
   { link: "/student/course", label: "Course", icon: IconBooks },
   { link: "/student/reports", label: "Reports", icon: IconFileText },
@@ -29,15 +33,30 @@ const tabs = [
 ];
 
 export function StudentLayout() {
-  const [collapsed, setCollapsed] = useState(
-    window.innerWidth >= 768 ? false : true
-  );
+  const [collapsed, setCollapsed] = useState(true); // Always start collapsed
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [pageName, setPageName] = useState("Dashboard");
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { user, isLoading } = useSelector((state) => state.auth);
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        setCollapsed(true);
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Update page name based on current route
   useEffect(() => {
@@ -58,10 +77,26 @@ export function StudentLayout() {
         setPageName(routeName.charAt(0).toUpperCase() + routeName.slice(1));
       }
     }
-  }, [pathname]);
+    
+    // Close mobile menu when route changes
+    if (isMobile) {
+      setIsMobileMenuOpen(false);
+    }
+  }, [pathname, isMobile]);
 
   const toggleSidebar = () => {
-    setCollapsed((prev) => !prev);
+    if (isMobile) {
+      setIsMobileMenuOpen((prev) => !prev);
+    } else {
+      setCollapsed((prev) => !prev);
+    }
+  };
+
+  const handleNavigate = (link) => {
+    navigate(link);
+    if (isMobile) {
+      setIsMobileMenuOpen(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -75,11 +110,22 @@ export function StudentLayout() {
 
 
   const ToggleButton = ({ opened, onClick, ariaLabel }) => {
+    if (isMobile) {
+      const Icon = isMobileMenuOpen ? IconX : IconMenu2;
+      return (
+        <Icon
+          className="w-6 h-6 transition-all cursor-pointer text-gray-600 hover:text-gray-800 md:hidden"
+          onClick={onClick}
+          aria-label={ariaLabel}
+        />
+      );
+    }
+    
     return (
       <IconLayoutSidebarRightCollapse
         className={`${
           opened ? "rotate-180" : "mx-auto"
-        } min-w-5 min-h-5 duration-500 transition-all cursor-pointer text-gray-600 hover:text-gray-800`}
+        } w-5 h-5 transition-all duration-500 cursor-pointer text-gray-600 hover:text-gray-800 hidden md:block`}
         onClick={onClick}
         aria-label={ariaLabel}
       />
@@ -89,150 +135,186 @@ export function StudentLayout() {
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Mobile Overlay */}
-      {!collapsed && (
+      {(isMobileMenuOpen || (!collapsed && !isMobile)) && (
         <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm backdrop-saturate-150 z-10 md:hidden" 
-          onClick={toggleSidebar}
+          className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity duration-300 ${
+            isMobile ? '' : 'md:hidden'
+          }`}
+          onClick={() => {
+            if (isMobile) {
+              setIsMobileMenuOpen(false);
+            } else {
+              toggleSidebar();
+            }
+          }}
         />
       )}
       
       {/* Sidebar */}
       <nav
-        className={`fixed top-0 left-0 h-screen bg-white text-black shadow-lg transition-all duration-300 z-20
-                ${collapsed ? "w-16" : "w-64"} `}
+        className={`fixed top-0 left-0 h-screen bg-white text-black shadow-xl transition-all duration-300 z-50 border-r border-gray-200 ${
+          isMobile 
+            ? `${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} w-64`
+            : `${collapsed ? 'w-16' : 'w-64'}`
+        }`}
       >
-        <div
-          className={`relative h-16 items-center flex transition-all p-4 duration-300 z-50 border-b border-gray-200`}
-        >
+        <div className="relative h-16 items-center flex transition-all px-4 duration-300 border-b border-gray-200">
           <ToggleButton
-            opened={!collapsed}
+            opened={isMobile ? isMobileMenuOpen : !collapsed}
             onClick={toggleSidebar}
             ariaLabel="Toggle sidebar"
           />
-          {!collapsed && (
-            <span className="ml-4 py-1 text-sm font-semibold uppercase tracking-wide text-blue-700">
-              STUDENT INSTITUTE
+          {((!collapsed && !isMobile) || (isMobile && isMobileMenuOpen)) && (
+            <span className="ml-4 text-sm font-bold uppercase tracking-wide text-blue-700 transition-opacity duration-300">
+              STUDENT PORTAL
             </span>
           )}
         </div>
 
-        {/* Sidebar Tabs */}
-        <div className="px-2 flex flex-col w-full py-4 space-y-2">
-          {tabs.map((item) => {
-            const isActive = pathname === item.link;
+        {/* Sidebar Navigation */}
+        <div className="flex-1 overflow-y-auto px-2 py-4">
+          <div className="space-y-1">
+            {tabs.map((item) => {
+              const isActive = pathname === item.link || 
+                (item.link !== "/student" && pathname.startsWith(item.link));
 
-            return (
-              <div
-                className={`flex items-center cursor-pointer w-full overflow-hidden h-11 rounded-lg transition-all duration-300
-                ${
-                  isActive
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "text-gray-600 hover:bg-blue-50 hover:text-blue-600"
-                }
-                ${collapsed ? "justify-center " : " items-center px-3"}`}
-                key={item.label}
-                onClick={() => navigate(item.link)}
-              >
-                <item.icon
-                  className={`${
-                    collapsed ? "w-5 h-5" : "min-w-5 min-h-5"
-                  } my-auto`}
-                  strokeWidth={isActive ? 2 : 1.5}
-                />
-                {!collapsed && (
-                  <span className="ml-3 text-sm font-medium">{item.label}</span>
-                )}
-              </div>
-            );
-          })}
+              return (
+                <button
+                  key={item.label}
+                  onClick={() => handleNavigate(item.link)}
+                  className={`group flex items-center w-full px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                    isActive
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 active:bg-blue-100"
+                  } ${(collapsed && !isMobile) ? "justify-center px-2" : ""}`}
+                >
+                  <item.icon
+                    className={`shrink-0 transition-colors ${
+                      (collapsed && !isMobile) ? "w-6 h-6" : "w-5 h-5"
+                    } ${isActive ? "text-white" : "text-gray-500 group-hover:text-blue-600"}`}
+                    strokeWidth={isActive ? 2 : 1.5}
+                  />
+                  {((!collapsed && !isMobile) || (isMobile)) && (
+                    <span className="ml-3 truncate transition-all duration-300">
+                      {item.label}
+                    </span>
+                  )}
+                  {((!collapsed && !isMobile) || (isMobile)) && isActive && (
+                    <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Logout */}
-        <div className="absolute bottom-4 w-full px-2">
-          <div
-            className={`p-2 flex items-center rounded-lg w-full transition-all duration-200 ${
-              isLoading 
-                ? "opacity-50 cursor-not-allowed bg-gray-100" 
-                : "hover:bg-red-50 hover:text-red-600 cursor-pointer"
-            } ${
-              collapsed ? "justify-center" : "px-3"
-            }`}
+        <div className="border-t border-gray-200 p-2">
+          <button
             onClick={isLoading ? undefined : handleLogout}
+            disabled={isLoading}
+            className={`group flex items-center w-full px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 ${
+              isLoading 
+                ? "opacity-50 cursor-not-allowed bg-gray-100 text-gray-400" 
+                : "text-gray-700 hover:bg-red-50 hover:text-red-600 active:bg-red-100"
+            } ${(collapsed && !isMobile) ? "justify-center px-2" : ""}`}
           >
             {isLoading ? (
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-red-600"></div>
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-red-600 border-t-transparent shrink-0"></div>
             ) : (
-              <IconLogout className="min-w-5 min-h-5" stroke={1.5} />
+              <IconLogout className={`shrink-0 transition-colors ${
+                (collapsed && !isMobile) ? "w-6 h-6" : "w-5 h-5"
+              } text-gray-500 group-hover:text-red-600`} stroke={1.5} />
             )}
-            {!collapsed && (
-              <span className="ml-3 text-sm font-medium">
-                {isLoading ? "Logging out..." : "Logout"}
+            {((!collapsed && !isMobile) || (isMobile)) && (
+              <span className="ml-3 truncate transition-all duration-300">
+                {isLoading ? "Signing out..." : "Sign out"}
               </span>
             )}
-          </div>
+          </button>
         </div>
       </nav>
 
       {/* Main Content Area */}
       <div
         className={`flex-1 transition-all duration-300 ${
-          collapsed ? "ml-16" : "ml-16 md:ml-64"
+          isMobile 
+            ? "ml-0" 
+            : collapsed 
+            ? "ml-16" 
+            : "ml-64"
         }`}
       >
         {/* Header */}
-        <header
-          className={`px-3 sm:px-6 bg-white shadow-sm flex h-16 items-center justify-between gap-2 sm:gap-4 fixed right-0 top-0 border-b border-gray-200 z-10 transition-all duration-300 ${
-            collapsed ? "w-[calc(100%-4rem)]" : "w-[calc(100%-4rem)] md:w-[calc(100%-16rem)]"
-          }`}
-        >
-          {/* Left side (Breadcrumb) */}
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <Link
-                  to="/student"
-                  className="flex items-center text-blue-600 hover:text-blue-800"
+        <header className="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between px-4 py-3 sm:px-6">
+            {/* Left side - Mobile menu button and Breadcrumb */}
+            <div className="flex items-center gap-4">
+              {isMobile && (
+                <button
+                  onClick={toggleSidebar}
+                  className="p-2 -ml-2 rounded-lg text-gray-600 hover:text-gray-800 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 md:hidden"
+                  aria-label="Toggle navigation"
                 >
-                  <HomeIcon size={18} aria-hidden="true" />
-                  <span className="sr-only">Home</span>
-                </Link>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage className="text-gray-800 font-medium">
-                  {pageName}
-                </BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-
-          {/* Right side (Avatar) */}
-          <div className="relative flex items-center">
-            <div className="mr-3 text-right hidden md:block">
-              <p className="text-sm font-medium text-gray-800">
-                {user?.fullName || user?.userName || 'Admin User'}
-              </p>
-              <p className="text-xs text-gray-500 capitalize">
-                {user?.role?.toLowerCase().replace('_', ' ') || 'Administrator'}
-              </p>
+                  <IconMenu2 className="w-6 h-6" />
+                </button>
+              )}
+              
+              <Breadcrumb className="hidden sm:block">
+                <BreadcrumbList>
+                  <BreadcrumbItem>
+                    <Link
+                      to="/student"
+                      className="flex items-center text-blue-600 hover:text-blue-800 transition-colors"
+                    >
+                      <HomeIcon size={16} aria-hidden="true" />
+                      <span className="sr-only">Home</span>
+                    </Link>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <BreadcrumbPage className="text-gray-800 font-medium text-sm">
+                      {pageName}
+                    </BreadcrumbPage>
+                  </BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
+              
+              {/* Mobile page title */}
+              <h1 className="text-lg font-semibold text-gray-900 sm:hidden">
+                {pageName}
+              </h1>
             </div>
-            <div className="relative size-10">
-              <img
-                src={user?.avatar?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.fullName || user?.userName || 'Admin User')}&background=2563eb&color=fff`}
-                className="rounded-full size-full border-2 border-white shadow-md object-cover"
-                alt="User avatar"
-              />
-              <div className="absolute bg-green-500 rounded-full bottom-0 right-0 size-3 border-2 border-white"></div>
+
+            {/* Right side - User info and avatar */}
+            <div className="flex items-center gap-3">
+              <div className="hidden lg:block text-right">
+                <p className="text-sm font-medium text-gray-900 leading-tight">
+                  {user?.fullName || user?.userName || 'Student'}
+                </p>
+                <p className="text-xs text-gray-500 capitalize">
+                  {user?.role?.toLowerCase().replace('_', ' ') || 'Student'}
+                </p>
+              </div>
+              
+              <div className="relative">
+                <img
+                  src={user?.avatar?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.fullName || user?.userName || 'Student')}&background=2563eb&color=fff`}
+                  className="w-10 h-10 rounded-full border-2 border-white shadow-md object-cover ring-2 ring-gray-100"
+                  alt="User avatar"
+                />
+                <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+              </div>
             </div>
           </div>
         </header>
 
         {/* Page Content */}
-        <div className="pt-20 pb-6 px-3 sm:px-6 min-h-screen">
-          <div className="bg-white rounded-lg shadow-sm p-3 sm:p-6">
+        <main className="flex-1">
+          <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
             <Outlet />
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );
