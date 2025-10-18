@@ -143,14 +143,14 @@ export function SuperAdminLayout() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-indigo-50/20">
       {/* Sidebar */}
       <nav
-        className={`fixed top-0 left-0 h-screen bg-white text-black shadow-lg transition-all duration-300 z-20
+        className={`fixed top-0 left-0 h-screen bg-white/95 backdrop-blur-xl border-r border-gray-200/50 text-black shadow-2xl transition-all duration-300 z-20
                 ${collapsed ? "w-16" : "w-64"} `}
       >
         <div
-          className={`relative h-16 items-center flex transition-all p-4 duration-300 z-50 border-b border-gray-200`}
+          className={`relative h-16 items-center flex transition-all p-4 duration-300 z-50 border-b border-gray-200/80 bg-white/50 backdrop-blur-sm`}
         >
           <ToggleButton
             opened={!collapsed}
@@ -158,8 +158,8 @@ export function SuperAdminLayout() {
             ariaLabel="Toggle sidebar"
           />
           {!collapsed && (
-            <span className="ml-4 py-1 text-sm font-semibold uppercase tracking-wide text-blue-700">
-              SUPER ADMIN INSTITUTE
+            <span className="ml-4 py-1 text-sm font-bold uppercase tracking-wider bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+              SUPER ADMIN
             </span>
           )}
         </div>
@@ -184,25 +184,37 @@ export function SuperAdminLayout() {
 
                   return (
                     <div
-                      className={`flex items-center cursor-pointer w-full overflow-hidden h-10 rounded-lg transition-all duration-300
+                      className={`group relative flex items-center cursor-pointer w-full overflow-hidden h-10 rounded-xl transition-all duration-300 hover:scale-[1.02]
                       ${
                         isActive
-                          ? "bg-blue-600 text-white shadow-sm"
-                          : "text-gray-600 hover:bg-blue-50 hover:text-blue-600"
+                          ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg shadow-purple-200"
+                          : "text-gray-600 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 hover:text-purple-700 hover:shadow-md"
                       }
-                      ${collapsed ? "justify-center " : " items-center px-3"}`}
+                      ${collapsed ? "justify-center mx-1" : "items-center px-3"}`}
                       key={item.label}
                       onClick={() => navigate(item.link)}
                       title={collapsed ? item.label : ''}
                     >
+                      {isActive && !collapsed && (
+                        <div className="absolute left-0 top-0 h-full w-1 bg-white rounded-r-full" />
+                      )}
                       <item.icon
                         className={`${
-                          collapsed ? "w-4 h-4" : "min-w-4 min-h-4"
-                        } my-auto`}
-                        strokeWidth={isActive ? 2 : 1.5}
+                          collapsed ? "w-5 h-5" : "min-w-4 min-h-4"
+                        } transition-transform group-hover:scale-110`}
+                        strokeWidth={isActive ? 2.5 : 1.5}
                       />
                       {!collapsed && (
-                        <span className="ml-3 text-sm font-medium">{item.label}</span>
+                        <span className="ml-3 text-sm font-medium transition-all group-hover:translate-x-0.5">{item.label}</span>
+                      )}
+                      {!collapsed && (
+                        <div className={`ml-auto opacity-0 group-hover:opacity-100 transition-opacity ${
+                          isActive ? 'text-purple-200' : 'text-gray-400'
+                        }`}>
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
                       )}
                     </div>
                   );
@@ -246,7 +258,7 @@ export function SuperAdminLayout() {
       >
         {/* Header */}
         <header
-          className={`px-6 bg-white shadow-sm flex h-16 items-center justify-between gap-4 fixed right-0 top-0 border-b border-gray-200 z-10 transition-all duration-300 ${
+          className={`px-4 sm:px-6 bg-white/95 backdrop-blur-lg shadow-sm border-b border-gray-200/80 flex h-16 items-center justify-between gap-2 sm:gap-4 fixed right-0 top-0 z-30 transition-all duration-300 ${
             collapsed ? "w-[calc(100%-4rem)]" : "w-[calc(100%-16rem)]"
           }`}
         >
@@ -256,7 +268,7 @@ export function SuperAdminLayout() {
               <BreadcrumbItem>
                 <Link
                   to="/superadmin"
-                  className="flex items-center text-blue-600 hover:text-blue-800"
+                  className="flex items-center text-purple-600 hover:text-purple-800 transition-colors"
                 >
                   <HomeIcon size={18} aria-hidden="true" />
                   <span className="sr-only">Home</span>
@@ -272,29 +284,33 @@ export function SuperAdminLayout() {
           </Breadcrumb>
 
           {/* Right side (Avatar) */}
-          <div className="relative flex items-center">
-            <div className="mr-3 text-right hidden md:block">
-              <p className="text-sm font-medium text-gray-800">
+          <div className="relative flex items-center gap-3">
+            <div className="mr-2 text-right hidden lg:block">
+              <p className="text-sm font-medium text-gray-800 truncate max-w-32">
                 {user?.fullName || user?.userName || 'Admin User'}
               </p>
               <p className="text-xs text-gray-500 capitalize">
-                {user?.role?.toLowerCase().replace('_', ' ') || 'Administrator'}
+                {user?.role?.toLowerCase().replace('_', ' ') || 'Super Admin'}
               </p>
             </div>
-            <div className="relative size-10">
-              <img
-                src={user?.avatar?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.fullName || user?.userName || 'Admin User')}&background=2563eb&color=fff`}
-                className="rounded-full size-full border-2 border-white shadow-md object-cover"
-                alt="User avatar"
-              />
-              <div className="absolute bg-green-500 rounded-full bottom-0 right-0 size-3 border-2 border-white"></div>
+            
+            {/* Avatar */}
+            <div className="relative">
+              <div className="relative size-9 sm:size-10 group">
+                <img
+                  src={user?.avatar?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.fullName || user?.userName || 'Admin User')}&background=7c3aed&color=fff`}
+                  className="rounded-full size-full border-2 border-white shadow-md object-cover transition-transform group-hover:scale-105 ring-2 ring-purple-100"
+                  alt="User avatar"
+                />
+                <div className="absolute bg-green-500 rounded-full bottom-0 right-0 size-2.5 sm:size-3 border-2 border-white"></div>
+              </div>
             </div>
           </div>
         </header>
 
         {/* Page Content */}
-        <div className="pt-20 pb-6 px-6 min-h-screen">
-          <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="pt-20 pb-6 px-4 sm:px-6 min-h-screen">
+          <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-sm border border-gray-200/50 p-4 sm:p-6 transition-all duration-300 hover:shadow-md">
             <Outlet />
           </div>
         </div>

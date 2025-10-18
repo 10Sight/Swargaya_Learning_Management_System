@@ -3,11 +3,12 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FormInput } from '@/components/form';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Loader2, Mail, User, Eye, EyeOff } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Loader2, Mail, User, GraduationCap, Shield, BookOpen, Sparkles, Lock } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { login, clearRedirectUrl } from '@/Redux/Slice/AuthSlice';
 
@@ -48,12 +49,18 @@ const Login = () => {
     handleSubmit,
     formState: { errors },
     reset,
-    watch
+    watch,
+    setValue
   } = useForm({
     resolver: zodResolver(loginMethod === 'email' ? emailLoginSchema : usernameLoginSchema),
   });
 
   const formValues = watch();
+  const [formData, setFormData] = useState({
+    email: '',
+    userName: '',
+    password: ''
+  });
 
   useEffect(() => {
     if (!isLoggedIn || !user) return;
@@ -78,6 +85,12 @@ const Login = () => {
   const handleLoginMethodChange = (method) => {
     setLoginMethod(method);
     reset();
+    setFormData({ email: '', userName: '', password: '' });
+  };
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    setValue(field, value);
   };
 
   const onSubmit = async (data) => {
@@ -89,166 +102,219 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 p-4">
-      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <h1 className="text-3xl font-bold text-gray-800">Welcome Back</h1>
-          <p className="text-gray-600 mt-2">Sign in to your account to continue</p>
-        </div>
-        
-        <div className="mb-6 flex rounded-lg bg-gray-100 p-1">
-          <button
-            type="button"
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 ${loginMethod === 'email' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-800'}`}
-            onClick={() => handleLoginMethodChange('email')}
-          >
-            <Mail size={16} />
-            Email
-          </button>
-          <button
-            type="button"
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 ${loginMethod === 'username' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-800'}`}
-            onClick={() => handleLoginMethodChange('username')}
-          >
-            <User size={16} />
-            Username
-          </button>
-        </div>
-        
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {loginMethod === 'email' ? (
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-gray-700 font-medium">
-                Email Address
-              </Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email address"
-                  className={`pl-10 transition-all duration-300 ${errors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'}`}
-                  disabled={isLoading}
-                  {...register('email')}
-                />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative overflow-hidden">
+      {/* Background Pattern */}
+      <div 
+        className="absolute inset-0 opacity-30"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23e2e8f0' fill-opacity='0.4'%3E%3Cpath d='m36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+        }}
+      ></div>
+      
+      <div className="relative z-10 min-h-screen flex">
+        {/* Left Side - Branding */}
+        <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 text-white relative overflow-hidden">
+          <div className="absolute inset-0 bg-black/20"></div>
+          <div className="relative z-10 flex flex-col justify-center items-start p-16 max-w-lg">
+            <div className="mb-8">
+              <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-6">
+                <GraduationCap className="w-8 h-8 text-white" />
               </div>
-              {errors.email && (
-                <p className="text-red-500 text-sm mt-1 flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                  {errors.email.message}
-                </p>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <Label htmlFor="userName" className="text-gray-700 font-medium">
-                Username
-              </Label>
-              <div className="relative">
-                <User className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
-                <Input
-                  id="userName"
-                  type="text"
-                  placeholder="Enter your username"
-                  className={`pl-10 transition-all duration-300 ${errors.userName ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'}`}
-                  disabled={isLoading}
-                  {...register('userName')}
-                />
-              </div>
-              {errors.userName && (
-                <p className="text-red-500 text-sm mt-1 flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                  {errors.userName.message}
-                </p>
-              )}
-            </div>
-          )}
-          
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <Label htmlFor="password" className="text-gray-700 font-medium">
-                Password
-              </Label>
-              <a href="#" className="text-sm text-blue-600 hover:underline transition-colors">
-                Forgot password?
-              </a>
-            </div>
-            <div className="relative">
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                placeholder="Enter your password"
-                className={`pr-10 transition-all duration-300 ${errors.password ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'}`}
-                disabled={isLoading}
-                {...register('password')}
-              />
-              <button
-                type="button"
-                className="absolute right-3 top-3 text-gray-500 hover:text-gray-700"
-                onClick={() => setShowPassword(!showPassword)}
-                disabled={isLoading}
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-            {errors.password && (
-              <p className="text-red-500 text-sm mt-1 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-                {errors.password.message}
+              <h1 className="text-4xl font-bold mb-4 leading-tight">
+                Learning Management
+                <span className="block text-3xl font-semibold text-blue-200">System</span>
+              </h1>
+              <p className="text-lg text-blue-100 leading-relaxed">
+                Empowering education through innovative technology and seamless learning experiences.
               </p>
-            )}
+            </div>
+            
+            <div className="space-y-4">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                  <BookOpen className="w-6 h-6 text-blue-200" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white">Interactive Learning</h3>
+                  <p className="text-blue-200 text-sm">Engage with dynamic content and real-time feedback</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                  <Shield className="w-6 h-6 text-blue-200" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white">Secure & Reliable</h3>
+                  <p className="text-blue-200 text-sm">Your data is protected with enterprise-grade security</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                  <Sparkles className="w-6 h-6 text-blue-200" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white">AI-Powered Insights</h3>
+                  <p className="text-blue-200 text-sm">Get personalized recommendations and analytics</p>
+                </div>
+              </div>
+            </div>
           </div>
           
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="rememberMe"
-              checked={rememberMe}
-              onCheckedChange={(checked) => setRememberMe(checked === true)}
-              disabled={isLoading}
-            />
-            <Label htmlFor="rememberMe" className="text-gray-700 cursor-pointer">
-              Remember me
-            </Label>
-          </div>
-          
-          <Button 
-            type="submit" 
-            className={`w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-xl font-medium transition-all duration-300 transform shadow-md cursor-pointer ${
-              isLoading 
-                ? "opacity-70 cursor-not-allowed" 
-                : "hover:from-blue-700 hover:to-indigo-700 hover:scale-[1.02] hover:shadow-lg"
-            }`}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Signing In...
-              </>
-            ) : (
-              'Sign In'
-            )}
-          </Button>
-        </form>
+          {/* Decorative Elements */}
+          <div className="absolute top-20 right-20 w-32 h-32 bg-white/10 rounded-full blur-xl"></div>
+          <div className="absolute bottom-20 right-32 w-24 h-24 bg-blue-300/20 rounded-full blur-lg"></div>
+          <div className="absolute top-1/3 right-8 w-16 h-16 bg-purple-300/30 rounded-full blur-md"></div>
+        </div>
         
-        <div className="mt-6 text-center">
-          <p className="text-gray-600">
-            Don't have an account?{' '}
-            <a href="#" className="text-blue-600 font-medium hover:underline transition-colors">
-              Sign up
-            </a>
-          </p>
+        {/* Right Side - Login Form */}
+        <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
+          <Card className="w-full max-w-md shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
+            <CardHeader className="text-center space-y-4 pb-8">
+              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg">
+                <GraduationCap className="h-8 w-8 text-white" />
+              </div>
+              <div className="space-y-2">
+                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  Welcome Back
+                </CardTitle>
+                <CardDescription className="text-gray-600">
+                  Sign in to access your learning dashboard
+                </CardDescription>
+              </div>
+            </CardHeader>
+            
+            <CardContent className="space-y-6">
+              {/* Login Method Selector */}
+              <div className="flex rounded-lg bg-slate-100/80 p-1 backdrop-blur-sm">
+                <button
+                  type="button"
+                  className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 ${
+                    loginMethod === 'email' 
+                      ? 'bg-white text-blue-600 shadow-sm ring-1 ring-blue-100' 
+                      : 'text-gray-600 hover:text-gray-800 hover:bg-white/50'
+                  }`}
+                  onClick={() => handleLoginMethodChange('email')}
+                >
+                  <Mail size={16} />
+                  Email
+                </button>
+                <button
+                  type="button"
+                  className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 ${
+                    loginMethod === 'username' 
+                      ? 'bg-white text-blue-600 shadow-sm ring-1 ring-blue-100' 
+                      : 'text-gray-600 hover:text-gray-800 hover:bg-white/50'
+                  }`}
+                  onClick={() => handleLoginMethodChange('username')}
+                >
+                  <User size={16} />
+                  Username
+                </button>
+              </div>
+              
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                {loginMethod === 'email' ? (
+                  <FormInput
+                    type="email"
+                    label="Email Address"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    placeholder="Enter your email address"
+                    required
+                    icon={<Mail className="h-4 w-4" />}
+                    variant="filled"
+                    disabled={isLoading}
+                    error={errors.email?.message}
+                    showSuccessIndicator={false}
+                    helperText="We'll keep your account secure"
+                  />
+                ) : (
+                  <FormInput
+                    type="text"
+                    label="Username"
+                    value={formData.userName}
+                    onChange={(e) => handleInputChange('userName', e.target.value)}
+                    placeholder="Enter your username"
+                    required
+                    icon={<User className="h-4 w-4" />}
+                    variant="filled"
+                    disabled={isLoading}
+                    error={errors.userName?.message}
+                    showSuccessIndicator={false}
+                    helperText="Your unique identifier"
+                  />
+                )}
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center mb-2">
+                    <span></span>
+                    <a href="#" className="text-sm text-blue-600 hover:underline transition-colors">
+                      Forgot password?
+                    </a>
+                  </div>
+                  <FormInput
+                    type="password"
+                    label="Password"
+                    value={formData.password}
+                    onChange={(e) => handleInputChange('password', e.target.value)}
+                    placeholder="Enter your password"
+                    required
+                    icon={<Lock className="h-4 w-4" />}
+                    variant="filled"
+                    disabled={isLoading}
+                    error={errors.password?.message}
+                    showSuccessIndicator={false}
+                    helperText="Must be at least 6 characters"
+                    showPasswordToggle
+                  />
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="rememberMe"
+                    checked={rememberMe}
+                    onCheckedChange={(checked) => setRememberMe(checked === true)}
+                    disabled={isLoading}
+                  />
+                  <Label htmlFor="rememberMe" className="text-gray-700 cursor-pointer text-sm">
+                    Remember me for 30 days
+                  </Label>
+                </div>
+                
+                <Button 
+                  type="submit" 
+                  size="lg"
+                  className={`w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] disabled:scale-100 disabled:opacity-70`}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Signing you in...
+                    </>
+                  ) : (
+                    <>
+                      <span>Sign In</span>
+                      <svg className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                      </svg>
+                    </>
+                  )}
+                </Button>
+              </form>
+              
+              <div className="mt-8 text-center">
+                <p className="text-gray-600 text-sm">
+                  Don't have an account?{' '}
+                  <a href="#" className="text-blue-600 font-semibold hover:text-blue-700 hover:underline transition-colors">
+                    Contact Administrator
+                  </a>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

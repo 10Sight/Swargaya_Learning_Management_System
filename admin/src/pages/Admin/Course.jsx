@@ -447,9 +447,9 @@ const Course = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header with Stats using reusable StatCard components */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <StatCard
           title="Total Courses"
           value={totalCount}
@@ -498,23 +498,25 @@ const Course = () => {
 
       {/* Tabs for filtering */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <TabsList className="grid grid-cols-4 w-full sm:w-auto">
-            <TabsTrigger value="all" onClick={() => clearFilters()}>
+        <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row justify-between items-stretch sm:items-center gap-4">
+          <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full sm:w-auto">
+            <TabsTrigger value="all" onClick={() => clearFilters()} className="text-xs sm:text-sm">
               All
             </TabsTrigger>
             <TabsTrigger
               value="published"
               onClick={() => setStatusFilter("PUBLISHED")}
+              className="text-xs sm:text-sm"
             >
               Published
             </TabsTrigger>
-            <TabsTrigger value="draft" onClick={() => setStatusFilter("DRAFT")}>
+            <TabsTrigger value="draft" onClick={() => setStatusFilter("DRAFT")} className="text-xs sm:text-sm">
               Draft
             </TabsTrigger>
             <TabsTrigger
               value="archived"
               onClick={() => setStatusFilter("ARCHIVED")}
+              className="text-xs sm:text-sm"
             >
               Archived
             </TabsTrigger>
@@ -522,42 +524,46 @@ const Course = () => {
 
           <Button
             onClick={() => navigate("/admin/add-course")}
-            className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-300 w-full sm:w-auto"
           >
             <IconPlus className="h-4 w-4 mr-2" />
-            Add Course
+            <span className="hidden xs:inline">Add Course</span>
+            <span className="xs:hidden">Add</span>
           </Button>
         </div>
       </Tabs>
 
       {/* Search and Filters using reusable components */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <Card className="shadow-sm border border-gray-200/50">
+        <CardHeader className="pb-3 px-4 sm:px-6">
+          <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row justify-between items-stretch sm:items-center gap-4">
             <SearchInput
-              placeholder="Search courses by title, description, or category..."
+              placeholder="Search courses..."
               value={searchTerm}
               onChange={setSearchTerm}
-              className="w-full sm:w-96"
+              className="w-full sm:w-80 lg:w-96"
             />
 
-            <div className="flex flex-wrap gap-2">
-              <FilterSelect
-                value={statusFilter}
-                onValueChange={setStatusFilter}
-                options={statusOptions}
-                placeholder="Status"
-                icon={IconFilter}
-              />
+            <div className="flex flex-col xs:flex-row gap-2">
+              <div className="grid grid-cols-2 xs:flex gap-2">
+                <FilterSelect
+                  value={statusFilter}
+                  onValueChange={setStatusFilter}
+                  options={statusOptions}
+                  placeholder="Status"
+                  icon={IconFilter}
+                  className="min-w-0"
+                />
 
-              <FilterSelect
-                value={categoryFilter}
-                onValueChange={setCategoryFilter}
-                options={categoryOptions}
-                placeholder="Category"
-                icon={IconChartBar}
-                className="w-[160px]"
-              />
+                <FilterSelect
+                  value={categoryFilter}
+                  onValueChange={setCategoryFilter}
+                  options={categoryOptions}
+                  placeholder="Category"
+                  icon={IconChartBar}
+                  className="min-w-0 xs:w-[140px]"
+                />
+              </div>
 
               {(statusFilter !== "ALL" ||
                 categoryFilter !== "ALL" ||
@@ -565,10 +571,12 @@ const Course = () => {
                 <Button
                   variant="outline"
                   onClick={clearFilters}
-                  className="gap-1"
+                  className="gap-1 w-full xs:w-auto"
+                  size="sm"
                 >
                   <IconX className="h-4 w-4" />
-                  Clear
+                  <span className="hidden xs:inline">Clear</span>
+                  <span className="xs:hidden">Clear Filters</span>
                 </Button>
               )}
             </div>
@@ -583,146 +591,265 @@ const Course = () => {
         </CardHeader>
 
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50">
-                <TableHead className="w-[250px]">Course</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Difficulty</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {courses.length > 0 ? (
-                courses.map((course) => (
-                  <TableRow
-                    key={course._id}
-                    className="group hover:bg-muted/30 cursor-pointer"
-                    onClick={() => handleCourseClick(course)}
-                  >
-                    <TableCell>
-                      <div className="flex items-center space-x-3">
-                        <Avatar className="h-10 w-10 border bg-blue-100">
-                          <AvatarFallback className="bg-blue-100 text-blue-800">
-                            <IconBook className="h-5 w-5" />
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium text-foreground line-clamp-1">
-                              {course.title}
+          {/* Desktop Table */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="w-[250px]">Course</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Difficulty</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {courses.length > 0 ? (
+                  courses.map((course) => (
+                    <TableRow
+                      key={course._id}
+                      className="group hover:bg-muted/30 cursor-pointer"
+                      onClick={() => handleCourseClick(course)}
+                    >
+                      <TableCell>
+                        <div className="flex items-center space-x-3">
+                          <Avatar className="h-10 w-10 border bg-blue-100">
+                            <AvatarFallback className="bg-blue-100 text-blue-800">
+                              <IconBook className="h-5 w-5" />
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-foreground line-clamp-1">
+                                {course.title}
+                              </p>
+                              <IconExternalLink className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                            <p className="text-sm text-muted-foreground line-clamp-1">
+                              {course.description}
                             </p>
-                            <IconExternalLink className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
-                          <p className="text-sm text-muted-foreground line-clamp-1">
-                            {course.description}
-                          </p>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{course.category}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      {getDifficultyBadge(course.difficulty)}
-                    </TableCell>
-                    <TableCell>
-                      <Select
-                        value={course.status}
-                        onValueChange={(newStatus) =>
-                          handleTogglePublishStatus(course._id, course.status)
-                        }
-                      >
-                        <SelectTrigger className="w-[140px]">
-                          {getStatusBadge(course.status)}
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="PUBLISHED">Published</SelectItem>
-                          <SelectItem value="DRAFT">Draft</SelectItem>
-                          <SelectItem value="ARCHIVED">Archived</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openEditDialog(course);
-                                }}
-                                className="h-8 w-8 p-0"
-                              >
-                                <IconPencil className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Edit course</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{course.category}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {getDifficultyBadge(course.difficulty)}
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          value={course.status}
+                          onValueChange={(newStatus) =>
+                            handleTogglePublishStatus(course._id, course.status)
+                          }
+                        >
+                          <SelectTrigger className="w-[140px]">
+                            {getStatusBadge(course.status)}
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="PUBLISHED">Published</SelectItem>
+                            <SelectItem value="DRAFT">Draft</SelectItem>
+                            <SelectItem value="ARCHIVED">Archived</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openEditDialog(course);
+                                  }}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <IconPencil className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Edit course</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
 
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openDeleteDialog(course);
-                                }}
-                                className="h-8 w-8 p-0 text-red-600 hover:text-red-800 hover:bg-red-50"
-                              >
-                                <IconTrash className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Delete course</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openDeleteDialog(course);
+                                  }}
+                                  className="h-8 w-8 p-0 text-red-600 hover:text-red-800 hover:bg-red-50"
+                                >
+                                  <IconTrash className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Delete course</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-10">
+                      <div className="flex flex-col items-center space-y-3">
+                        <IconBook className="h-12 w-12 text-muted-foreground/60" />
+                        <p className="text-muted-foreground font-medium">
+                          No courses found
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {searchTerm ||
+                          statusFilter !== "ALL" ||
+                          categoryFilter !== "ALL"
+                            ? "Try adjusting your search or filters"
+                            : "Add your first course to get started"}
+                        </p>
+                        {(searchTerm ||
+                          statusFilter !== "ALL" ||
+                          categoryFilter !== "ALL") && (
+                          <Button
+                            variant="outline"
+                            onClick={clearFilters}
+                            className="mt-2"
+                          >
+                            Clear filters
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-10">
-                    <div className="flex flex-col items-center space-y-3">
-                      <IconBook className="h-12 w-12 text-muted-foreground/60" />
-                      <p className="text-muted-foreground font-medium">
-                        No courses found
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {searchTerm ||
-                        statusFilter !== "ALL" ||
-                        categoryFilter !== "ALL"
-                          ? "Try adjusting your search or filters"
-                          : "Add your first course to get started"}
-                      </p>
-                      {(searchTerm ||
-                        statusFilter !== "ALL" ||
-                        categoryFilter !== "ALL") && (
-                        <Button
-                          variant="outline"
-                          onClick={clearFilters}
-                          className="mt-2"
-                        >
-                          Clear filters
-                        </Button>
-                      )}
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-3 p-4">
+            {courses.length > 0 ? (
+              courses.map((course) => (
+                <Card
+                  key={course._id}
+                  className="group cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02] border border-gray-200/50"
+                  onClick={() => handleCourseClick(course)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start space-x-3">
+                      <Avatar className="h-12 w-12 border bg-blue-100 flex-shrink-0">
+                        <AvatarFallback className="bg-blue-100 text-blue-800">
+                          <IconBook className="h-6 w-6" />
+                        </AvatarFallback>
+                      </Avatar>
+                      
+                      <div className="flex-1 min-w-0 space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <h3 className="font-medium text-foreground line-clamp-1 group-hover:text-blue-600 transition-colors">
+                              {course.title}
+                            </h3>
+                            <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                              {course.description}
+                            </p>
+                          </div>
+                          <IconExternalLink className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                        </div>
+                        
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            {course.category}
+                          </Badge>
+                          {getDifficultyBadge(course.difficulty)}
+                          {getStatusBadge(course.status)}
+                        </div>
+                        
+                        <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                          <div className="flex items-center gap-2">
+                            <Select
+                              value={course.status}
+                              onValueChange={(newStatus) =>
+                                handleTogglePublishStatus(course._id, course.status)
+                              }
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <SelectTrigger className="w-[120px] h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="PUBLISHED">Published</SelectItem>
+                                <SelectItem value="DRAFT">Draft</SelectItem>
+                                <SelectItem value="ARCHIVED">Archived</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div className="flex items-center space-x-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEditDialog(course);
+                              }}
+                              className="h-8 w-8 p-0"
+                            >
+                              <IconPencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openDeleteDialog(course);
+                              }}
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-800 hover:bg-red-50"
+                            >
+                              <IconTrash className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="text-center py-12">
+                <IconBook className="h-16 w-16 text-muted-foreground/60 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-muted-foreground mb-2">
+                  No courses found
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {searchTerm ||
+                  statusFilter !== "ALL" ||
+                  categoryFilter !== "ALL"
+                    ? "Try adjusting your search or filters"
+                    : "Add your first course to get started"}
+                </p>
+                {(searchTerm ||
+                  statusFilter !== "ALL" ||
+                  categoryFilter !== "ALL") && (
+                  <Button
+                    variant="outline"
+                    onClick={clearFilters}
+                    className="mt-2"
+                  >
+                    Clear filters
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 

@@ -133,11 +133,11 @@ export function StudentLayout() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-green-50/30 to-emerald-50/20">
       {/* Mobile Overlay */}
       {(isMobileMenuOpen || (!collapsed && !isMobile)) && (
         <div 
-          className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity duration-300 ${
+          className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity duration-300 animate-in fade-in ${
             isMobile ? '' : 'md:hidden'
           }`}
           onClick={() => {
@@ -152,20 +152,20 @@ export function StudentLayout() {
       
       {/* Sidebar */}
       <nav
-        className={`fixed top-0 left-0 h-screen bg-white text-black shadow-xl transition-all duration-300 z-50 border-r border-gray-200 ${
+        className={`fixed top-0 left-0 h-screen bg-white/95 backdrop-blur-xl text-black shadow-2xl transition-all duration-300 z-50 border-r border-gray-200/50 ${
           isMobile 
             ? `${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} w-64`
             : `${collapsed ? 'w-16' : 'w-64'}`
         }`}
       >
-        <div className="relative h-16 items-center flex transition-all px-4 duration-300 border-b border-gray-200">
+        <div className="relative h-16 items-center flex transition-all px-4 duration-300 border-b border-gray-200/80 bg-white/50 backdrop-blur-sm">
           <ToggleButton
             opened={isMobile ? isMobileMenuOpen : !collapsed}
             onClick={toggleSidebar}
             ariaLabel="Toggle sidebar"
           />
           {((!collapsed && !isMobile) || (isMobile && isMobileMenuOpen)) && (
-            <span className="ml-4 text-sm font-bold uppercase tracking-wide text-blue-700 transition-opacity duration-300">
+            <span className="ml-4 text-sm font-bold uppercase tracking-wider bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent transition-opacity duration-300">
               STUDENT PORTAL
             </span>
           )}
@@ -182,25 +182,34 @@ export function StudentLayout() {
                 <button
                   key={item.label}
                   onClick={() => handleNavigate(item.link)}
-                  className={`group flex items-center w-full px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                  className={`group relative flex items-center w-full px-3 py-3 text-sm font-medium rounded-xl transition-all duration-300 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${
                     isActive
-                      ? "bg-blue-600 text-white shadow-sm"
-                      : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 active:bg-blue-100"
-                  } ${(collapsed && !isMobile) ? "justify-center px-2" : ""}`}
+                      ? "bg-gradient-to-r from-green-600 to-blue-600 text-white shadow-lg shadow-green-200"
+                      : "text-gray-700 hover:bg-gradient-to-r hover:from-green-50 hover:to-blue-50 hover:text-green-700 hover:shadow-md active:bg-green-100"
+                  } ${(collapsed && !isMobile) ? "justify-center px-2 mx-1" : ""}`}
                 >
+                  {isActive && ((!collapsed && !isMobile) || isMobile) && (
+                    <div className="absolute left-0 top-0 h-full w-1 bg-white rounded-r-full" />
+                  )}
                   <item.icon
-                    className={`shrink-0 transition-colors ${
+                    className={`shrink-0 transition-all duration-300 group-hover:scale-110 ${
                       (collapsed && !isMobile) ? "w-6 h-6" : "w-5 h-5"
-                    } ${isActive ? "text-white" : "text-gray-500 group-hover:text-blue-600"}`}
-                    strokeWidth={isActive ? 2 : 1.5}
+                    } ${isActive ? "text-white" : "text-gray-500 group-hover:text-green-600"}`}
+                    strokeWidth={isActive ? 2.5 : 1.5}
                   />
                   {((!collapsed && !isMobile) || (isMobile)) && (
-                    <span className="ml-3 truncate transition-all duration-300">
+                    <span className="ml-3 truncate transition-all duration-300 group-hover:translate-x-0.5">
                       {item.label}
                     </span>
                   )}
-                  {((!collapsed && !isMobile) || (isMobile)) && isActive && (
-                    <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
+                  {((!collapsed && !isMobile) || (isMobile)) && (
+                    <div className={`ml-auto opacity-0 group-hover:opacity-100 transition-opacity ${
+                      isActive ? 'text-green-200' : 'text-gray-400'
+                    }`}>
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
                   )}
                 </button>
               );

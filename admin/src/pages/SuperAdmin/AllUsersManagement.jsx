@@ -209,128 +209,157 @@ const AllUsersManagement = () => {
   // Modal content moved to Dialog component inline
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">All Users Management</h1>
-          <p className="text-gray-600 mt-1">
+      <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
+            All Users Management
+          </h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">
             Manage all users across the platform with advanced controls
           </p>
         </div>
-        <div className="flex items-center space-x-3">
-          <Button
-            onClick={() => setShowDebugInfo(!showDebugInfo)}
-            variant={showDebugInfo ? "default" : "outline"}
-            size="sm"
-            className={showDebugInfo ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200" : ""}
-          >
-            <IconInfoCircle className="w-4 h-4 mr-2" />
-            Debug
-          </Button>
-          <Button
-            onClick={() => setShowFilters(!showFilters)}
-            variant={showFilters ? "default" : "outline"}
-            size="sm"
-          >
-            <IconFilter className="w-4 h-4 mr-2" />
-            Filters
-          </Button>
+        <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2 xs:gap-3">
+          <div className="grid grid-cols-2 xs:flex gap-2">
+            <Button
+              onClick={() => setShowDebugInfo(!showDebugInfo)}
+              variant={showDebugInfo ? "default" : "outline"}
+              size="sm"
+              className={`${showDebugInfo ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200" : ""} flex-1 xs:flex-none`}
+            >
+              <IconInfoCircle className="w-4 h-4 mr-2" />
+              <span className="hidden xs:inline">Debug</span>
+              <span className="xs:hidden">Debug</span>
+            </Button>
+            <Button
+              onClick={() => setShowFilters(!showFilters)}
+              variant={showFilters ? "default" : "outline"}
+              size="sm"
+              className="flex-1 xs:flex-none"
+            >
+              <IconFilter className="w-4 h-4 mr-2" />
+              <span className="hidden xs:inline">Filters</span>
+              <span className="xs:hidden">Filter</span>
+            </Button>
+          </div>
           <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-300">
                 <IconPlus className="w-4 h-4 mr-2" />
-                Create User
+                <span className="hidden xs:inline">Create User</span>
+                <span className="xs:hidden">Create</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Create New User</DialogTitle>
-                <DialogDescription>
+                <DialogTitle className="text-lg sm:text-xl">Create New User</DialogTitle>
+                <DialogDescription className="text-sm">
                   Add a new user to the system with their basic information and role assignment.
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="fullName" className="text-right">
-                    Full Name
-                  </Label>
-                  <Input
-                    id="fullName"
-                    value={newUser.fullName}
-                    onChange={(e) => setNewUser({ ...newUser, fullName: e.target.value })}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="userName" className="text-right">
-                    Username
-                  </Label>
-                  <Input
-                    id="userName"
-                    value={newUser.userName}
-                    onChange={(e) => setNewUser({ ...newUser, userName: e.target.value })}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="email" className="text-right">
-                    Email
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={newUser.email}
-                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="phoneNumber" className="text-right">
-                    Phone
-                  </Label>
-                  <Input
-                    id="phoneNumber"
-                    type="tel"
-                    value={newUser.phoneNumber}
-                    onChange={(e) => setNewUser({ ...newUser, phoneNumber: e.target.value })}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="role" className="text-right">
-                    Role
-                  </Label>
-                  <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value })}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="STUDENT">Student</SelectItem>
-                      <SelectItem value="INSTRUCTOR">Instructor</SelectItem>
-                      <SelectItem value="ADMIN">Admin</SelectItem>
-                      <SelectItem value="SUPERADMIN">Super Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="password" className="text-right">
-                    Password
-                  </Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={newUser.password}
-                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                    className="col-span-3"
-                  />
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName" className="text-sm font-medium">
+                      Full Name *
+                    </Label>
+                    <Input
+                      id="fullName"
+                      value={newUser.fullName}
+                      onChange={(e) => setNewUser({ ...newUser, fullName: e.target.value })}
+                      placeholder="Enter full name"
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="userName" className="text-sm font-medium">
+                      Username *
+                    </Label>
+                    <Input
+                      id="userName"
+                      value={newUser.userName}
+                      onChange={(e) => setNewUser({ ...newUser, userName: e.target.value })}
+                      placeholder="Enter username"
+                      className="w-full"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-sm font-medium">
+                      Email *
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={newUser.email}
+                      onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                      placeholder="Enter email address"
+                      className="w-full"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="phoneNumber" className="text-sm font-medium">
+                      Phone Number
+                    </Label>
+                    <Input
+                      id="phoneNumber"
+                      type="tel"
+                      value={newUser.phoneNumber}
+                      onChange={(e) => setNewUser({ ...newUser, phoneNumber: e.target.value })}
+                      placeholder="Enter phone number"
+                      className="w-full"
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="role" className="text-sm font-medium">
+                        Role *
+                      </Label>
+                      <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value })}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="STUDENT">Student</SelectItem>
+                          <SelectItem value="INSTRUCTOR">Instructor</SelectItem>
+                          <SelectItem value="ADMIN">Admin</SelectItem>
+                          <SelectItem value="SUPERADMIN">Super Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="password" className="text-sm font-medium">
+                        Password *
+                      </Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        value={newUser.password}
+                        onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                        placeholder="Enter password"
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setShowCreateModal(false)}>
+              <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowCreateModal(false)}
+                  className="w-full sm:w-auto"
+                >
                   Cancel
                 </Button>
-                <Button onClick={handleCreateUser} disabled={!newUser.fullName || !newUser.email}>
+                <Button 
+                  onClick={handleCreateUser} 
+                  disabled={!newUser.fullName || !newUser.email}
+                  className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+                >
                   Create User
                 </Button>
               </DialogFooter>
@@ -535,47 +564,49 @@ const AllUsersManagement = () => {
 
       {/* Users Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left">
-                  <input
-                    type="checkbox"
-                    checked={selectedUsers.length === users.length}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedUsers(users.map(user => user._id));
-                      } else {
-                        setSelectedUsers([]);
-                      }
-                    }}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  User
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Contact
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Role
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Batch
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Last Login
-                </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
+        {/* Desktop Table */}
+        <div className="hidden lg:block">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left">
+                    <input
+                      type="checkbox"
+                      checked={selectedUsers.length === users.length && users.length > 0}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedUsers(users.map(user => user._id));
+                        } else {
+                          setSelectedUsers([]);
+                        }
+                      }}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    User
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Contact
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Role
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Batch
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Last Login
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {isLoading ? (
                 <tr>
@@ -682,42 +713,162 @@ const AllUsersManagement = () => {
               )}
             </tbody>
           </table>
+          </div>
+        </div>
+        
+        {/* Mobile Cards */}
+        <div className="lg:hidden space-y-4 p-4">
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          ) : isError ? (
+            <div className="text-center py-8 text-red-600">
+              Error loading users: {error?.data?.message || error?.message}
+            </div>
+          ) : users.length === 0 ? (
+            <div className="text-center py-8">
+              <IconUsers className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-500 mb-2">No users found</h3>
+              <p className="text-gray-400">Try adjusting your search or filters</p>
+            </div>
+          ) : (
+            users.map((user) => (
+              <Card key={user._id} className="transition-all duration-200 hover:shadow-md">
+                <CardContent className="p-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedUsers.includes(user._id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedUsers([...selectedUsers, user._id]);
+                          } else {
+                            setSelectedUsers(selectedUsers.filter(id => id !== user._id));
+                          }
+                        }}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-3"
+                      />
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage 
+                          src={user.avatar?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=2563eb&color=fff`} 
+                          alt={user.fullName}
+                        />
+                        <AvatarFallback className="bg-blue-100 text-blue-800">
+                          {user.fullName.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-medium text-gray-900 truncate">{user.fullName}</h3>
+                          <p className="text-sm text-gray-500 truncate">@{user.userName}</p>
+                          <p className="text-sm text-gray-600 mt-1">{user.email}</p>
+                          {user.phoneNumber && (
+                            <p className="text-sm text-gray-500">{user.phoneNumber}</p>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center space-x-1 ml-2">
+                          <button
+                            onClick={() => {/* View user details */}}
+                            className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="View Details"
+                          >
+                            <IconEye className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setShowEditModal(true);
+                            }}
+                            className="p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-colors"
+                            title="Edit User"
+                          >
+                            <IconEdit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(user._id, true)}
+                            className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Permanently Delete"
+                          >
+                            <IconTrash className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-wrap items-center gap-2 mt-3">
+                        <Badge className={getRoleColor(user.role)}>
+                          <IconShield className="w-3 h-3 mr-1" />
+                          {user.role}
+                        </Badge>
+                        <Badge className={getStatusColor(user.status)}>
+                          {user.status}
+                        </Badge>
+                        {user.batch?.name && (
+                          <Badge variant="outline">
+                            {user.batch.name}
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                        <div className="text-xs text-gray-500">
+                          Last login: {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
         
         {/* Pagination */}
-        <div className="px-6 py-4 border-t border-gray-200">
-          <div className="flex items-center justify-between">
+        <div className="px-4 sm:px-6 py-4 border-t border-gray-200">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-sm text-gray-700">
               Showing {((currentPage - 1) * 20) + 1} to {Math.min(currentPage * 20, totalUsers)} of {totalUsers} users
             </div>
-            <div className="flex items-center space-x-2">
-              <button
+            <div className="flex items-center space-x-1 sm:space-x-2">
+              <Button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-1 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                variant="outline"
+                size="sm"
+                className="px-2 sm:px-3"
               >
-                Previous
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`px-3 py-1 border rounded-md ${
-                    currentPage === page 
-                      ? 'bg-blue-600 text-white border-blue-600' 
-                      : 'border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
-              <button
+                <span className="hidden sm:inline">Previous</span>
+                <span className="sm:hidden">Prev</span>
+              </Button>
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                const page = Math.max(1, Math.min(totalPages, currentPage - 2 + i));
+                return (
+                  <Button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    variant={currentPage === page ? "default" : "outline"}
+                    size="sm"
+                    className="w-8 h-8 p-0"
+                  >
+                    {page}
+                  </Button>
+                );
+              })}
+              <Button
                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                variant="outline"
+                size="sm"
+                className="px-2 sm:px-3"
               >
-                Next
-              </button>
+                <span className="hidden sm:inline">Next</span>
+                <span className="sm:hidden">Next</span>
+              </Button>
             </div>
           </div>
         </div>
