@@ -172,7 +172,7 @@ const SystemAuditLogs = () => {
     try {
       console.log('[Manual API Test] Starting...');
       // Use fetch with credentials: 'include' to send HTTP-only cookies
-      const response = await fetch('https://swargaya-learning-management-system-3vcz.onrender.com0/api/audits?page=1&limit=5', {
+      const response = await fetch('https://swargaya-learning-management-system-3vcz.onrender.com/api/audits?page=1&limit=5', {
         method: 'GET',
         credentials: 'include', // This ensures cookies are sent
         headers: {
