@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useGetInstructorBatchStudentsQuery, useGetInstructorAssignedBatchesQuery } from '@/Redux/AllApi/InstructorApi'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { useLazyExportStudentsQuery } from '@/Redux/AllApi/UserApi'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { 
@@ -37,6 +38,7 @@ const InstructorStudents = () => {
   const students = data?.data?.students || []
   const batch = data?.data?.batch
   const batches = batchesData?.data?.batches || []
+  const [triggerExportStudents, { isFetching: isExporting }] = useLazyExportStudentsQuery()
 
   useEffect(() => {
     const batchFromParams = searchParams.get('batch')
@@ -107,6 +109,49 @@ const InstructorStudents = () => {
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            disabled={!selectedBatchId || isExporting}
+            onClick={async () => {
+              try {
+                const { data } = await triggerExportStudents({ format: 'excel', batchId: selectedBatchId })
+                const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+                const url = window.URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = `batch_${selectedBatchId}_students_${new Date().toISOString().slice(0,10)}.xlsx`
+                document.body.appendChild(a)
+                a.click()
+                a.remove()
+                window.URL.revokeObjectURL(url)
+              } catch {}
+            }}
+          >
+            Export Excel
+          </Button>
+          <Button
+            variant="outline"
+            disabled={!selectedBatchId || isExporting}
+            onClick={async () => {
+              try {
+                const { data } = await triggerExportStudents({ format: 'pdf', batchId: selectedBatchId })
+                const blob = new Blob([data], { type: 'application/pdf' })
+                const url = window.URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = `batch_${selectedBatchId}_students_${new Date().toISOString().slice(0,10)}.pdf`
+                document.body.appendChild(a)
+                a.click()
+                a.remove()
+                window.URL.revokeObjectURL(url)
+              } catch {}
+            }}
+          >
+            Export PDF
+          </Button>
         </div>
       </div>
 

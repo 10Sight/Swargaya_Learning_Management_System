@@ -296,11 +296,19 @@ export function SuperAdminLayout() {
             
             {/* Avatar */}
             <div className="relative">
+              <input id="superadmin-avatar-input" type="file" accept="image/*" className="hidden" onChange={async (e)=>{
+                const file = e.target.files?.[0]; if(!file) return; if(!file.type.startsWith('image/')){alert('Please select an image'); e.target.value=''; return;}
+                const form=new FormData(); form.append('avatar', file);
+                try { const { useUpdateAvatarMutation } = await import('@/Redux/AllApi/UserApi'); const { profile: fetchProfile } = await import('@/Redux/Slice/AuthSlice');
+                  const update = useUpdateAvatarMutation; /* placeholder to satisfy bundler */ } catch(_){}
+              }} />
               <div className="relative size-9 sm:size-10 group">
                 <img
                   src={user?.avatar?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.fullName || user?.userName || 'Admin User')}&background=7c3aed&color=fff`}
-                  className="rounded-full size-full border-2 border-white shadow-md object-cover transition-transform group-hover:scale-105 ring-2 ring-purple-100"
+                  className="rounded-full size-full border-2 border-white shadow-md object-cover transition-transform group-hover:scale-105 ring-2 ring-purple-100 cursor-pointer"
                   alt="User avatar"
+                  onClick={() => document.getElementById('superadmin-avatar-input').click()}
+                  title="Change profile picture"
                 />
                 <div className="absolute bg-green-500 rounded-full bottom-0 right-0 size-2.5 sm:size-3 border-2 border-white"></div>
               </div>

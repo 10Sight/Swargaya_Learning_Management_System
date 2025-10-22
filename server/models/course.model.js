@@ -78,6 +78,13 @@ const courseSchema = new Schema(
             type: Number,
             default: 0,
         },
+        slug: {
+            type: String,
+            trim: true,
+            lowercase: true,
+            unique: true,
+            index: true,
+        },
         createdBy: {
             type: Schema.Types.ObjectId,
             ref: "User",
@@ -115,5 +122,14 @@ courseSchema.virtual('studentCount').get(function() {
 });
 
 courseSchema.set('toJSON', { virtuals: true });
+
+import { slugify, ensureUniqueSlug } from "../utils/slugify.js";
+
+courseSchema.pre('save', async function(next) {
+    if (!this.isModified('title') && this.slug) return next();
+    const base = slugify(this.title);
+    this.slug = await ensureUniqueSlug(this.constructor, base, {}, this._id);
+    next();
+});
 
 export default model("Course", courseSchema);

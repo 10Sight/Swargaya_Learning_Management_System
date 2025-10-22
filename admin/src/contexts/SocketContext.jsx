@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { io } from 'socket.io-client';
 import { useSelector } from 'react-redux';
 import { toast } from 'sonner';
+import axiosInstance from '@/Helper/axiosInstance';
 
 const SocketContext = createContext();
 
@@ -18,39 +18,61 @@ export const SocketProvider = ({ children }) => {
     const [isConnected, setIsConnected] = useState(false);
     const [notifications, setNotifications] = useState([]);
     
-    // Get user data from Redux store
-    const user = useSelector((state) => state.auth.user);
-    const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+    // Get auth data from Redux store
+    const { user, isLoggedIn } = useSelector((state) => state.auth);
 
     useEffect(() => {
         // Only initialize socket if user is authenticated
-        if (isAuthenticated && user) {
-            const newSocket = io(import.meta.env.VITE_SERVER_URL || 'http://localhost:5000', {
-                withCredentials: true,
-                autoConnect: true,
-            });
+        let cleanup;
+        const init = async () => {
+            if (isLoggedIn && user) {
+                const { io } = await import('socket.io-client');
+                // Prefer explicit env, fall back to API base URL, then localhost
+                const envUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_SERVER_URL;
+                const apiBase = axiosInstance?.defaults?.baseURL;
+                let socketUrl = 'https://swargaya-learning-management-system-3vcz.onrender.com0';
+                if (envUrl) {
+                    socketUrl = envUrl;
+                } else if (apiBase) {
+                    try {
+                        socketUrl = new URL(apiBase).origin;
+                    } catch {
+                        socketUrl = apiBase;
+                    }
+                } else if (typeof window !== 'undefined') {
+                    const { protocol, hostname } = window.location;
+                    socketUrl = `${protocol}//${hostname}:3000`;
+                }
+                const newSocket = io(socketUrl, {
+                    path: import.meta.env.VITE_SOCKET_PATH || '/socket.io',
+                    transports: ['websocket'], // avoid xhr polling issues
+                    withCredentials: true,
+                    autoConnect: true,
+                    reconnection: true,
+                    reconnectionAttempts: 5,
+                    reconnectionDelay: 1000,
+                    timeout: 10000,
+                    forceNew: true,
+                });
 
             // Connection event handlers
             newSocket.on('connect', () => {
-                console.log('Connected to Socket.IO server:', newSocket.id);
                 setIsConnected(true);
                 
                 // Authenticate user with socket
                 newSocket.emit('authenticate', {
                     userId: user._id,
-                    name: user.name,
+                    name: user.fullName || user.userName || user.name || 'User',
                     role: user.role,
                     batches: user.batches || [], // Assuming user has batches array
                 });
             });
 
             newSocket.on('disconnect', () => {
-                console.log('Disconnected from Socket.IO server');
                 setIsConnected(false);
             });
 
-            newSocket.on('authenticated', (data) => {
-                console.log('Socket authenticated:', data);
+            newSocket.on('authenticated', () => {
                 toast.success('Real-time notifications enabled');
             });
 
@@ -123,6 +145,25 @@ export const SocketProvider = ({ children }) => {
                 });
             });
 
+            // Extra attempt notifications
+            newSocket.on('attempt-approved', (data) => {
+                setNotifications(prev => [data, ...prev.slice(0, 49)]);
+                toast.success('Extra attempt approved', {
+                    description: data.message,
+                    duration: 6000,
+                });
+                // emit custom app-wide event
+                window.dispatchEvent(new CustomEvent('attempt-extension-updated', { detail: { quizId: data.quiz?._id, status: 'APPROVED' } }));
+            });
+            newSocket.on('attempt-rejected', (data) => {
+                setNotifications(prev => [data, ...prev.slice(0, 49)]);
+                toast.error('Extra attempt rejected', {
+                    description: data.message,
+                    duration: 6000,
+                });
+                window.dispatchEvent(new CustomEvent('attempt-extension-updated', { detail: { quizId: data.quiz?._id, status: 'REJECTED' } }));
+            });
+
             // User activity notifications
             newSocket.on('user-joined', (data) => {
                 console.log('User joined room:', data);
@@ -165,8 +206,8 @@ export const SocketProvider = ({ children }) => {
 
             setSocket(newSocket);
 
-            // Cleanup on unmount
-            return () => {
+            // Cleanup on unmount or auth change
+            cleanup = () => {
                 newSocket.disconnect();
                 setSocket(null);
                 setIsConnected(false);
@@ -180,7 +221,10 @@ export const SocketProvider = ({ children }) => {
                 setNotifications([]);
             }
         }
-    }, [isAuthenticated, user]);
+        };
+        init();
+        return () => cleanup && cleanup();
+    }, [isLoggedIn, user]);
 
     // Helper functions
     const joinRoom = (roomId) => {

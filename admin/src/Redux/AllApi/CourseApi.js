@@ -77,6 +77,16 @@ export const courseApi = createApi({
             providesTags: (result, error, courseId) => [{ type: 'Course', id: `students-${courseId}` }],
         }),
 
+        exportCourses: builder.query({
+            query: ({ format = 'excel', category = '', level = '', search = '', status = '' } = {}) => ({
+                url: `/api/exports/courses`,
+                method: "GET",
+                params: { format, category, level, search, status },
+                responseHandler: (response) => response.data
+            }),
+            keepUnusedDataFor: 0,
+        }),
+
         // Super Admin functions
         getSoftDeletedCourses: builder.query({
             query: ({ page = 1, limit = 10, search = "" } = {}) => ({
@@ -108,4 +118,5 @@ export const {
     useGetCourseStudentsQuery,
     useGetSoftDeletedCoursesQuery,
     useRestoreCourseMutation,
+    useLazyExportCoursesQuery,
 } = courseApi;

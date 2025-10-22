@@ -111,6 +111,13 @@ const quizSchema = new Schema(
             trim: true,
             maxlength: [150, "Quiz title cannot exceed 150 characters"],
         },
+        slug: {
+            type: String,
+            trim: true,
+            lowercase: true,
+            unique: true,
+            index: true,
+        },
         description: {
             type: String,
             trim: true,
@@ -187,6 +194,15 @@ quizSchema.pre('save', function(next) {
         return next(new Error('Lesson-scoped quiz must have both moduleId and lessonId'));
     }
     
+    next();
+});
+
+import { slugify, ensureUniqueSlug } from "../utils/slugify.js";
+
+quizSchema.pre('save', async function(next) {
+    if (!this.isModified('title') && this.slug) return next();
+    const base = slugify(this.title);
+    this.slug = await ensureUniqueSlug(this.constructor, base, {}, this._id);
     next();
 });
 

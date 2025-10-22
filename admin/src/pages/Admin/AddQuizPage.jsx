@@ -37,8 +37,8 @@ const AddQuizPage = () => {
   const navigate = useNavigate();
   const [createQuiz, { isLoading }] = useCreateQuizMutation();
   
-  // Add this to refetch course data after quiz creation
-  const { refetch: refetchCourse } = useGetCourseByIdQuery(courseId);
+  // Fetch course to know its slug for navigation after creation
+  const { data: courseData, refetch: refetchCourse } = useGetCourseByIdQuery(courseId);
   
   // Fetch modules for the course
   const { 
@@ -258,8 +258,9 @@ const handleSubmit = async (e) => {
   }
 
   try {
+    const resolvedCourseId = courseData?.data?._id || courseId;
     const quizData = {
-      courseId,
+      courseId: resolvedCourseId,
       scope: formData.scope,
       title: formData.title,
       description: formData.description,
@@ -285,7 +286,8 @@ const handleSubmit = async (e) => {
     
     // Instead of navigating immediately, wait a moment for the backend to process
     setTimeout(() => {
-      navigate(`/admin/courses/${courseId}`);
+      const target = courseData?.data?.slug || courseId;
+      navigate(`/admin/courses/${target}`);
     }, 500);
     
   } catch (error) {

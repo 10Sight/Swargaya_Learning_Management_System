@@ -80,6 +80,57 @@ export const attemptedQuizApi = createApi({
             }),
             providesTags: (result, error, quizId) => [{ type: 'AttemptedQuiz', id: `status-${quizId}` }],
         }),
+
+        // Student: request extra attempt
+        requestExtraAttempt: builder.mutation({
+            query: ({ quizId, reason }) => ({
+                url: "/api/attempts/extra-requests",
+                method: "POST",
+                data: { quizId, reason }
+            }),
+            invalidatesTags: ['AttemptedQuiz'],
+        }),
+
+        // Admin/Instructor: list extra attempt requests
+        getExtraAttemptRequests: builder.query({
+            query: ({ status = 'PENDING' } = {}) => ({
+                url: "/api/attempts/extra-requests",
+                method: "GET",
+                params: { status }
+            }),
+            providesTags: ['AttemptedQuiz'],
+        }),
+
+        // Admin/Instructor: approve a request
+        approveExtraAttempt: builder.mutation({
+            query: ({ requestId, extraAttempts = 1 }) => ({
+                url: `/api/attempts/extra-requests/${requestId}/approve`,
+                method: "PATCH",
+                data: { extraAttempts }
+            }),
+            invalidatesTags: ['AttemptedQuiz'],
+        }),
+        // Admin/Instructor: reject a request
+        rejectExtraAttempt: builder.mutation({
+            query: ({ requestId }) => ({
+                url: `/api/attempts/extra-requests/${requestId}/reject`,
+                method: "PATCH",
+            }),
+            invalidatesTags: ['AttemptedQuiz'],
+        }),
+
+        // Admin: update attempt answers/scores
+        adminUpdateAttempt: builder.mutation({
+            query: ({ attemptId, answersOverride, adjustmentNotes }) => ({
+                url: `/api/attempts/${attemptId}/admin-update`,
+                method: "PATCH",
+                data: { answersOverride, adjustmentNotes }
+            }),
+            invalidatesTags: (result, error, { attemptId }) => [
+                { type: 'AttemptedQuiz', id: attemptId },
+                { type: 'AttemptedQuiz' }
+            ],
+        }),
     }),
 });
 
@@ -94,4 +145,9 @@ export const {
     useStartQuizQuery,
     useSubmitQuizMutation,
     useGetQuizAttemptStatusQuery,
+    useRequestExtraAttemptMutation,
+    useGetExtraAttemptRequestsQuery,
+    useApproveExtraAttemptMutation,
+    useRejectExtraAttemptMutation,
+    useAdminUpdateAttemptMutation,
 } = attemptedQuizApi;

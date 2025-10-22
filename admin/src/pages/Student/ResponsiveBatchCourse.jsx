@@ -602,7 +602,7 @@ const MobileModuleContent = ({
                 {(() => {
                   const moduleAssignments = assignmentsByModule[moduleId] || [];
                   const moduleQuizzes = quizzesByModule[moduleId] || [];
-                  const allLessonsComplete = completedLessonsInModule === moduleLessons.length && moduleLessons.length > 0;
+                  const allLessonsComplete = (moduleLessons.length === 0) || (completedLessonsInModule === moduleLessons.length);
                   const totalAssessments = moduleQuizzes.length + moduleAssignments.length;
                   
                   const allAssignmentsComplete = moduleAssignments.length === 0 || moduleAssignments.every(a => {
@@ -759,7 +759,7 @@ const MobileModuleContent = ({
             <StudentModuleQuizzes 
               quizzes={quizzesByModule[moduleId] || []}
               attempts={attemptsByQuiz}
-              isUnlocked={completedLessonsInModule === moduleLessons.length && moduleLessons.length > 0}
+              isUnlocked={(moduleLessons.length === 0) || (completedLessonsInModule === moduleLessons.length)}
               onStart={handleStartQuiz}
             />
             
@@ -767,7 +767,7 @@ const MobileModuleContent = ({
             <StudentModuleAssignments 
               assignments={assignmentsByModule[moduleId] || []}
               submissions={submissionsByAssignment}
-              isUnlocked={completedLessonsInModule === moduleLessons.length && moduleLessons.length > 0}
+              isUnlocked={(moduleLessons.length === 0) || (completedLessonsInModule === moduleLessons.length)}
               onViewDetails={handleAssignmentViewDetails}
               onSubmit={handleAssignmentSubmit}
             />

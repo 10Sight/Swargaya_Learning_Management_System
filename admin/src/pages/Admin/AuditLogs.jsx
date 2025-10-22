@@ -26,6 +26,7 @@ import {
   useGetAuditByIdQuery,
   useDeleteAuditMutation
 } from "@/Redux/AllApi/AuditApi";
+import { useLazyExportAuditStatsQuery } from "@/Redux/AllApi/AnalyticsApi";
 import { toast } from "sonner";
 
 const AuditLogs = () => {
@@ -48,6 +49,8 @@ const AuditLogs = () => {
     ipAddress: "",
     severity: ""
   });
+  const [auditGroupBy, setAuditGroupBy] = useState('month');
+  const [triggerExportAuditStats, { isFetching: isExportingStats }] = useLazyExportAuditStatsQuery();
 
   // Date range calculations
   const getDateRangeFilter = () => {
@@ -334,6 +337,10 @@ const AuditLogs = () => {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <select className="border rounded px-2 py-1 text-sm" value={auditGroupBy} onChange={e => setAuditGroupBy(e.target.value)}>
+            <option value="month">By Month</option>
+            <option value="year">By Year</option>
+          </select>
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-2 rounded-md transition-colors text-xs sm:text-sm ${
@@ -348,7 +355,33 @@ const AuditLogs = () => {
             className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-xs sm:text-sm"
           >
             <IconDownload className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span>Export</span>
+            <span>Export CSV</span>
+          </button>
+          <button
+            disabled={isExportingStats}
+            onClick={async () => {
+              const { data } = await triggerExportAuditStats({ groupBy: auditGroupBy, format: 'excel' })
+              const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a'); a.href = url; a.download = `audit_stats_${auditGroupBy}.xlsx`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url)
+            }}
+            className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-xs sm:text-sm"
+          >
+            <IconDownload className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span>Export Stats (Excel)</span>
+          </button>
+          <button
+            disabled={isExportingStats}
+            onClick={async () => {
+              const { data } = await triggerExportAuditStats({ groupBy: auditGroupBy, format: 'pdf' })
+              const blob = new Blob([data], { type: 'application/pdf' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a'); a.href = url; a.download = `audit_stats_${auditGroupBy}.pdf`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url)
+            }}
+            className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors text-xs sm:text-sm"
+          >
+            <IconDownload className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span>Export Stats (PDF)</span>
           </button>
         </div>
       </div>

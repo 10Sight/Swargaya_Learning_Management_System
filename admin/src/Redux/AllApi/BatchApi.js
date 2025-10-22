@@ -143,6 +143,16 @@ export const batchApi = createApi({
             }),
             providesTags: ['Batch'],
         }),
+
+        exportBatches: builder.query({
+            query: ({ format = 'excel', search = '', status = '' } = {}) => ({
+                url: `/api/exports/batches`,
+                method: "GET",
+                params: { format, search, status },
+                responseHandler: (response) => response.data
+            }),
+            keepUnusedDataFor: 0,
+        }),
     }),
 });
 
@@ -163,4 +173,5 @@ export const {
     useRestoreBatchMutation,
     useCancelBatchMutation,
     useGetMyBatchesQuery,
+    useLazyExportBatchesQuery,
 } = batchApi;

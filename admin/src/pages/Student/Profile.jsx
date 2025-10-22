@@ -1,11 +1,47 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
-import { IconUser, IconMail, IconPhone, IconCalendar, IconSchool } from '@tabler/icons-react';
+import { useSelector, useDispatch } from 'react-redux';
+import { IconUser, IconMail, IconPhone, IconCalendar, IconSchool, IconCamera } from '@tabler/icons-react';
 import AccountStatusNotification from '../../components/student/AccountStatusNotification';
 import AccountStatusWrapper from '../../components/student/AccountStatusWrapper';
+import { useUpdateAvatarMutation } from '@/Redux/AllApi/UserApi';
+import { profile } from '@/Redux/Slice/AuthSlice';
 
 const Profile = () => {
+  const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
+  const [updateAvatar, { isLoading: uploading }] = useUpdateAvatarMutation();
+  const fileRef = React.useRef(null);
+  const [preview, setPreview] = React.useState(null);
+
+  const onPickImage = () => fileRef.current?.click();
+  const onFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Please choose an image file.');
+      e.target.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setPreview(reader.result);
+    reader.readAsDataURL(file);
+  };
+
+  const onUpload = async () => {
+    const file = fileRef.current?.files?.[0];
+    if (!file) return;
+    const form = new FormData();
+    form.append('avatar', file);
+    try {
+      await updateAvatar(form).unwrap();
+      await dispatch(profile()).unwrap();
+      setPreview(null);
+      if (fileRef.current) fileRef.current.value = '';
+      alert('Profile picture updated');
+    } catch (e) {
+      alert(e?.data?.message || 'Failed to update avatar');
+    }
+  };
 
   if (!user) {
     return (
@@ -55,10 +91,38 @@ const Profile = () => {
           <div className="flex items-center space-x-6">
             <div className="relative">
               <img
-                src={user.avatar?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || user.userName)}&background=ffffff&color=2563eb&size=128`}
+                src={preview || user.avatar?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || user.userName)}&background=ffffff&color=2563eb&size=128`}
                 alt="Profile"
                 className="w-24 h-24 rounded-full border-4 border-white shadow-lg object-cover"
               />
+              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
+              <button
+                type="button"
+                onClick={onPickImage}
+                className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-white text-blue-600 rounded-full p-2 shadow hover:bg-blue-50"
+                title="Change profile picture"
+              >
+                <IconCamera className="w-4 h-4" />
+              </button>
+              {preview && (
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={onUpload}
+                    disabled={uploading}
+                    className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs"
+                  >
+                    {uploading ? 'Saving...' : 'Save'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setPreview(null); if (fileRef.current) fileRef.current.value=''; }}
+                    className="px-3 py-1 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 text-xs"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
               <div className="absolute -bottom-2 -right-2">
                 {getStatusBadge(user.status)}
               </div>

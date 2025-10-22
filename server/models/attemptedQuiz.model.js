@@ -72,6 +72,22 @@ const quizAttemptSchema = new Schema(
             type: Number,
             default: 0,
         },
+        // Admin adjustment metadata
+        manuallyAdjusted: {
+            type: Boolean,
+            default: false,
+        },
+        adjustedBy: {
+            type: Schema.Types.ObjectId,
+            ref: "User",
+        },
+        adjustedAt: {
+            type: Date,
+        },
+        adjustmentNotes: {
+            type: String,
+            trim: true,
+        },
     },
     {
         timestamps: true

@@ -33,7 +33,14 @@ export const createModule = asyncHandler(async (req, res) => {
 export const getModulesByCourse = asyncHandler(async (req, res) => {
     const { courseId } = req.params;
 
-    const modules = await Module.find({ course: courseId })
+    let id = courseId;
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+        const course = await Course.findOne({ slug: courseId }).select('_id');
+        if (!course) return res.status(404).json(new ApiResponse(404, [], "Course not found"));
+        id = course._id;
+    }
+
+    const modules = await Module.find({ course: id })
         .populate("resources")
         .populate("lessons")
         .sort({ order: 1 });

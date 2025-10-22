@@ -88,6 +88,7 @@ import FilterBar from "@/components/common/FilterBar";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from 'react-redux';
 import BatchStatusNotifications, { BatchStatusSummary } from "@/components/batches/BatchStatusNotifications";
+import { useLazyExportBatchesQuery } from "@/Redux/AllApi/BatchApi";
 
 const Batches = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -200,6 +201,7 @@ const Batches = () => {
   const [removeInstructor, { isLoading: isRemovingInstructor }] =
     useRemoveInstructorMutation();
   const [cancelBatch] = useCancelBatchMutation();
+  const [triggerExportBatches, { isFetching: isExportingBatches }] = useLazyExportBatchesQuery();
 
   const batches = batchesData?.data?.batches || [];
   const totalPages = batchesData?.data?.totalPages || 1;
@@ -880,6 +882,59 @@ const Batches = () => {
                   Clear
                 </Button>
               )}
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isExportingBatches}
+                onClick={async () => {
+                  try {
+                    const { data } = await triggerExportBatches({
+                      format: 'excel',
+                      search: debouncedSearchTerm || '',
+                      status: statusFilter !== 'ALL' ? statusFilter : ''
+                    });
+                    const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `batches_${new Date().toISOString().slice(0,10)}.xlsx`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                  } catch {}
+                }}
+              >
+                Export Excel
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isExportingBatches}
+                onClick={async () => {
+                  try {
+                    const { data } = await triggerExportBatches({
+                      format: 'pdf',
+                      search: debouncedSearchTerm || '',
+                      status: statusFilter !== 'ALL' ? statusFilter : ''
+                    });
+                    const blob = new Blob([data], { type: 'application/pdf' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `batches_${new Date().toISOString().slice(0,10)}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                  } catch {}
+                }}
+              >
+                Export PDF
+              </Button>
             </div>
           </div>
 

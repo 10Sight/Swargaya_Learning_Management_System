@@ -158,40 +158,56 @@ progressSchema.methods.calculateProgress = async function () {
 
   // Get total lessons by querying modules directly since course.modules contains only IDs
   let totalLessons = 0;
+  let totalModules = 0;
   if (course.modules && course.modules.length > 0) {
     const modules = await Module.find({ 
       _id: { $in: course.modules },
       course: this.course 
     }).lean();
-    
+    totalModules = modules.length;
     totalLessons = modules.reduce(
       (count, mod) => count + (mod.lessons?.length || 0),
       0
     );
   }
-
+ 
   const completedLessons = this.completedLessons.length;
-
+  const completedModules = this.completedModules.length;
+ 
   const lessonWeight = 0.7;
   const quizWeight = 0.2;
   const assignmentWeight = 0.1;
-
-  const lessonProgress = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
-
+ 
+  // If no lessons are defined, approximate lessonProgress using modules
+  let lessonProgress = 0;
+  if (totalLessons > 0) {
+    lessonProgress = (completedLessons / totalLessons) * 100;
+  } else if (totalModules > 0) {
+    lessonProgress = (completedModules / totalModules) * 100;
+  }
+ 
   const passedQuizzes = this.quizzes.filter((q) => q.isPassed).length;
   const totalQuizzes = course.quizzes?.length || 0;
   const quizProgress = totalQuizzes > 0 ? (passedQuizzes / totalQuizzes) * 100 : 0;
-
+ 
   const submittedAssignments = this.assignments.length;
   const totalAssignments = course.assignments?.length || 0;
-  const assignmentProgress =
-    totalAssignments > 0 ? (submittedAssignments / totalAssignments) * 100 : 0;
-
-  const totalProgress =
-    lessonProgress * lessonWeight +
-    quizProgress * quizWeight +
-    assignmentProgress * assignmentWeight;
-
+  const assignmentProgress = totalAssignments > 0 ? (submittedAssignments / totalAssignments) * 100 : 0;
+ 
+  // Dynamically normalize weights based on available components
+  const parts = [];
+  const weights = [];
+  if (totalLessons > 0 || totalModules > 0) { parts.push(lessonProgress); weights.push(lessonWeight); }
+  if (totalQuizzes > 0) { parts.push(quizProgress); weights.push(quizWeight); }
+  if (totalAssignments > 0) { parts.push(assignmentProgress); weights.push(assignmentWeight); }
+  
+  let totalProgress = 0;
+  if (parts.length > 0) {
+    const weighted = parts.reduce((sum, val, idx) => sum + val * weights[idx], 0);
+    const weightSum = weights.reduce((a,b)=>a+b,0);
+    totalProgress = weighted / (weightSum || 1);
+  }
+ 
   this.progressPercent = Math.min(100, Math.round(totalProgress));
   return this.progressPercent;
 };

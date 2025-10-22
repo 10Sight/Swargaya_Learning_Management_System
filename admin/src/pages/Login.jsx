@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Loader2, Mail, User, GraduationCap, Shield, BookOpen, Sparkles, Lock } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import { login, clearRedirectUrl } from '@/Redux/Slice/AuthSlice';
+import { login } from '@/Redux/Slice/AuthSlice';
 
 const emailLoginSchema = z.object({
   email: z
@@ -37,7 +37,6 @@ const usernameLoginSchema = z.object({
 const Login = () => {
   const [loginMethod, setLoginMethod] = useState('email');
   const [rememberMe, setRememberMe] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
@@ -54,8 +53,6 @@ const Login = () => {
   } = useForm({
     resolver: zodResolver(loginMethod === 'email' ? emailLoginSchema : usernameLoginSchema),
   });
-
-  const formValues = watch();
   const [formData, setFormData] = useState({
     email: '',
     userName: '',
@@ -267,7 +264,6 @@ const Login = () => {
                     error={errors.password?.message}
                     showSuccessIndicator={false}
                     helperText="Must be at least 6 characters"
-                    showPasswordToggle
                   />
                 </div>
                 

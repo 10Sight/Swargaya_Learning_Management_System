@@ -98,7 +98,7 @@ const QuizList = ({ quizzes, courseId, onRefetch, modules = [] }) => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => navigate(`/admin/edit-quiz/${quiz._id}`)}
+                    onClick={() => navigate(`/admin/edit-quiz/${quiz.slug || quiz._id}`)}
                   >
                     <IconPencil className="h-4 w-4" />
                   </Button>

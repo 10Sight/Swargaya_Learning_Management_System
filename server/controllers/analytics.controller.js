@@ -8,6 +8,8 @@ import Audit from "../models/audit.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import ExcelJS from 'exceljs';
+import PDFDocument from 'pdfkit';
 
 // Get dashboard statistics
 export const getDashboardStats = asyncHandler(async (req, res) => {
@@ -308,6 +310,190 @@ export const getEngagementStats = asyncHandler(async (req, res) => {
         console.error("Error fetching engagement stats:", error);
         throw new ApiError("Failed to fetch engagement statistics", 500);
     }
+});
+
+// Exam history stats (pass/fail) grouped by month or year, optionally filtered by student
+export const getExamHistoryStats = asyncHandler(async (req, res) => {
+    const { groupBy = 'month', studentId, startDate, endDate, year } = req.query;
+
+    const match = {};
+    if (studentId && mongoose.Types.ObjectId.isValid(studentId)) {
+        match.student = new mongoose.Types.ObjectId(studentId);
+    }
+
+    // Date range
+    let from = startDate ? new Date(startDate) : undefined;
+    let to = endDate ? new Date(endDate) : undefined;
+    if (year && groupBy === 'month') {
+        const y = parseInt(year);
+        if (!isNaN(y)) {
+            from = new Date(Date.UTC(y, 0, 1));
+            to = new Date(Date.UTC(y + 1, 0, 1));
+        }
+    }
+    if (from) match.createdAt = { ...(match.createdAt || {}), $gte: from };
+    if (to) match.createdAt = { ...(match.createdAt || {}), $lt: to };
+
+    const groupId = groupBy === 'year'
+        ? { year: { $year: '$createdAt' } }
+        : { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } };
+
+    const agg = await AttemptedQuiz.aggregate([
+        { $match: match },
+        {
+            $group: {
+                _id: groupId,
+                total: { $sum: 1 },
+                passed: { $sum: { $cond: [{ $eq: ['$status', 'PASSED'] }, 1, 0] } },
+                failed: { $sum: { $cond: [{ $eq: ['$status', 'FAILED'] }, 1, 0] } },
+            }
+        },
+        { $sort: { '_id.year': 1, ...(groupBy === 'month' ? { '_id.month': 1 } : {}) } }
+    ]);
+
+    const labels = agg.map(i => groupBy === 'year' ? `${i._id.year}` : `${i._id.year}-${String(i._id.month).padStart(2, '0')}`);
+    const series = {
+        total: agg.map(i => i.total),
+        passed: agg.map(i => i.passed),
+        failed: agg.map(i => i.failed)
+    };
+
+    return res.json(new ApiResponse(200, { labels, series }, 'Exam history stats fetched'));
+});
+
+const sendExcel = async (res, filename, columns, rows) => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Data');
+    ws.columns = columns.map(c => ({ header: c.header, key: c.key, width: c.width || 20 }));
+    rows.forEach(r => ws.addRow(r));
+    ws.getRow(1).font = { bold: true };
+    const buffer = await wb.xlsx.writeBuffer();
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}.xlsx"`);
+    res.status(200).send(Buffer.from(buffer));
+};
+
+const sendPDF = (res, filename, title, columns, rows) => {
+    const doc = new PDFDocument({ size: 'A4', margin: 36 });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}.pdf"`);
+    doc.pipe(res);
+    doc.fontSize(16).text(title, { align: 'center' });
+    doc.moveDown();
+    doc.fontSize(10);
+    const headers = columns.map(c => c.header);
+    const widths = columns.map(c => c.width || 100);
+    const draw = (vals, bold=false) => {
+        const y = doc.y; let x = doc.page.margins.left;
+        vals.forEach((v, i) => {
+            if (bold) doc.font('Helvetica-Bold'); else doc.font('Helvetica');
+            doc.text(String(v ?? ''), x, y, { width: widths[i] });
+            x += widths[i] + 8;
+        });
+        doc.moveDown(0.5);
+    };
+    draw(headers, true);
+    rows.forEach(r => draw(columns.map(c => r[c.key])));
+    doc.end();
+};
+
+export const exportExamHistoryStats = asyncHandler(async (req, res) => {
+    const { format = 'excel' } = req.query;
+    // Reuse getExamHistoryStats logic by calling aggregation again
+    req.query = req.query || {};
+    const { groupBy = 'month', studentId, startDate, endDate, year } = req.query;
+
+    const match = {};
+    if (studentId && mongoose.Types.ObjectId.isValid(studentId)) match.student = new mongoose.Types.ObjectId(studentId);
+    let from = startDate ? new Date(startDate) : undefined;
+    let to = endDate ? new Date(endDate) : undefined;
+    if (year && groupBy === 'month') {
+        const y = parseInt(year);
+        if (!isNaN(y)) { from = new Date(Date.UTC(y,0,1)); to = new Date(Date.UTC(y+1,0,1)); }
+    }
+    if (from) match.createdAt = { ...(match.createdAt || {}), $gte: from };
+    if (to) match.createdAt = { ...(match.createdAt || {}), $lt: to };
+    const groupId = groupBy === 'year' ? { year: { $year: '$createdAt' } } : { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } };
+
+    const agg = await AttemptedQuiz.aggregate([
+        { $match: match },
+        { $group: { _id: groupId, total: { $sum: 1 }, passed: { $sum: { $cond: [{ $eq: ['$status','PASSED']},1,0]}}, failed: { $sum: { $cond: [{ $eq: ['$status','FAILED']},1,0]}} } },
+        { $sort: { '_id.year': 1, ...(groupBy === 'month' ? { '_id.month': 1 } : {}) } }
+    ]);
+
+    const columns = [
+        { header: groupBy === 'year' ? 'Year' : 'Period', key: 'period', width: 18 },
+        { header: 'Total Attempts', key: 'total', width: 16 },
+        { header: 'Passed', key: 'passed', width: 12 },
+        { header: 'Failed', key: 'failed', width: 12 },
+    ];
+    const rows = agg.map(i => ({
+        period: groupBy === 'year' ? `${i._id.year}` : `${i._id.year}-${String(i._id.month).padStart(2,'0')}`,
+        total: i.total,
+        passed: i.passed,
+        failed: i.failed,
+    }));
+
+    const filename = `exam_history_${groupBy}_${new Date().toISOString().slice(0,10)}`;
+    if (format === 'pdf') return sendPDF(res, filename, 'Exam History Stats', columns, rows);
+    return sendExcel(res, filename, columns, rows);
+});
+
+// Audit stats grouped by month/year (optionally per user)
+export const getAuditStats = asyncHandler(async (req, res) => {
+    const { groupBy = 'month', userId, startDate, endDate, year } = req.query;
+    const match = {};
+    if (userId && mongoose.Types.ObjectId.isValid(userId)) match.user = new mongoose.Types.ObjectId(userId);
+    let from = startDate ? new Date(startDate) : undefined;
+    let to = endDate ? new Date(endDate) : undefined;
+    if (year && groupBy === 'month') {
+        const y = parseInt(year);
+        if (!isNaN(y)) { from = new Date(Date.UTC(y,0,1)); to = new Date(Date.UTC(y+1,0,1)); }
+    }
+    if (from) match.createdAt = { ...(match.createdAt || {}), $gte: from };
+    if (to) match.createdAt = { ...(match.createdAt || {}), $lt: to };
+
+    const groupId = groupBy === 'year' ? { year: { $year: '$createdAt' } } : { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } };
+    const agg = await Audit.aggregate([
+        { $match: match },
+        { $group: { _id: groupId, total: { $sum: 1 } } },
+        { $sort: { '_id.year': 1, ...(groupBy === 'month' ? { '_id.month': 1 } : {}) } }
+    ]);
+
+    const labels = agg.map(i => groupBy === 'year' ? `${i._id.year}` : `${i._id.year}-${String(i._id.month).padStart(2,'0')}`);
+    const series = { total: agg.map(i => i.total) };
+    res.json(new ApiResponse(200, { labels, series }, 'Audit stats fetched'));
+});
+
+export const exportAuditStats = asyncHandler(async (req, res) => {
+    const { format = 'excel' } = req.query;
+    const { groupBy = 'month', userId, startDate, endDate, year } = req.query;
+    const match = {};
+    if (userId && mongoose.Types.ObjectId.isValid(userId)) match.user = new mongoose.Types.ObjectId(userId);
+    let from = startDate ? new Date(startDate) : undefined;
+    let to = endDate ? new Date(endDate) : undefined;
+    if (year && groupBy === 'month') {
+        const y = parseInt(year);
+        if (!isNaN(y)) { from = new Date(Date.UTC(y,0,1)); to = new Date(Date.UTC(y+1,0,1)); }
+    }
+    if (from) match.createdAt = { ...(match.createdAt || {}), $gte: from };
+    if (to) match.createdAt = { ...(match.createdAt || {}), $lt: to };
+
+    const groupId = groupBy === 'year' ? { year: { $year: '$createdAt' } } : { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } };
+    const agg = await Audit.aggregate([
+        { $match: match },
+        { $group: { _id: groupId, total: { $sum: 1 } } },
+        { $sort: { '_id.year': 1, ...(groupBy === 'month' ? { '_id.month': 1 } : {}) } }
+    ]);
+
+    const columns = [
+        { header: groupBy === 'year' ? 'Year' : 'Period', key: 'period', width: 18 },
+        { header: 'Total Events', key: 'total', width: 14 }
+    ];
+    const rows = agg.map(i => ({ period: groupBy === 'year' ? `${i._id.year}` : `${i._id.year}-${String(i._id.month).padStart(2,'0')}`, total: i.total }));
+    const filename = `audit_stats_${groupBy}_${new Date().toISOString().slice(0,10)}`;
+    if (format === 'pdf') return sendPDF(res, filename, 'Audit Logs Stats', columns, rows);
+    return sendExcel(res, filename, columns, rows);
 });
 
 // Get system health overview

@@ -12,16 +12,13 @@ import {
   TableRow 
 } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import {
-  IconClipboardList,
-  IconEye,
-  IconUser,
-  IconClock,
-  IconCheck,
-} from '@tabler/icons-react'
+import { Button } from '@/components/ui/button'
+import AttemptReviewModal from '@/components/common/AttemptReviewModal'
 
 const QuizMonitoring = () => {
   const [selectedBatchId, setSelectedBatchId] = useState('')
+  const [viewAttemptId, setViewAttemptId] = useState(null)
+  const [modalOpen, setModalOpen] = useState(false)
   const { data: batchesData } = useGetInstructorAssignedBatchesQuery({ limit: 100 })
   const { data, isLoading, error } = useGetInstructorBatchQuizAttemptsQuery(
     { batchId: selectedBatchId }, 
@@ -196,9 +193,14 @@ const QuizMonitoring = () => {
                       </TableCell>
                       
                       <TableCell>
-                        <p className="text-sm">
-                          {attempt.timeTaken ? `${Math.round(attempt.timeTaken / 60)} min` : 'N/A'}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm">
+                            {attempt.timeTaken ? `${Math.round(attempt.timeTaken / 60)} min` : 'N/A'}
+                          </p>
+                          <Button size="sm" variant="outline" onClick={() => { setViewAttemptId(attempt._id); setModalOpen(true); }}>
+                            <IconEye className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -216,6 +218,9 @@ const QuizMonitoring = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Attempt Review Modal (read-only for instructor) */}
+      <AttemptReviewModal attemptId={viewAttemptId} isOpen={modalOpen} onClose={() => setModalOpen(false)} canEdit={false} />
     </div>
   )
 }

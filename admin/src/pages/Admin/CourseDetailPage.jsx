@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useGetCourseByIdQuery, useGetCourseAnalyticsQuery, useGetCourseStudentsQuery } from "@/Redux/AllApi/CourseApi";
 import { useGetModulesByCourseQuery } from "@/Redux/AllApi/moduleApi";
-import { useGetAllQuizzesQuery } from "@/Redux/AllApi/QuizApi";
+import { useGetQuizzesByCourseQuery } from "@/Redux/AllApi/QuizApi";
 import { useGetAllAssignmentsQuery } from "@/Redux/AllApi/AssignmentApi";
 import {
   Card,
@@ -69,7 +69,7 @@ const CourseDetailPage = () => {
     data: quizzesData,
     isLoading: quizzesLoading,
     refetch: refetchQuizzes,
-  } = useGetAllQuizzesQuery({ courseId });
+  } = useGetQuizzesByCourseQuery(courseId);
 
   const {
     data: assignmentsData,
@@ -92,7 +92,7 @@ const CourseDetailPage = () => {
   const course = courseData?.data || {};
   const modules = modulesData?.data || [];
   // Replace the current quizzes extraction line with:
-  const quizzes = quizzesData?.data?.quizzes || [];
+  const quizzes = Array.isArray(quizzesData?.data) ? quizzesData.data : (quizzesData?.data?.quizzes || []);
   const assignments = assignmentsData?.data || [];
 
   const isLoading =

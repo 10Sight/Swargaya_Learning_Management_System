@@ -7,7 +7,7 @@ export const quizApi = createApi({
     tagTypes: ['Quiz', 'Course', 'Module', 'Lesson'], // Add Module and Lesson to tagTypes
     endpoints: (builder) => ({
         createQuiz: builder.mutation({
-            query: ({ courseId, moduleId, lessonId, scope, title, questions, passingScore = 70 }) => ({
+            query: ({ courseId, moduleId, lessonId, scope, title, questions, passingScore = 70, timeLimit, attemptsAllowed }) => ({
                 url: "/api/quizzes",
                 method: "POST",
                 data: { 
@@ -17,7 +17,9 @@ export const quizApi = createApi({
                     scope, 
                     title, 
                     questions, 
-                    passingScore 
+                    passingScore,
+                    ...(timeLimit !== undefined ? { timeLimit } : {}),
+                    ...(attemptsAllowed !== undefined ? { attemptsAllowed } : {})
                 }
             }),
             invalidatesTags: ['Quiz', 'Course', 'Module', 'Lesson'], // Invalidate all relevant caches

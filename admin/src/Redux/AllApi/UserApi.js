@@ -79,6 +79,16 @@ export const userApi = createApi({
             invalidatesTags: ['User'],
         }),
 
+        exportStudents: builder.query({
+            query: ({ format = 'excel', search = '', status = '', batchId = '' } = {}) => ({
+                url: `/api/exports/students`,
+                method: "GET",
+                params: { format, search, status, batchId },
+                responseHandler: (response) => response.data
+            }),
+            keepUnusedDataFor: 0,
+        }),
+
     }),
 });
 
@@ -91,4 +101,5 @@ export const {
     useDeleteUserMutation,
     useGetSoftDeletedUsersQuery,
     useRestoreUserMutation,
+    useLazyExportStudentsQuery,
 } = userApi;

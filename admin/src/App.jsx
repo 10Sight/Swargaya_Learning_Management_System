@@ -3,13 +3,13 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { Navigate } from "react-router-dom";
 
-// Core components that should load immediately
-import { HomeLayout } from "./Layout/HomeLayout";
-import { InstructorLayout } from "./Layout/InstructorLayout";
-import { SuperAdminLayout } from "./Layout/SuperAdminLayout";
-import { StudentLayout } from "./Layout/StudentLayout";
-import Home from "./pages/Home";
-import Login from "./pages/Login";
+// Lazy-load layouts and pages to reduce initial bundle size
+const HomeLayout = lazy(() => import("./Layout/HomeLayout").then(m => ({ default: m.HomeLayout })));
+const InstructorLayout = lazy(() => import("./Layout/InstructorLayout").then(m => ({ default: m.InstructorLayout })));
+const SuperAdminLayout = lazy(() => import("./Layout/SuperAdminLayout").then(m => ({ default: m.SuperAdminLayout })));
+const StudentLayout = lazy(() => import("./Layout/StudentLayout").then(m => ({ default: m.StudentLayout })));
+const Home = lazy(() => import("./pages/Home"));
+const Login = lazy(() => import("./pages/Login"));
 import ProtectedRoute from "./components/ProtectedRoute";
 import PublicRoute from "./components/PublicRoute";
 
@@ -25,18 +25,24 @@ const PageLoader = () => (
 const Instructor = lazy(() => import("./pages/Admin/Instructor"));
 const Course = lazy(() => import("./pages/Admin/Course"));
 const AddModulePage = lazy(() => import("./pages/Admin/AddModulePage"));
+const EditModulePage = lazy(() => import("./pages/Admin/EditModulePage"));
 const AddCourse = lazy(() => import("./pages/Admin/AddCourse"));
 const Batches = lazy(() => import("./pages/Admin/Batches"));
 const Students = lazy(() => import("./pages/Admin/Students"));
 const BatchDetail = lazy(() => import("./pages/Admin/BatchDetail"));
 const CourseDetailPage = lazy(() => import("./pages/Admin/CourseDetailPage"));
 const AddQuizPage = lazy(() => import("./pages/Admin/AddQuizPage"));
+const EditQuizPage = lazy(() => import("./pages/Admin/EditQuizPage"));
 const AddAssignmentPage = lazy(() => import("./pages/Admin/AddAssignmentPage"));
 const AddResourcePage = lazy(() => import("./pages/Admin/AddResourcePage"));
 const AddLessonPage = lazy(() => import("./pages/Admin/AddLessonPage"));
+const EditLessonPage = lazy(() => import("./pages/Admin/EditLessonPage"));
 const InstructorDetail = lazy(() => import("./pages/Admin/InstructorDetail"));
 const StudentDetail = lazy(() => import("./pages/Admin/StudentDetail"));
 const Analytics = lazy(() => import("./pages/Admin/Analytics"));
+const ExamHistory = lazy(() => import("./pages/Admin/ExamHistory"));
+const AdminQuizMonitoring = lazy(() => import("./pages/Admin/QuizMonitoring"));
+const AdminAttemptRequests = lazy(() => import("./pages/Admin/AttemptRequests"));
 const StudentLevelManagement = lazy(() => import("./pages/Admin/StudentLevelManagement"));
 const CertificateTemplates = lazy(() => import("./pages/Admin/CertificateTemplates"));
 const ModuleTimelines = lazy(() => import("./pages/Admin/ModuleTimelines"));
@@ -51,6 +57,7 @@ const InstructorCourseDetailPage = lazy(() => import("./pages/Instructor/Instruc
 const QuizMonitoring = lazy(() => import("./pages/Instructor/QuizMonitoring"));
 const AssignmentMonitoring = lazy(() => import("./pages/Instructor/AssignmentMonitoring"));
 const CertificateIssuance = lazy(() => import("./pages/Instructor/CertificateIssuance"));
+const InstructorAttemptRequests = lazy(() => import("./pages/Instructor/AttemptRequests"));
 
 // SuperAdmin Pages
 const SuperAdminDashboard = lazy(() => import("./pages/SuperAdmin/Dashboard"));
@@ -75,6 +82,7 @@ const TakeQuiz = lazy(() => import("./pages/Student/TakeQuiz"));
 const CourseReport = lazy(() => import("./pages/Student/CourseReport"));
 const Reports = lazy(() => import("./pages/Student/Reports"));
 const StudentCertificates = lazy(() => import("./pages/Student/Certificates"));
+const ResourcePreview = lazy(() => import("./pages/Student/ResourcePreview"));
 
 const RoleRedirect = () => {
   const { user } = useSelector((state) => state.auth);
@@ -132,11 +140,17 @@ const App = () => {
           <Route path="students/:studentId" element={<StudentDetail />} />
           <Route path="batches/:batchId" element={<BatchDetail pageName="Batch Detail" />} />
           <Route path="add-quiz/:courseId" element={<AddQuizPage />} />
+          <Route path="edit-quiz/:quizId" element={<EditQuizPage />} />
           <Route path="add-module/:courseId" element={<AddModulePage />} />
+          <Route path="edit-module/:moduleId" element={<EditModulePage />} />
           <Route path="add-lesson/:moduleId" element={<AddLessonPage />} />
           <Route path="add-assignment/:courseId" element={<AddAssignmentPage />} />
           <Route path="add-resource/:courseId" element={<AddResourcePage />} />
+          <Route path="edit-lesson/:moduleId/:lessonId" element={<EditLessonPage />} />
+          <Route path="quiz-monitoring" element={<AdminQuizMonitoring />} />
+          <Route path="attempt-requests" element={<AdminAttemptRequests />} />
           <Route path="analytics" element={<Analytics pageName="Analytics" />} />
+          <Route path="exam-history" element={<ExamHistory />} />
           <Route path="audit-logs" element={<AuditLogs />} />
           <Route path="student-levels" element={<StudentLevelManagement />} />
           <Route path="certificate-templates" element={<CertificateTemplates pageName="Certificate Templates" />} />
@@ -155,11 +169,13 @@ const App = () => {
           <Route index element={<InstructorDashboard />} />
           <Route path="courses" element={<InstructorCourses />} />
           <Route path="courses/:courseId" element={<InstructorCourseDetailPage />} />
+          <Route path="edit-lesson/:moduleId/:lessonId" element={<EditLessonPage />} />
           <Route path="batches" element={<InstructorBatches />} />
           <Route path="students" element={<InstructorStudents />} />
           <Route path="quiz-monitoring" element={<QuizMonitoring />} />
           <Route path="assignment-monitoring" element={<AssignmentMonitoring />} />
           <Route path="certificate-issuance" element={<CertificateIssuance />} />
+          <Route path="attempt-requests" element={<InstructorAttemptRequests />} />
         </Route>
 
         {/* SuperAdmin routes */}
@@ -191,6 +207,7 @@ const App = () => {
           <Route path="add-lesson/:moduleId" element={<AddLessonPage />} />
           <Route path="add-assignment/:courseId" element={<AddAssignmentPage />} />
           <Route path="add-resource/:courseId" element={<AddResourcePage />} />
+          <Route path="edit-lesson/:moduleId/:lessonId" element={<EditLessonPage />} />
           <Route path="batches" element={<Batches pageName="Batches" />} />
           <Route path="batches/:batchId" element={<BatchDetail pageName="Batch Detail" />} />
           <Route path="certificates" element={<CertificateManagement />} />
@@ -229,6 +246,7 @@ const App = () => {
           <Route path="reports" element={<Reports />} />
           <Route path="report/:courseId" element={<CourseReport />} />
           <Route path="certificates" element={<StudentCertificates />} />
+          <Route path="resource-preview" element={<ResourcePreview />} />
         </Route>
         </Routes>
       </Suspense>

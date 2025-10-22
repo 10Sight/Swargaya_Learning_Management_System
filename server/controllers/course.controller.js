@@ -60,7 +60,7 @@ export const getCourses = asyncHandler(async (req, res) => {
     }
 
     // Include all necessary fields
-    const safeFields = "title description category difficulty students status totalEnrollments modules quizzes assignments instructor createdBy createdAt";
+    const safeFields = "title slug description category difficulty students status totalEnrollments modules quizzes assignments instructor createdBy createdAt";
 
     const courses = await Course.find(query)
         .select(safeFields)
@@ -84,10 +84,19 @@ export const getCourses = asyncHandler(async (req, res) => {
 export const getCourseById = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
-    const course = await Course.findById(id)
-        .populate("createdBy", "fullName email role")
-        .populate("quizzes assignments")
-        .lean(); // Use lean for read-only data
+    let course;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+        course = await Course.findById(id)
+            .populate("createdBy", "fullName email role")
+            .populate("quizzes assignments")
+            .lean();
+    }
+    if (!course) {
+        course = await Course.findOne({ slug: id })
+            .populate("createdBy", "fullName email role")
+            .populate("quizzes assignments")
+            .lean();
+    }
 
     if(!course) throw new ApiError("Course not found", 404);
 
@@ -180,11 +189,16 @@ export const togglePublishCourse = asyncHandler(async (req, res) => {
 export const getCourseAnalytics = asyncHandler(async (req, res) => {
     const { id: courseId } = req.params;
 
+    let resolvedCourseId = courseId;
     if(!mongoose.Types.ObjectId.isValid(courseId)) {
-        throw new ApiError("Invalid course ID", 400);
+        const c = await Course.findOne({ slug: courseId }).select('_id');
+        if (!c) {
+            throw new ApiError("Invalid course ID", 400);
+        }
+        resolvedCourseId = c._id;
     }
 
-    const course = await Course.findById(courseId)
+    const course = await Course.findById(resolvedCourseId)
         .populate('modules', '_id title order')
         .populate('students', '_id fullName')
         .lean(); // Use lean for performance
@@ -195,7 +209,7 @@ export const getCourseAnalytics = asyncHandler(async (req, res) => {
 
     // Get progress data for enrolled students
     const progressData = await Progress.find({
-        course: courseId
+        course: resolvedCourseId
     })
     .populate('student', 'fullName email avatar')
     .lean();
@@ -233,7 +247,9 @@ export const getCourseAnalytics = asyncHandler(async (req, res) => {
     // Transform quiz attempts with computed fields
     const transformedAttempts = quizAttempts.map(attempt => {
         const totalQuestions = attempt.quiz?.questions?.length || 0;
-        const scorePercent = totalQuestions > 0 ? Math.round((attempt.score / totalQuestions) * 100) : 0;
+        // Calculate total marks properly by summing up marks from all questions
+        const totalMarks = attempt.quiz?.questions?.reduce((sum, question) => sum + (question.marks || 1), 0) || totalQuestions;
+        const scorePercent = totalMarks > 0 ? Math.round((attempt.score / totalMarks) * 100) : 0;
         const passingScore = attempt.quiz?.passingScore || 70;
         const passed = scorePercent >= passingScore;
 
@@ -242,6 +258,7 @@ export const getCourseAnalytics = asyncHandler(async (req, res) => {
             scorePercent,
             passed,
             totalQuestions,
+            totalMarks,
             attemptedAt: attempt.createdAt
         };
     });
@@ -299,11 +316,16 @@ export const getCourseAnalytics = asyncHandler(async (req, res) => {
 export const getCourseStudents = asyncHandler(async (req, res) => {
     const { id: courseId } = req.params;
 
+    let resolvedCourseId = courseId;
     if(!mongoose.Types.ObjectId.isValid(courseId)) {
-        throw new ApiError("Invalid course ID", 400);
+        const c = await Course.findOne({ slug: courseId }).select('_id');
+        if (!c) {
+            throw new ApiError("Invalid course ID", 400);
+        }
+        resolvedCourseId = c._id;
     }
 
-    const course = await Course.findById(courseId)
+    const course = await Course.findById(resolvedCourseId)
         .populate('students', 'fullName email avatar createdAt')
         .populate('modules', '_id title');
 
@@ -316,7 +338,7 @@ export const getCourseStudents = asyncHandler(async (req, res) => {
     // Get progress for all enrolled students
     const progressData = await Progress.find({
         student: { $in: course.students.map(s => s._id) },
-        course: courseId
+        course: resolvedCourseId
     })
     .populate('student', 'fullName email avatar')
     .lean();

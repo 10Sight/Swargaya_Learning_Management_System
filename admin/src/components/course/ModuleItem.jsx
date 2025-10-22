@@ -19,7 +19,7 @@ import {
   IconChevronUp,
   IconVideo,
 } from "@tabler/icons-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useDeleteModuleMutation } from "@/Redux/AllApi/moduleApi";
 import {
@@ -29,11 +29,18 @@ import {
 
 const ModuleItem = ({ module, onRefetch, isDeletingModule }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isExpanded, setIsExpanded] = useState(false);
   const [deleteModule] = useDeleteModuleMutation();
   const [deleteLesson, { isLoading: isDeletingLesson }] = useDeleteLessonMutation();
 
   const moduleId = module._id || module.id;
+  const basePath = React.useMemo(() => {
+    const p = location.pathname || '';
+    if (p.startsWith('/superadmin')) return '/superadmin';
+    if (p.startsWith('/instructor')) return '/instructor';
+    return '/admin';
+  }, [location.pathname]);
 
   // Fetch lessons for this module only when expanded
   const {
@@ -170,7 +177,7 @@ const ModuleItem = ({ module, onRefetch, isDeletingModule }) => {
             <h4 className="text-lg font-semibold">Lessons in this module</h4>
             <Button 
               size="sm" 
-              onClick={() => navigate(`/admin/add-lesson/${moduleId}`)}
+              onClick={() => navigate(`${basePath}/add-lesson/${moduleId}`)}
             >
               <IconPlus className="h-4 w-4 mr-1" />
               Add Lesson
@@ -217,7 +224,7 @@ const ModuleItem = ({ module, onRefetch, isDeletingModule }) => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => navigate(`/admin/edit-lesson/${moduleId}/${lesson._id || lesson.id}`)}
+                      onClick={() => navigate(`${basePath}/edit-lesson/${moduleId}/${lesson._id || lesson.id}`)}
                     >
                       <IconPencil className="h-4 w-4" />
                     </Button>
@@ -247,7 +254,7 @@ const ModuleItem = ({ module, onRefetch, isDeletingModule }) => {
               </p>
               <Button 
                 size="sm" 
-                onClick={() => navigate(`/admin/add-lesson/${moduleId}`)}
+                onClick={() => navigate(`${basePath}/add-lesson/${moduleId}`)}
               >
                 <IconPlus className="h-4 w-4 mr-1" />
                 Add Lesson

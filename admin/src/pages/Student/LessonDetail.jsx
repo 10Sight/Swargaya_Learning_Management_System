@@ -29,9 +29,12 @@ import {
   Target,
   AlertCircle,
   Award,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { useGetResourcesByLessonQuery } from "@/Redux/AllApi/resourceApi";
 import axiosInstance from "@/Helper/axiosInstance";
+import SlideRender from "@/components/common/SlideRender";
 
 const LessonDetail = () => {
   const { lessonId } = useParams();
@@ -65,74 +68,125 @@ const LessonDetail = () => {
   useEffect(() => {
     const fetchLessonData = async () => {
       if (!lessonId) return;
-      
       try {
         setLoading(true);
         setError(null);
-        
-        // Get course content and progress data
+
+        // 1) Get course content (for courseId and completion status)
         const response = await axiosInstance.get('/api/batches/me/course-content');
         const data = response?.data?.data;
-        
-        if (!data?.course?.modules) {
-          throw new Error('Course modules not found');
-        }
-        
+        if (!data?.course) throw new Error('Course not found');
         setCourseData(data);
-        
-        // Check if lesson is already completed from progress data
+
         const progress = data.progress || {};
         const completedLessons = progress.completedLessons || [];
-        const isLessonCompleted = completedLessons.some(lesson => 
-          String(lesson.lessonId || lesson._id || lesson) === String(lessonId)
-        );
+        const isLessonCompleted = completedLessons.some(lesson => String(lesson.lessonId || lesson._id || lesson) === String(lessonId));
         setIsCompleted(isLessonCompleted);
-        
-        // Find the lesson in any module
+
+        // 2) Try direct lesson fetch (new API)
+        try {
+          const lessonRes = await axiosInstance.get(`/api/lessons/${lessonId}`);
+          const fetchedLesson = lessonRes?.data?.data;
+          if (fetchedLesson) {
+            setLessonDataState(fetchedLesson);
+            return;
+          }
+        } catch (directErr) {
+          // Fall through to legacy fallback if 404 or any error
+        }
+
+        // 3) Fallback: locate module and fetch via legacy routes
         let foundLesson = null;
         let foundModuleId = null;
-        
-        for (const module of data.course.modules) {
+        for (const module of (data.course.modules || [])) {
           const moduleId = module._id || module.id;
           try {
             const lessonsResponse = await axiosInstance.get(`/api/modules/${moduleId}/lessons`);
             const lessons = lessonsResponse?.data?.data || [];
-            
-            const lesson = lessons.find(l => 
-              String(l._id || l.id) === String(lessonId)
-            );
-            
-            if (lesson) {
-              foundLesson = lesson;
+            const match = lessons.find(l => String(l._id || l.id) === String(lessonId));
+            if (match) {
+              foundLesson = match;
               foundModuleId = moduleId;
               break;
             }
-          } catch (err) {
-            continue;
-          }
+          } catch (_) {}
         }
-        
         if (!foundLesson || !foundModuleId) {
-          throw new Error('Lesson not found in any module');
+          throw new Error('Lesson not found');
         }
-        
         setLessonModuleId(foundModuleId);
-        setLessonDataState(foundLesson);
-        
+        // Try to get the single lesson payload if supported; else use found list item
+        try {
+          const singleLessonRes = await axiosInstance.get(`/api/modules/${foundModuleId}/lessons/${lessonId}`);
+          setLessonDataState(singleLessonRes?.data?.data || foundLesson);
+        } catch (_) {
+          setLessonDataState(foundLesson);
+        }
       } catch (err) {
         setError(err.message || 'Failed to load lesson');
       } finally {
         setLoading(false);
       }
     };
-    
+
     fetchLessonData();
   }, [lessonId]);
 
   const lesson = lessonDataState;
 
-  // Scroll progress tracking
+  // Slide viewer state
+  const [slideIndex, setSlideIndex] = useState(0);
+  const slides = Array.isArray(lesson?.slides) ? [...lesson.slides].sort((a,b)=> (a.order||0)-(b.order||0)) : [];
+  const slideStageRef = useRef(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Reset slide index when lesson changes
   useEffect(() => {
+    setSlideIndex(0);
+  }, [lesson?._id, lesson?.updatedAt]);
+
+  // Keyboard navigation for slides + fullscreen toggle
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        toggleFullscreen();
+        return;
+      }
+      if (!slides.length) return;
+      if (e.key === 'ArrowRight') setSlideIndex((i)=> Math.min(slides.length-1, i+1));
+      if (e.key === 'ArrowLeft') setSlideIndex((i)=> Math.max(0, i-1));
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [slides.length]);
+
+  // Track fullscreen state
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    const el = slideStageRef.current;
+    if (!el) return;
+    if (!document.fullscreenElement) {
+      el.requestFullscreen?.();
+    } else {
+      document.exitFullscreen?.();
+    }
+  };
+
+  // Progress tracking: if slides exist, base on slide index; else use scroll listener
+  useEffect(() => {
+    if (slides.length) {
+      const pct = Math.round(((slideIndex + 1) / slides.length) * 100);
+      setScrollProgress(pct);
+      setHasReachedBottom(slideIndex === slides.length - 1);
+      return; // skip scroll handler when using slides
+    }
+
     const handleScroll = () => {
       const container = scrollContainerRef.current;
       if (!container || isCompleted) return;
@@ -140,10 +194,7 @@ const LessonDetail = () => {
       const scrollTop = container.scrollTop;
       const scrollHeight = container.scrollHeight - container.clientHeight;
       const progress = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 100;
-      
       setScrollProgress(Math.min(progress, 100));
-
-      // Check if user has scrolled to bottom (within 5px threshold)
       if (scrollHeight - scrollTop <= 5 && !hasReachedBottom) {
         setHasReachedBottom(true);
       }
@@ -152,16 +203,13 @@ const LessonDetail = () => {
     const container = scrollContainerRef.current;
     if (container) {
       container.addEventListener('scroll', handleScroll);
-      // Initial check
       handleScroll();
     }
 
     return () => {
-      if (container) {
-        container.removeEventListener('scroll', handleScroll);
-      }
+      if (container) container.removeEventListener('scroll', handleScroll);
     };
-  }, [isCompleted, hasReachedBottom]);
+  }, [slides.length, slideIndex, isCompleted, hasReachedBottom]);
 
   // Auto-complete lesson when user reaches bottom
   useEffect(() => {
@@ -190,7 +238,9 @@ const LessonDetail = () => {
       
       if (response.data.success) {
         setIsCompleted(true);
-        toast.success("🎉 Lesson completed! Well done!");
+        toast.success("🎉 Lesson completed!");
+        // Navigate back to course to reflect progress and unlock next lesson
+        setTimeout(() => navigate('/student/course', { replace: true }), 600);
       } else {
         throw new Error(response.data.message || 'Failed to complete lesson');
       }
@@ -340,7 +390,7 @@ const LessonDetail = () => {
             </div>
             
             {/* Right Section - Progress/Status */}
-            <div className="flex items-center gap-3 sm:gap-4">
+            <div className="flex items-center gap-2 sm:gap-3">
               {isCompleted ? (
                 <div className="flex items-center gap-2">
                   <Badge className="bg-green-100 text-green-800 border-green-300 px-3 py-1.5 text-xs sm:text-sm font-medium">
@@ -353,26 +403,42 @@ const LessonDetail = () => {
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="flex flex-col items-end">
-                    <div className="w-24 sm:w-32">
-                      <Progress 
-                        value={scrollProgress} 
-                        className="h-2 sm:h-2.5" 
-                      />
+                <>
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="flex flex-col items-end">
+                      <div className="w-24 sm:w-32">
+                        <Progress 
+                          value={scrollProgress} 
+                          className="h-2 sm:h-2.5" 
+                        />
+                      </div>
+                      <span className="text-xs text-muted-foreground mt-1">
+                        {Math.round(scrollProgress)}% complete
+                      </span>
                     </div>
-                    <span className="text-xs text-muted-foreground mt-1">
-                      {Math.round(scrollProgress)}% read
-                    </span>
+                    {hasReachedBottom && (
+                      <div className="flex items-center text-xs text-blue-600">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        <span className="hidden sm:inline">Almost done!</span>
+                        <span className="sm:hidden">Done!</span>
+                      </div>
+                    )}
                   </div>
-                  {hasReachedBottom && (
-                    <div className="flex items-center text-xs text-blue-600">
-                      <CheckCircle2 className="h-3 w-3 mr-1" />
-                      <span className="hidden sm:inline">Almost done!</span>
-                      <span className="sm:hidden">Done!</span>
-                    </div>
-                  )}
-                </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={handleCompleteLesson}
+                    disabled={completingLesson}
+                    className="ml-2 shrink-0"
+                  >
+                    {completingLesson ? (
+                      <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    )}
+                    Mark Completed
+                  </Button>
+                </>
               )}
             </div>
           </div>
@@ -393,22 +459,70 @@ const LessonDetail = () => {
                 <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
               </div>
               <span>Lesson Content</span>
+              {slides.length > 0 && (
+                <Badge variant="outline" className="ml-2 text-xs">{slides.length} slide{slides.length>1?'s':''}</Badge>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 lg:p-8">
-            <div className="prose prose-sm sm:prose-base max-w-none">
-              {lesson.content ? (
-                <div className="whitespace-pre-wrap text-gray-700 leading-relaxed text-sm sm:text-base">
-                  {lesson.content}
+            {slides.length > 0 ? (
+              <div className="max-w-none">
+                {/* Slide viewer */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-sm text-muted-foreground">Slide {slideIndex + 1} / {slides.length}</div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={toggleFullscreen} title={isFullscreen ? 'Exit Fullscreen (Esc)' : 'Enter Fullscreen (F)'}>
+                      {isFullscreen ? (
+                        <><Minimize2 className="h-4 w-4 mr-1" /> Exit</>
+                      ) : (
+                        <><Maximize2 className="h-4 w-4 mr-1" /> Full Screen</>
+                      )}
+                    </Button>
+                    <Button size="sm" variant="outline" disabled={slideIndex===0} onClick={() => setSlideIndex((i)=>Math.max(0,i-1))}>Prev</Button>
+                    <Button size="sm" variant="outline" disabled={slideIndex===slides.length-1} onClick={() => setSlideIndex((i)=>Math.min(slides.length-1,i+1))}>Next</Button>
+                  </div>
                 </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <ScrollText className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No lesson content available.</p>
+                <div
+                  ref={slideStageRef}
+                  className={`overflow-hidden bg-transparent ${isFullscreen ? 'w-screen h-screen rounded-none' : 'h-[60vh] md:h-[70vh] rounded-lg'}`}
+                  onDoubleClick={toggleFullscreen}
+                >
+                  <div className="h-full w-full">
+                    {/* Read-only slide renderer (content + positioned elements) */}
+                    {/* eslint-disable-next-line react/jsx-no-useless-fragment */}
+                    <>
+                      {/* We embed our 16:9 stage inside the available viewport */}
+                      <div className="h-full w-full flex items-center justify-center">
+                        <div className={`w-full ${isFullscreen ? '' : 'max-w-4xl'}`}>
+                          <SlideRender slide={slides[slideIndex]} className={isFullscreen ? 'fullscreen' : ''} />
+                        </div>
+                      </div>
+                    </>
+                  </div>
                 </div>
-              )}
-              
-              {/* Enhanced Educational Content */}
+                <div className="flex items-center justify-center gap-2 mt-4">
+                  {slides.map((_, i) => (
+                    <button key={i} aria-label={`Go to slide ${i+1}`} onClick={() => setSlideIndex(i)} className={`h-2.5 w-2.5 rounded-full ${i===slideIndex? 'bg-blue-600':'bg-gray-300'} hover:bg-blue-500`} />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="prose prose-sm sm:prose-base max-w-none">
+                {lesson.content ? (
+                  <div className="whitespace-pre-wrap text-gray-700 leading-relaxed text-sm sm:text-base">
+                    {lesson.content}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <ScrollText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No lesson content available.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Additional info only for legacy content */}
+            {slides.length === 0 && (
               <div className="mt-8 sm:mt-12 space-y-6 sm:space-y-8">
                 <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 sm:p-6">
                   <h3 className="text-base sm:text-lg font-bold text-blue-900 mb-4 flex items-center gap-2">
@@ -465,7 +579,7 @@ const LessonDetail = () => {
                   </div>
                 </div>
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 

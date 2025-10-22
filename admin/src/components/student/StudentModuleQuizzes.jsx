@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -8,10 +8,53 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Lock, Award, BarChart3, Clock, RefreshCw, CheckCircle, AlertCircle, Eye, XCircle } from "lucide-react";
+import { Lock, Award, BarChart3, Clock, RefreshCw, CheckCircle, AlertCircle, Eye, XCircle, PlusCircle } from "lucide-react";
 
-const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false, onStart }) => {
-  if (!quizzes || quizzes.length === 0) return null;
+import { useRequestExtraAttemptMutation } from "@/Redux/AllApi/AttemptedQuizApi";
+import axiosInstance from "@/Helper/axiosInstance";
+
+const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false, onStart, extraGrantedQuizIds = new Set(), rejectedQuizIds = new Set() }) => {
+  // Cache per-quiz attempt status (includes extra allowances)
+  const [statusByQuiz, setStatusByQuiz] = useState({});
+  const [pendingRequested, setPendingRequested] = useState(new Set());
+
+  // Hooks must remain at top-level; do not early-return before hooks
+  useEffect(() => {
+    let cancelled = false;
+    const fetchStatuses = async () => {
+      try {
+        const results = await Promise.allSettled(
+          quizzes.map(q => axiosInstance.get(`/api/attempts/status/${q._id || q.id}`))
+        );
+        if (cancelled) return;
+        const map = {};
+        results.forEach((res, idx) => {
+          const q = quizzes[idx];
+          if (res.status === 'fulfilled') {
+            const data = res.value?.data?.data;
+            if (data) map[String(q._id || q.id)] = data;
+          }
+        });
+        setStatusByQuiz(map);
+      } catch (_) {}
+    };
+    fetchStatuses();
+
+    // Light polling while any quiz appears to have 0 attempts
+    const needPoll = quizzes.some(q => {
+      const st = statusByQuiz[String(q._id || q.id)];
+      return !st || (st && !st.canAttempt && (st.attemptsRemaining ?? 0) <= 0);
+    });
+    let interval;
+    if (needPoll) {
+      interval = setInterval(fetchStatuses, 5000);
+    }
+
+    const handler = () => fetchStatuses();
+    window.addEventListener('attempt-extension-updated', handler);
+    return () => { cancelled = true; window.removeEventListener('attempt-extension-updated', handler); if (interval) clearInterval(interval); };
+  }, [quizzes, statusByQuiz]);
+  const [requestExtra, { isLoading: requesting }] = useRequestExtraAttemptMutation();
 
   const handleStart = (quiz) => {
     if (!isUnlocked) return;
@@ -25,11 +68,19 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
   const getQuizStatus = (quiz) => {
     const quizId = getQuizId(quiz);
     const quizAttempts = attempts[quizId] || [];
-    const attemptsAllowed = quiz.attemptsAllowed || 1;
     const attemptsUsed = quizAttempts.length;
-    const attemptsLeft = attemptsAllowed - attemptsUsed;
 
-    if (attemptsUsed === 0) {
+    // Prefer server status (includes approved extra attempts)
+    const serverStatus = statusByQuiz[String(quizId)];
+    const attemptsAllowed = serverStatus?.attemptsAllowed ?? (quiz.attemptsAllowed || 1);
+    let attemptsLeft = serverStatus?.attemptsRemaining ?? ((attemptsAllowed ?? 1) - attemptsUsed);
+
+    // Fallback for immediate UI after approval via realtime flag
+    if (extraGrantedQuizIds && extraGrantedQuizIds.has(String(quizId))) {
+      attemptsLeft = Math.max(1, attemptsLeft);
+    }
+
+    if (attemptsUsed === 0 && (serverStatus?.canAttempt ?? (attemptsLeft > 0))) {
       return {
         status: 'not_attempted',
         message: 'Not attempted',
@@ -49,7 +100,7 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
     const passingScore = quiz.passingScore || 70;
     const isPassed = bestAttempt.score >= passingScore;
 
-    if (attemptsLeft > 0) {
+    if (serverStatus?.canAttempt ?? (attemptsLeft > 0)) {
       if (isPassed) {
         return {
           status: 'passed_can_retake',
@@ -86,19 +137,52 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
           score: bestAttempt.score
         };
       } else {
-        return {
-          status: 'no_attempts_left',
-          message: `Failed: ${bestAttempt.score}% (No attempts left)`,
-          color: 'destructive',
-          icon: XCircle,
-          buttonText: 'No Attempts Left',
-          buttonDisabled: true,
-          canStart: false,
-          score: bestAttempt.score
-        };
+          // If server now allows attempt (approved extra), treat as retake available
+          if (serverStatus?.canAttempt) {
+            const leftSrv = serverStatus?.attemptsRemaining ?? 1;
+            return {
+              status: 'failed_can_retake',
+              message: `Score: ${bestAttempt.score}% (${leftSrv} attempts left)`,
+              color: 'destructive',
+              icon: AlertCircle,
+              buttonText: `Retake Quiz (${leftSrv} left)`,
+              buttonDisabled: false,
+              canStart: true,
+              score: bestAttempt.score,
+              showRequest: false
+            };
+          }
+          // If rejected, lock completely with no buttons
+          if (rejectedQuizIds && rejectedQuizIds.has(String(quizId))) {
+            return {
+              status: 'rejected',
+              message: `Failed: ${bestAttempt.score}% (Request rejected)`,
+              color: 'destructive',
+              icon: XCircle,
+              buttonText: '',
+              buttonDisabled: true,
+              canStart: false,
+              score: bestAttempt.score,
+              showRequest: false
+            };
+          }
+          return {
+            status: 'no_attempts_left',
+            message: `Failed: ${bestAttempt.score}% (No attempts left)`,
+            color: 'destructive',
+            icon: XCircle,
+            buttonText: pendingRequested.has(String(quizId)) ? 'Request Pending' : 'Request One More Attempt',
+            buttonDisabled: !!pendingRequested.has(String(quizId)),
+            canStart: false,
+            score: bestAttempt.score,
+            showRequest: !pendingRequested.has(String(quizId))
+          };
       }
     }
   };
+
+  // If no quizzes, render nothing
+  if (!quizzes || quizzes.length === 0) return null;
 
   return (
     <div className="space-y-3">
@@ -128,7 +212,7 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
                 </CardTitle>
                 
                 {/* Status Badges */}
-                <div className="flex flex-wrap gap-2 mt-2">
+                <div className="flex flex-wrap gap-2 mt-2 items-center">
                   <Badge className="bg-orange-100 text-orange-800 text-xs border-orange-200">
                     MODULE LEVEL
                   </Badge>
@@ -139,6 +223,20 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
                       {quizStatus.message}
                     </Badge>
                   )}
+                  {/* Attempts left badge */}
+                  {(() => {
+                    const attemptsUsedLocal = (attempts[quizId] || []).length;
+                    const server = statusByQuiz[String(quizId)];
+                    let left = server?.attemptsRemaining ?? ((quiz.attemptsAllowed || 1) - attemptsUsedLocal);
+                    if (extraGrantedQuizIds && extraGrantedQuizIds.has(String(quizId))) {
+                      left = Math.max(1, left);
+                    }
+                    return (
+                      <Badge variant="secondary" className="text-xs">
+                        Left: {Math.max(0, left)}
+                      </Badge>
+                    );
+                  })()}
                 </div>
                 
                 {quiz.description && (
@@ -146,6 +244,12 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
                 )}
               </CardHeader>
               <CardContent>
+                {/* Rejection banner */}
+                {(rejectedQuizIds && rejectedQuizIds.has(String(quizId))) && (
+                  <div className="mb-3 p-3 rounded-md border border-red-200 bg-red-50 text-red-700 text-xs">
+                    This quiz request was rejected by your instructor/admin. No further attempts are available.
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                   <div className="flex items-center gap-1">
                     <Award className="h-4 w-4 text-muted-foreground" />
@@ -157,7 +261,7 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
                   </div>
                   <div className="flex items-center gap-1">
                     <Clock className="h-4 w-4 text-muted-foreground" />
-                    Time: {quiz.timeLimit || 30} min
+                    Time: {quiz.timeLimit ? `${quiz.timeLimit} min` : 'No time limit'}
                   </div>
                   <div className="flex items-center gap-1">
                     <RefreshCw className="h-4 w-4 text-muted-foreground" />
@@ -200,29 +304,51 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
                   </div>
                 )}
                 
-                <Button 
-                  className={`w-full ${
-                    quizStatus.status === 'no_attempts_left' 
-                      ? 'bg-gray-400 hover:bg-gray-400 cursor-not-allowed'
-                      : quizStatus.status === 'passed_no_attempts'
-                      ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                      : ''
-                  }`}
-                  disabled={!isUnlocked || quizStatus.buttonDisabled} 
-                  onClick={() => handleStart(quiz)}
-                >
-                  {!isUnlocked ? (
-                    <>
-                      <Lock className="h-4 w-4 mr-2" />
-                      Complete Lessons First
-                    </>
-                  ) : (
-                    <>
-                      <StatusIcon className="h-4 w-4 mr-2" />
-                      {quizStatus.buttonText}
-                    </>
-                  )}
-                </Button>
+                {(quizStatus.showRequest && !(rejectedQuizIds && rejectedQuizIds.has(String(quizId)))) ? (
+                  <Button 
+                    className="w-full"
+                    variant="outline"
+                    disabled={requesting || !isUnlocked}
+                    onClick={async () => {
+                      try {
+                        await requestExtra({ quizId: quizId }).unwrap();
+                        setPendingRequested(prev => new Set(prev).add(String(quizId)));
+                        alert('Request sent to admin/instructor. You will be notified when approved.');
+                      } catch (e) {
+                        alert(e?.data?.message || 'Failed to request extra attempt');
+                      }
+                    }}
+                  >
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    {quizStatus.buttonText}
+                  </Button>
+                ) : (
+                  quizStatus.status === 'rejected' ? null : (
+                  <Button 
+                    className={`w-full ${
+                      quizStatus.status === 'no_attempts_left' 
+                        ? 'bg-gray-400 hover:bg-gray-400 cursor-not-allowed'
+                        : quizStatus.status === 'passed_no_attempts'
+                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                        : ''
+                    }`}
+                    disabled={!isUnlocked || quizStatus.buttonDisabled} 
+                    onClick={() => handleStart(quiz)}
+                  >
+                    {!isUnlocked ? (
+                      <>
+                        <Lock className="h-4 w-4 mr-2" />
+                        Complete Lessons First
+                      </>
+                    ) : (
+                      <>
+                        <StatusIcon className="h-4 w-4 mr-2" />
+                        {quizStatus.buttonText}
+                      </>
+                    )}
+                  </Button>
+                ))
+                }
               </CardContent>
             </Card>
           );

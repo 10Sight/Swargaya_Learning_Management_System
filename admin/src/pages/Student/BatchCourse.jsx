@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { 
@@ -189,12 +189,26 @@ const useModuleContent = () => {
     loadedModules: new Set(), // Track which modules have been loaded
   });
 
+  // Refs to prevent duplicate network calls across re-renders
+  const loadingModulesRef = useRef(new Set());
+  const loadedModulesRef = useRef(new Set());
+
   // Store moduleId and courseId for RTK Query hooks
   const [currentModules, setCurrentModules] = useState({});
 
   const loadModuleContent = useCallback(async (moduleId, courseId) => {
+    // Guard against undefined/invalid moduleId
+    if (!moduleId) {
+      console.warn("BatchCourse - Skipping loadModuleContent: missing moduleId", { moduleId, courseId });
+      return;
+    }
+
     const key = String(moduleId);
-    if (state.loadingStates[key]) return;
+    if (loadedModulesRef.current.has(key) || loadingModulesRef.current.has(key)) {
+      return;
+    }
+
+    loadingModulesRef.current.add(key);
 
     // Add to current modules for RTK Query
     setCurrentModules(prev => ({ ...prev, [key]: { moduleId, courseId } }));
@@ -212,14 +226,8 @@ const useModuleContent = () => {
         axiosInstance.get(`/api/modules/${moduleId}/lessons`),
         axiosInstance.get(`/api/resources/module/${moduleId}`),
       ]);
-
-      console.log(`BatchCourse - lessonsRes status: ${lessonsRes.status}`);
-      console.log(`BatchCourse - resourcesRes status: ${resourcesRes.status}`);
-      
       if (resourcesRes.status === 'rejected') {
         console.error(`BatchCourse - Resources fetch failed for moduleId ${moduleId}:`, resourcesRes.reason);
-      } else {
-        console.log(`BatchCourse - Resources response for moduleId ${moduleId}:`, resourcesRes.value?.data);
       }
 
       const lessons = lessonsRes.status === 'fulfilled'
@@ -229,9 +237,6 @@ const useModuleContent = () => {
       const resources = resourcesRes.status === 'fulfilled'
         ? resourcesRes.value?.data?.data || []
         : [];
-        
-      console.log(`BatchCourse - Found ${resources.length} resources for moduleId ${moduleId}`);
-      console.log(`BatchCourse - Resources data:`, resources);
 
       setState(prev => ({
         ...prev,
@@ -240,6 +245,7 @@ const useModuleContent = () => {
         loadingStates: { ...prev.loadingStates, [key]: false },
         loadedModules: new Set([...prev.loadedModules, key])
       }));
+      loadedModulesRef.current.add(key);
     } catch (error) {
       console.error(`Error loading module ${moduleId} content:`, error);
       setState(prev => ({
@@ -248,8 +254,11 @@ const useModuleContent = () => {
         resourcesByModule: { ...prev.resourcesByModule, [key]: [] },
         loadingStates: { ...prev.loadingStates, [key]: false }
       }));
+    } finally {
+      loadingModulesRef.current.delete(key);
     }
-  }, [state.loadingStates]);
+  // Intentionally leave deps empty to keep a stable function identity.
+  }, []);
 
   // Function to update assessments data from RTK Query
   const updateModuleAssessments = useCallback((moduleId, quizzes = [], assignments = []) => {
@@ -341,21 +350,11 @@ const BatchCourse = () => {
   // Fetch course-level resources
   const {
     data: courseResourcesData,
-    isLoading: courseResourcesLoading,
-    error: courseResourcesError,
   } = useGetResourcesByCourseQuery(batch?.course?._id || batch?.course?.id, {
     skip: !batch?.course?._id && !batch?.course?.id,
   });
   
-  console.log("BatchCourse - Course Resources:", {
-    courseId: batch?.course?._id || batch?.course?.id,
-    courseResourcesData,
-    courseResourcesLoading,
-    courseResourcesError,
-  });
-  
   const courseResources = courseResourcesData?.data || [];
-  console.log("BatchCourse - Course Resources count:", courseResources.length);
 
   const allModulesCompleted = modules.length > 0 && modules.every(m => 
     completedModuleIds.includes(String(m?._id || m?.id))
@@ -393,6 +392,29 @@ const BatchCourse = () => {
     refetchOnReconnect: true,
   });
   const attempts = attemptsData?.data || [];
+
+  // Track extra attempt approvals/rejections in-session to reflect UI instantly
+  const [extraGrantedQuizIds, setExtraGrantedQuizIds] = useState(new Set());
+  const [rejectedQuizIds, setRejectedQuizIds] = useState(new Set());
+
+  useEffect(() => {
+    const handler = (e) => {
+      const { quizId, status } = e.detail || {};
+      if (!quizId) return;
+      if (status === 'APPROVED') {
+        setExtraGrantedQuizIds(prev => new Set(prev).add(String(quizId)));
+        // refresh attempts & progress so UI updates naturally
+        if (typeof refetchAttempts === 'function') refetchAttempts();
+        refresh();
+      } else if (status === 'REJECTED') {
+        setRejectedQuizIds(prev => new Set(prev).add(String(quizId)));
+        if (typeof refetchAttempts === 'function') refetchAttempts();
+        refresh();
+      }
+    };
+    window.addEventListener('attempt-extension-updated', handler);
+    return () => window.removeEventListener('attempt-extension-updated', handler);
+  }, [refetchAttempts, refresh]);
 
   // Create a map of quiz attempts by quiz ID for quick lookup
   const attemptsByQuiz = attempts.reduce((acc, attempt) => {
@@ -741,7 +763,7 @@ const BatchCourse = () => {
 
     const moduleLessons = lessonsByModule[moduleId] || [];
     const completedLessonsInModule = moduleLessons.filter(lesson => isLessonCompleted(lesson)).length;
-    const allLessonsComplete = moduleLessons.length > 0 && completedLessonsInModule === moduleLessons.length;
+    const allLessonsComplete = (moduleLessons.length === 0) || (completedLessonsInModule === moduleLessons.length);
 
     const moduleAssignmentsList = assignmentsByModule[moduleId] || [];
     const allAssignmentsComplete = moduleAssignmentsList.length === 0 || moduleAssignmentsList.every(a => {
@@ -750,19 +772,27 @@ const BatchCourse = () => {
     });
 
     const moduleQuizzesList = quizzesByModule[moduleId] || [];
-    const allQuizzesComplete = moduleQuizzesList.length === 0 || moduleQuizzesList.every(q => {
+    // When lessons exist: require passing quizzes; when no lessons: require at least one attempt per quiz
+    const allQuizzesPassed = moduleQuizzesList.length === 0 || moduleQuizzesList.every(q => {
       const qid = q._id || q.id;
       const quizAttempts = attemptsByQuiz[String(qid)] || [];
       if (quizAttempts.length === 0) return false;
-      const bestAttempt = quizAttempts.reduce((best, current) => {
-        return (current.score > best.score) ? current : best;
-      }, quizAttempts[0]);
+      const bestAttempt = quizAttempts.reduce((best, current) => (current.score > best.score ? current : best), quizAttempts[0]);
       const passingScore = q.passingScore || 70;
       return bestAttempt.score >= passingScore;
     });
 
-    return allLessonsComplete && allAssignmentsComplete && allQuizzesComplete;
-  }, [lessonsByModule, assignmentsByModule, submissionsByAssignment, quizzesByModule, attemptsByQuiz, isLessonCompleted]);
+    const hasLessons = moduleLessons.length > 0;
+    const hasAssessments = (moduleAssignmentsList.length + moduleQuizzesList.length) > 0;
+
+    // If no lessons and no assessments at all, consider module ready to complete automatically
+    if (!hasLessons && !hasAssessments) return true;
+
+    // New rule: if there are quizzes, student must PASS (at least once) for each quiz regardless of lessons presence
+    const allAssessmentsComplete = allAssignmentsComplete && allQuizzesPassed;
+
+    return allLessonsComplete && allAssessmentsComplete;
+  }, [lessonsByModule, assignmentsByModule, submissionsByAssignment, quizzesByModule, attemptsByQuiz, isLessonCompleted, getAssignmentId, getModuleId]);
 
   useEffect(() => {
     if (!modules || modules.length === 0) return;
@@ -784,14 +814,23 @@ const BatchCourse = () => {
     handleMarkModuleComplete
   ]);
 
-  // Load current module content
+  // Load current module content only once per module
+  const lastRequestedModuleRef = useRef(null);
   useEffect(() => {
+    if (!modules || modules.length === 0) return;
+
     const currentModule = getCurrentModuleIndex();
-    if (currentModule < modules.length) {
-      const module = modules[currentModule];
-      loadModuleContent(getModuleId(module), batch?.course?._id || batch?.course?.id);
+    if (currentModule < 0 || currentModule >= modules.length) return;
+
+    const module = modules[currentModule];
+    const moduleId = getModuleId(module);
+    if (!moduleId) return;
+
+    if (lastRequestedModuleRef.current !== String(moduleId)) {
+      lastRequestedModuleRef.current = String(moduleId);
+      loadModuleContent(moduleId, batch?.course?._id || batch?.course?.id);
     }
-  }, [modules, batch?.course]);
+  }, [modules, batch?.course, getCurrentModuleIndex]);
 
   // Auto-refresh when page becomes visible/focused to sync completion state and attempts/submissions
   useEffect(() => {
@@ -1051,6 +1090,10 @@ const BatchCourse = () => {
   const currentModule = currentModuleIndex < modules.length ? modules[currentModuleIndex] : null;
   const currentStage = currentModule ? getCurrentStage(currentModuleIndex) : 'complete';
 
+  // Filter out module-level items from course-level assessments
+  const courseLevelQuizzes = (courseQuizzes || []).filter(q => !q?.module && !q?.moduleId && !(q?.module && (q.module._id || q.module.id)));
+  const courseLevelAssignments = (courseAssignments || []).filter(a => !a?.module && !a?.moduleId && !(a?.module && (a.module._id || a.module.id)));
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="max-w-7xl mx-auto p-2 xs:p-4 sm:p-6 space-y-3 xs:space-y-4 sm:space-y-6">
@@ -1197,7 +1240,7 @@ const BatchCourse = () => {
         )}
 
         {/* Enhanced Course-Level Assessments Section - 320px optimized */}
-        {allModulesCompleted && courseContentLoaded && (courseQuizzes.length > 0 || courseAssignments.length > 0) && (
+        {allModulesCompleted && courseContentLoaded && (courseLevelQuizzes.length > 0 || courseLevelAssignments.length > 0) && (
           <Card className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200 shadow-xl">
             <CardHeader className="pb-3 xs:pb-4 sm:pb-6 p-3 xs:p-4 sm:p-6">
               <div className="flex flex-col gap-3">
@@ -1210,7 +1253,7 @@ const BatchCourse = () => {
                       <span className="text-sm xs:text-base sm:text-lg lg:text-xl">Final Assessments</span>
                     </div>
                     <Badge className="bg-purple-500 text-white px-2 xs:px-3 py-1 text-xs self-start xs:self-auto">
-                      {courseQuizzes.length + courseAssignments.length} tests
+                      {courseLevelQuizzes.length + courseLevelAssignments.length} tests
                     </Badge>
                   </CardTitle>
                   <CardDescription className="text-xs xs:text-sm sm:text-base leading-relaxed flex items-center gap-2">
@@ -1222,14 +1265,14 @@ const BatchCourse = () => {
             </CardHeader>
             <CardContent className="space-y-4 xs:space-y-6 p-3 xs:p-4 sm:p-6">
               {/* Enhanced Course Quizzes */}
-              {courseQuizzes.length > 0 && (
+              {courseLevelQuizzes.length > 0 && (
                 <div>
                   <h3 className="font-bold mb-3 xs:mb-4 flex items-center gap-2 text-purple-800 text-xs xs:text-sm sm:text-base">
                     <Award className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5" />
-                    Final Course Quizzes ({courseQuizzes.length})
+                    Final Course Quizzes ({courseLevelQuizzes.length})
                   </h3>
                   <div className="grid gap-3 xs:gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
-                    {courseQuizzes.map((quiz, index) => (
+                    {courseLevelQuizzes.map((quiz, index) => (
                       <Card key={index} className="border-purple-200 hover:shadow-lg hover:border-purple-300 transition-all duration-300">
                         <CardHeader className="pb-2 xs:pb-3 p-3 xs:p-4 sm:p-6">
                           <CardTitle className="text-xs xs:text-sm sm:text-base lg:text-lg flex flex-col gap-2">
@@ -1283,14 +1326,14 @@ const BatchCourse = () => {
               )}
               
               {/* Enhanced Course Assignments */}
-              {courseAssignments.length > 0 && (
+              {courseLevelAssignments.length > 0 && (
                 <div>
                   <h3 className="font-bold mb-3 xs:mb-4 flex items-center gap-2 text-purple-800 text-xs xs:text-sm sm:text-base">
                     <FileText className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5" />
-                    Final Course Assignments ({courseAssignments.length})
+                    Final Course Assignments ({courseLevelAssignments.length})
                   </h3>
                   <div className="grid gap-3 xs:gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
-                    {courseAssignments.map((assignment, index) => (
+                    {courseLevelAssignments.map((assignment, index) => (
                       <Card key={index} className="border-purple-200 hover:shadow-lg hover:border-purple-300 transition-all duration-300">
                         <CardHeader className="pb-2 xs:pb-3 p-3 xs:p-4 sm:p-6">
                           <CardTitle className="text-xs xs:text-sm sm:text-base lg:text-lg flex flex-col gap-2">
@@ -1673,7 +1716,7 @@ const BatchCourse = () => {
                             {(() => {
                               const moduleAssignments = assignmentsByModule[moduleId] || [];
                               const moduleQuizzes = quizzesByModule[moduleId] || [];
-                              const allLessonsComplete = completedLessonsInModule === moduleLessons.length && moduleLessons.length > 0;
+                              const allLessonsComplete = (moduleLessons.length === 0) || (completedLessonsInModule === moduleLessons.length);
                               const totalAssessments = moduleQuizzes.length + moduleAssignments.length;
                               
                               // Check if all assignments in this module are submitted
@@ -1682,22 +1725,18 @@ const BatchCourse = () => {
                                 return aid && submissionsByAssignment[String(aid)];
                               });
                               
-                              // Check if all quizzes in this module are completed (passed)
-                              const allQuizzesComplete = moduleQuizzes.length === 0 || moduleQuizzes.every(q => {
+                              // New rule: quizzes must be PASSED (at least once) to complete module, regardless of lessons presence
+                              const allQuizzesPassed = moduleQuizzes.length === 0 || moduleQuizzes.every(q => {
                                 const qid = q._id || q.id;
                                 const quizAttempts = attemptsByQuiz[String(qid)] || [];
                                 if (quizAttempts.length === 0) return false;
-                                
-                                // Check if passed (best score >= passing score)
-                                const bestAttempt = quizAttempts.reduce((best, current) => {
-                                  return (current.score > best.score) ? current : best;
-                                }, quizAttempts[0]);
-                                
+                                const bestAttempt = quizAttempts.reduce((best, current) => (current.score > best.score ? current : best), quizAttempts[0]);
                                 const passingScore = q.passingScore || 70;
                                 return bestAttempt.score >= passingScore;
                               });
                               
-                              const allAssessmentsComplete = allAssignmentsComplete && allQuizzesComplete;
+                              const hasLessons = moduleLessons.length > 0;
+                              const allAssessmentsComplete = allAssignmentsComplete && allQuizzesPassed;
                               const canCompleteModule = allLessonsComplete && allAssessmentsComplete;
                               
                               if (!isCompleted && isAccessible && allLessonsComplete) {
@@ -1721,14 +1760,14 @@ const BatchCourse = () => {
                                           </Button>
                                           <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mt-2">
                                             <Zap className="h-3 w-3 text-green-500" />
-                                            <span>All lessons and assessments completed!</span>
+                                            <span>All {hasLessons ? 'lessons and ' : ''}assessments completed!</span>
                                           </div>
                                         </div>
                                       ) : (
                                         <div className="text-center">
                                           <div className="flex items-start gap-2 text-sm text-muted-foreground mb-4">
                                             <BookMarked className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
-                                            <span>All lessons completed! Now complete the assessments in the "Assessments" tab to finish this module.</span>
+                                            <span>{hasLessons ? 'All lessons completed! Now complete the assessments in the "Assessments" tab to finish this module.' : 'This module has no lessons. Please complete the assessments in the "Assessments" tab to finish this module.'}</span>
                                           </div>
                                           <Button 
                                             onClick={() => setUiState(prev => ({ ...prev, activeTab: "assessments" }))}
@@ -1764,7 +1803,7 @@ const BatchCourse = () => {
                                         </Button>
                                         <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mt-2">
                                           <Zap className="h-3 w-3 text-green-500" />
-                                          <span>All lessons completed! No assessments required for this module.</span>
+                                          <span>{hasLessons ? 'All lessons completed! ' : ''}No assessments required for this module.</span>
                                         </div>
                                       </div>
                                     )}
@@ -1845,15 +1884,17 @@ const BatchCourse = () => {
                             <StudentModuleQuizzes 
                               quizzes={quizzesByModule[moduleId] || []}
                               attempts={attemptsByQuiz}
-                              isUnlocked={completedLessonsInModule === moduleLessons.length && moduleLessons.length > 0}
+                              isUnlocked={(moduleLessons.length === 0) || (completedLessonsInModule === moduleLessons.length)}
                               onStart={handleStartQuiz}
+                              extraGrantedQuizIds={extraGrantedQuizIds}
+                              rejectedQuizIds={rejectedQuizIds}
                             />
                             
                             {/* Module Assignments Component */}
                             <StudentModuleAssignments 
                               assignments={assignmentsByModule[moduleId] || []}
                               submissions={submissionsByAssignment}
-                              isUnlocked={completedLessonsInModule === moduleLessons.length && moduleLessons.length > 0}
+                              isUnlocked={(moduleLessons.length === 0) || (completedLessonsInModule === moduleLessons.length)}
                               onViewDetails={handleAssignmentViewDetails}
                               onSubmit={handleAssignmentSubmit}
                             />

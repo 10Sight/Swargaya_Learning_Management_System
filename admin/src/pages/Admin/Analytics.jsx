@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useGetAllAuditsQuery } from '@/Redux/AllApi/AuditApi';
 import { useGetAllInstructorsQuery, useGetAllStudentsQuery } from '@/Redux/AllApi/InstructorApi';
 import { useGetAllBatchesQuery } from '@/Redux/AllApi/BatchApi';
@@ -10,6 +10,9 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { useLazyExportAuditStatsQuery } from "@/Redux/AllApi/AnalyticsApi";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -23,6 +26,9 @@ import {
 } from "@tabler/icons-react";
 
 const Analytics = ({ pageName = "Analytics" }) => {
+  const navigate = useNavigate();
+  const [auditGroupBy, setAuditGroupBy] = useState('month');
+  const [triggerExportAuditStats, { isFetching: isExportingAudit }] = useLazyExportAuditStatsQuery();
   const { data: auditsData, isLoading: auditsLoading } = useGetAllAuditsQuery({ 
     page: 1, 
     limit: 50 
@@ -68,10 +74,37 @@ const Analytics = ({ pageName = "Analytics" }) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{pageName}</h1>
           <p className="text-gray-600">System analytics and activity monitoring</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <select className="border rounded px-2 py-1 text-sm" value={auditGroupBy} onChange={e => setAuditGroupBy(e.target.value)}>
+            <option value="month">Audit by Month</option>
+            <option value="year">Audit by Year</option>
+          </select>
+          <Button
+            variant="outline"
+            disabled={isExportingAudit}
+            onClick={async () => {
+              const { data } = await triggerExportAuditStats({ groupBy: auditGroupBy, format: 'excel' });
+              const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement('a'); a.href = url; a.download = `audit_stats_${auditGroupBy}.xlsx`; document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url);
+            }}
+          >Export Audit (Excel)</Button>
+          <Button
+            variant="outline"
+            disabled={isExportingAudit}
+            onClick={async () => {
+              const { data } = await triggerExportAuditStats({ groupBy: auditGroupBy, format: 'pdf' });
+              const blob = new Blob([data], { type: 'application/pdf' });
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement('a'); a.href = url; a.download = `audit_stats_${auditGroupBy}.pdf`; document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url);
+            }}
+          >Export Audit (PDF)</Button>
+          <Button onClick={() => navigate('/admin/exam-history')}>Exam History</Button>
         </div>
       </div>
 

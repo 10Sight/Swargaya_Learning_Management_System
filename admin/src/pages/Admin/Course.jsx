@@ -6,6 +6,7 @@ import {
   useTogglePublishCourseMutation,
   useUpdateCourseMutation,
 } from "@/Redux/AllApi/CourseApi";
+import { useLazyExportCoursesQuery } from "@/Redux/AllApi/CourseApi";
 import {
   Table,
   TableBody,
@@ -136,6 +137,7 @@ const Course = () => {
   const [updateCourse] = useUpdateCourseMutation();
   const [deleteCourse] = useDeleteCourseMutation();
   const [togglePublish] = useTogglePublishCourseMutation();
+  const [triggerExportCourses, { isFetching: isExportingCourses }] = useLazyExportCoursesQuery();
 
   const courses = coursesData?.data?.courses || [];
   const totalPages = coursesData?.data?.totalPages || 1;
@@ -313,7 +315,8 @@ const Course = () => {
   };
 
   const handleCourseClick = (course) => {
-    navigate(`${course._id}`);
+    const handle = course.slug || course._id;
+    navigate(`${handle}`);
   };
 
   const getStatusBadge = (status) => {
@@ -579,6 +582,61 @@ const Course = () => {
                   <span className="xs:hidden">Clear Filters</span>
                 </Button>
               )}
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isExportingCourses}
+                onClick={async () => {
+                  try {
+                    const { data } = await triggerExportCourses({
+                      format: 'excel',
+                      category: categoryFilter !== 'ALL' ? categoryFilter : '',
+                      status: statusFilter !== 'ALL' ? statusFilter : '',
+                      search: debouncedSearchTerm || ''
+                    });
+                    const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `courses_${new Date().toISOString().slice(0,10)}.xlsx`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                  } catch {}
+                }}
+              >
+                Export Excel
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isExportingCourses}
+                onClick={async () => {
+                  try {
+                    const { data } = await triggerExportCourses({
+                      format: 'pdf',
+                      category: categoryFilter !== 'ALL' ? categoryFilter : '',
+                      status: statusFilter !== 'ALL' ? statusFilter : '',
+                      search: debouncedSearchTerm || ''
+                    });
+                    const blob = new Blob([data], { type: 'application/pdf' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `courses_${new Date().toISOString().slice(0,10)}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                  } catch {}
+                }}
+              >
+                Export PDF
+              </Button>
             </div>
           </div>
 

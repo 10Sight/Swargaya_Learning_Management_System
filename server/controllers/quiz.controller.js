@@ -140,13 +140,19 @@ export const getAllQuizzes = asyncHandler(async (req, res) => {
 });
 
 export const getQuizById = asyncHandler(async (req, res) => {
-    if(!mongoose.Types.ObjectId.isValid(req.params.id)) {
-        throw new ApiError("Invalid quiz ID", 400);
-    }
+    const key = req.params.id;
 
-    const quiz = await Quiz.findById(req.params.id)
-        .populate("course", "title")
-        .populate("createdBy", "fullName email");
+    let quiz = null;
+    if (mongoose.Types.ObjectId.isValid(key)) {
+        quiz = await Quiz.findById(key)
+            .populate("course", "title")
+            .populate("createdBy", "fullName email");
+    }
+    if (!quiz) {
+        quiz = await Quiz.findOne({ slug: key })
+            .populate("course", "title")
+            .populate("createdBy", "fullName email");
+    }
 
     if(!quiz) {
         throw new ApiError("Quiz not found", 404);
@@ -160,7 +166,7 @@ export const updateQuiz = asyncHandler(async (req, res) => {
         throw new ApiError("Invalid quiz ID", 400);
     }
 
-    const { title, questions } = req.body;
+    const { title, questions, description, passingScore, timeLimit, attemptsAllowed } = req.body;
 
     const quiz = await Quiz.findById(req.params.id);
     if(!quiz) {
@@ -169,6 +175,10 @@ export const updateQuiz = asyncHandler(async (req, res) => {
 
     if(title) quiz.title = title;
     if(questions && questions.length > 0) quiz.questions = questions;
+    if(description !== undefined) quiz.description = description;
+    if(passingScore !== undefined) quiz.passingScore = Number(passingScore);
+    if(timeLimit !== undefined) quiz.timeLimit = timeLimit;
+    if(attemptsAllowed !== undefined) quiz.attemptsAllowed = attemptsAllowed;
 
     await quiz.save();
 
@@ -371,17 +381,24 @@ export const getQuizzesByCourse = asyncHandler(async (req, res) => {
     const rawCourseId = req.params?.courseId ?? req.body?.courseId;
 
     if (!rawCourseId || rawCourseId === 'undefined' || rawCourseId === 'null') {
-        return res.status(400).json(new ApiResponse(400, [], "Course ID is required"));
+        return res.status(400).json(new ApiResponse(400, [], "Course identifier is required"));
     }
 
+    let courseId = rawCourseId;
     if (!mongoose.Types.ObjectId.isValid(rawCourseId)) {
-        return res.status(400).json(new ApiResponse(400, [], "Invalid course ID format"));
+        const course = await Course.findOne({ slug: rawCourseId }).select('_id');
+        if (!course) {
+            return res.status(404).json(new ApiResponse(404, [], "Course not found"));
+        }
+        courseId = course._id;
     }
 
     try {
-        const quizzes = await Quiz.find({ courseId: rawCourseId, scope: 'course' })
-            .populate('createdBy', 'name email')
-            .populate('course', 'title')
+        // Return all quizzes attached to this course (legacy and new fields), regardless of scope/type
+        const quizzes = await Quiz.find({ $or: [ { courseId }, { course: courseId } ] })
+            .populate('createdBy', 'fullName email role')
+            .populate('course', 'title slug')
+            .populate('module', 'title slug')
             .sort({ createdAt: -1 });
 
         return res.json(

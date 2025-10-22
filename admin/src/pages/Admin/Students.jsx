@@ -80,6 +80,7 @@ import FilterSelect from "@/components/common/FilterSelect";
 import StatCard from "@/components/common/StatCard";
 import FilterBar from "@/components/common/FilterBar";
 import { useNavigate } from "react-router-dom";
+import { useLazyExportStudentsQuery } from "@/Redux/AllApi/UserApi";
 
 const Students = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -157,6 +158,7 @@ const Students = () => {
   const [assignStudent] = useAddStudentToBatchMutation();
 
   const students = studentsData?.data?.users || [];
+  const [triggerExportStudents, { isFetching: isExportingStudents }] = useLazyExportStudentsQuery();
   const totalPages = studentsData?.data?.totalPages || 1;
   const batches = batchesData?.data?.batches || [];
 
@@ -507,8 +509,8 @@ const Students = () => {
           <Badge variant="secondary" className="flex items-center gap-1 w-fit">
             <div className="h-2 w-2 rounded-full bg-gray-500"></div> {status}
           </Badge>
-        );
-    }
+  );
+}
   };
 
   const handleQuickStatusChange = async (studentId, newStatus, oldStatus) => {
@@ -764,6 +766,59 @@ const Students = () => {
                   Clear
                 </Button>
               )}
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isExportingStudents}
+                onClick={async () => {
+                  try {
+                    const { data } = await triggerExportStudents({
+                      format: 'excel',
+                      search: debouncedSearchTerm || '',
+                      status: statusFilter !== 'ALL' ? statusFilter : '',
+                    });
+                    const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `students_${new Date().toISOString().slice(0,10)}.xlsx`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                  } catch {}
+                }}
+              >
+                Export Excel
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isExportingStudents}
+                onClick={async () => {
+                  try {
+                    const { data } = await triggerExportStudents({
+                      format: 'pdf',
+                      search: debouncedSearchTerm || '',
+                      status: statusFilter !== 'ALL' ? statusFilter : '',
+                    });
+                    const blob = new Blob([data], { type: 'application/pdf' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `students_${new Date().toISOString().slice(0,10)}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                  } catch {}
+                }}
+              >
+                Export PDF
+              </Button>
             </div>
           </div>
 

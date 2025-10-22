@@ -192,6 +192,10 @@ export {
     useGetLessonByIdQuery,
     useUpdateLessonMutation,
     useDeleteLessonMutation,
+    useAddLessonSlideMutation,
+    useUpdateLessonSlideMutation,
+    useDeleteLessonSlideMutation,
+    useReorderLessonSlidesMutation,
 } from './LessonApi';
 
 // SuperAdmin API exports

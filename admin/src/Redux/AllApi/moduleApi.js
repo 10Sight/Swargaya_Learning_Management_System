@@ -16,12 +16,20 @@ export const moduleApi = createApi({
         }),
 
         getModulesByCourse: builder.query({
-            query: (courseId) => ({
-                url: `/api/modules/course/${courseId}`,
-                method: "GET",
-            }),
-            providesTags: ["Module"],
-        }),
+      query: (courseId) => ({
+        url: `/api/modules/course/${courseId}`,
+        method: "GET",
+      }),
+      providesTags: ["Module"],
+    }),
+
+    getModuleById: builder.query({
+      query: (moduleId) => ({
+        url: `/api/modules/${moduleId}`,
+        method: "GET",
+      }),
+      providesTags: (result, error, id) => [{ type: 'Module', id }],
+    }),
 
         updateModule: builder.mutation({
             query: ({ moduleId, title, description, order }) => ({
@@ -45,6 +53,7 @@ export const moduleApi = createApi({
 export const {
     useCreateModuleMutation,
     useGetModulesByCourseQuery,
+    useGetModuleByIdQuery,
     useUpdateModuleMutation,
     useDeleteModuleMutation,
 } = moduleApi;

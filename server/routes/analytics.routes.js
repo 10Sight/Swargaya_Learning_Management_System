@@ -29,6 +29,15 @@ router.get("/courses", getCourseStats);
 router.get("/engagement", getEngagementStats);
 router.get("/health", getSystemHealth);
 
+// Exam history stats and export
+import { getExamHistoryStats, exportExamHistoryStats, getAuditStats, exportAuditStats } from "../controllers/analytics.controller.js";
+router.get("/exams/history", getExamHistoryStats);
+router.get("/exams/export", exportExamHistoryStats);
+
+// Audit stats and export (aggregated)
+router.get("/audits/stats", getAuditStats);
+router.get("/audits/export", exportAuditStats);
+
 // System Health Monitoring endpoints
 router.get("/system/server-metrics", getServerMetrics);
 router.get("/system/database-metrics", getDatabaseMetrics);

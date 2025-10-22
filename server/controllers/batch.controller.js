@@ -629,7 +629,9 @@ export const getBatchAttempts = asyncHandler(async (req, res) => {
     // Transform attempts with computed fields
     const transformedAttempts = attempts.map(attempt => {
         const totalQuestions = attempt.quiz?.questions?.length || 0;
-        const scorePercent = totalQuestions > 0 ? Math.round((attempt.score / totalQuestions) * 100) : 0;
+        // Calculate total marks properly by summing up marks from all questions
+        const totalMarks = attempt.quiz?.questions?.reduce((sum, question) => sum + (question.marks || 1), 0) || totalQuestions;
+        const scorePercent = totalMarks > 0 ? Math.round((attempt.score / totalMarks) * 100) : 0;
         const passingScore = attempt.quiz?.passingScore || 70;
         const passed = scorePercent >= passingScore;
 
@@ -638,6 +640,7 @@ export const getBatchAttempts = asyncHandler(async (req, res) => {
             scorePercent,
             passed,
             totalQuestions,
+            totalMarks,
             attemptedAt: attempt.createdAt
         };
     });

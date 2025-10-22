@@ -12,6 +12,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import AttemptReviewModal from "@/components/common/AttemptReviewModal";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -51,6 +52,8 @@ const StudentDetail = () => {
   const { studentId } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
+  const [viewAttemptId, setViewAttemptId] = useState(null);
+  const [attemptModalOpen, setAttemptModalOpen] = useState(false);
 
   // API Queries
   const {
@@ -328,6 +331,39 @@ const StudentDetail = () => {
           Refresh Data
         </Button>
       </div>
+
+      {/* Course Progress Overview */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <IconChartBar className="h-5 w-5" />
+            Course Progress
+          </CardTitle>
+          <CardDescription>Progress per enrolled course</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {progressList && progressList.length > 0 ? (
+            <div className="space-y-4">
+              {progressList.map((p) => (
+                <div key={p._id} className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium">{p.course?.title || 'Course'}</span>
+                    <span className="text-muted-foreground">{p.progressPercent || 0}%</span>
+                  </div>
+                  <div className="w-full bg-muted rounded h-2">
+                    <div className="bg-blue-600 h-2 rounded" style={{ width: `${p.progressPercent || 0}%` }} />
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Level: {p.currentLevel || 'L1'} • Modules: {p.completedModules?.length || 0}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-muted-foreground text-sm">No course progress available.</div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Student Info Card */}
       <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
@@ -828,7 +864,7 @@ const StudentDetail = () => {
                           {attempt.timeTaken ? `${attempt.timeTaken} min` : "N/A"}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" onClick={() => { setViewAttemptId(attempt._id); setAttemptModalOpen(true); }}>
                             <IconEye className="h-4 w-4" />
                           </Button>
                         </TableCell>
@@ -849,6 +885,13 @@ const StudentDetail = () => {
           </Card>
         </TabsContent>
       </Tabs>
+      {/* Attempt Review Modal (admin editable) */}
+      <AttemptReviewModal 
+        attemptId={viewAttemptId} 
+        isOpen={attemptModalOpen} 
+        onClose={() => setAttemptModalOpen(false)} 
+        canEdit={true} 
+      />
     </div>
   );
 };

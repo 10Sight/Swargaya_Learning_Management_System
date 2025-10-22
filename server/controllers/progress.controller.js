@@ -484,9 +484,14 @@ export const getStudentProgress = asyncHandler(async (req, res) => {
     }
 
     const progresses = await Progress.find({ student: studentId })
-        .populate("course", "title description")
+        .populate({ path: "course", select: "title description modules quizzes assignments" })
         .populate("student", "fullName email")
         .sort({ createdAt: -1 });
+
+    // Recalculate progress percent for accuracy
+    for (const p of progresses) {
+        await p.calculateProgress();
+    }
 
     // Transform progress data to frontend-compatible format
     const transformedProgresses = progresses.map(progress => {
@@ -516,7 +521,7 @@ export const getMyAllProgress = asyncHandler(async (req, res) => {
     const userId = req.user._id;
 
     const progresses = await Progress.find({ student: userId })
-        .populate("course", "title description")
+        .populate({ path: "course", select: "title description modules quizzes assignments" })
         .populate({
             path: "student",
             select: "fullName email batch",
@@ -533,6 +538,11 @@ export const getMyAllProgress = asyncHandler(async (req, res) => {
             }
         })
         .sort({ createdAt: -1 });
+
+    // Recalculate progress percent for accuracy
+    for (const p of progresses) {
+        await p.calculateProgress();
+    }
 
     // Transform progress data to frontend-compatible format
     const transformedProgresses = progresses.map(progress => {
@@ -633,7 +643,9 @@ export const getCourseCompletionReport = asyncHandler(async (req, res) => {
     // Transform quiz attempts with pass/fail status
     const quizResults = courseQuizAttempts.map(attempt => {
         const totalQuestions = attempt.quiz.questions?.length || 0;
-        const scorePercent = totalQuestions > 0 ? Math.round((attempt.score / totalQuestions) * 100) : 0;
+        // Calculate total marks properly by summing up marks from all questions
+        const totalMarks = attempt.quiz.questions?.reduce((sum, question) => sum + (question.marks || 1), 0) || totalQuestions;
+        const scorePercent = totalMarks > 0 ? Math.round((attempt.score / totalMarks) * 100) : 0;
         const passingScore = attempt.quiz.passingScore || 70;
         const passed = scorePercent >= passingScore;
 
@@ -643,6 +655,7 @@ export const getCourseCompletionReport = asyncHandler(async (req, res) => {
             quizType: attempt.quiz.type,
             score: attempt.score,
             totalQuestions,
+            totalMarks,
             scorePercent,
             passingScore,
             passed,

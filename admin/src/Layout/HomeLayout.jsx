@@ -43,6 +43,8 @@ import {
 } from "@tabler/icons-react";
 import { HomeIcon, Command } from "lucide-react";
 import NotificationCenter from "../components/common/NotificationCenter";
+import { useUpdateAvatarMutation } from "@/Redux/AllApi/UserApi";
+import { profile as fetchProfile } from "@/Redux/Slice/AuthSlice";
 
 const tabs = [
   { link: "/admin", label: "Dashboard", icon: IconLayoutDashboardFilled },
@@ -50,6 +52,8 @@ const tabs = [
   { link: "/admin/courses", label: "Courses", icon: IconCertificate },
   { link: "/admin/batches", label: "Batches", icon: IconFolder },
   { link: "/admin/students", label: "Students", icon: IconUsers },
+  { link: "/admin/quiz-monitoring", label: "Quiz Monitoring", icon: IconClock },
+  { link: "/admin/attempt-requests", label: "Attempt Requests", icon: IconBell },
   { link: "/admin/module-timelines", label: "Module Timelines", icon: IconClock },
   { link: "/admin/student-levels", label: "Student Levels", icon: IconSettings },
   { link: "/admin/certificate-templates", label: "Certificate Templates", icon: IconTemplate },
@@ -67,6 +71,18 @@ export function HomeLayout() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { user, isLoading } = useSelector((state) => state.auth);
+  const [updateAvatar] = useUpdateAvatarMutation();
+  const avatarFileRef = React.useRef(null);
+  const pickAvatar = () => avatarFileRef.current?.click();
+  const onAvatarChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { alert('Please select an image'); e.target.value=''; return; }
+    const form = new FormData(); form.append('avatar', file);
+    try { await updateAvatar(form).unwrap(); await dispatch(fetchProfile()).unwrap(); }
+    catch (err) { alert(err?.data?.message || 'Failed to update avatar'); }
+    finally { e.target.value=''; }
+  };
 
   // Update page name based on current route
   useEffect(() => {
@@ -326,6 +342,7 @@ export function HomeLayout() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-64 p-2" align="end" forceMount>
+                <input ref={avatarFileRef} type="file" accept="image/*" className="hidden" onChange={onAvatarChange} />
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <div className="flex items-center gap-2">
@@ -342,9 +359,13 @@ export function HomeLayout() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer hover:bg-blue-50">
+                <DropdownMenuItem className="cursor-pointer hover:bg-blue-50" onClick={pickAvatar}>
                   <IconUser className="mr-2 h-4 w-4" />
-                  Profile Settings
+                  Change Profile Picture
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer hover:bg-blue-50">
+                  <IconSettings className="mr-2 h-4 w-4" />
+                  Account Settings
                 </DropdownMenuItem>
                 <DropdownMenuItem className="cursor-pointer hover:bg-blue-50">
                   <IconSettings className="mr-2 h-4 w-4" />

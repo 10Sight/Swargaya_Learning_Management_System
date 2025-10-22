@@ -59,14 +59,17 @@ export const attemptQuiz = asyncHandler(async (req, res) => {
     }
 
     let score = 0;
+    let totalMarks = 0;
     quiz.questions.forEach((q, index) => {
+        const questionMarks = q.marks || 1;
+        totalMarks += questionMarks;
         if(answers[index] && answers[index] === q.correctOption) {
-            score++;
+            score += questionMarks;
         }
     });
 
     // Calculate if passed
-    const scorePercent = quiz.questions.length > 0 ? Math.round((score / quiz.questions.length) * 100) : 0;
+    const scorePercent = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 0;
     const passed = scorePercent >= (quiz.passingScore || 70);
 
     const attempt = await AttemptedQuiz.create({
@@ -76,7 +79,7 @@ export const attemptQuiz = asyncHandler(async (req, res) => {
             questionId: quiz.questions[idx]._id,
             selectedOptions: [ans || ""],
             isCorrect: answers[idx] === quiz.questions[idx].correctOption,
-            marksObtained: answers[idx] === quiz.questions[idx].correctOption ? 1 : 0
+            marksObtained: answers[idx] === quiz.questions[idx].correctOption ? (quiz.questions[idx].marks || 1) : 0
         })),
         score,
         status: passed ? "PASSED" : "FAILED",
@@ -143,7 +146,78 @@ export const deleteAttempt = asyncHandler(async (req, res) => {
 
     await attempt.deleteOne();
 
-    res.json(new ApiResponse(200, null, "Attempt deleted successfully"));
+res.json(new ApiResponse(200, null, "Attempt deleted successfully"));
+});
+
+// ADMIN: Update attempt answers/scores manually
+export const adminUpdateAttempt = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { answersOverride, adjustmentNotes } = req.body || {};
+
+    if(!mongoose.Types.ObjectId.isValid(id)) {
+        throw new ApiError("Invalid attempt ID", 400);
+    }
+
+    const attempt = await AttemptedQuiz.findById(id).populate({
+        path: 'quiz',
+        select: 'questions passingScore title',
+    });
+    if(!attempt) throw new ApiError("Attempt not found", 404);
+
+    // Only ADMIN can edit; route also guards, but double-check
+    if(!req.user || !req.user.role || (req.user.role !== 'ADMIN' && req.user.role !== 'SUPERADMIN')) {
+        throw new ApiError("Only admin can modify attempts", 403);
+    }
+
+    if(!Array.isArray(answersOverride)) {
+        throw new ApiError("answersOverride must be an array", 400);
+    }
+
+    // Build a map by questionId for quick updates
+    const overrideMap = new Map();
+    for(const item of answersOverride) {
+        if(!item || !item.questionId) continue;
+        overrideMap.set(String(item.questionId), {
+            selectedOptions: item.selectedOptions,
+            isCorrect: item.isCorrect,
+            marksObtained: typeof item.marksObtained === 'number' ? item.marksObtained : undefined,
+        });
+    }
+
+    // Apply overrides to attempt.answer and recompute score
+    let newScore = 0;
+    const newAnswers = attempt.answer.map(ans => {
+        const key = String(ans.questionId);
+        const override = overrideMap.get(key);
+        if(!override) {
+            newScore += (ans.marksObtained || 0);
+            return ans;
+        }
+        const updated = { ...ans };
+        if(Array.isArray(override.selectedOptions)) updated.selectedOptions = override.selectedOptions;
+        if(typeof override.isCorrect === 'boolean') updated.isCorrect = override.isCorrect;
+        if(override.marksObtained !== undefined) updated.marksObtained = override.marksObtained;
+        newScore += (updated.marksObtained || 0);
+        return updated;
+    });
+
+    attempt.answer = newAnswers;
+    attempt.score = newScore;
+
+    // Compute status by comparing percent to passingScore
+    const totalMarks = attempt.quiz?.questions?.reduce((sum, q) => sum + (q.marks || 1), 0) || 0;
+    const scorePercent = totalMarks > 0 ? Math.round((newScore / totalMarks) * 100) : 0;
+    const passingScore = attempt.quiz?.passingScore || 70;
+    attempt.status = scorePercent >= passingScore ? 'PASSED' : 'FAILED';
+
+    attempt.manuallyAdjusted = true;
+    attempt.adjustedBy = req.user._id;
+    attempt.adjustedAt = new Date();
+    if (adjustmentNotes) attempt.adjustmentNotes = String(adjustmentNotes).slice(0, 2000);
+
+    await attempt.save();
+
+    res.json(new ApiResponse(200, attempt, "Attempt updated successfully"));
 });
 
 // New endpoint to get specific student attempts for admin
@@ -168,7 +242,9 @@ export const getStudentAttempts = asyncHandler(async (req, res) => {
     // Transform attempts to include additional computed fields
     const transformedAttempts = attempts.map(attempt => {
         const totalQuestions = attempt.quiz?.questions?.length || 0;
-        const scorePercent = totalQuestions > 0 ? Math.round((attempt.score / totalQuestions) * 100) : 0;
+        // Calculate total marks properly by summing up marks from all questions
+        const totalMarks = attempt.quiz?.questions?.reduce((sum, question) => sum + (question.marks || 1), 0) || totalQuestions;
+        const scorePercent = totalMarks > 0 ? Math.round((attempt.score / totalMarks) * 100) : 0;
         const passingScore = attempt.quiz?.passingScore || 70;
         const passed = scorePercent >= passingScore;
 
@@ -177,6 +253,7 @@ export const getStudentAttempts = asyncHandler(async (req, res) => {
             scorePercent,
             passed,
             totalQuestions,
+            totalMarks,
             attemptedAt: attempt.createdAt
         };
     });
@@ -242,7 +319,15 @@ export const startQuiz = asyncHandler(async (req, res) => {
     });
 
     // Check if user has attempts remaining
-    const attemptsAllowed = quiz.attemptsAllowed || 1;
+    // Include extra allowances (approved) for this user
+    const ExtraAttemptAllowance = (await import("../models/extraAttempt.model.js")).default;
+    const allowances = await ExtraAttemptAllowance.aggregate([
+        { $match: { quiz: quiz._id, student: userId } },
+        { $group: { _id: null, total: { $sum: "$extraAttemptsGranted" } } }
+    ]);
+    const extraAllowed = (allowances[0]?.total) || 0;
+
+    const attemptsAllowed = (quiz.attemptsAllowed || 1) + extraAllowed;
     const attemptsRemaining = attemptsAllowed - previousAttempts;
     
     if(attemptsRemaining <= 0) {
@@ -349,7 +434,15 @@ export const submitQuiz = asyncHandler(async (req, res) => {
         student: userId
     });
     
-    const attemptsAllowed = quiz.attemptsAllowed || 1;
+    // Include extra allowances (approved) for this user
+    const ExtraAttemptAllowance = (await import("../models/extraAttempt.model.js")).default;
+    const allowances = await ExtraAttemptAllowance.aggregate([
+        { $match: { quiz: quiz._id, student: userId } },
+        { $group: { _id: null, total: { $sum: "$extraAttemptsGranted" } } }
+    ]);
+    const extraAllowed = (allowances[0]?.total) || 0;
+
+    const attemptsAllowed = (quiz.attemptsAllowed || 1) + extraAllowed;
     if(previousAttempts >= attemptsAllowed) {
         throw new ApiError("No attempts remaining for this quiz", 400);
     }
@@ -588,7 +681,15 @@ export const getQuizAttemptStatus = asyncHandler(async (req, res) => {
         student: userId
     }).sort({ createdAt: -1 });
 
-    const attemptsAllowed = quiz.attemptsAllowed || 1;
+    // Include extra allowances (approved)
+    const ExtraAttemptAllowance = (await import("../models/extraAttempt.model.js")).default;
+    const allowances = await ExtraAttemptAllowance.aggregate([
+        { $match: { quiz: quiz._id, student: userId } },
+        { $group: { _id: null, total: { $sum: "$extraAttemptsGranted" } } }
+    ]);
+    const extraAllowed = (allowances[0]?.total) || 0;
+
+    const attemptsAllowed = (quiz.attemptsAllowed || 1) + extraAllowed;
     const attemptsUsed = attempts.length;
     const attemptsRemaining = attemptsAllowed - attemptsUsed;
     
@@ -619,4 +720,115 @@ export const getQuizAttemptStatus = asyncHandler(async (req, res) => {
             timeTaken: att.timeTaken
         }))
     }, "Quiz attempt status fetched successfully"));
+});
+
+// Student requests extra attempt for a quiz
+export const requestExtraAttempt = asyncHandler(async (req, res) => {
+    const { quizId, reason } = req.body;
+    const userId = req.user._id;
+
+    if(!quizId || !mongoose.Types.ObjectId.isValid(quizId)) {
+        throw new ApiError("Valid quizId is required", 400);
+    }
+
+    const Quiz = (await import("../models/quiz.model.js")).default;
+    const quiz = await Quiz.findById(quizId);
+    if(!quiz) throw new ApiError("Quiz not found", 404);
+
+    const AttemptExtensionRequest = (await import("../models/attemptExtensionRequest.model.js")).default;
+
+    const existingPending = await AttemptExtensionRequest.findOne({ quiz: quizId, student: userId, status: 'PENDING' });
+    if (existingPending) {
+        return res.json(new ApiResponse(200, existingPending, "A request is already pending"));
+    }
+
+    const reqDoc = await AttemptExtensionRequest.create({ quiz: quizId, student: userId, reason });
+
+    // TODO: notify admins/instructors via socket/email
+
+    res.status(201).json(new ApiResponse(201, reqDoc, "Request submitted"));
+});
+
+// Admin/Instructor approves a request and grants extra attempts
+export const approveExtraAttempt = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { extraAttempts = 1 } = req.body || {};
+
+    if(!mongoose.Types.ObjectId.isValid(id)) {
+        throw new ApiError("Invalid request ID", 400);
+    }
+
+    const AttemptExtensionRequest = (await import("../models/attemptExtensionRequest.model.js")).default;
+    const ExtraAttemptAllowance = (await import("../models/extraAttempt.model.js")).default;
+
+    const reqDoc = await AttemptExtensionRequest.findById(id);
+    if(!reqDoc) throw new ApiError("Request not found", 404);
+    if(reqDoc.status !== 'PENDING') throw new ApiError("Request is not pending", 400);
+
+    reqDoc.status = 'APPROVED';
+    reqDoc.reviewedBy = req.user._id;
+    reqDoc.reviewedAt = new Date();
+    reqDoc.extraAttemptsGranted = Number(extraAttempts) || 1;
+    await reqDoc.save();
+
+    await ExtraAttemptAllowance.create({
+        quiz: reqDoc.quiz,
+        student: reqDoc.student,
+        extraAttemptsGranted: reqDoc.extraAttemptsGranted,
+        grantedBy: req.user._id,
+        approvedAt: new Date(),
+    });
+
+    // Notify student in realtime
+    try {
+        const socketIOService = (await import("../utils/socketIO.js")).default;
+        socketIOService.emitToSocket(String(reqDoc.student), 'attempt-approved', {
+            type: 'attempt-approved',
+            message: `Your request for extra attempts was approved. You received ${reqDoc.extraAttemptsGranted} extra attempt(s).`,
+            quiz: { _id: reqDoc.quiz },
+            timestamp: new Date()
+        });
+    } catch(_) {}
+
+    res.json(new ApiResponse(200, reqDoc, "Request approved and extra attempts granted"));
+});
+
+export const rejectExtraAttempt = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    if(!mongoose.Types.ObjectId.isValid(id)) {
+        throw new ApiError("Invalid request ID", 400);
+    }
+    const AttemptExtensionRequest = (await import("../models/attemptExtensionRequest.model.js")).default;
+    const reqDoc = await AttemptExtensionRequest.findById(id);
+    if(!reqDoc) throw new ApiError("Request not found", 404);
+    if(reqDoc.status !== 'PENDING') throw new ApiError("Request is not pending", 400);
+
+    reqDoc.status = 'REJECTED';
+    reqDoc.reviewedBy = req.user._id;
+    reqDoc.reviewedAt = new Date();
+    await reqDoc.save();
+
+    try {
+        const socketIOService = (await import("../utils/socketIO.js")).default;
+        socketIOService.emitToSocket(String(reqDoc.student), 'attempt-rejected', {
+            type: 'attempt-rejected',
+            message: `Your request for extra attempts was rejected.`,
+            quiz: { _id: reqDoc.quiz },
+            timestamp: new Date()
+        });
+    } catch(_) {}
+
+    res.json(new ApiResponse(200, reqDoc, "Request rejected"));
+});
+
+// Admin/Instructor list pending requests
+export const listExtraAttemptRequests = asyncHandler(async (req, res) => {
+    const { status = 'PENDING' } = req.query;
+    const AttemptExtensionRequest = (await import("../models/attemptExtensionRequest.model.js")).default;
+    const requests = await AttemptExtensionRequest.find({ status })
+        .populate('student', 'fullName email')
+        .populate('quiz', 'title')
+        .sort({ createdAt: -1 });
+
+    res.json(new ApiResponse(200, requests, "Requests fetched"));
 });
