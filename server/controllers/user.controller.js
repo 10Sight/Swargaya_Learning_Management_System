@@ -232,7 +232,7 @@ export const createUser = asyncHandler(async (req, res) => {
   // Send welcome email with credentials
   try {
     // Determine login URL based on role
-    let loginUrl = ENV.FRONTEND_URL || 'http://localhost:3000';
+    let loginUrl = ENV.FRONTEND_URL || 'https://swargaya-learning-management-system-3vcz.onrender.com';
     if (role === 'ADMIN' || role === 'SUPERADMIN') {
       loginUrl = ENV.ADMIN_URL || 'http://localhost:5173';
     } else if (role === 'INSTRUCTOR') {

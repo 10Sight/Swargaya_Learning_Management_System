@@ -1,9 +1,9 @@
 import axios from "axios";
 
 const ENV_BASE = import.meta?.env?.VITE_API_BASE_URL;
-// const BASE_URL = ENV_BASE || "http://localhost:3000";
-const BASE_URL = "http://localhost:3000"
-// For local dev, set VITE_API_BASE_URL in admin/.env to http://localhost:3000
+// const BASE_URL = ENV_BASE || "https://swargaya-learning-management-system-3vcz.onrender.com";
+const BASE_URL = "https://swargaya-learning-management-system-3vcz.onrender.com"
+// For local dev, set VITE_API_BASE_URL in admin/.env to https://swargaya-learning-management-system-3vcz.onrender.com
 
 const axiosInstance = axios.create({ baseURL: BASE_URL, withCredentials: true });
 
