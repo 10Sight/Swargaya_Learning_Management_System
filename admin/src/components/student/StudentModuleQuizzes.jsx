@@ -24,7 +24,7 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
     const fetchStatuses = async () => {
       try {
         const results = await Promise.allSettled(
-          quizzes.map(q => axiosInstance.get(`/api/attempts/status/${q._id || q.id}`))
+          quizzes.map(q => axiosInstance.get(`/api/attempts/status/${q.slug || q._id || q.id}`))
         );
         if (cancelled) return;
         const map = {};
@@ -63,7 +63,7 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
     if (typeof onStart === "function") onStart(quiz);
   };
 
-  const getQuizId = (quiz) => quiz._id || quiz.id;
+  const getQuizId = (quiz) => quiz.slug || quiz._id || quiz.id;
 
   const getQuizStatus = (quiz) => {
     const quizId = getQuizId(quiz);
@@ -205,10 +205,10 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
               className={`${!isUnlocked ? "opacity-50" : ""}`}
             >
               <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
+                <CardTitle className="text-base flex items-center gap-2 min-w-0">
                   {!isUnlocked && <Lock className="h-4 w-4" />}
                   <Award className="h-4 w-4" />
-                  {quiz.title || "Module Quiz"}
+                  <span className="truncate break-words min-w-0">{quiz.title || "Module Quiz"}</span>
                 </CardTitle>
                 
                 {/* Status Badges */}
@@ -240,7 +240,7 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
                 </div>
                 
                 {quiz.description && (
-                  <CardDescription className="mt-2">{quiz.description}</CardDescription>
+                  <CardDescription className="mt-2 break-words overflow-hidden">{quiz.description}</CardDescription>
                 )}
               </CardHeader>
               <CardContent>
@@ -250,7 +250,7 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
                     This quiz request was rejected by your instructor/admin. No further attempts are available.
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm mb-4">
                   <div className="flex items-center gap-1">
                     <Award className="h-4 w-4 text-muted-foreground" />
                     Questions: {quiz.questions?.length || 0}

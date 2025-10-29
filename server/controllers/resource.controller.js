@@ -136,12 +136,18 @@ export const getResourcesByModule = asyncHandler(async (req, res) => {
         return res.status(400).json(new ApiResponse(400, [], "Module ID is required"));
     }
 
+    let moduleId = rawModuleId;
     if (!mongoose.Types.ObjectId.isValid(rawModuleId)) {
-        return res.status(400).json(new ApiResponse(400, [], "Invalid module ID format"));
+        // Resolve by slug
+        const found = await Module.findOne({ slug: String(rawModuleId).toLowerCase() }).select('_id');
+        if (!found) {
+            return res.status(400).json(new ApiResponse(400, [], "Invalid module identifier"));
+        }
+        moduleId = found._id;
     }
 
     try {
-        const resources = await Resource.find({ moduleId: rawModuleId, scope: 'module' })
+        const resources = await Resource.find({ moduleId, scope: 'module' })
             .populate('createdBy', 'name email')
             .sort({ createdAt: -1 });
 
@@ -160,12 +166,18 @@ export const getResourcesByCourse = asyncHandler(async (req, res) => {
         return res.status(400).json(new ApiResponse(400, [], "Course ID is required"));
     }
 
+    let courseId = rawCourseId;
     if (!mongoose.Types.ObjectId.isValid(rawCourseId)) {
-        return res.status(400).json(new ApiResponse(400, [], "Invalid course ID format"));
+        // Resolve by slug
+        const found = await Course.findOne({ slug: String(rawCourseId).toLowerCase() }).select('_id');
+        if (!found) {
+            return res.status(400).json(new ApiResponse(400, [], "Invalid course identifier"));
+        }
+        courseId = found._id;
     }
 
     try {
-        const resources = await Resource.find({ courseId: rawCourseId, scope: 'course' })
+        const resources = await Resource.find({ courseId, scope: 'course' })
             .populate('createdBy', 'name email')
             .sort({ createdAt: -1 });
 
@@ -184,12 +196,18 @@ export const getResourcesByLesson = asyncHandler(async (req, res) => {
         return res.status(400).json(new ApiResponse(400, [], "Lesson ID is required"));
     }
 
+    let lessonId = rawLessonId;
     if (!mongoose.Types.ObjectId.isValid(rawLessonId)) {
-        return res.status(400).json(new ApiResponse(400, [], "Invalid lesson ID format"));
+        // Resolve by slug
+        const found = await Lesson.findOne({ slug: String(rawLessonId).toLowerCase() }).select('_id');
+        if (!found) {
+            return res.status(400).json(new ApiResponse(400, [], "Invalid lesson identifier"));
+        }
+        lessonId = found._id;
     }
 
     try {
-        const resources = await Resource.find({ lessonId: rawLessonId, scope: 'lesson' })
+        const resources = await Resource.find({ lessonId, scope: 'lesson' })
             .populate('createdBy', 'name email')
             .sort({ createdAt: -1 });
 

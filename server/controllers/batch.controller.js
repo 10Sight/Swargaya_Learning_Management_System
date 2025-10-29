@@ -12,6 +12,13 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import batchStatusScheduler from "../services/batchStatusScheduler.js";
 import batchCleanupScheduler from "../services/batchCleanupScheduler.js";
 
+// Helper to resolve batch by ObjectId or slug
+async function resolveBatchId(idOrSlug) {
+    if (mongoose.Types.ObjectId.isValid(idOrSlug)) return idOrSlug;
+    const doc = await Batch.findOne({ slug: idOrSlug }).select('_id');
+    return doc ? String(doc._id) : null;
+}
+
 export const getMyBatch = asyncHandler(async (req, res) => {
     // If user has no batch assigned
     if (!req.user?.batch) {
@@ -294,12 +301,12 @@ export const getAllBatches = asyncHandler(async (req, res) => {
     const total = await Batch.countDocuments(searchQuery);
 
     const batches = await Batch.find(searchQuery)
-    .populate("instructor", "fullName email")
-    .populate("students", "fullName email")
-    .populate("course", "title name") 
-    .skip(skip)
-    .limit(limit)
-    .sort({ createdAt: -1 });
+.populate("instructor", "fullName email slug")
+        .populate("students", "fullName email slug")
+        .populate("course", "title name slug") 
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 });
 
     res.json(
         new ApiResponse(200,
@@ -316,13 +323,14 @@ export const getAllBatches = asyncHandler(async (req, res) => {
 });
 
 export const getBatchById = asyncHandler(async (req, res) => {
-    if(!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    const resolvedId = await resolveBatchId(req.params.id);
+    if (!resolvedId) {
         throw new ApiError("Invalid batch ID", 400);
     }
 
-    const batch = await Batch.findById(req.params.id)
+    const batch = await Batch.findById(resolvedId)
     .populate("instructor", "fullName email")
-    .populate("students", "fullName email status createdAt")
+.populate("students", "fullName email slug status createdAt")
     .populate("course", "title name description difficulty status");
 
     if(!batch) throw new ApiError("Batch not found", 404);
@@ -333,7 +341,10 @@ export const getBatchById = asyncHandler(async (req, res) => {
 export const updateBatch = asyncHandler(async (req, res) => {
     const { name, status, courseId, startDate, endDate, capacity } = req.body;
 
-    const batch = await Batch.findById(req.params.id);
+    const resolvedId = await resolveBatchId(req.params.id);
+    if (!resolvedId) throw new ApiError("Invalid batch ID", 400);
+
+    const batch = await Batch.findById(resolvedId);
     if(!batch) throw new ApiError("Batch not found", 404);
 
     const oldStatus = batch.status;
@@ -358,8 +369,9 @@ export const updateBatch = asyncHandler(async (req, res) => {
 
 export const deleteBatch = asyncHandler(async (req, res) => {
     const { id } = req.params;
+    const resolvedId = await resolveBatchId(id);
 
-    const batch = await Batch.findById(id);
+    const batch = await Batch.findById(resolvedId);
     if(!batch) throw new ApiError("Batch not found", 404);
 
     if (req.user.role === "SUPERADMIN") {
@@ -439,9 +451,10 @@ export const getBatchAssessments = asyncHandler(async (req, res) => {
 
 // Get batch progress analytics for admin/instructor
 export const getBatchProgress = asyncHandler(async (req, res) => {
-    const { id: batchId } = req.params;
+    const rawId = req.params.id;
+    const batchId = await resolveBatchId(rawId);
 
-    if(!mongoose.Types.ObjectId.isValid(batchId)) {
+    if(!batchId) {
         throw new ApiError("Invalid batch ID", 400);
     }
 
@@ -547,9 +560,10 @@ export const getBatchProgress = asyncHandler(async (req, res) => {
 
 // Get batch submissions analytics
 export const getBatchSubmissions = asyncHandler(async (req, res) => {
-    const { id: batchId } = req.params;
+    const rawId = req.params.id;
 
-    if(!mongoose.Types.ObjectId.isValid(batchId)) {
+    const batchId = await resolveBatchId(rawId);
+    if(!batchId) {
         throw new ApiError("Invalid batch ID", 400);
     }
 
@@ -598,9 +612,10 @@ export const getBatchSubmissions = asyncHandler(async (req, res) => {
 
 // Get batch quiz attempts analytics
 export const getBatchAttempts = asyncHandler(async (req, res) => {
-    const { id: batchId } = req.params;
+    const rawId = req.params.id;
+    const batchId = await resolveBatchId(rawId);
 
-    if(!mongoose.Types.ObjectId.isValid(batchId)) {
+    if(!batchId) {
         throw new ApiError("Invalid batch ID", 400);
     }
 
@@ -614,7 +629,7 @@ export const getBatchAttempts = asyncHandler(async (req, res) => {
     })
     .populate({
         path: 'student',
-        select: 'fullName email avatar'
+select: 'fullName email slug avatar'
     })
     .populate({
         path: 'quiz',
@@ -790,12 +805,13 @@ export const updateAllBatchStatuses = asyncHandler(async (req, res) => {
 // Update specific batch status
 export const updateBatchStatus = asyncHandler(async (req, res) => {
     const { id } = req.params;
+    const resolvedId = await resolveBatchId(id);
     
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!resolvedId) {
         throw new ApiError("Invalid batch ID", 400);
     }
     
-    const batch = await Batch.findById(id);
+    const batch = await Batch.findById(resolvedId);
     if (!batch) {
         throw new ApiError("Batch not found", 404);
     }
@@ -818,11 +834,12 @@ export const cancelBatch = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { reason } = req.body;
     
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    const resolvedId = await resolveBatchId(id);
+    if (!resolvedId) {
         throw new ApiError("Invalid batch ID", 400);
     }
     
-    const batch = await Batch.findById(id)
+    const batch = await Batch.findById(resolvedId)
         .populate('students', 'fullName email')
         .populate('instructor', 'fullName email')
         .populate('course', 'title');
@@ -915,11 +932,12 @@ export const getMyBatchNotifications = asyncHandler(async (req, res) => {
 export const getBatchStatusInfo = asyncHandler(async (req, res) => {
     const { id } = req.params;
     
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    const resolvedId = await resolveBatchId(id);
+    if (!resolvedId) {
         throw new ApiError("Invalid batch ID", 400);
     }
     
-    const batch = await Batch.findById(id)
+    const batch = await Batch.findById(resolvedId)
         .populate('course', 'title')
         .populate('instructor', 'fullName email')
         .select('name status startDate endDate capacity students notes createdAt updatedAt');

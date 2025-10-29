@@ -7,6 +7,13 @@ const batchSchema = new Schema(
             required: true,
             trim: true
         },
+        slug: {
+            type: String,
+            trim: true,
+            lowercase: true,
+            unique: true,
+            index: true,
+        },
         course: {
             type: Schema.Types.ObjectId,
             ref: "Course",
@@ -78,6 +85,15 @@ const batchSchema = new Schema(
         timestamps: true,
     }
 );
+
+import { slugify, ensureUniqueSlug } from "../utils/slugify.js";
+
+batchSchema.pre('save', async function(next) {
+    if (!this.isModified('name') && this.slug) return next();
+    const base = slugify(this.name);
+    this.slug = await ensureUniqueSlug(this.constructor, base, {}, this._id);
+    next();
+});
 
 // Method to calculate status based on dates
 batchSchema.methods.calculateStatus = function() {

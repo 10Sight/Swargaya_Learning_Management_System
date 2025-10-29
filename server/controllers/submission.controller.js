@@ -105,7 +105,7 @@ export const getSubmissionByAssignment = asyncHandler(async (req, res) => {
     }
 
     const submissions = await Submission.find({ assignment: assignmentId })
-        .populate("student", "fullName email")
+        .populate("student", "fullName email slug")
         .sort({ submittedAt: -1 });
 
     res.json(new ApiResponse(200, submissions, "Submissions fetched successfully"));
@@ -178,11 +178,18 @@ export const gradeSubmission = asyncHandler(async (req, res) => {
 export const getStudentSubmissions = asyncHandler(async (req, res) => {
     const { studentId } = req.params;
 
+    let resolvedStudentId = studentId;
     if(!mongoose.Types.ObjectId.isValid(studentId)) {
-        throw new ApiError("Invalid student ID", 400);
+        const User = (await import("../models/auth.model.js")).default;
+        const handle = String(studentId).toLowerCase();
+        const u = await User.findOne({ $or: [{ slug: handle }, { userName: handle }] }).select('_id');
+        if (!u) {
+            throw new ApiError("Invalid student ID", 400);
+        }
+        resolvedStudentId = u._id;
     }
 
-    const submissions = await Submission.find({ student: studentId })
+    const submissions = await Submission.find({ student: resolvedStudentId })
         .populate({
             path: "assignment",
             select: "title dueDate maxScore",

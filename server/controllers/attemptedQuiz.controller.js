@@ -14,11 +14,16 @@ export const attemptQuiz = asyncHandler(async (req, res) => {
     const { quizId, answers } = req.body;
     const userId = req.user._id;
 
+    let resolvedQuizId = quizId;
     if(!mongoose.Types.ObjectId.isValid(quizId)) {
-        throw new ApiError("Invalid quiz ID", 400);
+        const q = await Quiz.findOne({ slug: String(quizId).toLowerCase() }).select('_id');
+        if (!q) {
+            throw new ApiError("Invalid quiz ID", 400);
+        }
+        resolvedQuizId = q._id;
     }
 
-    const quiz = await Quiz.findById(quizId).populate('course').populate('module');
+    const quiz = await Quiz.findById(resolvedQuizId).populate('course').populate('module');
     if(!quiz) {
         throw new ApiError("Quiz not found", 400);
     }
@@ -73,7 +78,7 @@ export const attemptQuiz = asyncHandler(async (req, res) => {
     const passed = scorePercent >= (quiz.passingScore || 70);
 
     const attempt = await AttemptedQuiz.create({
-        quiz: quizId,
+        quiz: resolvedQuizId,
         student: userId,
         answer: answers.map((ans, idx) => ({
             questionId: quiz.questions[idx]._id,
@@ -103,11 +108,16 @@ export const getMyAttempts = asyncHandler(async (req, res) => {
 export const getAttemptsQuiz = asyncHandler(async (req, res) => {
     const { quizId } = req.params;
 
+    let resolvedQuizId = quizId;
     if(!mongoose.Types.ObjectId.isValid(quizId)) {
-        throw new ApiError("Invalid quiz ID", 400);
+        const q = await Quiz.findOne({ slug: String(quizId).toLowerCase() }).select('_id');
+        if (!q) {
+            throw new ApiError("Invalid quiz ID", 400);
+        }
+        resolvedQuizId = q._id;
     }
 
-    const attempts = await AttemptedQuiz.find({ quiz: quizId })
+    const attempts = await AttemptedQuiz.find({ quiz: resolvedQuizId })
         .populate("student", "fullName email")
         .sort({ createdAt: -1 });
 
@@ -224,11 +234,18 @@ export const adminUpdateAttempt = asyncHandler(async (req, res) => {
 export const getStudentAttempts = asyncHandler(async (req, res) => {
     const { studentId } = req.params;
 
+    let resolvedStudentId = studentId;
     if(!mongoose.Types.ObjectId.isValid(studentId)) {
-        throw new ApiError("Invalid student ID", 400);
+        const User = (await import("../models/auth.model.js")).default;
+        const handle = String(studentId).toLowerCase();
+        const u = await User.findOne({ $or: [{ slug: handle }, { userName: handle }] }).select('_id');
+        if (!u) {
+            throw new ApiError("Invalid student ID", 400);
+        }
+        resolvedStudentId = u._id;
     }
 
-    const attempts = await AttemptedQuiz.find({ student: studentId })
+    const attempts = await AttemptedQuiz.find({ student: resolvedStudentId })
         .populate({
             path: "quiz",
             select: "title questions passingScore",
@@ -266,11 +283,16 @@ export const startQuiz = asyncHandler(async (req, res) => {
     const { quizId } = req.params;
     const userId = req.user._id;
 
+    let resolvedQuizId = quizId;
     if(!mongoose.Types.ObjectId.isValid(quizId)) {
-        throw new ApiError("Invalid quiz ID", 400);
+        const q = await Quiz.findOne({ slug: String(quizId).toLowerCase() }).select('_id');
+        if (!q) {
+            throw new ApiError("Invalid quiz ID", 400);
+        }
+        resolvedQuizId = q._id;
     }
 
-    const quiz = await Quiz.findById(quizId)
+    const quiz = await Quiz.findById(resolvedQuizId)
         .populate("course", "title")
         .populate("module", "title");
         
@@ -314,7 +336,7 @@ export const startQuiz = asyncHandler(async (req, res) => {
 
     // Count previous attempts for this quiz
     const previousAttempts = await AttemptedQuiz.countDocuments({
-        quiz: quizId,
+        quiz: resolvedQuizId,
         student: userId
     });
 
@@ -382,8 +404,13 @@ export const submitQuiz = asyncHandler(async (req, res) => {
         throw new ApiError("Quiz ID is required", 400);
     }
 
+    let resolvedQuizId = quizId;
     if(!mongoose.Types.ObjectId.isValid(quizId)) {
-        throw new ApiError("Invalid quiz ID format", 400);
+        const q = await Quiz.findOne({ slug: String(quizId).toLowerCase() }).select('_id');
+        if (!q) {
+            throw new ApiError("Invalid quiz ID format", 400);
+        }
+        resolvedQuizId = q._id;
     }
 
     if(!answers || !Array.isArray(answers)) {
@@ -395,7 +422,7 @@ export const submitQuiz = asyncHandler(async (req, res) => {
         throw new ApiError("Time taken must be a non-negative number", 400);
     }
 
-    const quiz = await Quiz.findById(quizId)
+    const quiz = await Quiz.findById(resolvedQuizId)
         .populate("course")
         .populate("module");
         
@@ -430,7 +457,7 @@ export const submitQuiz = asyncHandler(async (req, res) => {
 
     // Check attempts remaining
     const previousAttempts = await AttemptedQuiz.countDocuments({
-        quiz: quizId,
+        quiz: resolvedQuizId,
         student: userId
     });
     
@@ -510,7 +537,7 @@ export const submitQuiz = asyncHandler(async (req, res) => {
     let attempt;
     try {
         const attemptData = {
-            quiz: quizId,
+            quiz: resolvedQuizId,
             student: userId,
             answer: answers.map((ans, idx) => {
                 const question = quiz.questions[idx];
@@ -667,17 +694,22 @@ export const getQuizAttemptStatus = asyncHandler(async (req, res) => {
     const { quizId } = req.params;
     const userId = req.user._id;
 
+    let resolvedQuizId = quizId;
     if(!mongoose.Types.ObjectId.isValid(quizId)) {
-        throw new ApiError("Invalid quiz ID", 400);
+        const q = await Quiz.findOne({ slug: String(quizId).toLowerCase() }).select('_id');
+        if (!q) {
+            throw new ApiError("Invalid quiz ID", 400);
+        }
+        resolvedQuizId = q._id;
     }
 
-    const quiz = await Quiz.findById(quizId, "title attemptsAllowed passingScore");
+    const quiz = await Quiz.findById(resolvedQuizId, "title attemptsAllowed passingScore");
     if(!quiz) {
         throw new ApiError("Quiz not found", 404);
     }
 
     const attempts = await AttemptedQuiz.find({
-        quiz: quizId,
+        quiz: resolvedQuizId,
         student: userId
     }).sort({ createdAt: -1 });
 
@@ -727,12 +759,20 @@ export const requestExtraAttempt = asyncHandler(async (req, res) => {
     const { quizId, reason } = req.body;
     const userId = req.user._id;
 
-    if(!quizId || !mongoose.Types.ObjectId.isValid(quizId)) {
+    if(!quizId) {
         throw new ApiError("Valid quizId is required", 400);
     }
 
+    let resolvedQuizId = quizId;
+    if(!mongoose.Types.ObjectId.isValid(quizId)) {
+        const QuizModel = (await import("../models/quiz.model.js")).default;
+        const q = await QuizModel.findOne({ slug: String(quizId).toLowerCase() }).select('_id');
+        if (!q) throw new ApiError("Valid quizId is required", 400);
+        resolvedQuizId = q._id;
+    }
+
     const Quiz = (await import("../models/quiz.model.js")).default;
-    const quiz = await Quiz.findById(quizId);
+    const quiz = await Quiz.findById(resolvedQuizId);
     if(!quiz) throw new ApiError("Quiz not found", 404);
 
     const AttemptExtensionRequest = (await import("../models/attemptExtensionRequest.model.js")).default;

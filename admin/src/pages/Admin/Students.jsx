@@ -109,7 +109,8 @@ const Students = () => {
   const navigate = useNavigate();
 
   const handleStudentClick = (student) => {
-    navigate(`${student._id}`);
+    const handle = student.slug || student._id;
+    navigate(`${handle}`);
   };
 
   // Debounce search term to prevent excessive API calls

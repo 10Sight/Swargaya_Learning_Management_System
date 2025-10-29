@@ -103,7 +103,7 @@ const LessonDetail = () => {
           try {
             const lessonsResponse = await axiosInstance.get(`/api/modules/${moduleId}/lessons`);
             const lessons = lessonsResponse?.data?.data || [];
-            const match = lessons.find(l => String(l._id || l.id) === String(lessonId));
+            const match = lessons.find(l => String(l._id || l.id) === String(lessonId) || String(l.slug || '') === String(lessonId));
             if (match) {
               foundLesson = match;
               foundModuleId = moduleId;

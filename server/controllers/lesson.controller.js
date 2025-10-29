@@ -81,12 +81,17 @@ export const getLessonsByModule = asyncHandler(async (req, res) => {
     return res.status(400).json(new ApiResponse(400, [], "Module ID is required"));
   }
 
+  let moduleId = rawModuleId;
   if (!mongoose.Types.ObjectId.isValid(rawModuleId)) {
-    return res.status(400).json(new ApiResponse(400, [], "Invalid module ID format"));
+    const m = await Module.findOne({ slug: String(rawModuleId).toLowerCase() }).select('_id');
+    if (!m) {
+      return res.status(400).json(new ApiResponse(400, [], "Invalid module identifier"));
+    }
+    moduleId = m._id;
   }
 
   try {
-    const lessons = await Lesson.find({ module: rawModuleId })
+    const lessons = await Lesson.find({ module: moduleId })
       .select('module title content duration order resources slides createdAt updatedAt')
       .sort({ order: 1 })
       .lean();
@@ -115,13 +120,17 @@ export const getLessonById = asyncHandler(async (req, res) => {
     return res.status(400).json(new ApiResponse(400, null, "Lesson ID is required"));
   }
 
-  if (!mongoose.Types.ObjectId.isValid(rawLessonId)) {
-    return res.status(400).json(new ApiResponse(400, null, "Invalid lesson ID format"));
+  let lesson = null;
+  if (mongoose.Types.ObjectId.isValid(rawLessonId)) {
+    lesson = await Lesson.findById(rawLessonId)
+      .select('module title content duration order resources slides createdAt updatedAt')
+      .lean();
   }
-
-  const lesson = await Lesson.findById(rawLessonId)
-    .select('module title content duration order resources slides createdAt updatedAt')
-    .lean();
+  if (!lesson) {
+    lesson = await Lesson.findOne({ slug: String(rawLessonId).toLowerCase() })
+      .select('module title content duration order resources slides createdAt updatedAt')
+      .lean();
+  }
   if (!lesson) {
     return res.status(404).json(new ApiResponse(404, null, "Lesson not found"));
   }

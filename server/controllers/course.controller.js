@@ -200,7 +200,7 @@ export const getCourseAnalytics = asyncHandler(async (req, res) => {
 
     const course = await Course.findById(resolvedCourseId)
         .populate('modules', '_id title order')
-        .populate('students', '_id fullName')
+.populate('students', '_id fullName slug')
         .lean(); // Use lean for performance
 
     if(!course) {
@@ -211,7 +211,7 @@ export const getCourseAnalytics = asyncHandler(async (req, res) => {
     const progressData = await Progress.find({
         course: resolvedCourseId
     })
-    .populate('student', 'fullName email avatar')
+.populate('student', 'fullName email slug avatar')
     .lean();
 
     // Calculate overall progress stats
@@ -326,7 +326,7 @@ export const getCourseStudents = asyncHandler(async (req, res) => {
     }
 
     const course = await Course.findById(resolvedCourseId)
-        .populate('students', 'fullName email avatar createdAt')
+.populate('students', 'fullName email slug avatar createdAt')
         .populate('modules', '_id title');
 
     if(!course) {

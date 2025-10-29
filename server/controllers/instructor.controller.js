@@ -416,7 +416,7 @@ export const getBatchStudents = async (req, res) => {
       _id: batchId, 
       instructor: instructorId 
     })
-    .populate('students', 'fullName email phoneNumber userName status')
+.populate('students', 'fullName email slug phoneNumber userName status')
     .populate('course', 'title');
 
     if (!batch) {

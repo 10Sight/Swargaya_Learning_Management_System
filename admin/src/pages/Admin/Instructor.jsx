@@ -103,7 +103,8 @@ const Instructor = () => {
   const navigate = useNavigate();
 
   const handleInstructorClick = (instructor) => {
-    navigate(`${instructor._id}`);
+    const handle = instructor.slug || instructor._id;
+    navigate(`${handle}`);
   };
 
   // Debounce search term to prevent excessive API calls

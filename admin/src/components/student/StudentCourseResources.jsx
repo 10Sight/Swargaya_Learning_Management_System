@@ -176,13 +176,13 @@ const StudentCourseResources = ({ resources, courseTitle }) => {
                 </div>
                 
                 {/* Resource Info */}
-                <div className="p-4">
-                  <h4 className="text-sm sm:text-base font-semibold text-gray-900 mb-2 line-clamp-2 leading-tight">
+                <div className="p-4 min-w-0">
+                  <h4 className="text-sm sm:text-base font-semibold text-gray-900 mb-2 line-clamp-2 leading-tight break-words">
                     {resource.title || `Resource ${index + 1}`}
                   </h4>
                   
                   {resource.description && (
-                    <p className="text-xs sm:text-sm text-gray-600 mb-3 line-clamp-2 leading-relaxed">
+                    <p className="text-xs sm:text-sm text-gray-600 mb-3 line-clamp-2 leading-relaxed break-words">
                       {resource.description}
                     </p>
                   )}
@@ -191,7 +191,7 @@ const StudentCourseResources = ({ resources, courseTitle }) => {
                   <div className="flex flex-col sm:flex-row gap-2">
                     <Button
                       onClick={() => handleResourceView(resource)}
-                      className="flex-1 h-8 sm:h-9 text-xs sm:text-sm bg-purple-600 hover:bg-purple-700 text-white"
+                      className="flex-1 h-8 sm:h-9 text-xs sm:text-sm bg-purple-600 hover:bg-purple-700 text-white min-h-[44px] sm:min-h-0"
                       size="sm"
                     >
                       {resource.type === 'video' ? (

@@ -345,7 +345,7 @@ const BatchDetail = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => navigate(`/students/${student._id}`)}
+onClick={() => navigate(`/students/${student.slug || student._id}`)}
                           >
                             <IconEye className="h-4 w-4" />
                           </Button>
@@ -410,7 +410,7 @@ const BatchDetail = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => navigate(`/students/${submission.student._id}`)}
+onClick={() => navigate(`/students/${submission.student.slug || submission.student._id}`)}
                         >
                           <IconEye className="h-4 w-4" />
                         </Button>
@@ -492,7 +492,7 @@ const BatchDetail = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => navigate(`/students/${attempt.student._id}`)}
+onClick={() => navigate(`/students/${attempt.student.slug || attempt.student._id}`)}
                         >
                           <IconEye className="h-4 w-4" />
                         </Button>

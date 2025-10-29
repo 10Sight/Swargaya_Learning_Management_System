@@ -222,21 +222,21 @@ const CourseReport = () => {
             <p className="text-muted-foreground">Learning Management System</p>
           </CardHeader>
 
-          <CardContent className="space-y-8 p-8">
+          <CardContent className="space-y-6 p-4 sm:p-6 md:p-8">
             {/* Student Information */}
             <div className="text-center space-y-4">
               <h2 className="text-xl font-semibold">This is to certify that</h2>
-              <h1 className="text-3xl font-bold text-primary">{reportData.student.fullName}</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-primary">{reportData.student.fullName}</h1>
               <p className="text-muted-foreground">(@{reportData.student.userName})</p>
-              <p className="text-lg">has successfully completed the course</p>
-              <h2 className="text-2xl font-bold">{reportData.course.title}</h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">{reportData.course.description}</p>
+              <p className="text-base sm:text-lg">has successfully completed the course</p>
+              <h2 className="text-xl sm:text-2xl font-bold">{reportData.course.title}</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto px-4">{reportData.course.description}</p>
             </div>
 
             <Separator />
 
             {/* Course Details */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <Card className="border-muted">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -245,19 +245,19 @@ const CourseReport = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="flex justify-between">
+                  <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
                     <span className="text-muted-foreground">Batch:</span>
                     <span className="font-medium">{reportData.batch.name}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
                     <span className="text-muted-foreground">Instructor:</span>
                     <span className="font-medium">{reportData.instructor.fullName}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
                     <span className="text-muted-foreground">Start Date:</span>
                     <span className="font-medium">{formatDate(reportData.batch.startDate)}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
                     <span className="text-muted-foreground">Completion Date:</span>
                     <span className="font-medium">{formatDate(reportData.progress.completedAt)}</span>
                   </div>
@@ -272,21 +272,21 @@ const CourseReport = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="flex justify-between">
+                  <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
                     <span className="text-muted-foreground">Modules Completed:</span>
                     <span className="font-medium">
                       {reportData.progress.completedModules}/{reportData.progress.totalModules}
                     </span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
                     <span className="text-muted-foreground">Lessons Completed:</span>
                     <span className="font-medium">{reportData.progress.completedLessons}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
                     <span className="text-muted-foreground">Current Level:</span>
                     <Badge variant="secondary">{reportData.progress.currentLevel}</Badge>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
                     <span className="text-muted-foreground">Progress:</span>
                     <span className="font-medium text-green-600">{reportData.progress.progressPercent}%</span>
                   </div>
@@ -303,7 +303,7 @@ const CourseReport = () => {
                 Quiz Performance Summary
               </h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <Card className="text-center">
                   <CardContent className="pt-6">
                     <div className="text-2xl font-bold">{reportData.quizSummary.totalQuizzes}</div>
@@ -395,7 +395,7 @@ const CourseReport = () => {
                 <Award className="h-12 w-12 text-yellow-500" />
               </div>
               <p className="text-lg font-semibold">Congratulations on your achievement!</p>
-              <div className="flex justify-between items-center pt-8 max-w-lg mx-auto">
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-6 sm:gap-0 pt-8 max-w-lg mx-auto">
                 <div className="text-center">
                   <div className="border-t border-gray-400 w-32 mb-2"></div>
                   <p className="text-sm text-muted-foreground">Date</p>

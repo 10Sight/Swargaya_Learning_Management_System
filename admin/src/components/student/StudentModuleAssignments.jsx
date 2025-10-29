@@ -84,10 +84,10 @@ const StudentModuleAssignments = ({
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
-                  <CardTitle className="text-base flex items-center gap-2">
+                  <CardTitle className="text-base flex items-center gap-2 min-w-0">
                     {!isUnlocked && <Lock className="h-4 w-4" />}
                     <FileText className="h-4 w-4" />
-                    {assignment.title || "Module Assignment"}
+                    <span className="truncate break-words min-w-0">{assignment.title || "Module Assignment"}</span>
                   </CardTitle>
                 </div>
                 
@@ -111,11 +111,11 @@ const StudentModuleAssignments = ({
                 </div>
                 
                 {assignment.description && (
-                  <CardDescription className="mt-2">{assignment.description}</CardDescription>
+                  <CardDescription className="mt-2 break-words overflow-hidden">{assignment.description}</CardDescription>
                 )}
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm mb-4">
                   <div className="flex items-center gap-1">
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     Due: {assignment.dueDate 

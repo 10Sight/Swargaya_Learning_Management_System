@@ -206,11 +206,23 @@ export const deleteQuiz = asyncHandler(async (req, res) => {
 
 // Get quizzes accessible to a student for a specific module
 export const getAccessibleQuizzes = asyncHandler(async (req, res) => {
-    const { courseId, moduleId } = req.params;
+    const { courseId: rawCourseId, moduleId: rawModuleId } = req.params;
     const userId = req.user._id;
 
-    if(!mongoose.Types.ObjectId.isValid(courseId) || !mongoose.Types.ObjectId.isValid(moduleId)) {
-        throw new ApiError("Invalid course ID or module ID", 400);
+    // Resolve course and module identifiers (accept ObjectId or slug)
+    let courseId = rawCourseId;
+    if (!mongoose.Types.ObjectId.isValid(rawCourseId)) {
+        const c = await Course.findOne({ slug: String(rawCourseId).toLowerCase() }).select('_id');
+        if (!c) throw new ApiError("Invalid course ID", 400);
+        courseId = c._id;
+    }
+
+    let moduleId = rawModuleId;
+    if (!mongoose.Types.ObjectId.isValid(rawModuleId)) {
+        const Module = (await import("../models/module.model.js")).default;
+        const m = await Module.findOne({ slug: String(rawModuleId).toLowerCase(), course: courseId }).select('_id');
+        if (!m) throw new ApiError("Invalid module ID", 400);
+        moduleId = m._id;
     }
 
     // Check if user has access to assessments for this module (effective completion)
@@ -299,11 +311,16 @@ export const getAccessibleQuizzes = asyncHandler(async (req, res) => {
 
 // Get course-level quizzes accessible to a student
 export const getCourseQuizzes = asyncHandler(async (req, res) => {
-    const { courseId } = req.params;
+    const { courseId: rawCourseId } = req.params;
     const userId = req.user._id;
 
-    if(!mongoose.Types.ObjectId.isValid(courseId)) {
-        throw new ApiError("Invalid course ID", 400);
+    let courseId = rawCourseId;
+    if(!mongoose.Types.ObjectId.isValid(rawCourseId)) {
+        const c = await Course.findOne({ slug: String(rawCourseId).toLowerCase() }).select('_id');
+        if (!c) {
+            throw new ApiError("Invalid course ID", 400);
+        }
+        courseId = c._id;
     }
 
     // Check if user has completed all modules in the course

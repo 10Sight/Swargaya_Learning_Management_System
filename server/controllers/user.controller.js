@@ -49,7 +49,7 @@ export const getAllUsers = asyncHandler(async (req, res) => {
   }
 
   // Safe fields only
-  const safeFields = "fullName userName email phoneNumber role status batch createdAt avatar";
+  const safeFields = "fullName userName slug email phoneNumber role status batch createdAt avatar";
 
   const totalUsers = await User.countDocuments(searchQuery);
 
@@ -78,14 +78,24 @@ export const getAllUsers = asyncHandler(async (req, res) => {
 
 //Get User by ID
 export const getUserById = asyncHandler(async (req, res) => {
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-    throw new ApiError("Invalid User ID!", 400);
+  const rawId = String(req.params.id || "");
+
+  let user = null;
+  if (mongoose.Types.ObjectId.isValid(rawId)) {
+    user = await User.findById(rawId)
+      .select("-password -refreshToken")
+      .populate("batch", "name")
+      .lean();
   }
 
-  const user = await User.findById(req.params.id)
-    .select("-password -refreshToken")
-    .populate("batch", "name")
-    .lean(); // Use lean for read-only data
+  if (!user) {
+    // Fallback: resolve by slug or userName (both stored lowercase)
+    const handle = rawId.toLowerCase();
+    user = await User.findOne({ $or: [{ slug: handle }, { userName: handle }] })
+      .select("-password -refreshToken")
+      .populate("batch", "name")
+      .lean();
+  }
 
   if (!user) throw new ApiError("User not found!", 404);
 
@@ -222,7 +232,7 @@ export const createUser = asyncHandler(async (req, res) => {
   // Send welcome email with credentials
   try {
     // Determine login URL based on role
-    let loginUrl = ENV.FRONTEND_URL || 'https://swargaya-learning-management-system-3vcz.onrender.com';
+    let loginUrl = ENV.FRONTEND_URL || 'http://localhost:3000';
     if (role === 'ADMIN' || role === 'SUPERADMIN') {
       loginUrl = ENV.ADMIN_URL || 'http://localhost:5173';
     } else if (role === 'INSTRUCTOR') {
@@ -350,7 +360,7 @@ export const getAllInstructors = asyncHandler(async (req, res) => {
   }
 
   // Safe fields only
-  const safeFields = "fullName userName email phoneNumber role status batch createdAt avatar lastLogin";
+  const safeFields = "fullName userName slug email phoneNumber role status batch createdAt avatar lastLogin";
 
   const totalInstructors = await User.countDocuments(searchQuery);
 
@@ -436,7 +446,7 @@ export const getAllStudents = asyncHandler(async (req, res) => {
   }
 
   // Safe fields only
-  const safeFields = "fullName userName email phoneNumber role status batch createdAt avatar lastLogin enrolledCourses";
+  const safeFields = "fullName userName slug email phoneNumber role status batch createdAt avatar lastLogin enrolledCourses";
 
   const totalStudents = await User.countDocuments(searchQuery);
 

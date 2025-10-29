@@ -18,11 +18,11 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
         const totalStudents = await User.countDocuments({ role: "STUDENT" });
         const totalInstructors = await User.countDocuments({ role: "INSTRUCTOR" });
         const totalCourses = await Course.countDocuments();
-        const totalBatches = await Batch.countDocuments();
+        const totalBatches = await Batch.countDocuments({ isDeleted: { $ne: true } });
 
         // Get active counts
         const activeStudents = await User.countDocuments({ role: "STUDENT", status: "ACTIVE" });
-        const activeBatches = await Batch.countDocuments({ status: "ACTIVE" });
+        const activeBatches = await Batch.countDocuments({ status: "ONGOING", isDeleted: { $ne: true } });
         const publishedCourses = await Course.countDocuments({ status: "PUBLISHED" });
 
         // Get recent activity count with role-based filtering

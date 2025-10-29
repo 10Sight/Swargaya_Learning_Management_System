@@ -872,8 +872,8 @@ const BatchCourse = () => {
   // Loading state with responsive design optimized for 320px
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-2 xs:p-4 sm:p-6">
-        <div className="max-w-7xl mx-auto space-y-3 xs:space-y-4 sm:space-y-6">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 px-0 py-2 xs:px-4 xs:py-4 sm:px-6 sm:py-6">
+        <div className="w-full max-w-[300px] sm:max-w-7xl mx-auto space-y-3 xs:space-y-4 sm:space-y-6">
           {/* Header Skeleton */}
           <Card className="overflow-hidden">
             <CardHeader className="space-y-3 xs:space-y-4 p-3 xs:p-4 sm:p-6">
@@ -929,8 +929,8 @@ const BatchCourse = () => {
   // Error state with responsive design optimized for 320px
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-2 xs:p-4">
-        <div className="max-w-xs xs:max-w-md w-full">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center px-0 py-2 xs:px-4">
+        <div className="w-full max-w-[300px] sm:max-w-md">
           <Card className="shadow-lg border-red-200">
             <CardContent className="p-3 xs:p-6 text-center">
               <div className="mb-4 xs:mb-6">
@@ -961,8 +961,8 @@ const BatchCourse = () => {
   // No batch state with responsive design optimized for 320px
   if (!batch) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-2 xs:p-4">
-        <div className="max-w-xs xs:max-w-md w-full">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center px-0 py-2 xs:px-4">
+        <div className="w-full max-w-[300px] sm:max-w-md">
           <Card className="shadow-lg">
             <CardContent className="p-4 xs:p-6 sm:p-8 text-center">
               <div className="mb-4 xs:mb-6">
@@ -990,8 +990,8 @@ const BatchCourse = () => {
   // Check if batch is cancelled - prevent access to course content
   if (batch?.status === 'CANCELLED') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-2 xs:p-4">
-        <div className="max-w-xs xs:max-w-md lg:max-w-lg w-full">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center px-0 py-2 xs:px-4">
+        <div className="w-full max-w-[300px] sm:max-w-md lg:max-w-lg">
           <Card className="shadow-xl border-red-200 bg-gradient-to-br from-red-50 to-rose-50">
             <CardContent className="p-4 xs:p-6 sm:p-8 text-center space-y-4 xs:space-y-6">
               {/* Cancellation Icon */}
@@ -1095,8 +1095,8 @@ const BatchCourse = () => {
   const courseLevelAssignments = (courseAssignments || []).filter(a => !a?.module && !a?.moduleId && !(a?.module && (a.module._id || a.module.id)));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <div className="max-w-7xl mx-auto p-2 xs:p-4 sm:p-6 space-y-3 xs:space-y-4 sm:space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 overflow-x-hidden">
+      <div className="w-full max-w-[300px] sm:max-w-7xl mx-auto px-0 xs:px-4 sm:px-6 py-2 xs:py-4 sm:py-6 space-y-3 xs:space-y-4 sm:space-y-6">
         {/* Level Upgrade Message */}
         {uiState.levelUpgradeMessage && (
           <Alert className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 shadow-lg">
@@ -1126,7 +1126,7 @@ const BatchCourse = () => {
               <div className="flex flex-col gap-3 xs:gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-col gap-2 xs:gap-3 mb-2 xs:mb-3">
-                    <CardTitle className="flex items-start xs:items-center gap-2 xs:gap-3 text-sm xs:text-lg sm:text-xl lg:text-2xl">
+                    <CardTitle className="flex items-start xs:items-center gap-2 xs:gap-3 text-sm xs:text-lg sm:text-xl lg:text-2xl min-w-0">
                       <div className="p-1 xs:p-2 sm:p-3 bg-blue-100 rounded-lg shrink-0">
                         <BookOpen className="h-4 w-4 xs:h-5 xs:w-5 sm:h-6 sm:w-6 text-blue-600" />
                       </div>
@@ -1136,7 +1136,7 @@ const BatchCourse = () => {
                       {getLevelBadge(currentLevel)}
                     </div>
                   </div>
-                  <CardDescription className="text-xs xs:text-sm sm:text-base text-gray-700 leading-relaxed">
+                  <CardDescription className="text-xs xs:text-sm sm:text-base text-gray-700 leading-relaxed break-words">
                     {batch.course?.description || "Complete the modules below to finish the course"}
                   </CardDescription>
                 </div>
@@ -1148,7 +1148,7 @@ const BatchCourse = () => {
                     size="sm" 
                     onClick={refresh}
                     disabled={refreshing}
-                    className="flex items-center gap-1 xs:gap-2 bg-white/80 hover:bg-white border-blue-200 hover:border-blue-300 text-blue-700 text-xs xs:text-sm px-2 xs:px-3"
+                    className="flex items-center gap-1 xs:gap-2 bg-white/80 hover:bg-white border-blue-200 hover:border-blue-300 text-blue-700 text-xs xs:text-sm px-2 xs:px-3 min-h-[44px]"
                   >
                     <RefreshCw className={`h-3 w-3 xs:h-4 xs:w-4 ${refreshing ? 'animate-spin' : ''}`} />
                     <span className="hidden xs:inline">Refresh</span>
@@ -1212,7 +1212,7 @@ const BatchCourse = () => {
                     <GraduationCap className="h-4 w-4 xs:h-5 xs:w-5" />
                     <span>Congratulations! Course Completed!</span>
                   </div>
-                  <p className="text-green-700 text-xs xs:text-sm sm:text-base leading-relaxed">
+                  <p className="text-green-700 text-xs xs:text-sm sm:text-base leading-relaxed break-words">
                     Outstanding achievement! You have successfully finished all modules. Your dedication to learning is truly commendable.
                   </p>
                   <div className="mt-2 xs:mt-3 flex flex-wrap gap-1 xs:gap-2">
@@ -1256,7 +1256,7 @@ const BatchCourse = () => {
                       {courseLevelQuizzes.length + courseLevelAssignments.length} tests
                     </Badge>
                   </CardTitle>
-                  <CardDescription className="text-xs xs:text-sm sm:text-base leading-relaxed flex items-center gap-2">
+                  <CardDescription className="text-xs xs:text-sm sm:text-base leading-relaxed flex items-center gap-2 break-words">
                     <Target className="h-3 w-3 xs:h-4 xs:w-4 text-purple-600 shrink-0" />
                     <span>Congratulations on completing all modules! You can now access the final course assessments.</span>
                   </CardDescription>
@@ -1271,21 +1271,21 @@ const BatchCourse = () => {
                     <Award className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5" />
                     Final Course Quizzes ({courseLevelQuizzes.length})
                   </h3>
-                  <div className="grid gap-3 xs:gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
+                  <div className="grid gap-3 xs:gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2">
                     {courseLevelQuizzes.map((quiz, index) => (
                       <Card key={index} className="border-purple-200 hover:shadow-lg hover:border-purple-300 transition-all duration-300">
                         <CardHeader className="pb-2 xs:pb-3 p-3 xs:p-4 sm:p-6">
                           <CardTitle className="text-xs xs:text-sm sm:text-base lg:text-lg flex flex-col gap-2">
-                            <div className="flex items-center gap-2 flex-1">
-                              <Trophy className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5 text-purple-600" />
-                              <span className="truncate text-xs xs:text-sm sm:text-base">{quiz.title || 'Final Course Quiz'}</span>
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <Trophy className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5 text-purple-600 shrink-0" />
+                              <span className="truncate break-words text-xs xs:text-sm sm:text-base min-w-0">{quiz.title || 'Final Course Quiz'}</span>
                             </div>
                             <Badge className="bg-purple-600 text-white text-xs px-2 py-1 self-start">
                               COURSE LEVEL
                             </Badge>
                           </CardTitle>
                           {quiz.description && (
-                            <CardDescription className="text-xs sm:text-sm leading-relaxed">
+                            <CardDescription className="text-xs sm:text-sm leading-relaxed break-words">
                               {quiz.description}
                             </CardDescription>
                           )}
@@ -1310,7 +1310,7 @@ const BatchCourse = () => {
                             </div>
                           </div>
                           <Button 
-                            className="w-full bg-purple-600 hover:bg-purple-700 text-xs xs:text-sm"
+                            className="w-full bg-purple-600 hover:bg-purple-700 text-xs xs:text-sm min-h-[44px]"
                             onClick={() => handleStartQuiz(quiz)}
                             size="sm"
                           >
@@ -1332,21 +1332,21 @@ const BatchCourse = () => {
                     <FileText className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5" />
                     Final Course Assignments ({courseLevelAssignments.length})
                   </h3>
-                  <div className="grid gap-3 xs:gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
+                  <div className="grid gap-3 xs:gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2">
                     {courseLevelAssignments.map((assignment, index) => (
                       <Card key={index} className="border-purple-200 hover:shadow-lg hover:border-purple-300 transition-all duration-300">
                         <CardHeader className="pb-2 xs:pb-3 p-3 xs:p-4 sm:p-6">
                           <CardTitle className="text-xs xs:text-sm sm:text-base lg:text-lg flex flex-col gap-2">
-                            <div className="flex items-center gap-2 flex-1">
-                              <FileText className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5 text-purple-600" />
-                              <span className="truncate text-xs xs:text-sm sm:text-base">{assignment.title || 'Final Assignment'}</span>
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <FileText className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5 text-purple-600 shrink-0" />
+                              <span className="truncate break-words text-xs xs:text-sm sm:text-base min-w-0">{assignment.title || 'Final Assignment'}</span>
                             </div>
                             <Badge className="bg-purple-600 text-white text-xs px-2 py-1 self-start">
                               COURSE LEVEL
                             </Badge>
                           </CardTitle>
                           {assignment.description && (
-                            <CardDescription className="text-xs sm:text-sm leading-relaxed">
+                            <CardDescription className="text-xs sm:text-sm leading-relaxed break-words">
                               {assignment.description}
                             </CardDescription>
                           )}
@@ -1368,12 +1368,12 @@ const BatchCourse = () => {
                             </div>
                           </div>
                           <div className="flex flex-col gap-2">
-                            <Button variant="outline" className="w-full text-xs">
+                            <Button variant="outline" className="w-full text-xs min-h-[44px]">
                               <Eye className="h-3 w-3 mr-2" />
                               <span className="hidden xs:inline">View Details</span>
                               <span className="xs:hidden">View</span>
                             </Button>
-                            <Button className="w-full bg-purple-600 hover:bg-purple-700 text-xs">
+                            <Button className="w-full bg-purple-600 hover:bg-purple-700 text-xs min-h-[44px]">
                               <FileText className="h-3 w-3 mr-2" />
                               <span className="hidden xs:inline">Submit Work</span>
                               <span className="xs:hidden">Submit</span>
@@ -1405,7 +1405,7 @@ const BatchCourse = () => {
                     {modules.length} modules
                   </Badge>
                 </CardTitle>
-                <CardDescription className="text-xs xs:text-sm sm:text-base leading-relaxed flex items-start gap-2">
+                <CardDescription className="text-xs xs:text-sm sm:text-base leading-relaxed flex items-start gap-2 break-words">
                   <BookMarked className="h-3 w-3 xs:h-4 xs:w-4 text-blue-600 shrink-0 mt-0.5" />
                   <span>Complete modules in strict sequence to unlock the next content. You must finish all lessons (and assessments if any) in a module before proceeding to the next one.</span>
                 </CardDescription>
@@ -1518,7 +1518,7 @@ const BatchCourse = () => {
                             )}
                           </div>
                         </div>
-                        <p className="text-xs sm:text-sm text-muted-foreground mb-3 leading-relaxed line-clamp-2">
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-3 leading-relaxed line-clamp-2 break-words">
                           {module.description || "No description available"}
                         </p>
 
@@ -1544,7 +1544,7 @@ const BatchCourse = () => {
                         size="sm"
                         onClick={() => handleModuleClick(module, index)}
                         disabled={isLocked || loadingStates[moduleId]}
-                        className={`w-full sm:w-auto text-xs sm:text-sm ${
+                        className={`w-full sm:w-auto text-xs sm:text-sm min-h-[44px] ${
                           isCompleted 
                             ? "bg-green-100 text-green-700 hover:bg-green-200" 
                             : isCurrent 
@@ -1586,13 +1586,13 @@ const BatchCourse = () => {
                         setUiState(prev => ({ ...prev, activeTab: tab }))
                       }>
                         <div className="border-b">
-                          <TabsList className="grid w-full grid-cols-2 rounded-none bg-transparent h-auto p-0">
-                            <TabsTrigger value="lessons" className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-transparent py-2 sm:py-3 text-xs sm:text-sm">
+                          <TabsList className="flex w-full overflow-x-auto bg-transparent h-auto p-0 gap-1">
+                            <TabsTrigger value="lessons" className="flex items-center rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-transparent py-2 sm:py-3 text-xs sm:text-sm min-w-[140px] sm:min-w-0">
                               <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                               <span className="hidden sm:inline">Lessons ({moduleLessons.length})</span>
                               <span className="sm:hidden">Lessons</span>
                             </TabsTrigger>
-                            <TabsTrigger value="assessments" className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-transparent py-2 sm:py-3 text-xs sm:text-sm">
+                            <TabsTrigger value="assessments" className="flex items-center rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-transparent py-2 sm:py-3 text-xs sm:text-sm min-w-[140px] sm:min-w-0">
                               <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                               <span className="hidden sm:inline">Assessments ({(quizzesByModule[moduleId]?.length || 0) + (assignmentsByModule[moduleId]?.length || 0)})</span>
                               <span className="sm:hidden">Tests</span>
@@ -1653,7 +1653,7 @@ const BatchCourse = () => {
                                       </div>
                                       <div className="flex-1 min-w-0">
                                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                                          <h4 className="text-sm sm:text-base font-semibold truncate">
+                                          <h4 className="text-sm sm:text-base font-semibold truncate break-words max-w-full">
                                             {lesson.title || `Lesson ${lessonIndex + 1}`}
                                           </h4>
                                           {isLessonDone && (
@@ -1663,7 +1663,7 @@ const BatchCourse = () => {
                                           )}
                                         </div>
                                         {lesson.description && (
-                                          <p className="text-xs sm:text-sm text-muted-foreground mb-2 leading-relaxed line-clamp-2">
+                                          <p className="text-xs sm:text-sm text-muted-foreground mb-2 leading-relaxed line-clamp-2 break-words">
                                             {lesson.description}
                                           </p>
                                         )}
@@ -1680,7 +1680,7 @@ const BatchCourse = () => {
                                         <Button
                                           size="sm"
                                           onClick={() => navigate(`/student/lesson/${getLessonId(lesson)}`)}
-                                          className={`w-full sm:w-auto text-xs sm:text-sm ${
+                                          className={`w-full sm:w-auto text-xs sm:text-sm min-h-[44px] ${
                                             isLessonDone ? 
                                               "bg-green-100 text-green-700 hover:bg-green-200" : 
                                               "bg-blue-600 hover:bg-blue-700 text-white"
@@ -1747,7 +1747,7 @@ const BatchCourse = () => {
                                         <div>
                                           <Button 
                                             onClick={() => handleMarkModuleComplete(module)} 
-                                            className="w-full bg-green-600 hover:bg-green-700"
+                                            className="w-full bg-green-600 hover:bg-green-700 min-h-[44px]"
                                             size="lg"
                                             disabled={uiState.processingAction === `module-${moduleId}`}
                                           >
@@ -1790,7 +1790,7 @@ const BatchCourse = () => {
                                       <div>
                                         <Button 
                                           onClick={() => handleMarkModuleComplete(module)} 
-                                          className="w-full bg-green-600 hover:bg-green-700"
+                                          className="w-full bg-green-600 hover:bg-green-700 min-h-[44px]"
                                           size="lg"
                                           disabled={uiState.processingAction === `module-${moduleId}`}
                                         >

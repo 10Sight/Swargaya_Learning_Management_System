@@ -537,7 +537,8 @@ const Batches = () => {
   };
 
   const handleBatchClick = (batch) => {
-    navigate(`/admin/batches/${batch._id}`);
+    const handle = batch.slug || batch._id;
+    navigate(`/admin/batches/${handle}`);
   };
 
   const openEditDialog = (batch) => {

@@ -6,6 +6,7 @@ import crypto from "crypto";
 import { ApiError } from "../utils/ApiError.js";
 import { AvailableUserStatus, AvailableUserRoles, AvailableSocialLogins } from "../constants.js";
 import ENV from "../configs/env.config.js";
+import { slugify, ensureUniqueSlug } from "../utils/slugify.js";
 
 const userSchema = new Schema(
     {
@@ -18,6 +19,13 @@ const userSchema = new Schema(
             type: String,
             required: true,
             unique: true,
+        },
+        slug: {
+            type: String,
+            trim: true,
+            lowercase: true,
+            unique: true,
+            index: true,
         },
         email: {
             type: String,
@@ -98,8 +106,16 @@ const userSchema = new Schema(
 
 userSchema.pre("save", async function (next) {
     try {
-        if (!this.isModified("password")) return next();
-        this.password = await bcrypt.hash(this.password, 10);
+        // Generate slug from userName (preferred) or fullName when needed
+        if (this.isModified("userName") || this.isModified("fullName") || !this.slug) {
+            const base = slugify(this.userName || this.fullName);
+            this.slug = await ensureUniqueSlug(this.constructor, base, {}, this._id);
+        }
+
+        // Hash password only if modified
+        if (this.isModified("password")) {
+            this.password = await bcrypt.hash(this.password, 10);
+        }
 
         // Note: Instructors can now be assigned to multiple batches
         // Batch assignment validation is now handled in the batch controller

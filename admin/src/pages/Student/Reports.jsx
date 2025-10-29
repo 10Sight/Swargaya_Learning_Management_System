@@ -70,7 +70,7 @@ const Reports = () => {
           <Skeleton className="h-8 w-64 mx-auto mb-2" />
           <Skeleton className="h-4 w-96 mx-auto" />
         </div>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <Card key={i} className="h-48">
               <CardHeader>
@@ -108,19 +108,19 @@ const Reports = () => {
           </div>
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Course Reports</h1>
-          <p className="text-lg text-muted-foreground mt-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Course Reports</h1>
+          <p className="text-base sm:text-lg text-muted-foreground mt-2">
             Download completion certificates and performance reports for your finished courses
           </p>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         <Card>
-          <CardContent className="flex items-center p-6">
-            <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg mr-4">
-              <CheckCircle className="h-6 w-6 text-green-600" />
+          <CardContent className="flex items-center flex-wrap gap-3 sm:gap-4 p-4 sm:p-6">
+            <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-lg mr-4">
+              <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{progressData.filter(p => p.progressPercent === 100).length}</p>
@@ -130,9 +130,9 @@ const Reports = () => {
         </Card>
         
         <Card>
-          <CardContent className="flex items-center p-6">
-            <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg mr-4">
-              <BookOpen className="h-6 w-6 text-blue-600" />
+          <CardContent className="flex items-center flex-wrap gap-3 sm:gap-4 p-4 sm:p-6">
+            <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg mr-4">
+              <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{progressData.length}</p>
@@ -142,9 +142,9 @@ const Reports = () => {
         </Card>
 
         <Card>
-          <CardContent className="flex items-center p-6">
-            <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg mr-4">
-              <Award className="h-6 w-6 text-purple-600" />
+          <CardContent className="flex items-center flex-wrap gap-3 sm:gap-4 p-4 sm:p-6">
+            <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-lg mr-4">
+              <Award className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{accessibleReports.length}</p>
@@ -159,19 +159,19 @@ const Reports = () => {
         <div className="space-y-6">
           <div className="flex items-center gap-2">
             <Award className="h-5 w-5 text-yellow-500" />
-            <h2 className="text-2xl font-semibold text-gray-900">Available Course Reports</h2>
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900">Available Course Reports</h2>
           </div>
           
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {accessibleReports.map((progress) => (
               <Card key={progress._id} className="hover:shadow-lg transition-shadow border border-green-200">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <CardTitle className="text-lg leading-6 mb-2">
+                      <CardTitle className="text-base sm:text-lg leading-6 mb-2 break-words">
                         {progress.course?.title || 'Course Title'}
                       </CardTitle>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                      <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground mb-2">
                         <Users className="h-4 w-4" />
                         <span>Batch: {progress.batch?.name || 'N/A'}</span>
                       </div>
@@ -185,19 +185,19 @@ const Reports = () => {
                 
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between text-xs sm:text-sm gap-2">
                       <span className="text-muted-foreground">Progress:</span>
                       <span className="font-medium text-green-600">{progress.progressPercent}%</span>
                     </div>
                     
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between text-xs sm:text-sm gap-2">
                       <span className="text-muted-foreground">Level:</span>
                       <Badge variant="outline" className="text-xs">
                         {progress.currentLevel}
                       </Badge>
                     </div>
                     
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between text-xs sm:text-sm gap-2">
                       <span className="text-muted-foreground">Completed:</span>
                       <span className="font-medium">
                         {formatDate(progress.completedAt)}
@@ -249,16 +249,16 @@ const Reports = () => {
             <h2 className="text-2xl font-semibold text-gray-900">Courses In Progress</h2>
           </div>
           
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {progressData
               .filter(progress => !progress.isCompleted || progress.progressPercent < 100)
               .map((progress) => (
                 <Card key={progress._id} className="border border-blue-200">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">
+                    <CardTitle className="text-base sm:text-lg">
                       {progress.course?.title || 'Course Title'}
                     </CardTitle>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
                       <Users className="h-4 w-4" />
                       <span>Batch: {progress.batch?.name || 'N/A'}</span>
                     </div>
@@ -266,7 +266,7 @@ const Reports = () => {
                   
                   <CardContent>
                     <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
+                      <div className="flex justify-between text-xs sm:text-sm gap-2">
                         <span className="text-muted-foreground">Progress:</span>
                         <span className="font-medium">{progress.progressPercent}%</span>
                       </div>

@@ -3,10 +3,12 @@ import Course from '../models/course.model.js';
 import Module from '../models/module.model.js';
 import Lesson from '../models/lesson.model.js';
 import Quiz from '../models/quiz.model.js';
+import Batch from '../models/batch.model.js';
+import User from '../models/auth.model.js';
 import { slugify, ensureUniqueSlug } from '../utils/slugify.js';
 
 async function backfill() {
-  const updated = { course: 0, module: 0, lesson: 0, quiz: 0 };
+  const updated = { course: 0, module: 0, lesson: 0, quiz: 0, batch: 0, user: 0 };
 
   const courses = await Course.find({ $or: [ { slug: { $exists: false } }, { slug: null }, { slug: '' } ] });
   for (const c of courses) {
@@ -38,6 +40,22 @@ async function backfill() {
     q.slug = await ensureUniqueSlug(Quiz, base, {}, q._id);
     await q.save();
     updated.quiz++;
+  }
+
+  const batches = await Batch.find({ $or: [ { slug: { $exists: false } }, { slug: null }, { slug: '' } ] });
+  for (const b of batches) {
+    const base = slugify(b.name);
+    b.slug = await ensureUniqueSlug(Batch, base, {}, b._id);
+    await b.save();
+    updated.batch++;
+  }
+
+  const users = await User.find({ $or: [ { slug: { $exists: false } }, { slug: null }, { slug: '' } ] });
+  for (const u of users) {
+    const base = slugify(u.userName || u.fullName);
+    u.slug = await ensureUniqueSlug(User, base, {}, u._id);
+    await u.save();
+    updated.user++;
   }
 
   return updated;
