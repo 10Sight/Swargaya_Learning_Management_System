@@ -30,7 +30,7 @@ export const SocketProvider = ({ children }) => {
                 // Prefer explicit env, fall back to API base URL, then localhost
                 const envUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_SERVER_URL;
                 const apiBase = axiosInstance?.defaults?.baseURL;
-                let socketUrl = 'https://swargaya-learning-management-system-3vcz.onrender.com';
+                let socketUrl = 'http://localhost:3000';
                 if (envUrl) {
                     socketUrl = envUrl;
                 } else if (apiBase) {

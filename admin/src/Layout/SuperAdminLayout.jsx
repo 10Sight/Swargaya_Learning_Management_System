@@ -33,6 +33,7 @@ import {
   IconBulb,
   IconDownload,
   IconClock,
+  IconLayersIntersect,
 } from "@tabler/icons-react";
 import { HomeIcon } from "lucide-react";
 
@@ -59,6 +60,8 @@ const tabs = [
       { link: "/superadmin/courses", label: "Courses", icon: IconCertificate },
       { link: "/superadmin/batches", label: "Batches", icon: IconFolder },
       { link: "/superadmin/module-timelines", label: "Module Timelines", icon: IconClock },
+      { link: "/superadmin/course-level-settings", label: "Course Level Settings", icon: IconLayersIntersect },
+      { link: "/superadmin/student-levels", label: "Student Levels", icon: IconSettings },
       { link: "/superadmin/certificates", label: "Certificates", icon: IconCertificate },
     ]
   },

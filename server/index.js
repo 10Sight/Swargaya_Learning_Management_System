@@ -35,6 +35,7 @@ import bulkOperationsRoutes from "./routes/bulkOperations.routes.js";
 import rolesPermissionsRoutes from "./routes/rolesPermissions.routes.js";
 import moduleTimelineRoutes from "./routes/moduleTimeline.routes.js";
 import exportRoutes from "./routes/export.routes.js";
+import courseLevelConfigRoutes from "./routes/courseLevelConfig.routes.js";
 import timelineScheduler from "./services/timelineScheduler.js";
 import batchStatusScheduler from "./services/batchStatusScheduler.js";
 // import cleanupOldFiles from './scripts/cleanup.js';
@@ -118,6 +119,7 @@ app.use("/api/bulk-operations", bulkOperationsRoutes);
 app.use("/api/roles-permissions", rolesPermissionsRoutes);
 app.use("/api/module-timelines", moduleTimelineRoutes);
 app.use("/api/exports", exportRoutes);
+app.use("/api/course-level-config", courseLevelConfigRoutes);
 
 // Initialize Socket.IO service
 socketIOService.initialize(io);

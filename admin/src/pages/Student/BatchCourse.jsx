@@ -1267,7 +1267,7 @@ const BatchCourse = () => {
               {/* Enhanced Course Quizzes */}
               {courseLevelQuizzes.length > 0 && (
                 <div>
-                  <h3 className="font-bold mb-3 xs:mb-4 flex items-center gap-2 text-purple-800 text-xs xs:text-sm sm:text-base">
+                  <h3 className="break-all font-bold mb-3 xs:mb-4 flex items-center gap-2 text-purple-800 text-xs xs:text-sm sm:text-base">
                     <Award className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5" />
                     Final Course Quizzes ({courseLevelQuizzes.length})
                   </h3>
@@ -1480,9 +1480,9 @@ const BatchCourse = () => {
                       </div>
 
                       {/* Module Content */}
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1">
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                          <h3 className={`font-semibold text-sm sm:text-base lg:text-lg truncate ${
+                          <h3 className={`font-semibold line-clamp-1 text-sm sm:text-base lg:text-lg  ${
                             isCompleted ? "text-green-800" : 
                             isCurrent ? "text-blue-800" : 
                             "text-gray-700"
@@ -1653,7 +1653,7 @@ const BatchCourse = () => {
                                       </div>
                                       <div className="flex-1 min-w-0">
                                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                                          <h4 className="text-sm sm:text-base font-semibold truncate break-words max-w-full">
+                                          <h4 className="text-sm sm:text-base font-semibold break-words max-w-full">
                                             {lesson.title || `Lesson ${lessonIndex + 1}`}
                                           </h4>
                                           {isLessonDone && (

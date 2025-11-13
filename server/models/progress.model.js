@@ -49,8 +49,8 @@ const progressSchema = new Schema(
 
     currentLevel: {
       type: String,
-      enum: ["L1", "L2", "L3"],
       default: "L1"
+      // Removed enum to support dynamic levels from CourseLevelConfig
     },
 
     // Admin-controlled level lock: when enabled, automatic promotions are disabled
@@ -61,8 +61,8 @@ const progressSchema = new Schema(
     // If set, currentLevel will be enforced to this value while lock is enabled
     lockedLevel: {
       type: String,
-      enum: ["L1", "L2", "L3", null],
       default: null
+      // Removed enum to support dynamic levels from CourseLevelConfig
     },
 
     progressPercent: {

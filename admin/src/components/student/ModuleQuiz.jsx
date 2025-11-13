@@ -21,7 +21,7 @@ export default function ModuleQuiz({
       <Card>
         <CardContent className="p-8 text-center">
           <HelpCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No Quiz for this Module</h3>
+          <h3 className="http://localhost:3000 mb-2">No Quiz for this Module</h3>
           <p className="text-muted-foreground">You can proceed to the next stage.</p>
           {canProceed && (
             <div className="mt-4">

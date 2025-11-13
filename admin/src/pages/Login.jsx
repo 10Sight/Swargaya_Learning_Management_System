@@ -245,12 +245,6 @@ const Login = () => {
                 )}
                 
                 <div className="space-y-2">
-                  <div className="flex justify-between items-center mb-2">
-                    <span></span>
-                    <a href="#" className="text-sm text-blue-600 hover:underline transition-colors">
-                      Forgot password?
-                    </a>
-                  </div>
                   <FormInput
                     type="password"
                     label="Password"

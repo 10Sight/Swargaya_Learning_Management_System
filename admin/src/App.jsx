@@ -47,6 +47,7 @@ const StudentLevelManagement = lazy(() => import("./pages/Admin/StudentLevelMana
 const CertificateTemplates = lazy(() => import("./pages/Admin/CertificateTemplates"));
 const ModuleTimelines = lazy(() => import("./pages/Admin/ModuleTimelines"));
 const AuditLogs = lazy(() => import("./pages/Admin/AuditLogs"));
+const CourseLevelSettings = lazy(() => import("./pages/Admin/CourseLevelSettings"));
 
 // Instructor Pages
 const InstructorDashboard = lazy(() => import("./pages/Instructor/Dashboard"));
@@ -155,6 +156,7 @@ const App = () => {
           <Route path="student-levels" element={<StudentLevelManagement />} />
           <Route path="certificate-templates" element={<CertificateTemplates pageName="Certificate Templates" />} />
           <Route path="module-timelines" element={<ModuleTimelines pageName="Module Timelines" />} />
+          <Route path="course-level-settings" element={<CourseLevelSettings />} />
         </Route>
 
         {/* Instructor routes */}
@@ -226,6 +228,7 @@ const App = () => {
           {/* Legacy Routes for Compatibility */}
           <Route path="student-levels" element={<StudentLevelManagement />} />
           <Route path="certificate-templates" element={<CertificateTemplates pageName="Certificate Templates" />} />
+          <Route path="course-level-settings" element={<CourseLevelSettings />} />
         </Route>
 
         {/* Student routes */}

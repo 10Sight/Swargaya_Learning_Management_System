@@ -133,7 +133,7 @@ const Home = () => {
 
   const activeBatches = useMemo(() => {
     if (!batchesData?.data?.batches) return 0;
-    return batchesData.data.batches.filter(batch => batch.status === 'ONGOING').length;
+    return batchesData.data.batches.filter(batch => batch.status === 'COMPLETED').length;
   }, [batchesData]);
 
   const publishedCourses = useMemo(() => {

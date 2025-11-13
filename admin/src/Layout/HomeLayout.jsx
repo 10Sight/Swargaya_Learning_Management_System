@@ -34,6 +34,7 @@ import {
   IconTemplate,
   IconClock,
   IconBell,
+  IconLayersIntersect,
   IconMenu2,
   IconX,
   IconChevronRight,
@@ -55,6 +56,7 @@ const tabs = [
   { link: "/admin/quiz-monitoring", label: "Quiz Monitoring", icon: IconClock },
   { link: "/admin/attempt-requests", label: "Attempt Requests", icon: IconBell },
   { link: "/admin/module-timelines", label: "Module Timelines", icon: IconClock },
+  { link: "/admin/course-level-settings", label: "Course Level Settings", icon: IconLayersIntersect },
   { link: "/admin/student-levels", label: "Student Levels", icon: IconSettings },
   { link: "/admin/certificate-templates", label: "Certificate Templates", icon: IconTemplate },
   { link: "/admin/analytics", label: "Analytics", icon: IconChartPie },
@@ -179,7 +181,7 @@ export function HomeLayout() {
         </div>
 
         {/* Sidebar Tabs */}
-        <div className="px-3 flex flex-col w-full py-6 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300">
+        <div className="px-3 flex flex-col w-full py-6 space-y-1 overflow-y-auto max-h-[calc(100vh-12rem)] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400">
           {tabs.map((item) => {
             const isActive =
               pathname === item.link ||

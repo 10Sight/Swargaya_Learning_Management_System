@@ -220,9 +220,9 @@ export const addStudentToBatch = asyncHandler(async (req, res) => {
     }
 
     // Check if student is already assigned to another batch
-    if(student.batch && student.batch.toString() !== batchId) {
-        throw new ApiError("Student is already assigned to another batch", 400);
-    }
+    // if(student.batch && student.batch.toString() !== batchId) {
+    //     throw new ApiError("Student is already assigned to another batch", 400);
+    // }
 
     // Check if batch is at capacity
     if(batch.capacity && batch.students.length >= batch.capacity) {

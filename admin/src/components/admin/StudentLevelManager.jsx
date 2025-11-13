@@ -38,6 +38,7 @@ import {
 import { toast } from "sonner";
 import axiosInstance from "@/Helper/axiosInstance";
 import { useGetAllBatchesQuery, useGetBatchProgressQuery } from "@/Redux/AllApi/BatchApi";
+import { useGetActiveConfigQuery } from "@/Redux/AllApi/CourseLevelConfigApi";
 
 const StudentLevelManager = () => {
   const [students, setStudents] = useState([]);
@@ -55,6 +56,15 @@ const StudentLevelManager = () => {
   // Fetch all batches using RTK Query
   const { data: batchesData, isLoading: batchesLoading } = useGetAllBatchesQuery({ limit: 100 });
   const batches = batchesData?.data?.batches || [];
+  
+  // Fetch active level configuration
+  const { data: levelConfigData, isLoading: configLoading } = useGetActiveConfigQuery();
+  const levelConfig = levelConfigData?.data;
+  const availableLevels = levelConfig?.levels || [
+    { name: "L1", color: "#3B82F6" },
+    { name: "L2", color: "#F97316" },
+    { name: "L3", color: "#10B981" },
+  ];
 
   // Get course ID from selected batch
   const selectedBatchData = batches.find(batch => batch._id === selectedBatch);
@@ -168,13 +178,30 @@ const StudentLevelManager = () => {
     handleSetStudentLevel(student.id, level, student.levelLockEnabled);
   };
 
-  const getLevelColor = (level) => {
-    switch (level) {
-      case "L1": return "bg-blue-100 text-blue-800";
-      case "L2": return "bg-orange-100 text-orange-800";
-      case "L3": return "bg-green-100 text-green-800";
-      default: return "bg-gray-100 text-gray-800";
-    }
+  const getLevelColor = (levelName) => {
+    const level = availableLevels.find(
+      l => l.name.toUpperCase() === levelName?.toUpperCase()
+    );
+    
+    if (!level) return "bg-gray-100 text-gray-800";
+    
+    // Convert hex color to tailwind-like classes (simplified)
+    // For actual hex colors, we'll use inline styles
+    return "";
+  };
+  
+  const getLevelStyle = (levelName) => {
+    const level = availableLevels.find(
+      l => l.name.toUpperCase() === levelName?.toUpperCase()
+    );
+    
+    if (!level) return {};
+    
+    return {
+      backgroundColor: `${level.color}20`, // 20 is for 12.5% opacity
+      color: level.color,
+      borderColor: level.color,
+    };
   };
 
   const formatLastAccessed = (date) => {
@@ -281,7 +308,10 @@ const StudentLevelManager = () => {
                       </TableCell>
                       
                       <TableCell>
-                        <Badge className={getLevelColor(student.currentLevel)}>
+                        <Badge
+                          className="border"
+                          style={getLevelStyle(student.currentLevel)}
+                        >
                           {student.currentLevel}
                         </Badge>
                       </TableCell>
@@ -323,13 +353,15 @@ const StudentLevelManager = () => {
                             onValueChange={(level) => handleSetLevel(student, level)}
                             disabled={updating[`${student.id}-${student.currentLevel}-${student.levelLockEnabled}`]}
                           >
-                            <SelectTrigger className="w-20">
+                            <SelectTrigger className="w-24">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="L1">L1</SelectItem>
-                              <SelectItem value="L2">L2</SelectItem>
-                              <SelectItem value="L3">L3</SelectItem>
+                              {availableLevels.map((level) => (
+                                <SelectItem key={level.name} value={level.name}>
+                                  {level.name}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                           

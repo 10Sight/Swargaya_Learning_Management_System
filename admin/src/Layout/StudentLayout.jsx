@@ -22,6 +22,7 @@ import {
   IconX,
 } from "@tabler/icons-react";
 import { HomeIcon } from "lucide-react";
+import clsx from "clsx";
 
 const tabs = [
   { link: "/student", label: "Dashboard", icon: IconLayoutDashboardFilled },

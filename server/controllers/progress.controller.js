@@ -4,6 +4,7 @@ import Progress from "../models/progress.model.js";
 import Course from "../models/course.model.js";
 import Certificate from "../models/certificate.model.js";
 import ModuleTimeline from "../models/moduleTimeline.model.js";
+import CourseLevelConfig from "../models/courseLevelConfig.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -25,10 +26,14 @@ export const initializeProgress = asyncHandler(async (req, res) => {
         throw new ApiError("Progress already initialized for this course", 400);
     }
 
+    // Get active level configuration
+    const levelConfig = await CourseLevelConfig.getActiveConfig();
+    const firstLevel = levelConfig && levelConfig.levels.length > 0 ? levelConfig.levels[0].name : "L1";
+    
     progress = await Progress.create({
         student: userId,
         course: courseId,
-        currentLevel: "L1",
+        currentLevel: firstLevel,
         completedLessons: [],
         completedModules: [],
         quizzes: [],
@@ -89,10 +94,13 @@ export const markLessonComplete = asyncHandler(async (req, res) => {
     let progress = await Progress.findOne({ student: userId, course: courseId });
     if(!progress) {
         // Initialize progress if it doesn't exist
+        const levelConfig = await CourseLevelConfig.getActiveConfig();
+        const firstLevel = levelConfig && levelConfig.levels.length > 0 ? levelConfig.levels[0].name : "L1";
+        
         progress = await Progress.create({
             student: userId,
             course: courseId,
-            currentLevel: "L1",
+            currentLevel: firstLevel,
             completedLessons: [],
             completedModules: [],
             quizzes: [],
@@ -160,10 +168,13 @@ export const markModuleComplete = asyncHandler(async (req, res) => {
     let progress = await Progress.findOne({ student: userId, course: courseId });
     if(!progress) {
         // Initialize progress if it doesn't exist
+        const levelConfig = await CourseLevelConfig.getActiveConfig();
+        const firstLevel = levelConfig && levelConfig.levels.length > 0 ? levelConfig.levels[0].name : "L1";
+        
         progress = await Progress.create({
             student: userId,
             course: courseId,
-            currentLevel: "L1",
+            currentLevel: firstLevel,
             completedLessons: [],
             completedModules: [],
             quizzes: [],
@@ -229,15 +240,28 @@ export const markModuleComplete = asyncHandler(async (req, res) => {
                     progress.currentLevel = progress.lockedLevel;
                 }
             } else {
-                // Automatic level progression logic (only when not locked)
-                if (progress.currentLevel === "L1" && completedModulesCount >= 1) {
-                    // Upgrade to L2 after completing first module
-                    progress.currentLevel = "L2";
-                    levelUpgraded = true;
-                } else if (progress.currentLevel === "L2" && progress.progressPercent >= 75) {
-                    // Upgrade to L3 after completing 75% of the course
-                    progress.currentLevel = "L3";
-                    levelUpgraded = true;
+                // Automatic level progression logic using dynamic level configuration
+                const levelConfig = await CourseLevelConfig.getActiveConfig();
+                if (levelConfig) {
+                    const nextLevel = levelConfig.getNextLevel(progress.currentLevel);
+                    
+                    // Check if student should be promoted based on progress
+                    if (nextLevel) {
+                        // Simple progression: advance to next level after completing a certain percentage
+                        const levelsCount = levelConfig.levels.length;
+                        const progressThreshold = 100 / levelsCount;
+                        const currentLevelIndex = levelConfig.levels.findIndex(
+                            l => l.name.toUpperCase() === progress.currentLevel.toUpperCase()
+                        );
+                        
+                        if (currentLevelIndex !== -1 && currentLevelIndex < levelsCount - 1) {
+                            const requiredProgress = (currentLevelIndex + 1) * progressThreshold;
+                            if (progress.progressPercent >= requiredProgress) {
+                                progress.currentLevel = nextLevel.name;
+                                levelUpgraded = true;
+                            }
+                        }
+                    }
                 }
             }
 
@@ -253,11 +277,7 @@ export const markModuleComplete = asyncHandler(async (req, res) => {
     // Create response message
     let responseMessage = "Module marked as complete";
     if (levelUpgraded) {
-        if (progress.currentLevel === "L2") {
-            responseMessage += " - Congratulations! You've been promoted to Level 2!";
-        } else if (progress.currentLevel === "L3") {
-            responseMessage += " - Excellent! You've been promoted to Level 3!";
-        }
+        responseMessage += ` - Congratulations! You've been promoted to ${progress.currentLevel}!`;
     }
 
     res.json(new ApiResponse(200, progress, responseMessage));
@@ -279,11 +299,24 @@ export const upgradeLevel = asyncHandler(async (req, res) => {
         throw new ApiError("Cannot upgrade level until progress is 100%", 400);
     }
 
-    if(progress.currentLevel === "L1") {
-        progress.currentLevel = "L2";
-    } else if(progress.currentLevel === "L2") {
-        progress.currentLevel = "L3";
-    } else if(progress.currentLevel === "L3") {
+    // Use dynamic level configuration
+    const levelConfig = await CourseLevelConfig.getActiveConfig();
+    if (!levelConfig) {
+        throw new ApiError("No active level configuration found", 404);
+    }
+    
+    const nextLevel = levelConfig.getNextLevel(progress.currentLevel);
+    const lastLevel = levelConfig.levels[levelConfig.levels.length - 1];
+    
+    if (nextLevel) {
+        // Upgrade to next level
+        progress.currentLevel = nextLevel.name;
+        await progress.save();
+        return res.json(
+            new ApiResponse(200, progress, "Level upgraded successfully")
+        );
+    } else if (progress.currentLevel.toUpperCase() === lastLevel.name.toUpperCase()) {
+        // Already at last level, issue certificate
         const certificate = await Certificate.create({
             student: userId,
             course: courseId,
@@ -299,12 +332,9 @@ export const upgradeLevel = asyncHandler(async (req, res) => {
                 "Course completed, certificate issued"
             )
         );
+    } else {
+        throw new ApiError("Cannot determine next level", 400);
     }
-
-    await progress.save();
-    res.json(
-        new ApiResponse(200, progress, "Level upgraded successfully")
-    );
 });
 
 export const getMyProgress = asyncHandler(async (req, res) => {
@@ -336,10 +366,14 @@ export const getOrInitializeProgress = asyncHandler(async (req, res) => {
         .populate("student", "fullName email");
 
     if(!progress) {
+        // Get active level configuration
+        const levelConfig = await CourseLevelConfig.getActiveConfig();
+        const firstLevel = levelConfig && levelConfig.levels.length > 0 ? levelConfig.levels[0].name : "L1";
+        
         progress = await Progress.create({
             student: userId,
             course: courseId,
-            currentLevel: "L1",
+            currentLevel: firstLevel,
             completedLessons: [],
             completedModules: [],
             quizzes: [],
@@ -370,16 +404,24 @@ export const setStudentLevel = asyncHandler(async (req, res) => {
         throw new ApiError("Invalid student or course ID", 400);
     }
 
-    if (level && !["L1","L2","L3"].includes(level)) {
-        throw new ApiError("Invalid level value", 400);
+    // Validate level against active configuration
+    if (level) {
+        const isValid = await CourseLevelConfig.isValidLevel(level);
+        if (!isValid) {
+            throw new ApiError(`Invalid level value. Level '${level}' does not exist in active configuration`, 400);
+        }
     }
 
     let progress = await Progress.findOne({ student: studentId, course: courseId });
     if (!progress) {
+        // Get first level from configuration if creating new progress
+        const levelConfig = await CourseLevelConfig.getActiveConfig();
+        const firstLevel = levelConfig && levelConfig.levels.length > 0 ? levelConfig.levels[0].name : "L1";
+        
         progress = await Progress.create({
             student: studentId,
             course: courseId,
-            currentLevel: level || "L1",
+            currentLevel: level || firstLevel,
             completedLessons: [],
             completedModules: [],
             quizzes: [],

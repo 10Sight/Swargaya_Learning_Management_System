@@ -354,7 +354,7 @@ const LessonDetail = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Enhanced Fixed Header */}
       <div className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-gray-200 z-20 shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+        <div className="max-w-[300px] md:max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
             {/* Left Section */}
             <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
