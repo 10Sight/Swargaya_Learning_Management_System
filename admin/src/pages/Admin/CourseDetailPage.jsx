@@ -139,21 +139,18 @@ const CourseDetailPage = () => {
   };
 
   const getLevelBadge = (level) => {
-    const levelConfig = {
-      L1: { variant: "secondary", label: "Level 1", color: "bg-blue-100 text-blue-800 border-blue-200" },
-      L2: { variant: "warning", label: "Level 2", color: "bg-orange-100 text-orange-800 border-orange-200" },
-      L3: { variant: "success", label: "Level 3", color: "bg-green-100 text-green-800 border-green-200" },
+    const colorMap = {
+      L1: "bg-blue-100 text-blue-800 border-blue-200",
+      L2: "bg-orange-100 text-orange-800 border-orange-200",
+      L3: "bg-green-100 text-green-800 border-green-200",
     };
 
-    const config = levelConfig[level] || {
-      variant: "secondary",
-      label: "Level 1",
-      color: "bg-gray-100 text-gray-800 border-gray-200"
-    };
+    const raw = typeof level === "string" ? level : (level != null ? `L${level}` : "L1");
+    const color = colorMap[raw] || "bg-gray-100 text-gray-800 border-gray-200";
 
     return (
-      <Badge className={`${config.color} font-medium text-xs px-2 py-1`}>
-        {config.label}
+      <Badge className={`${color} font-medium text-xs px-2 py-1`}>
+        {raw}
       </Badge>
     );
   };

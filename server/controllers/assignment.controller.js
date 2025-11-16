@@ -108,11 +108,20 @@ export const getAllAssignments = asyncHandler(async (req, res) => {
     const { courseId } = req.query;
 
     const query = {};
-    if(courseId) {
-        if(!mongoose.Types.ObjectId.isValid(courseId)) {
-            throw new ApiError("Invalid course ID", 400);
+
+    if (courseId) {
+        let resolvedCourseId = courseId;
+
+        // Allow either a MongoDB ObjectId or a course slug, similar to other controllers
+        if (!mongoose.Types.ObjectId.isValid(courseId)) {
+            const course = await Course.findOne({ slug: courseId }).select('_id');
+            if (!course) {
+                throw new ApiError("Invalid course ID", 400);
+            }
+            resolvedCourseId = course._id;
         }
-        query.course = courseId;
+
+        query.course = resolvedCourseId;
     }
 
     const assignments = await Assignment.find(query)

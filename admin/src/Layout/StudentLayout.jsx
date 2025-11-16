@@ -23,6 +23,7 @@ import {
 } from "@tabler/icons-react";
 import { HomeIcon } from "lucide-react";
 import clsx from "clsx";
+import axiosInstance from "@/Helper/axiosInstance";
 
 const tabs = [
   { link: "/student", label: "Dashboard", icon: IconLayoutDashboardFilled },
@@ -61,28 +62,58 @@ export function StudentLayout() {
 
   // Update page name based on current route
   useEffect(() => {
-    if (pathname.startsWith("/student/report")) {
-      setPageName("Course Report");
-    } else {
-      const currentTab = tabs.find(tab => 
-        pathname === tab.link || 
-        (tab.link !== "/student" && pathname.startsWith(tab.link))
-      );
-      
-      if (currentTab) {
-        setPageName(currentTab.label);
-      } else if (pathname === "/student") {
-        setPageName("Dashboard");
-      } else {
-        const routeName = pathname.split("/").pop();
-        setPageName(routeName.charAt(0).toUpperCase() + routeName.slice(1));
+    let cancelled = false;
+
+    const resolvePageName = async () => {
+      try {
+        // Special case: reports landing/summary
+        if (pathname.startsWith("/student/report")) {
+          if (!cancelled) setPageName("Course Report");
+          return;
+        }
+
+        // If we're on a lesson detail route, fetch the lesson title instead of showing the ID
+        const lessonMatch = pathname.match(/^\/student\/lesson\/([^\/?#]+)/);
+        if (lessonMatch) {
+          const lessonId = lessonMatch[1];
+          // Optimistic generic label while fetching
+          if (!cancelled) setPageName("Lesson");
+          try {
+            const res = await axiosInstance.get(`/api/lessons/${lessonId}`);
+            const title = res?.data?.data?.title || res?.data?.data?.name;
+            if (!cancelled && title) setPageName(title);
+          } catch (_) {
+            // Fallback to generic label if fetch fails
+            if (!cancelled) setPageName("Lesson");
+          }
+          return;
+        }
+
+        // Default behavior: map to known tabs or prettify last segment
+        const currentTab = tabs.find(tab => 
+          pathname === tab.link || 
+          (tab.link !== "/student" && pathname.startsWith(tab.link))
+        );
+
+        if (currentTab) {
+          if (!cancelled) setPageName(currentTab.label);
+        } else if (pathname === "/student") {
+          if (!cancelled) setPageName("Dashboard");
+        } else {
+          const routeName = pathname.split("/").pop() || "";
+          if (!cancelled) setPageName(routeName.charAt(0).toUpperCase() + routeName.slice(1));
+        }
+      } catch {
+        // Silent: keep whatever pageName was last set
       }
-    }
-    
+    };
+
+    resolvePageName();
+
     // Close mobile menu when route changes
-    if (isMobile) {
-      setIsMobileMenuOpen(false);
-    }
+    if (isMobile) setIsMobileMenuOpen(false);
+
+    return () => { cancelled = true; };
   }, [pathname, isMobile]);
 
   const toggleSidebar = () => {

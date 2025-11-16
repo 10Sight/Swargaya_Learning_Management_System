@@ -43,7 +43,7 @@ const ToolbarButton = ({ onClick, active, children, title }) => (
           aria-label={title}
           onClick={onClick}
           className={cn(
-            "h-8 w-8 inline-flex items-center justify-center rounded-md border transition-colors",
+            "h-8 w-8 inline-flex items-center justify-center rounded-md border transition-colors cursor-pointer",
             active
               ? "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] border-transparent"
               : "bg-[hsl(var(--background))] text-[hsl(var(--foreground))] border-[hsl(var(--border))] hover:bg-[hsl(var(--accent))]"

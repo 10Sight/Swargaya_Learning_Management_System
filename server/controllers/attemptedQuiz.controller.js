@@ -9,6 +9,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { checkModuleAccessForAssessments } from "../utils/moduleCompletion.js";
+import ensureCertificateIfEligible from "../utils/autoCertificate.js";
 
 export const attemptQuiz = asyncHandler(async (req, res) => {
     const { quizId, answers } = req.body;
@@ -685,6 +686,13 @@ export const submitQuiz = asyncHandler(async (req, res) => {
     if(levelUpgraded) {
         message += ` Congratulations! Level upgraded to ${newLevel}!`;
     }
+
+    // Attempt saved and result computed. If passed, check auto-certificate issuance
+    try {
+        if (passed && quiz?.course?._id) {
+            await ensureCertificateIfEligible(userId, quiz.course._id, { issuedByUserId: undefined });
+        }
+    } catch(_) {}
 
     res.json(new ApiResponse(200, result, message));
 });

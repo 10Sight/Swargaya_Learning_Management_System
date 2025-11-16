@@ -13,16 +13,22 @@ import { Calendar, Users, BookOpen, Clock, AlertCircle, ArrowRight, ExternalLink
 const StudentBatch = () => {
   const { isLoading: authLoading } = useSelector((state) => state.auth);
   const [loading, setLoading] = useState(true);
-  const [batch, setBatch] = useState(null);
+  const [batches, setBatches] = useState([]);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchMyBatch = async () => {
+    const fetchMyBatches = async () => {
       try {
         setLoading(true);
-        const res = await axiosInstance.get("/api/batches/me/my-batch");
-        setBatch(res?.data?.data || null);
+        const res = await axiosInstance.get("/api/batches/me/my-batches");
+        const data = res?.data?.data;
+        const list = Array.isArray(data?.batches)
+          ? data.batches
+          : Array.isArray(data)
+            ? data
+            : [];
+        setBatches(list);
         setError(null);
       } catch (e) {
         setError("Failed to load batch information. Please try again later.");
@@ -30,7 +36,7 @@ const StudentBatch = () => {
         setLoading(false);
       }
     };
-    fetchMyBatch();
+    fetchMyBatches();
   }, []);
 
   const getStatusVariant = (status) => {
@@ -56,7 +62,7 @@ const StudentBatch = () => {
     });
   };
 
-  const calculateProgress = () => {
+  const calculateProgress = (batch) => {
     if (!batch?.startDate || !batch?.endDate) return 0;
     
     const start = new Date(batch.startDate);
@@ -120,7 +126,9 @@ const StudentBatch = () => {
     );
   }
 
-  if (!batch) {
+  const normalizedBatches = Array.isArray(batches) ? batches : [];
+
+  if (!normalizedBatches || normalizedBatches.length === 0) {
     return (
       <div className="space-y-4 sm:space-y-6">
         <Card className="w-full border-dashed">
@@ -158,175 +166,181 @@ const StudentBatch = () => {
     );
   }
 
-  const progress = calculateProgress();
-
   return (
     <AccountStatusWrapper allowPending={false}>
       <div className="space-y-4 sm:space-y-6">
-      <Card 
-        className="w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group overflow-hidden"
-        onClick={handleBatchClick}
-      >
-        <CardHeader className="pb-4 relative">
-          {/* Background decoration */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-200/30 to-transparent rounded-bl-full transform translate-x-8 -translate-y-8"></div>
-          
-          <div className="relative flex flex-col sm:flex-row justify-between items-start gap-4">
-            <div className="flex-1 min-w-0">
-              <CardTitle className="text-lg sm:text-xl lg:text-2xl flex items-center gap-2 group-hover:text-blue-700 transition-colors leading-tight">
-                <div className="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors duration-300">
-                  <Users className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 group-hover:scale-110 transition-transform duration-300" />
-                </div>
-                <span className="break-words font-bold">{batch.name}</span>
-                <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-x-1" />
-              </CardTitle>
-              <CardDescription className="text-sm sm:text-base mt-2 text-blue-700">
-                Your current learning program details
-              </CardDescription>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-              <Badge 
-                variant={getStatusVariant(batch.status)} 
-                className={`text-xs sm:text-sm px-3 py-1.5 font-medium rounded-full ${
-                  batch.status === 'ACTIVE' 
-                    ? 'bg-green-100 text-green-800 border-green-300' 
-                    : batch.status === 'COMPLETED'
-                    ? 'bg-gray-100 text-gray-800 border-gray-300'
-                    : 'bg-blue-100 text-blue-800 border-blue-300'
-                }`}
-              >
-                {batch.status}
-              </Badge>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleViewDetails}
-                className="flex items-center gap-1 text-xs sm:text-sm bg-white/80 backdrop-blur-sm border-blue-200 hover:bg-blue-50 sm:opacity-0 group-hover:opacity-100 transition-all duration-300"
-              >
-                <span className="hidden sm:inline">View Course</span>
-                <span className="sm:hidden">View</span>
-                <ArrowRight className="h-3 w-3" />
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        
-        <CardContent className="relative space-y-6">
-          {/* Info Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-            <div className="space-y-4">
-              <div className="flex items-start gap-3 p-3 sm:p-4 bg-white/60 backdrop-blur-sm rounded-lg border border-white/50">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <BookOpen className="h-4 w-4 text-blue-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm font-medium text-blue-700 uppercase tracking-wide">Course</p>
-                  <p className="font-bold text-sm sm:text-base text-gray-900 break-words leading-tight mt-1">
-                    {batch.course?.title || batch.course?.name || "N/A"}
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3 p-3 sm:p-4 bg-white/60 backdrop-blur-sm rounded-lg border border-white/50">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <Calendar className="h-4 w-4 text-green-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm font-medium text-green-700 uppercase tracking-wide">Start Date</p>
-                  <p className="font-bold text-sm sm:text-base text-gray-900 break-words leading-tight mt-1">
-                    {batch.startDate ? formatDate(batch.startDate) : "Not specified"}
-                  </p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="flex items-start gap-3 p-3 sm:p-4 bg-white/60 backdrop-blur-sm rounded-lg border border-white/50">
-                <div className="p-2 bg-red-100 rounded-lg">
-                  <Clock className="h-4 w-4 text-red-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm font-medium text-red-700 uppercase tracking-wide">End Date</p>
-                  <p className="font-bold text-sm sm:text-base text-gray-900 break-words leading-tight mt-1">
-                    {batch.endDate ? formatDate(batch.endDate) : "Not specified"}
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3 p-3 sm:p-4 bg-white/60 backdrop-blur-sm rounded-lg border border-white/50">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <MapPin className="h-4 w-4 text-purple-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm font-medium text-purple-700 uppercase tracking-wide">Batch ID</p>
-                  <p className="font-mono font-bold text-sm break-all text-gray-900 mt-1">{batch.name}</p>
-                </div>
-              </div>
-            </div>
-          </div>
+        {normalizedBatches.map((batch) => {
+          const progress = calculateProgress(batch);
+          const key = batch._id || batch.id || batch.name;
 
-          {/* Progress Section */}
-          {(batch.startDate && batch.endDate) && (
-            <div className="p-4 sm:p-6 bg-white/80 backdrop-blur-sm rounded-lg border border-white/50 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Target className="h-4 w-4 text-blue-600" />
-                  <span className="font-bold text-sm sm:text-base text-gray-900">Batch Progress</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xl sm:text-2xl font-bold text-blue-600">{progress}%</span>
-                  <div className="p-1 bg-blue-100 rounded-full">
-                    <Award className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
+          return (
+            <Card 
+              key={key}
+              className="w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group overflow-hidden"
+              onClick={handleBatchClick}
+            >
+              <CardHeader className="pb-4 relative">
+                {/* Background decoration */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-200/30 to-transparent rounded-bl-full transform translate-x-8 -translate-y-8"></div>
+                
+                <div className="relative flex flex-col sm:flex-row justify-between items-start gap-4">
+                  <div className="flex-1 min-w-0">
+                    <CardTitle className="text-lg sm:text-xl lg:text-2xl flex items-center gap-2 group-hover:text-blue-700 transition-colors leading-tight">
+                      <div className="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors duration-300">
+                        <Users className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 group-hover:scale-110 transition-transform duration-300" />
+                      </div>
+                      <span className="break-words font-bold">{batch.name}</span>
+                      <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-x-1" />
+                    </CardTitle>
+                    <CardDescription className="text-sm sm:text-base mt-2 text-blue-700">
+                      Your current learning program details
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                    <Badge 
+                      variant={getStatusVariant(batch.status)} 
+                      className={`text-xs sm:text-sm px-3 py-1.5 font-medium rounded-full ${
+                        batch.status === 'ACTIVE' 
+                          ? 'bg-green-100 text-green-800 border-green-300' 
+                          : batch.status === 'COMPLETED'
+                          ? 'bg-gray-100 text-gray-800 border-gray-300'
+                          : 'bg-blue-100 text-blue-800 border-blue-300'
+                      }`}
+                    >
+                      {batch.status}
+                    </Badge>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleViewDetails}
+                      className="flex items-center gap-1 text-xs sm:text-sm bg-white/80 backdrop-blur-sm border-blue-200 hover:bg-blue-50 sm:opacity-0 group-hover:opacity-100 transition-all duration-300"
+                    >
+                      <span className="hidden sm:inline">View Course</span>
+                      <span className="sm:hidden">View</span>
+                      <ArrowRight className="h-3 w-3" />
+                    </Button>
                   </div>
                 </div>
-              </div>
+              </CardHeader>
               
-              <div className="w-full bg-gray-200 rounded-full h-3 mb-3 overflow-hidden">
-                <div 
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500 ease-out shadow-sm"
-                  style={{ width: `${progress}%` }}
-                ></div>
-              </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm">
-                <div className="flex items-center gap-2 text-gray-600">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Started: {batch.startDate ? formatDate(batch.startDate) : 'N/A'}</span>
+              <CardContent className="relative space-y-6">
+                {/* Info Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3 p-3 sm:p-4 bg-white/60 backdrop-blur-sm rounded-lg border border-white/50">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <BookOpen className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs sm:text-sm font-medium text-blue-700 uppercase tracking-wide">Course</p>
+                        <p className="font-bold text-sm sm:text-base text-gray-900 break-words leading-tight mt-1">
+                          {batch.course?.title || batch.course?.name || "N/A"}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start gap-3 p-3 sm:p-4 bg-white/60 backdrop-blur-sm rounded-lg border border-white/50">
+                      <div className="p-2 bg-green-100 rounded-lg">
+                        <Calendar className="h-4 w-4 text-green-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs sm:text-sm font-medium text-green-700 uppercase tracking-wide">Start Date</p>
+                        <p className="font-bold text-sm sm:text-base text-gray-900 break-words leading-tight mt-1">
+                          {batch.startDate ? formatDate(batch.startDate) : "Not specified"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3 p-3 sm:p-4 bg-white/60 backdrop-blur-sm rounded-lg border border-white/50">
+                      <div className="p-2 bg-red-100 rounded-lg">
+                        <Clock className="h-4 w-4 text-red-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs sm:text-sm font-medium text-red-700 uppercase tracking-wide">End Date</p>
+                        <p className="font-bold text-sm sm:text-base text-gray-900 break-words leading-tight mt-1">
+                          {batch.endDate ? formatDate(batch.endDate) : "Not specified"}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start gap-3 p-3 sm:p-4 bg-white/60 backdrop-blur-sm rounded-lg border border-white/50">
+                      <div className="p-2 bg-purple-100 rounded-lg">
+                        <MapPin className="h-4 w-4 text-purple-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs sm:text-sm font-medium text-purple-700 uppercase tracking-wide">Batch ID</p>
+                        <p className="font-mono font-bold text-sm break-all text-gray-900 mt-1">{batch.name}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 text-gray-600">
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  <span>Ends: {batch.endDate ? formatDate(batch.endDate) : 'N/A'}</span>
+
+                {/* Progress Section */}
+                {(batch.startDate && batch.endDate) && (
+                  <div className="p-4 sm:p-6 bg-white/80 backdrop-blur-sm rounded-lg border border-white/50 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <Target className="h-4 w-4 text-blue-600" />
+                        <span className="font-bold text-sm sm:text-base text-gray-900">Batch Progress</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl sm:text-2xl font-bold text-blue-600">{progress}%</span>
+                        <div className="p-1 bg-blue-100 rounded-full">
+                          <Award className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="w-full bg-gray-200 rounded-full h-3 mb-3 overflow-hidden">
+                      <div 
+                        className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500 ease-out shadow-sm"
+                        style={{ width: `${progress}%` }}
+                      ></div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span>Started: {batch.startDate ? formatDate(batch.startDate) : 'N/A'}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                        <span>Ends: {batch.endDate ? formatDate(batch.endDate) : 'N/A'}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                  <Button 
+                    onClick={handleBatchClick}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
+                    size="lg"
+                  >
+                    <BookOpen className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Continue Learning</span>
+                    <span className="sm:hidden">Continue Course</span>
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => navigate('/student/reports')}
+                    variant="outline"
+                    className="flex-1 bg-white/80 backdrop-blur-sm border-blue-200 hover:bg-blue-50 text-blue-700"
+                    size="lg"
+                  >
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">View Progress</span>
+                    <span className="sm:hidden">Progress</span>
+                  </Button>
                 </div>
-              </div>
-            </div>
-          )}
-          
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-2">
-            <Button 
-              onClick={handleBatchClick}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
-              size="lg"
-            >
-              <BookOpen className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Continue Learning</span>
-              <span className="sm:hidden">Continue Course</span>
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-            
-            <Button 
-              onClick={() => navigate('/student/reports')}
-              variant="outline"
-              className="flex-1 bg-white/80 backdrop-blur-sm border-blue-200 hover:bg-blue-50 text-blue-700"
-              size="lg"
-            >
-              <BarChart3 className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">View Progress</span>
-              <span className="sm:hidden">Progress</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </AccountStatusWrapper>
   );

@@ -83,7 +83,6 @@ export default function DraggableCanvas({ elements, onChange, className }) {
     setSelectedId(el.id);
     setGuide(null);
     setDragState({ mode: 'move', start, base: r, id: el.id });
-    e.currentTarget.setPointerCapture(e.pointerId);
   };
 
   const onPointerDownHandle = (e, el, pos) => {
@@ -93,7 +92,6 @@ export default function DraggableCanvas({ elements, onChange, className }) {
     setSelectedId(el.id);
     setGuide(null);
     setDragState({ mode: 'resize', start, id: el.id });
-    e.currentTarget.setPointerCapture(e.pointerId);
   };
 
   const clampRect = (rect) => {
@@ -130,7 +128,9 @@ export default function DraggableCanvas({ elements, onChange, className }) {
     const onMove = (e) => {
       if (!dragState) return;
       if (dragState.mode === 'move') {
-        const { base, dx, dy } = dragState.start;
+        const { dx, dy } = dragState.start;
+        const base = dragState.base;
+        if (!base) return;
         let next = { x: e.clientX - dx, y: e.clientY - dy, w: base.w, h: base.h };
         next = clampRect(next);
         next = snap(next);
@@ -166,8 +166,13 @@ export default function DraggableCanvas({ elements, onChange, className }) {
   // Keyboard nudging + delete
   React.useEffect(() => {
     const onKey = (e) => {
-      // Delete selected element (if not editing text)
-      if ((e.key === 'Delete' || (e.key === 'Backspace' && !document.activeElement?.isContentEditable))) {
+      const active = document.activeElement;
+      const isEditable = active && (active.isContentEditable || active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.getAttribute('role') === 'textbox');
+      // If focus is inside any editable input / RTE, don't hijack keys
+      if (isEditable) return;
+
+      // Delete selected element
+      if (e.key === 'Delete' || e.key === 'Backspace') {
         if (selectedId) {
           e.preventDefault();
           const next = (elements || []).filter((el) => el.id !== selectedId);
@@ -252,7 +257,7 @@ export default function DraggableCanvas({ elements, onChange, className }) {
                 <button
                   type="button"
                   aria-label="Delete element"
-                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-600 text-white flex items-center justify-center shadow pointer-events-auto"
+                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-600 text-white flex items-center justify-center shadow pointer-events-auto cursor-pointer"
                   onClick={(ev) => {
                     ev.stopPropagation();
                     const next = (elements || []).filter((x) => x.id !== el.id);

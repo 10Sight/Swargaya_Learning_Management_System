@@ -501,17 +501,18 @@ const BatchCourse = () => {
   }, [modules.length, getCompletedModulesCount]);
 
   const getLevelBadge = useCallback((level) => {
-    const config = {
-      L1: { label: "Level 1", color: "bg-blue-100 text-blue-800" },
-      L2: { label: "Level 2", color: "bg-orange-100 text-orange-800" },
-      L3: { label: "Level 3", color: "bg-green-100 text-green-800" },
+    const colorMap = {
+      L1: "bg-blue-100 text-blue-800",
+      L2: "bg-orange-100 text-orange-800",
+      L3: "bg-green-100 text-green-800",
     };
 
-    const levelConfig = config[level] || config.L1;
+    const raw = typeof level === "string" ? level : (level != null ? `L${level}` : "L1");
+    const color = colorMap[raw] || "bg-gray-100 text-gray-800";
     
     return (
-      <Badge className={`${levelConfig.color} font-medium text-xs px-2 py-1`}>
-        {levelConfig.label}
+      <Badge className={`${color} font-medium text-xs px-2 py-1`}>
+        {raw}
       </Badge>
     );
   }, []);

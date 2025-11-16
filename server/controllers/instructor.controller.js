@@ -459,12 +459,16 @@ export const getBatchStudents = async (req, res) => {
         // Filter out submissions where assignment is null (doesn't belong to this course)
         const relevantSubmissions = submissions.filter(sub => sub.assignment);
 
-        // Calculate quiz average - using score from attempt and totalMarks from quiz
-        const averageQuizScore = relevantQuizAttempts.length > 0 
-          ? relevantQuizAttempts.reduce((sum, attempt) => {
-              const totalMarks = attempt.quiz?.totalMarks || attempt.quiz?.questions?.length || 1;
-              return sum + ((attempt.score / totalMarks) * 100);
-            }, 0) / relevantQuizAttempts.length
+        // Consider only completed attempts (exclude IN_PROGRESS)
+        const completedAttempts = relevantQuizAttempts.filter(a => a.status && a.status !== 'IN_PROGRESS');
+
+        // Calculate quiz average - use sum of question marks (no totalMarks field on quiz)
+        const averageQuizScore = completedAttempts.length > 0 
+          ? completedAttempts.reduce((sum, attempt) => {
+              const totalMarks = attempt.quiz?.questions?.reduce((acc, q) => acc + (q.marks || 1), 0) || 0;
+              const percent = totalMarks > 0 ? (attempt.score / totalMarks) * 100 : 0;
+              return sum + percent;
+            }, 0) / completedAttempts.length
           : 0;
 
         // Get total quizzes available for this course
@@ -477,7 +481,7 @@ export const getBatchStudents = async (req, res) => {
           ...student.toObject(),
           progress: progress?.progressPercent || 0,
           averageQuizScore: Math.round(averageQuizScore) || 0,
-          completedQuizzes: relevantQuizAttempts.filter(a => a.status === 'COMPLETED').length,
+          completedQuizzes: completedAttempts.length,
           totalQuizzes: totalQuizzesInCourse,
           submittedAssignments: relevantSubmissions.length,
           totalAssignments: totalAssignmentsInCourse

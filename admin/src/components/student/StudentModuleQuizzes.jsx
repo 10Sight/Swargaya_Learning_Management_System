@@ -12,11 +12,14 @@ import { Lock, Award, BarChart3, Clock, RefreshCw, CheckCircle, AlertCircle, Eye
 
 import { useRequestExtraAttemptMutation } from "@/Redux/AllApi/AttemptedQuizApi";
 import axiosInstance from "@/Helper/axiosInstance";
+import AttemptReviewModal from "@/components/common/AttemptReviewModal";
 
 const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false, onStart, extraGrantedQuizIds = new Set(), rejectedQuizIds = new Set() }) => {
   // Cache per-quiz attempt status (includes extra allowances)
   const [statusByQuiz, setStatusByQuiz] = useState({});
   const [pendingRequested, setPendingRequested] = useState(new Set());
+  const [reviewAttemptId, setReviewAttemptId] = useState(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
 
   // Hooks must remain at top-level; do not early-return before hooks
   useEffect(() => {
@@ -24,7 +27,7 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
     const fetchStatuses = async () => {
       try {
         const results = await Promise.allSettled(
-          quizzes.map(q => axiosInstance.get(`/api/attempts/status/${q.slug || q._id || q.id}`))
+          quizzes.map(q => axiosInstance.get(`/api/attempts/status/${q._id || q.id || q.slug}`))
         );
         if (cancelled) return;
         const map = {};
@@ -32,7 +35,7 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
           const q = quizzes[idx];
           if (res.status === 'fulfilled') {
             const data = res.value?.data?.data;
-            if (data) map[String(q._id || q.id)] = data;
+            if (data) map[String(q._id || q.id || q.slug)] = data; // normalize key to _id when available
           }
         });
         setStatusByQuiz(map);
@@ -40,20 +43,13 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
     };
     fetchStatuses();
 
-    // Light polling while any quiz appears to have 0 attempts
-    const needPoll = quizzes.some(q => {
-      const st = statusByQuiz[String(q._id || q.id)];
-      return !st || (st && !st.canAttempt && (st.attemptsRemaining ?? 0) <= 0);
-    });
-    let interval;
-    if (needPoll) {
-      interval = setInterval(fetchStatuses, 5000);
-    }
+    // Light polling for status updates (e.g., extra attempts approval)
+    const interval = setInterval(fetchStatuses, 10000);
 
     const handler = () => fetchStatuses();
     window.addEventListener('attempt-extension-updated', handler);
-    return () => { cancelled = true; window.removeEventListener('attempt-extension-updated', handler); if (interval) clearInterval(interval); };
-  }, [quizzes, statusByQuiz]);
+    return () => { cancelled = true; window.removeEventListener('attempt-extension-updated', handler); clearInterval(interval); };
+  }, [quizzes]);
   const [requestExtra, { isLoading: requesting }] = useRequestExtraAttemptMutation();
 
   const handleStart = (quiz) => {
@@ -63,11 +59,12 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
     if (typeof onStart === "function") onStart(quiz);
   };
 
-  const getQuizId = (quiz) => quiz.slug || quiz._id || quiz.id;
+  // Prefer stable ObjectId for all internal keys; fallback to slug last
+  const getQuizId = (quiz) => quiz._id || quiz.id || quiz.slug;
 
   const getQuizStatus = (quiz) => {
     const quizId = getQuizId(quiz);
-    const quizAttempts = attempts[quizId] || [];
+    const quizAttempts = attempts[String(quizId)] || [];
     const attemptsUsed = quizAttempts.length;
 
     // Prefer server status (includes approved extra attempts)
@@ -102,14 +99,15 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
 
     if (serverStatus?.canAttempt ?? (attemptsLeft > 0)) {
       if (isPassed) {
+        // Business rule: once passed, do not allow retakes; only show results
         return {
-          status: 'passed_can_retake',
-          message: `Passed: ${bestAttempt.score}% (${attemptsLeft} attempts left)`,
+          status: 'passed_no_attempts',
+          message: `Completed: ${bestAttempt.score}%`,
           color: 'default',
           icon: CheckCircle,
-          buttonText: `Retake Quiz (${attemptsLeft} left)`,
+          buttonText: 'View Results',
           buttonDisabled: false,
-          canStart: true,
+          canStart: false,
           score: bestAttempt.score
         };
       } else {
@@ -195,9 +193,10 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
           const quizStatus = getQuizStatus(quiz);
           const StatusIcon = quizStatus.icon;
           const quizId = getQuizId(quiz);
-          const quizAttempts = attempts[quizId] || [];
+          const quizAttempts = attempts[String(quizId)] || [];
           const attemptsUsed = quizAttempts.length;
-          const attemptsAllowed = quiz.attemptsAllowed || 1;
+          const server = statusByQuiz[String(quizId)];
+          const attemptsAllowed = server?.attemptsAllowed ?? (quiz.attemptsAllowed || 1);
           
           return (
             <Card 
@@ -225,9 +224,8 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
                   )}
                   {/* Attempts left badge */}
                   {(() => {
-                    const attemptsUsedLocal = (attempts[quizId] || []).length;
-                    const server = statusByQuiz[String(quizId)];
-                    let left = server?.attemptsRemaining ?? ((quiz.attemptsAllowed || 1) - attemptsUsedLocal);
+                    const attemptsUsedLocal = (attempts[String(quizId)] || []).length;
+                    let left = server?.attemptsRemaining ?? ((attemptsAllowed) - attemptsUsedLocal);
                     if (extraGrantedQuizIds && extraGrantedQuizIds.has(String(quizId))) {
                       left = Math.max(1, left);
                     }
@@ -265,7 +263,7 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
                   </div>
                   <div className="flex items-center gap-1">
                     <RefreshCw className="h-4 w-4 text-muted-foreground" />
-                    Attempts: {attemptsUsed}/{attemptsAllowed}
+                    Attempts: {server?.attemptsUsed ?? attemptsUsed}/{server?.attemptsAllowed ?? attemptsAllowed}
                   </div>
                 </div>
                 
@@ -277,11 +275,11 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
                       {quizAttempts.map((attempt, idx) => (
                         <div key={idx} className="flex justify-between text-xs">
                           <span>Attempt {idx + 1}:</span>
-                          <span className={`font-medium ${
+                          <span className={`${
                             attempt.score >= (quiz.passingScore || 70) 
                               ? 'text-green-600' 
                               : 'text-red-600'
-                          }`}>
+                          } font-medium`}>
                             {attempt.score}%
                           </span>
                         </div>
@@ -304,51 +302,74 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
                   </div>
                 )}
                 
-                {(quizStatus.showRequest && !(rejectedQuizIds && rejectedQuizIds.has(String(quizId)))) ? (
-                  <Button 
-                    className="w-full"
+                {/* If passed, show only View Results button */}
+                {isUnlocked && (quizStatus.status === 'passed_no_attempts') ? (
+                  <Button
+                    className="w-full bg-green-100 text-green-700 hover:bg-green-200"
                     variant="outline"
-                    disabled={requesting || !isUnlocked}
-                    onClick={async () => {
-                      try {
-                        await requestExtra({ quizId: quizId }).unwrap();
-                        setPendingRequested(prev => new Set(prev).add(String(quizId)));
-                        alert('Request sent to admin/instructor. You will be notified when approved.');
-                      } catch (e) {
-                        alert(e?.data?.message || 'Failed to request extra attempt');
+                    onClick={() => {
+                      const best = (attempts[String(quizId)] || []).reduce((b, c) => (c.score > b.score ? c : b), (attempts[String(quizId)] || [])[0]);
+                      if (best?._id) {
+                        setReviewAttemptId(best._id);
+                        setReviewOpen(true);
                       }
                     }}
                   >
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    {quizStatus.buttonText}
+                    <StatusIcon className="h-4 w-4 mr-2" />
+                    View Results
                   </Button>
                 ) : (
-                  quizStatus.status === 'rejected' ? null : (
-                  <Button 
-                    className={`w-full ${
-                      quizStatus.status === 'no_attempts_left' 
-                        ? 'bg-gray-400 hover:bg-gray-400 cursor-not-allowed'
-                        : quizStatus.status === 'passed_no_attempts'
-                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                        : ''
-                    }`}
-                    disabled={!isUnlocked || quizStatus.buttonDisabled} 
-                    onClick={() => handleStart(quiz)}
-                  >
-                    {!isUnlocked ? (
-                      <>
-                        <Lock className="h-4 w-4 mr-2" />
-                        Complete Lessons First
-                      </>
-                    ) : (
-                      <>
-                        <StatusIcon className="h-4 w-4 mr-2" />
-                        {quizStatus.buttonText}
-                      </>
-                    )}
-                  </Button>
-                ))
-                }
+                  (quizStatus.showRequest && !(rejectedQuizIds && rejectedQuizIds.has(String(quizId)))) ? (
+                    <Button 
+                      className="w-full"
+                      variant="outline"
+                      disabled={requesting || !isUnlocked}
+                      onClick={async () => {
+                        try {
+                          await requestExtra({ quizId: quizId }).unwrap();
+                          setPendingRequested(prev => new Set(prev).add(String(quizId)));
+                          alert('Request sent to admin/instructor. You will be notified when approved.');
+                        } catch (e) {
+                          alert(e?.data?.message || 'Failed to request extra attempt');
+                        }
+                      }}
+                    >
+                      <PlusCircle className="h-4 w-4 mr-2" />
+                      {quizStatus.buttonText}
+                    </Button>
+                  ) : (
+                    quizStatus.status === 'rejected' ? null : (
+                    <Button 
+                      className={`w-full ${
+                        quizStatus.status === 'no_attempts_left' 
+                          ? 'bg-gray-400 hover:bg-gray-400 cursor-not-allowed'
+                          : ''
+                      }`}
+                      disabled={!isUnlocked || quizStatus.buttonDisabled} 
+                      onClick={() => handleStart(quiz)}
+                    >
+                      {!isUnlocked ? (
+                        <>
+                          <Lock className="h-4 w-4 mr-2" />
+                          Complete Lessons First
+                        </>
+                      ) : (
+                        <>
+                          <StatusIcon className="h-4 w-4 mr-2" />
+                          {quizStatus.buttonText}
+                        </>
+                      )}
+                    </Button>
+                  ))
+                )}
+                
+                {/* Attempt review modal */}
+                <AttemptReviewModal
+                  attemptId={reviewAttemptId}
+                  isOpen={reviewOpen}
+                  onClose={() => { setReviewOpen(false); setReviewAttemptId(null); }}
+                  canEdit={false}
+                />
               </CardContent>
             </Card>
           );

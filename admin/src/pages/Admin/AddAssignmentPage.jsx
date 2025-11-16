@@ -100,9 +100,15 @@ const AddAssignmentPage = () => {
       return;
     }
 
+    // Ensure we are sending a real MongoDB ObjectId for the course
+    if (!course?._id) {
+      toast.error("Course not loaded yet. Please wait a moment and try again.");
+      return;
+    }
+
     try {
       const assignmentData = {
-        courseId,
+        courseId: course._id, // Use the actual course ObjectId instead of the URL param (which may be a slug)
         title: formData.title,
         description: formData.description,
         dueDate: formData.dueDate.toISOString(),

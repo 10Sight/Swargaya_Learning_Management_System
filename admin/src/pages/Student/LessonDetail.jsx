@@ -448,7 +448,7 @@ const LessonDetail = () => {
       {/* Enhanced Scrollable Content */}
       <div 
         ref={scrollContainerRef}
-        className="max-w-4xl mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6 h-[calc(100vh-80px)] sm:h-[calc(100vh-88px)] overflow-y-auto scroll-smooth"
+        className="max-w-4xl mx-auto sm:p-6 space-y-4 sm:space-y-6 h-[calc(100vh-80px)] sm:h-[calc(100vh-88px)] overflow-y-auto scroll-smooth"
         style={{ scrollbarWidth: 'thin', scrollbarColor: '#CBD5E0 #F7FAFC' }}
       >
         {/* Enhanced Lesson Content */}

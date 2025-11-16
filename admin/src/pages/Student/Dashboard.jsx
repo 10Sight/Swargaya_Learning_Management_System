@@ -28,6 +28,7 @@ import {
   GraduationCap,
   Star
 } from "lucide-react";
+import { useGetActiveConfigQuery } from "@/Redux/AllApi/CourseLevelConfigApi";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -42,6 +43,14 @@ const StudentDashboard = () => {
   });
   const [error, setError] = useState(null);
   const [showDownloadPopup, setShowDownloadPopup] = useState(false);
+
+  // Fetch active level configuration for dynamic level names/colors
+  const { data: levelConfigData } = useGetActiveConfigQuery();
+  const availableLevels = levelConfigData?.data?.levels || [
+    { name: "L1", color: "#3B82F6", order: 0 },
+    { name: "L2", color: "#F97316", order: 1 },
+    { name: "L3", color: "#10B981", order: 2 },
+  ];
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -154,13 +163,23 @@ const StudentDashboard = () => {
     return dashboardData.courseContent.course.modules[completedCount] || null;
   };
 
-  const getLevelInfo = (level) => {
-    const levels = {
-      L1: { name: "Beginner", color: "bg-blue-100 text-blue-800", icon: "🌱" },
-      L2: { name: "Intermediate", color: "bg-orange-100 text-orange-800", icon: "🌿" },
-      L3: { name: "Advanced", color: "bg-green-100 text-green-800", icon: "🌳" }
-    };
-    return levels[level] || levels.L1;
+  // Get dynamic level info from active configuration (fallback to defaults)
+  const getLevelInfo = (levelName) => {
+    const match = availableLevels.find(
+      (l) => l.name?.toUpperCase() === levelName?.toUpperCase()
+    );
+    if (match) {
+      // Choose a simple icon based on order (purely decorative)
+      const icons = ["🌱", "🌿", "🌳", "⭐", "🚀", "🏆"];
+      const icon = icons[match.order] ?? "⭐";
+      return {
+        name: match.name,
+        colorHex: match.color || "#3B82F6",
+        icon,
+      };
+    }
+    // Fallback to first default if not found
+    return { name: levelName || "L1", colorHex: "#3B82F6", icon: "🌱" };
   };
 
   const formatDate = (dateString) => {
@@ -259,7 +278,10 @@ const StudentDashboard = () => {
                 </CardDescription>
               </div>
               <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
-                <Badge className={`${levelInfo.color} font-medium px-3 py-1.5 text-xs sm:text-sm rounded-full shadow-sm`}>
+                <Badge 
+                  className={`font-medium px-3 py-1.5 text-xs sm:text-sm rounded-full shadow-sm border`}
+                  style={{ backgroundColor: `${levelInfo.colorHex}20`, color: levelInfo.colorHex, borderColor: levelInfo.colorHex }}
+                >
                   <span className="mr-1">{levelInfo.icon}</span>
                   <span className="hidden sm:inline">{levelInfo.name}</span>
                   <span className="sm:hidden">{currentLevel}</span>

@@ -148,9 +148,9 @@ export const assignInstructor = asyncHandler(async (req, res) => {
     }
 
     // Check if batch already has a different instructor
-    if(batch.instructor && batch.instructor.toString() !== instructorId) {
-        throw new ApiError("Batch already has a different instructor assigned", 400);
-    }
+    // if(batch.instructor && batch.instructor.toString() !== instructorId) {
+    //     throw new ApiError("Batch already has a different instructor assigned", 400);
+    // }
 
     // Update batch with instructor
     batch.instructor = instructorId;

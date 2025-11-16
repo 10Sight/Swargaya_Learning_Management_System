@@ -238,7 +238,7 @@ const InstructorStudents = () => {
                         
                         <TableCell>
                           <div className="text-sm">
-                            <p>Avg: {student.averageQuizScore || 'N/A'}</p>
+                            <p>Avg: {student.averageQuizScore ?? 'N/A'}{student.averageQuizScore != null ? '%' : ''}</p>
                             <p className="text-muted-foreground">
                               {student.completedQuizzes || 0}/{student.totalQuizzes || 0} completed
                             </p>

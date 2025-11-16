@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useGetInstructorBatchQuizAttemptsQuery, useGetInstructorAssignedBatchesQuery } from '@/Redux/AllApi/InstructorApi'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { IconEye, IconClipboardList, IconUser } from "@tabler/icons-react";
 import { Skeleton } from '@/components/ui/skeleton'
 import { 
   Table, 

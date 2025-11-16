@@ -23,31 +23,13 @@ const Reports = () => {
 
   const progressData = data?.data || []
 
-  // Filter courses with accessible reports (must be 100% complete with all modules finished)
-  const accessibleReports = progressData.filter(progress => {
-    // Check if progress is 100% complete
-    const isFullyComplete = progress.progressPercent === 100;
-    
-    // Check if all modules are completed (for report generation)
-    const hasCompletedModules = progress.completedModules && progress.completedModules.length > 0;
-    const totalModules = progress.course?.modules?.length || 0;
-    const completedModulesCount = progress.completedModules?.length || 0;
-    const allModulesCompleted = totalModules > 0 && completedModulesCount >= totalModules;
-    
-    // Course must be fully complete AND have all modules completed
-    return isFullyComplete && allModulesCompleted && hasCompletedModules;
-  });
+  // Filter courses with accessible reports (server computes reportAvailable based on modules + quizzes)
+  const accessibleReports = progressData.filter(progress => progress.reportAvailable);
   
-  // Separate other completed/near-complete courses  
+  // Separate other completed courses that are not yet report-ready
   const otherCompletedCourses = progressData.filter(progress => {
     const isComplete = progress.progressPercent === 100;
-    const hasCompletedModules = progress.completedModules && progress.completedModules.length > 0;
-    const totalModules = progress.course?.modules?.length || 0;
-    const completedModulesCount = progress.completedModules?.length || 0;
-    const allModulesCompleted = totalModules > 0 && completedModulesCount >= totalModules;
-    
-    // Show completed courses that don't yet have reports available
-    return isComplete && hasCompletedModules && !allModulesCompleted;
+    return isComplete && !progress.reportAvailable;
   });
 
   const formatDate = (dateString) => {
@@ -228,7 +210,7 @@ const Reports = () => {
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">No Course Reports Available</h3>
             <p className="text-muted-foreground mb-4">
-              Complete a course with all modules finished to generate your first report and certificate!
+              Complete a course, finish all modules, and pass all required quizzes to generate your first report and certificate!
             </p>
             <Button 
               onClick={() => navigate('/student/course')}

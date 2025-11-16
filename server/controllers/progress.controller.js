@@ -9,6 +9,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { isModuleEffectivelyCompleted, checkModuleAccessForAssessments, getEffectivelyCompletedModules } from "../utils/moduleCompletion.js";
+import ensureCertificateIfEligible from "../utils/autoCertificate.js";
 
 export const initializeProgress = asyncHandler(async (req, res) => {
     const { courseId } = req.body;
@@ -273,6 +274,16 @@ export const markModuleComplete = asyncHandler(async (req, res) => {
 
     progress.lastAccessed = new Date();
     await progress.save();
+
+    // If all modules are now completed, try auto-issuing certificate (handles quiz condition internally)
+    try {
+        const courseForCheck = await Course.findById(courseId).populate('modules');
+        const totalModules = courseForCheck?.modules?.length || 0;
+        const completedModulesCount = progress.completedModules.length;
+        if (totalModules > 0 && completedModulesCount >= totalModules) {
+            await ensureCertificateIfEligible(userId, courseId, { issuedByUserId: undefined });
+        }
+    } catch(_) {}
 
     // Create response message
     let responseMessage = "Module marked as complete";
@@ -593,8 +604,57 @@ export const getMyAllProgress = asyncHandler(async (req, res) => {
         await p.calculateProgress();
     }
 
+    // Preload all quizzes and attempts for computing report availability per course
+    const AttemptedQuiz = (await import("../models/attemptedQuiz.model.js")).default;
+    const Quiz = (await import("../models/quiz.model.js")).default;
+    const Assignment = (await import("../models/assignment.model.js")).default;
+    const Submission = (await import("../models/submission.model.js")).default;
+
     // Transform progress data to frontend-compatible format
-    const transformedProgresses = progresses.map(progress => {
+    const transformedProgresses = await Promise.all(progresses.map(async (progress) => {
+        // Compute report availability: course completed AND all course quizzes passed AND all assignments submitted (if any)
+        const totalModules = progress.course?.modules?.length || 0;
+        const completedModulesCount = progress.completedModules.length;
+        const courseCompleted = totalModules > 0 && completedModulesCount >= totalModules;
+
+        let allQuizzesPassed = false;
+        let allAssignmentsSubmitted = false;
+        if (courseCompleted && (progress.progressPercent >= 100)) {
+            // Check quizzes
+            const quizzes = await Quiz.find({ course: progress.course?._id }).select('_id');
+            const totalQuizzes = quizzes.length;
+            if (totalQuizzes === 0) {
+                allQuizzesPassed = true;
+            } else {
+                const quizIds = quizzes.map(q => q._id);
+                const passedAttempts = await AttemptedQuiz.find({
+                    student: progress.student?._id,
+                    status: 'PASSED',
+                    quiz: { $in: quizIds }
+                }).select('quiz');
+                const passedSet = new Set(passedAttempts.map(a => String(a.quiz)));
+                allQuizzesPassed = quizIds.every(id => passedSet.has(String(id)));
+            }
+
+            // Check assignments (if any exist for the course)
+            const assignments = await Assignment.find({ course: progress.course?._id }).select('_id');
+            const totalAssignments = assignments.length;
+            if (totalAssignments === 0) {
+                allAssignmentsSubmitted = true;
+            } else {
+                const assignmentIds = assignments.map(a => a._id);
+                const submissions = await Submission.find({
+                    student: progress.student?._id,
+                    assignment: { $in: assignmentIds },
+                    status: { $in: ['SUBMITTED', 'GRADED', 'RETURNED'] }
+                }).select('assignment');
+                const submittedSet = new Set(submissions.map(s => String(s.assignment)));
+                allAssignmentsSubmitted = assignmentIds.every(id => submittedSet.has(String(id)));
+            }
+        }
+
+        const reportAvailable = courseCompleted && (progress.progressPercent >= 100) && allQuizzesPassed && allAssignmentsSubmitted;
+
         const courseProgress = {
             ...progress.toObject(),
             courseTitle: progress.course?.title,
@@ -608,10 +668,12 @@ export const getMyAllProgress = asyncHandler(async (req, res) => {
             // Add total modules count if available
             totalModules: progress.course?.modules?.length || 0,
             // Include batch information from student populate
-            batch: progress.student?.batch || null
+            batch: progress.student?.batch || null,
+            // New field
+            reportAvailable,
         };
         return courseProgress;
-    });
+    }));
 
     res.json(
         new ApiResponse(200, transformedProgresses, "My progress fetched successfully")
@@ -674,6 +736,11 @@ export const getCourseCompletionReport = asyncHandler(async (req, res) => {
         throw new ApiError(`Course not completed. ${completedModules}/${totalModules} modules completed.`, 400);
     }
 
+    // Require overall course progress to be 100%
+    if ((progress.progressPercent || 0) < 100) {
+        throw new ApiError("Course progress must be 100% to generate the report", 400);
+    }
+
     // Get quiz attempts for this course
     const AttemptedQuiz = (await import("../models/attemptedQuiz.model.js")).default;
     const Quiz = (await import("../models/quiz.model.js")).default;
@@ -722,7 +789,41 @@ export const getCourseCompletionReport = asyncHandler(async (req, res) => {
         ? Math.round(quizResults.reduce((sum, q) => sum + q.scorePercent, 0) / totalQuizzes)
         : 0;
 
+    // Confirm quizzes requirement: all quizzes passed
+    let requireAllQuizzesPassed = true;
+    const quizzesInCourse = await Quiz.find({ course: courseId }).select('_id');
+    const quizIds = quizzesInCourse.map(q => q._id);
+    const passedAttempts = courseQuizAttempts.filter(a => a.passed && a.quiz);
+    const passedSet = new Set(passedAttempts.map(a => String(a.quiz._id)));
+    const allQuizzesPassed = quizIds.every(id => passedSet.has(String(id)));
+
+    if (requireAllQuizzesPassed && quizIds.length > 0 && !allQuizzesPassed) {
+        throw new ApiError("All course quizzes must be passed to generate the report", 400);
+    }
+
+    // Confirm assignments requirement: all assignments submitted (if any)
+    const Assignment = (await import("../models/assignment.model.js")).default;
+    const Submission = (await import("../models/submission.model.js")).default;
+    const assignmentsInCourse = await Assignment.find({ course: courseId }).select('_id');
+    const assignmentIds = assignmentsInCourse.map(a => a._id);
+    if (assignmentIds.length > 0) {
+        const submissions = await Submission.find({
+            student: userId,
+            assignment: { $in: assignmentIds },
+            status: { $in: ['SUBMITTED', 'GRADED', 'RETURNED'] }
+        }).select('assignment');
+        const submittedSet = new Set(submissions.map(s => String(s.assignment)));
+        const allAssignmentsSubmitted = assignmentIds.every(id => submittedSet.has(String(id)));
+        if (!allAssignmentsSubmitted) {
+            throw new ApiError("All course assignments must be submitted to generate the report", 400);
+        }
+    }
+
+    // Recalculate and align progress percent with the global calculation
+    try { await progress.calculateProgress(); } catch(_) {}
+
     // Prepare report data
+
     const reportData = {
         student: {
             _id: student._id,
@@ -751,7 +852,8 @@ export const getCourseCompletionReport = asyncHandler(async (req, res) => {
             totalModules,
             completedLessons: progress.completedLessons?.length || 0,
             currentLevel: progress.currentLevel,
-            progressPercent: Math.round((completedModules / totalModules) * 100),
+            // Use the same algorithm as everywhere else for consistency
+            progressPercent: progress.progressPercent,
             completedAt: progress.updatedAt
         },
         quizResults,
@@ -761,6 +863,12 @@ export const getCourseCompletionReport = asyncHandler(async (req, res) => {
             failedQuizzes: totalQuizzes - passedQuizzes,
             passRate: overallQuizPassRate,
             averageScore: averageQuizScore
+        },
+        // Assignment summary section for visibility (optional in UI)
+        assignmentSummary: {
+            totalAssignments: assignmentIds.length,
+            submittedAssignments: assignmentIds.length, // ensured above if any exist
+            allSubmitted: true
         },
         generatedAt: new Date(),
         isCourseCompleted
