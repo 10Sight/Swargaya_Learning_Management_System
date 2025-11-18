@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useCreateQuizMutation } from "@/Redux/AllApi/QuizApi";
 import { useGetCourseByIdQuery } from "@/Redux/AllApi/CourseApi";
 import { useGetModulesByCourseQuery } from "@/Redux/AllApi/moduleApi";
@@ -36,6 +36,13 @@ const AddQuizPage = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const [createQuiz, { isLoading }] = useCreateQuizMutation();
+  
+  const basePath = React.useMemo(() => {
+    const p = location.pathname || '';
+    if (p.startsWith('/superadmin')) return '/superadmin';
+    if (p.startsWith('/instructor')) return '/instructor';
+    return '/admin';
+  }, [location.pathname]);
   
   // Fetch course to know its slug for navigation after creation
   const { data: courseData, refetch: refetchCourse } = useGetCourseByIdQuery(courseId);
@@ -242,8 +249,9 @@ const AddQuizPage = () => {
       return false;
     }
 
-    if (formData.attemptsAllowed < 1) {
-      toast.error("At least 1 attempt must be allowed");
+    // attemptsAllowed === 0 => Unlimited attempts
+    if (formData.attemptsAllowed < 0) {
+      toast.error("Attempts must be 0 (unlimited) or at least 1");
       return false;
     }
 
@@ -287,7 +295,7 @@ const handleSubmit = async (e) => {
     // Instead of navigating immediately, wait a moment for the backend to process
     setTimeout(() => {
       const target = courseData?.data?.slug || courseId;
-      navigate(`/admin/courses/${target}`);
+      navigate(`${basePath}/courses/${target}`);
     }, 500);
     
   } catch (error) {
@@ -303,7 +311,7 @@ const handleSubmit = async (e) => {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => navigate(`/admin/courses/${courseId}`)}
+          onClick={() => navigate(`${basePath}/courses/${courseId}`)}
         >
           <IconArrowLeft className="h-4 w-4 mr-2" />
           Back to Course
@@ -412,7 +420,7 @@ const handleSubmit = async (e) => {
                       variant="outline"
                       size="sm"
                       className="mt-2 gap-1"
-                      onClick={() => navigate(`/admin/courses/${courseId}`)}
+                      onClick={() => navigate(`${basePath}/courses/${courseId}`)}
                     >
                       <IconPlus className="h-3 w-3" />
                       Go to Course
@@ -658,7 +666,7 @@ const handleSubmit = async (e) => {
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate(`/admin/courses/${courseId}`)}
+            onClick={() => navigate(`${basePath}/courses/${courseId}`)}
           >
             Cancel
           </Button>

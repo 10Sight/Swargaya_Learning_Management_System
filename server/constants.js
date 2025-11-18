@@ -8,6 +8,12 @@ export const UserRolesEnum = {
 export const AvailableUserRoles = Object.values(UserRolesEnum);
 
 export const UserStatusEnum = {
+    PRESENT: "PRESENT",
+    ON_LEAVE: "ON_LEAVE",
+    ABSENT: "ABSENT",
+};
+
+export const LegacyUserStatusEnum = {
     ACTIVE: "ACTIVE",
     SUSPENDED: "SUSPENDED",
     PENDING: "PENDING",
@@ -15,6 +21,20 @@ export const UserStatusEnum = {
 };
 
 export const AvailableUserStatus = Object.values(UserStatusEnum);
+
+export const mapLegacyStatusToNew = (status) => {
+    switch (status) {
+        case LegacyUserStatusEnum.ACTIVE:
+            return UserStatusEnum.PRESENT;
+        case LegacyUserStatusEnum.PENDING:
+            return UserStatusEnum.ON_LEAVE;
+        case LegacyUserStatusEnum.SUSPENDED:
+        case LegacyUserStatusEnum.BANNED:
+            return UserStatusEnum.ABSENT;
+        default:
+            return status;
+    }
+};
 
 export const UserLoginType = {
     FACEBOOK: "FACEBOOK",

@@ -204,7 +204,13 @@ const AddResourcePage = () => {
       await createResource(formDataToSend).unwrap();
       
       toast.success(`Resource added to ${formData.scope} successfully!`);
-      navigate(`/admin/courses/${courseId}`);
+      const basePath = (() => {
+        const p = location.pathname || '';
+        if (p.startsWith('/superadmin')) return '/superadmin';
+        if (p.startsWith('/instructor')) return '/instructor';
+        return '/admin';
+      })();
+      navigate(`${basePath}/courses/${courseId}`);
     } catch (error) {
       console.error("Create resource error:", error);
       toast.error(error?.data?.message || `Failed to add resource to ${formData.scope}`);
@@ -250,7 +256,15 @@ const AddResourcePage = () => {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => navigate(`/admin/courses/${courseId}`)}
+          onClick={() => {
+            const basePath = (() => {
+              const p = location.pathname || '';
+              if (p.startsWith('/superadmin')) return '/superadmin';
+              if (p.startsWith('/instructor')) return '/instructor';
+              return '/admin';
+            })();
+            navigate(`${basePath}/courses/${courseId}`);
+          }}
         >
           <IconArrowLeft className="h-4 w-4 mr-2" />
           Back to Course
@@ -524,7 +538,15 @@ const AddResourcePage = () => {
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate(`/admin/courses/${courseId}`)}
+            onClick={() => {
+              const basePath = (() => {
+                const p = location.pathname || '';
+                if (p.startsWith('/superadmin')) return '/superadmin';
+                if (p.startsWith('/instructor')) return '/instructor';
+                return '/admin';
+              })();
+              navigate(`${basePath}/courses/${courseId}`);
+            }}
           >
             Cancel
           </Button>

@@ -8,11 +8,19 @@ import {
   IconPlus,
   IconPaperclip,
 } from "@tabler/icons-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import ResourceModule from "./ResourceModule";
 
 const ResourceList = ({ courseId, modules }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const basePath = React.useMemo(() => {
+    const p = location.pathname || '';
+    if (p.startsWith('/superadmin')) return '/superadmin';
+    if (p.startsWith('/instructor')) return '/instructor';
+    return '/admin';
+  }, [location.pathname]);
 
   return (
     <div className="space-y-4">
@@ -24,7 +32,7 @@ const ResourceList = ({ courseId, modules }) => {
           </p>
         </div>
         <Button 
-          onClick={() => navigate(`/admin/add-resource/${courseId}`)}
+          onClick={() => navigate(`${basePath}/add-resource/${courseId}`)}
           className="gap-2"
         >
           <IconPlus className="h-4 w-4" />
@@ -41,7 +49,7 @@ const ResourceList = ({ courseId, modules }) => {
               Add modules first to organize resources
             </p>
             <Button 
-              onClick={() => navigate(`/admin/add-module/${courseId}`)} 
+              onClick={() => navigate(`${basePath}/add-module/${courseId}`)} 
               className="mt-4"
             >
               Add Module

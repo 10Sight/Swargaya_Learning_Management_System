@@ -350,15 +350,20 @@ export const startQuiz = asyncHandler(async (req, res) => {
     ]);
     const extraAllowed = (allowances[0]?.total) || 0;
 
-    const attemptsAllowed = (quiz.attemptsAllowed || 1) + extraAllowed;
-    const attemptsRemaining = attemptsAllowed - previousAttempts;
-    
-    if(attemptsRemaining <= 0) {
+    // attemptsAllowed === 0 => unlimited (no cap)
+    const baseAllowed = quiz.attemptsAllowed === 0 ? Number.MAX_SAFE_INTEGER : (quiz.attemptsAllowed || 1);
+    const attemptsAllowedWithExtra = baseAllowed + extraAllowed;
+    const attemptsRemainingWithExtra = attemptsAllowedWithExtra - previousAttempts;
+
+    const isUnlimited = quiz.attemptsAllowed === 0;
+
+    if(!isUnlimited && attemptsRemainingWithExtra <= 0) {
         return res.json(new ApiResponse(200, {
             canAttempt: false,
             reason: "No attempts remaining",
             attemptsUsed: previousAttempts,
-            attemptsAllowed,
+            // For finite attempts, expose the actual cap including extras
+            attemptsAllowed: attemptsAllowedWithExtra,
             quiz: {
                 _id: quiz._id,
                 title: quiz.title,
@@ -377,9 +382,10 @@ export const startQuiz = asyncHandler(async (req, res) => {
         module: quiz.module,
         timeLimit: quiz.timeLimit,
         passingScore: quiz.passingScore,
-        attemptsAllowed: quiz.attemptsAllowed,
+        // attemptsAllowed: 0 => unlimited; otherwise, include extras in cap
+        attemptsAllowed: isUnlimited ? 0 : attemptsAllowedWithExtra,
         attemptsUsed: previousAttempts,
-        attemptsRemaining,
+        attemptsRemaining: isUnlimited ? null : attemptsRemainingWithExtra,
         questions: quiz.questions.map((q, index) => ({
             questionNumber: index + 1,
             questionText: q.questionText,
@@ -470,8 +476,12 @@ export const submitQuiz = asyncHandler(async (req, res) => {
     ]);
     const extraAllowed = (allowances[0]?.total) || 0;
 
-    const attemptsAllowed = (quiz.attemptsAllowed || 1) + extraAllowed;
-    if(previousAttempts >= attemptsAllowed) {
+    // attemptsAllowed === 0 => unlimited (no cap)
+    const baseAllowed = quiz.attemptsAllowed === 0 ? Number.MAX_SAFE_INTEGER : (quiz.attemptsAllowed || 1);
+    const attemptsAllowed = baseAllowed + extraAllowed;
+    const isUnlimited = quiz.attemptsAllowed === 0;
+
+    if(!isUnlimited && previousAttempts >= attemptsAllowed) {
         throw new ApiError("No attempts remaining for this quiz", 400);
     }
 
@@ -649,7 +659,7 @@ export const submitQuiz = asyncHandler(async (req, res) => {
     
     // Calculate remaining attempts
     const attemptsUsed = previousAttempts + 1;
-    const attemptsRemaining = attemptsAllowed - attemptsUsed;
+    const attemptsRemaining = isUnlimited ? null : (attemptsAllowed - attemptsUsed);
     
     // Prepare result data
     const result = {
@@ -666,9 +676,10 @@ export const submitQuiz = asyncHandler(async (req, res) => {
         scorePercent,
         passed,
         attemptsUsed,
-        attemptsAllowed,
+        // Expose 0 to signal unlimited attempts when quiz.attemptsAllowed === 0
+        attemptsAllowed: isUnlimited ? 0 : attemptsAllowed,
         attemptsRemaining,
-        canRetry: attemptsRemaining > 0,
+        canRetry: isUnlimited ? true : (attemptsRemaining > 0),
         timeTaken: timeTaken || 0,
         detailedAnswers,
         nextModuleUnlocked,
@@ -729,10 +740,13 @@ export const getQuizAttemptStatus = asyncHandler(async (req, res) => {
     ]);
     const extraAllowed = (allowances[0]?.total) || 0;
 
-    const attemptsAllowed = (quiz.attemptsAllowed || 1) + extraAllowed;
+    // attemptsAllowed === 0 => unlimited (no cap)
+    const baseAllowed = quiz.attemptsAllowed === 0 ? Number.MAX_SAFE_INTEGER : (quiz.attemptsAllowed || 1);
+    const attemptsAllowedWithExtra = baseAllowed + extraAllowed;
     const attemptsUsed = attempts.length;
-    const attemptsRemaining = attemptsAllowed - attemptsUsed;
-    
+    const attemptsRemainingWithExtra = attemptsAllowedWithExtra - attemptsUsed;
+    const isUnlimited = quiz.attemptsAllowed === 0;
+
     // Check if user has passed in any attempt
     const bestAttempt = attempts.length > 0 ? attempts.reduce((best, current) => {
         return current.score > best.score ? current : best;
@@ -744,13 +758,14 @@ export const getQuizAttemptStatus = asyncHandler(async (req, res) => {
         quiz: {
             _id: quiz._id,
             title: quiz.title,
-            attemptsAllowed,
+            // Expose 0 to indicate unlimited attempts from quiz config perspective
+            attemptsAllowed: isUnlimited ? 0 : attemptsAllowedWithExtra,
             passingScore: quiz.passingScore
         },
         attemptsUsed,
-        attemptsAllowed,
-        attemptsRemaining,
-        canAttempt: attemptsRemaining > 0,
+        attemptsAllowed: isUnlimited ? 0 : attemptsAllowedWithExtra,
+        attemptsRemaining: isUnlimited ? null : attemptsRemainingWithExtra,
+        canAttempt: isUnlimited ? true : attemptsRemainingWithExtra > 0,
         hasPassed,
         bestScore: bestAttempt ? bestAttempt.score : null,
         attempts: attempts.map(att => ({

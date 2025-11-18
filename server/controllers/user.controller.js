@@ -220,7 +220,7 @@ export const createUser = asyncHandler(async (req, res) => {
     phoneNumber,
     role,
     password,
-    status: "ACTIVE"
+    status: "PRESENT"
   });
 
   const safeUser = await User.findById(user._id)
@@ -232,7 +232,7 @@ export const createUser = asyncHandler(async (req, res) => {
   // Send welcome email with credentials
   try {
     // Determine login URL based on role
-    let loginUrl = ENV.FRONTEND_URL || 'http://localhost:3000';
+    let loginUrl = ENV.FRONTEND_URL || 'https://swargaya-learning-management-system-3vcz.onrender.com';
     if (role === 'ADMIN' || role === 'SUPERADMIN') {
       loginUrl = ENV.ADMIN_URL || 'http://localhost:5173';
     } else if (role === 'INSTRUCTOR') {
@@ -304,7 +304,7 @@ export const updateUser = asyncHandler(async (req, res) => {
   if (role && AvailableUserRoles[role]) {
     user.role = role;
   }
-  if (status && ["ACTIVE", "SUSPENDED", "PENDING", "BANNED"].includes(status)) {
+  if (status && ["PRESENT", "ON_LEAVE", "ABSENT"].includes(status)) {
     user.status = status;
   }
 
@@ -355,7 +355,7 @@ export const getAllInstructors = asyncHandler(async (req, res) => {
   }
 
   // Status filter
-  if (req.query.status && ["ACTIVE", "SUSPENDED", "PENDING", "BANNED"].includes(req.query.status)) {
+  if (req.query.status && ["PRESENT", "ON_LEAVE", "ABSENT"].includes(req.query.status)) {
     searchQuery.status = req.query.status;
   }
 
@@ -425,7 +425,7 @@ export const getAllStudents = asyncHandler(async (req, res) => {
   }
 
   // Status filter
-  if (req.query.status && ["ACTIVE", "SUSPENDED", "PENDING", "BANNED"].includes(req.query.status)) {
+  if (req.query.status && ["PRESENT", "ON_LEAVE", "ABSENT"].includes(req.query.status)) {
     searchQuery.status = req.query.status;
   }
 

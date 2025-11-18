@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useCreateModuleMutation } from "@/Redux/AllApi/moduleApi";
 import { useCreateLessonMutation } from "@/Redux/AllApi/LessonApi";
 import { useGetCourseByIdQuery } from "@/Redux/AllApi/CourseApi";
@@ -28,9 +28,17 @@ import { toast } from "sonner";
 const AddModulePage = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [createModule, { isLoading: isCreatingModule }] = useCreateModuleMutation();
   const [createLesson, { isLoading: isCreatingLesson }] = useCreateLessonMutation();
   const { data: courseData } = useGetCourseByIdQuery(courseId);
+
+  const basePath = React.useMemo(() => {
+    const p = location.pathname || '';
+    if (p.startsWith('/superadmin')) return '/superadmin';
+    if (p.startsWith('/instructor')) return '/instructor';
+    return '/admin';
+  }, [location.pathname]);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -165,7 +173,7 @@ const AddModulePage = () => {
       await Promise.all(lessonPromises);
 
       toast.success("Module and lessons created successfully!");
-      navigate(`/admin/courses/${courseId}`);
+      navigate(`${basePath}/courses/${courseId}`);
     } catch (error) {
       console.error("Create module error:", error);
       toast.error(error?.data?.message || "Failed to create module and lessons");
@@ -179,7 +187,7 @@ const AddModulePage = () => {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => navigate(`/admin/courses/${courseId}`)}
+          onClick={() => navigate(`${basePath}/courses/${courseId}`)}
         >
           <IconArrowLeft className="h-4 w-4 mr-2" />
           Back to Course
@@ -328,7 +336,7 @@ const AddModulePage = () => {
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate(`/admin/courses/${courseId}`)}
+            onClick={() => navigate(`${basePath}/courses/${courseId}`)}
           >
             Cancel
           </Button>

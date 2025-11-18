@@ -252,12 +252,16 @@ const TakeQuiz = () => {
               <div>
                 <div className="font-medium">Attempts Used</div>
                 <div className="text-sm text-gray-600">
-                  {result.attemptsUsed} of {result.attemptsAllowed} attempts
+                  {result.attemptsAllowed === 0
+                    ? `${result.attemptsUsed} of Unlimited attempts`
+                    : `${result.attemptsUsed} of ${result.attemptsAllowed} attempts`}
                 </div>
               </div>
               <div>
                 <Badge variant={result.canRetry ? "secondary" : "destructive"}>
-                  {result.attemptsRemaining} attempts remaining
+                  {result.attemptsAllowed === 0
+                    ? "Unlimited attempts remaining"
+                    : `${result.attemptsRemaining} attempts remaining`}
                 </Badge>
               </div>
             </div>

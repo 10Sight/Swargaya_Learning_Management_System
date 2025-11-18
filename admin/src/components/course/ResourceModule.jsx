@@ -24,15 +24,23 @@ import {
   IconLink,
   IconEye,
 } from "@tabler/icons-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useDeleteResourceMutation } from "@/Redux/AllApi/resourceApi";
 import { toast } from "sonner";
 
 const ResourceModule = ({ module, courseId }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   // Auto-expand if module already has resources
   const [isExpanded, setIsExpanded] = useState(Boolean(module.resources?.length));
   const [deleteResource, { isLoading: isDeletingResource }] = useDeleteResourceMutation();
+
+  const basePath = React.useMemo(() => {
+    const p = location.pathname || '';
+    if (p.startsWith('/superadmin')) return '/superadmin';
+    if (p.startsWith('/instructor')) return '/instructor';
+    return '/admin';
+  }, [location.pathname]);
 
   const moduleId = module._id || module.id;
 
@@ -140,7 +148,7 @@ const ResourceModule = ({ module, courseId }) => {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate(`/admin/add-resource/${courseId}?moduleId=${moduleId}`)}
+            onClick={() => navigate(`${basePath}/add-resource/${courseId}?moduleId=${moduleId}`)}
           >
             <IconPlus className="h-4 w-4 mr-2" />
             Add Resource
@@ -234,7 +242,7 @@ const ResourceModule = ({ module, courseId }) => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={(e) => { e.stopPropagation(); navigate(`/admin/edit-resource/${resource._id}`); }}
+                      onClick={(e) => { e.stopPropagation(); navigate(`${basePath}/edit-resource/${resource._id}`); }}
                     >
                       <IconEdit className="h-4 w-4" />
                     </Button>
@@ -264,7 +272,7 @@ const ResourceModule = ({ module, courseId }) => {
               </p>
               <Button 
                 size="sm" 
-                onClick={() => navigate(`/admin/add-resource/${courseId}?moduleId=${moduleId}`)}
+                onClick={() => navigate(`${basePath}/add-resource/${courseId}?moduleId=${moduleId}`)}
               >
                 <IconPlus className="h-4 w-4 mr-1" />
                 Add Resource

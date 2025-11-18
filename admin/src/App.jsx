@@ -171,7 +171,14 @@ const App = () => {
           <Route index element={<InstructorDashboard />} />
           <Route path="courses" element={<InstructorCourses />} />
           <Route path="courses/:courseId" element={<InstructorCourseDetailPage />} />
+          <Route path="add-module/:courseId" element={<AddModulePage />} />
+          <Route path="edit-module/:moduleId" element={<EditModulePage />} />
+          <Route path="add-lesson/:moduleId" element={<AddLessonPage />} />
           <Route path="edit-lesson/:moduleId/:lessonId" element={<EditLessonPage />} />
+          <Route path="add-quiz/:courseId" element={<AddQuizPage />} />
+          <Route path="edit-quiz/:quizId" element={<EditQuizPage />} />
+          <Route path="add-assignment/:courseId" element={<AddAssignmentPage />} />
+          <Route path="add-resource/:courseId" element={<AddResourcePage />} />
           <Route path="batches" element={<InstructorBatches />} />
           <Route path="students" element={<InstructorStudents />} />
           <Route path="quiz-monitoring" element={<QuizMonitoring />} />

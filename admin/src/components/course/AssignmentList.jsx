@@ -27,14 +27,22 @@ import {
   IconCalendar,
   IconLoader,
 } from "@tabler/icons-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useDeleteAssignmentMutation } from "@/Redux/AllApi/AssignmentApi";
 import { toast } from "sonner";
 
 const AssignmentList = ({ assignments, courseId, modules = [], onRefetch }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [deleteAssignment, { isLoading: isDeleting }] = useDeleteAssignmentMutation();
   const [deletingId, setDeletingId] = useState(null);
+
+  const basePath = React.useMemo(() => {
+    const p = location.pathname || '';
+    if (p.startsWith('/superadmin')) return '/superadmin';
+    if (p.startsWith('/instructor')) return '/instructor';
+    return '/admin';
+  }, [location.pathname]);
   
   // Helper function to get module name
   const getModuleName = (moduleId) => {
@@ -70,7 +78,7 @@ const AssignmentList = ({ assignments, courseId, modules = [], onRefetch }) => {
             Add assignments for students to complete
           </p>
           <Button 
-            onClick={() => navigate(`/admin/add-assignment/${courseId}`)} 
+            onClick={() => navigate(`${basePath}/add-assignment/${courseId}`)} 
             className="mt-4"
           >
             Add Assignment
@@ -89,7 +97,7 @@ const AssignmentList = ({ assignments, courseId, modules = [], onRefetch }) => {
             Practical tasks for students
           </p>
         </div>
-        <Button onClick={() => navigate(`/admin/add-assignment/${courseId}`)}>
+        <Button onClick={() => navigate(`${basePath}/add-assignment/${courseId}`)}>
           <IconPlus className="h-4 w-4 mr-2" />
           Add Assignment
         </Button>
@@ -108,7 +116,7 @@ const AssignmentList = ({ assignments, courseId, modules = [], onRefetch }) => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => navigate(`/admin/edit-assignment/${assignment._id}`)}
+                    onClick={() => navigate(`${basePath}/edit-assignment/${assignment._id}`)}
                   >
                     <IconPencil className="h-4 w-4" />
                   </Button>

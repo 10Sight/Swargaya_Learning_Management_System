@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useGetCourseByIdQuery, useGetCourseAnalyticsQuery, useGetCourseStudentsQuery } from "@/Redux/AllApi/CourseApi";
 import { useGetModulesByCourseQuery } from "@/Redux/AllApi/moduleApi";
 import { useGetQuizzesByCourseQuery } from "@/Redux/AllApi/QuizApi";
@@ -50,7 +50,15 @@ import CourseStats from "@/components/course/CourseStats";
 const CourseDetailPage = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState("overview");
+
+  const basePath = React.useMemo(() => {
+    const p = location.pathname || '';
+    if (p.startsWith('/superadmin')) return '/superadmin';
+    if (p.startsWith('/instructor')) return '/instructor';
+    return '/admin';
+  }, [location.pathname]);
 
   const {
     data: courseData,
@@ -241,7 +249,7 @@ const CourseDetailPage = () => {
 
         <div className="flex gap-2">
           <Button
-            onClick={() => navigate(`/admin/add-course`, { state: { editCourse: course } })}
+            onClick={() => navigate(`${basePath}/add-course`, { state: { editCourse: course } })}
             variant="outline"
             className="gap-2"
           >
@@ -249,7 +257,7 @@ const CourseDetailPage = () => {
             Edit Course
           </Button>
           <Button
-            onClick={() => navigate(`/admin/add-module/${courseId}`)}
+            onClick={() => navigate(`${basePath}/add-module/${courseId}`)}
             className="gap-2"
           >
             <IconPlus className="h-4 w-4" />

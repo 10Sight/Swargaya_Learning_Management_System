@@ -140,8 +140,13 @@ const Instructor = () => {
     data: batchesData,
     isLoading: batchesLoading,
     error: batchesError,
+    refetch: refetchBatches,
   } = useGetAllBatchesQuery(
-    {},
+    {
+      page: 1,
+      limit: 1000,
+      search: "",
+    },
     {
       refetchOnFocus: false,
       refetchOnReconnect: false,
@@ -155,6 +160,31 @@ const Instructor = () => {
   const instructors = instructorsData?.data?.users || [];
   const totalPages = instructorsData?.data?.totalPages || 1;
   const batches = batchesData?.data?.batches || [];
+
+  const instructorBatchMap = useMemo(() => {
+    if (!batches || !Array.isArray(batches)) return {};
+
+    const map = {};
+
+    batches.forEach((batch) => {
+      if (!batch?.instructor) return;
+
+      const instructorId =
+        typeof batch.instructor === "object"
+          ? batch.instructor?._id
+          : batch.instructor;
+
+      if (!instructorId) return;
+
+      if (!map[instructorId]) {
+        map[instructorId] = [];
+      }
+
+      map[instructorId].push(batch);
+    });
+
+    return map;
+  }, [batches]);
 
   // Filter options for reusable components
   const statusOptions = [
@@ -201,13 +231,18 @@ const Instructor = () => {
     return instructors.filter((instructor) => {
       const statusMatch =
         statusFilter === "ALL" || instructor.status === statusFilter;
+
+      const batchesForInstructor = instructorBatchMap[instructor._id] || [];
+      const hasBatch = batchesForInstructor.length > 0;
+
       const batchMatch =
         batchFilter === "ALL" ||
-        (batchFilter === "HAS_BATCH" && instructor.batch) ||
-        (batchFilter === "NO_BATCH" && !instructor.batch);
+        (batchFilter === "HAS_BATCH" && hasBatch) ||
+        (batchFilter === "NO_BATCH" && !hasBatch);
+
       return statusMatch && batchMatch;
     });
-  }, [instructors, statusFilter, batchFilter]);
+  }, [instructors, statusFilter, batchFilter, instructorBatchMap]);
 
   // Toast helpers to prevent spam
   const showToast = useCallback(
@@ -422,23 +457,26 @@ const Instructor = () => {
         batchId,
         instructorId: selectedInstructor._id,
       }).unwrap();
-      
+
       showToast("success", "Instructor assigned to batch successfully!");
       setIsBatchDialogOpen(false);
       setSelectedInstructor(null);
 
       // Refetch both instructors and batches to get updated data
       refetch();
+      if (typeof refetchBatches === "function") {
+        refetchBatches();
+      }
     } catch (error) {
       console.error("Assign instructor error:", error);
       let errorMessage = "Failed to assign instructor to batch";
-      
+
       if (error?.data?.message) {
         errorMessage = error.data.message;
       } else if (error?.status === 400) {
         errorMessage = "Invalid batch or instructor selection";
       }
-      
+
       showToast("error", errorMessage);
     }
   };
@@ -539,21 +577,47 @@ const Instructor = () => {
   };
 
   const getBatchInfo = (instructor) => {
-    if (!instructor.batch) {
+    const batchesForInstructor = instructorBatchMap[instructor._id] || [];
+
+    if (!batchesForInstructor.length) {
       return (
         <Badge variant="secondary" className="flex items-center gap-1">
           No Batch
         </Badge>
       );
     }
-    // Handle both populated and non-populated batch
-    const batchName = instructor.batch?.name || instructor.batch;
+
+    if (batchesForInstructor.length === 1) {
+      const batchName = batchesForInstructor[0]?.name || "Unnamed Batch";
+      return (
+        <Badge variant="info" className="flex items-center gap-1">
+          <IconSchool className="h-3 w-3" />
+          {batchName}
+        </Badge>
+      );
+    }
+
     return (
       <Badge variant="info" className="flex items-center gap-1">
         <IconSchool className="h-3 w-3" />
-        {batchName}
+        {batchesForInstructor.length} Batches
       </Badge>
     );
+  };
+
+  const getCurrentBatchesLabel = () => {
+    if (!selectedInstructor?._id) return null;
+
+    const batchesForInstructor =
+      instructorBatchMap[selectedInstructor._id] || [];
+
+    if (!batchesForInstructor.length) return null;
+
+    if (batchesForInstructor.length === 1) {
+      return batchesForInstructor[0]?.name || "Unknown Batch";
+    }
+
+    return `${batchesForInstructor.length} batches`;
   };
 
   const clearFilters = () => {
@@ -673,7 +737,7 @@ const Instructor = () => {
 
         <StatCard
           title="Assigned to Batches"
-          value={instructors.filter((i) => i.batch).length}
+          value={Object.keys(instructorBatchMap).length}
           description="Currently teaching"
           icon={IconSchool}
           iconBgColor="bg-purple-100"
@@ -1291,9 +1355,9 @@ const Instructor = () => {
             </DialogTitle>
             <DialogDescription>
               Select a batch for <strong>{selectedInstructor?.fullName}</strong>
-              {selectedInstructor?.batch && (
+              {getCurrentBatchesLabel() && (
                 <span className="text-amber-600 font-medium">
-                  {" "}(Currently assigned to: {selectedInstructor.batch.name || "Unknown Batch"})
+                  {" "}(Currently assigned to: {getCurrentBatchesLabel()})
                 </span>
               )}
             </DialogDescription>
@@ -1313,8 +1377,17 @@ const Instructor = () => {
                 </div>
               ) : batches.length > 0 ? (
                 batches.map((batch) => {
-                  const isCurrentlyAssigned = selectedInstructor?.batch?.toString() === batch._id.toString();
-                  const hasInstructor = batch.instructor && batch.instructor.toString() !== selectedInstructor?._id.toString();
+                  const selectedId = selectedInstructor?._id?.toString();
+                  const batchInstructorRaw = batch.instructor;
+                  const batchInstructorId =
+                    typeof batchInstructorRaw === "object"
+                      ? batchInstructorRaw?._id?.toString()
+                      : batchInstructorRaw?.toString();
+
+                  const isCurrentlyAssigned =
+                    batchInstructorId && selectedId && batchInstructorId === selectedId;
+                  const hasInstructor =
+                    batchInstructorId && (!selectedId || batchInstructorId !== selectedId);
                   
                   return (
                     <div

@@ -16,13 +16,21 @@ import {
   IconClock,
   IconLoader,
 } from "@tabler/icons-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { useDeleteQuizMutation } from "@/Redux/AllApi/QuizApi";
 
 const QuizList = ({ quizzes, courseId, onRefetch, modules = [] }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [deleteQuiz, { isLoading: isDeletingQuiz }] = useDeleteQuizMutation();
+
+  const basePath = React.useMemo(() => {
+    const p = location.pathname || '';
+    if (p.startsWith('/superadmin')) return '/superadmin';
+    if (p.startsWith('/instructor')) return '/instructor';
+    return '/admin';
+  }, [location.pathname]);
 
   const handleDeleteQuiz = async (quizId) => {
     if (!window.confirm("Are you sure you want to delete this quiz? This action cannot be undone.")) {
@@ -60,7 +68,7 @@ const QuizList = ({ quizzes, courseId, onRefetch, modules = [] }) => {
             Add quizzes to test student knowledge
           </p>
           <Button 
-            onClick={() => navigate(`/admin/add-quiz/${courseId}`)} 
+            onClick={() => navigate(`${basePath}/add-quiz/${courseId}`)} 
             className="mt-4"
           >
             Add Quiz
@@ -79,7 +87,7 @@ const QuizList = ({ quizzes, courseId, onRefetch, modules = [] }) => {
             Tests to assess student understanding
           </p>
         </div>
-        <Button onClick={() => navigate(`/admin/add-quiz/${courseId}`)}>
+        <Button onClick={() => navigate(`${basePath}/add-quiz/${courseId}`)}>
           <IconPlus className="h-4 w-4 mr-2" />
           Add Quiz
         </Button>
@@ -98,7 +106,7 @@ const QuizList = ({ quizzes, courseId, onRefetch, modules = [] }) => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => navigate(`/admin/edit-quiz/${quiz.slug || quiz._id}`)}
+                    onClick={() => navigate(`${basePath}/edit-quiz/${quiz.slug || quiz._id}`)}
                   >
                     <IconPencil className="h-4 w-4" />
                   </Button>

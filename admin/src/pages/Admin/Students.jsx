@@ -82,6 +82,20 @@ import FilterBar from "@/components/common/FilterBar";
 import { useNavigate } from "react-router-dom";
 import { useLazyExportStudentsQuery } from "@/Redux/AllApi/UserApi";
 
+const normalizeStatus = (status) => {
+  switch (status) {
+    case "ACTIVE":
+      return "PRESENT";
+    case "PENDING":
+      return "ON_LEAVE";
+    case "SUSPENDED":
+    case "BANNED":
+      return "ABSENT";
+    default:
+      return status || "";
+  }
+};
+
 const Students = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
@@ -99,7 +113,7 @@ const Students = () => {
     email: "",
     phoneNumber: "",
     password: "",
-    status: "PENDING",
+    status: "PRESENT",
   });
   const [formErrors, setFormErrors] = useState({});
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -166,10 +180,9 @@ const Students = () => {
   // Filter options for reusable components
   const statusOptions = [
     { value: "ALL", label: "All Status" },
-    { value: "ACTIVE", label: "Active" },
-    { value: "PENDING", label: "Pending" },
-    { value: "SUSPENDED", label: "Suspended" },
-    { value: "BANNED", label: "Banned" },
+    { value: "PRESENT", label: "Present" },
+    { value: "ON_LEAVE", label: "On Leave" },
+    { value: "ABSENT", label: "Absent" },
   ];
 
   const batchOptions = [
@@ -206,8 +219,9 @@ const Students = () => {
   // Filter students based on status and batch
   const filteredStudents = useMemo(() => {
     return students.filter((student) => {
+      const normalized = normalizeStatus(student.status);
       const statusMatch =
-        statusFilter === "ALL" || student.status === statusFilter;
+        statusFilter === "ALL" || normalized === statusFilter;
       const batchMatch =
         batchFilter === "ALL" ||
         (batchFilter === "HAS_BATCH" && student.batch) ||
@@ -458,7 +472,7 @@ const Students = () => {
       email: student.email,
       phoneNumber: student.phoneNumber,
       password: "",
-      status: student.status,
+      status: normalizeStatus(student.status),
     });
     setIsEditDialogOpen(true);
   };
@@ -474,41 +488,33 @@ const Students = () => {
   };
 
   const getStatusBadge = (status) => {
-    switch (status) {
-      case "ACTIVE":
+    const normalized = normalizeStatus(status);
+    switch (normalized) {
+      case "PRESENT":
         return (
           <Badge variant="success" className="flex items-center gap-1 w-fit">
-            <div className="h-2 w-2 rounded-full bg-green-500"></div> Active
+            <div className="h-2 w-2 rounded-full bg-green-500"></div> Present
           </Badge>
         );
-      case "SUSPENDED":
-        return (
-          <Badge
-            variant="destructive"
-            className="flex items-center gap-1 w-fit"
-          >
-            <div className="h-2 w-2 rounded-full bg-red-500"></div> Suspended
-          </Badge>
-        );
-      case "PENDING":
+      case "ON_LEAVE":
         return (
           <Badge variant="warning" className="flex items-center gap-1 w-fit">
-            <div className="h-2 w-2 rounded-full bg-amber-500"></div> Pending
+            <div className="h-2 w-2 rounded-full bg-amber-500"></div> On Leave
           </Badge>
         );
-      case "BANNED":
+      case "ABSENT":
         return (
           <Badge
             variant="destructive"
             className="flex items-center gap-1 w-fit"
           >
-            <div className="h-2 w-2 rounded-full bg-red-700"></div> Banned
+            <div className="h-2 w-2 rounded-full bg-red-600"></div> Absent
           </Badge>
         );
       default:
         return (
           <Badge variant="secondary" className="flex items-center gap-1 w-fit">
-            <div className="h-2 w-2 rounded-full bg-gray-500"></div> {status}
+            <div className="h-2 w-2 rounded-full bg-gray-500"></div> {normalized || "Unknown"}
           </Badge>
   );
 }
@@ -516,7 +522,7 @@ const Students = () => {
 
   const handleQuickStatusChange = async (studentId, newStatus, oldStatus) => {
     // Confirm destructive actions
-    if (["BANNED", "SUSPENDED"].includes(newStatus)) {
+    if (["ABSENT"].includes(newStatus)) {
       if (
         !window.confirm(
           `Are you sure you want to ${newStatus.toLowerCase()} this student?`
@@ -661,9 +667,9 @@ const Students = () => {
         />
 
         <StatCard
-          title="Active Students"
-          value={students.filter((s) => s.status === "ACTIVE").length}
-          description="Currently active"
+          title="Present Students"
+          value={students.filter((s) => normalizeStatus(s.status) === "PRESENT").length}
+          description="Currently present"
           icon={IconUser}
           iconBgColor="bg-green-100"
           iconColor="text-green-600"
@@ -698,9 +704,9 @@ const Students = () => {
             </TabsTrigger>
             <TabsTrigger
               value="active"
-              onClick={() => setStatusFilter("ACTIVE")}
+              onClick={() => setStatusFilter("PRESENT")}
             >
-              Active
+              Present
             </TabsTrigger>
             <TabsTrigger
               value="assigned"
@@ -889,7 +895,7 @@ const Students = () => {
                     </TableCell>
                     <TableCell>
                       <Select
-                        value={student.status || ""}
+                        value={normalizeStatus(student.status) || ""}
                         onValueChange={(newStatus) =>
                           handleQuickStatusChange(
                             student._id,
@@ -903,10 +909,9 @@ const Students = () => {
                           {getStatusBadge(student.status)}
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="ACTIVE">Active</SelectItem>
-                          <SelectItem value="PENDING">Pending</SelectItem>
-                          <SelectItem value="SUSPENDED">Suspended</SelectItem>
-                          <SelectItem value="BANNED">Banned</SelectItem>
+                          <SelectItem value="PRESENT">Present</SelectItem>
+                          <SelectItem value="ON_LEAVE">On Leave</SelectItem>
+                          <SelectItem value="ABSENT">Absent</SelectItem>
                         </SelectContent>
                       </Select>
                     </TableCell>
@@ -1157,10 +1162,9 @@ const Students = () => {
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ACTIVE">Active</SelectItem>
-                  <SelectItem value="PENDING">Pending</SelectItem>
-                  <SelectItem value="SUSPENDED">Suspended</SelectItem>
-                  <SelectItem value="BANNED">Banned</SelectItem>
+                  <SelectItem value="PRESENT">Present</SelectItem>
+                  <SelectItem value="ON_LEAVE">On Leave</SelectItem>
+                  <SelectItem value="ABSENT">Absent</SelectItem>
                 </SelectContent>
               </Select>
             </div>

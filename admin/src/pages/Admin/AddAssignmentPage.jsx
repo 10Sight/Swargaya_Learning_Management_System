@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useCreateAssignmentMutation } from "@/Redux/AllApi/AssignmentApi";
 import { useGetCourseByIdQuery } from "@/Redux/AllApi/CourseApi";
 import { useGetModulesByCourseQuery } from "@/Redux/AllApi/moduleApi";
@@ -45,6 +45,13 @@ const AddAssignmentPage = () => {
   const [createAssignment, { isLoading }] = useCreateAssignmentMutation();
 
   const { data: courseData, refetch: refetchCourse } = useGetCourseByIdQuery(courseId);
+
+  const basePath = React.useMemo(() => {
+    const p = location.pathname || '';
+    if (p.startsWith('/superadmin')) return '/superadmin';
+    if (p.startsWith('/instructor')) return '/instructor';
+    return '/admin';
+  }, [location.pathname]);
   const { data: modulesData } = useGetModulesByCourseQuery(courseId);
 
   const course = courseData?.data || {};
@@ -126,7 +133,7 @@ const AddAssignmentPage = () => {
       // Refetch course data to update the assignments list
       await refetchCourse();
       
-      navigate(`/admin/courses/${courseId}`);
+      navigate(`${basePath}/courses/${courseId}`);
     } catch (error) {
       console.error("Create assignment error:", error);
       toast.error(error?.data?.message || "Failed to create assignment");
@@ -140,7 +147,7 @@ const AddAssignmentPage = () => {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => navigate(`/admin/courses/${courseId}`)}
+          onClick={() => navigate(`${basePath}/courses/${courseId}`)}
         >
           <IconArrowLeft className="h-4 w-4 mr-2" />
           Back to Course
@@ -235,13 +242,13 @@ const AddAssignmentPage = () => {
                     <p className="text-xs mt-1">
                       You need to create modules first before adding assignments.
                     </p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="mt-2 gap-1"
-                      onClick={() => navigate(`/admin/courses/${courseId}`)}
-                    >
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-2 gap-1"
+            onClick={() => navigate(`${basePath}/courses/${courseId}`)}
+          >
                       <IconPlus className="h-3 w-3" />
                       Go to Course
                     </Button>
@@ -326,7 +333,7 @@ const AddAssignmentPage = () => {
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate(`/admin/courses/${courseId}`)}
+            onClick={() => navigate(`${basePath}/courses/${courseId}`)}
           >
             Cancel
           </Button>

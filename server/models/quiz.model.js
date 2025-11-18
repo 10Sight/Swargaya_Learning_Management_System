@@ -151,10 +151,17 @@ const quizSchema = new Schema(
             type: Boolean,
             default: false,
         },
+        // attemptsAllowed === 0 => unlimited attempts
         attemptsAllowed: {
             type: Number,
             default: 1,
-            min: [1, "At least 1 attempt must be allowed"],
+            validate: {
+                validator(value) {
+                    // Allow 0 to represent unlimited, or any positive integer
+                    return value === 0 || value >= 1;
+                },
+                message: "Attempts must be 0 (unlimited) or at least 1",
+            },
         },
     },
     {

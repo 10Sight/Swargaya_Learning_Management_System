@@ -69,8 +69,10 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
 
     // Prefer server status (includes approved extra attempts)
     const serverStatus = statusByQuiz[String(quizId)];
-    const attemptsAllowed = serverStatus?.attemptsAllowed ?? (quiz.attemptsAllowed || 1);
-    let attemptsLeft = serverStatus?.attemptsRemaining ?? ((attemptsAllowed ?? 1) - attemptsUsed);
+    const rawAttemptsAllowed = serverStatus?.attemptsAllowed ?? quiz.attemptsAllowed;
+    const isUnlimited = rawAttemptsAllowed === 0;
+    const attemptsAllowed = isUnlimited ? 0 : (rawAttemptsAllowed || 1);
+    let attemptsLeft = serverStatus?.attemptsRemaining ?? (isUnlimited ? Infinity : ((attemptsAllowed ?? 1) - attemptsUsed));
 
     // Fallback for immediate UI after approval via realtime flag
     if (extraGrantedQuizIds && extraGrantedQuizIds.has(String(quizId))) {
@@ -196,7 +198,9 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
           const quizAttempts = attempts[String(quizId)] || [];
           const attemptsUsed = quizAttempts.length;
           const server = statusByQuiz[String(quizId)];
-          const attemptsAllowed = server?.attemptsAllowed ?? (quiz.attemptsAllowed || 1);
+          const rawAttemptsAllowed = server?.attemptsAllowed ?? quiz.attemptsAllowed;
+          const isUnlimited = rawAttemptsAllowed === 0;
+          const attemptsAllowed = isUnlimited ? 0 : (rawAttemptsAllowed || 1);
           
           return (
             <Card 
@@ -225,13 +229,15 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
                   {/* Attempts left badge */}
                   {(() => {
                     const attemptsUsedLocal = (attempts[String(quizId)] || []).length;
-                    let left = server?.attemptsRemaining ?? ((attemptsAllowed) - attemptsUsedLocal);
-                    if (extraGrantedQuizIds && extraGrantedQuizIds.has(String(quizId))) {
+                    const rawAttemptsAllowedLocal = server?.attemptsAllowed ?? quiz.attemptsAllowed;
+                    const isUnlimitedLocal = rawAttemptsAllowedLocal === 0;
+                    let left = server?.attemptsRemaining ?? (isUnlimitedLocal ? Infinity : ((attemptsAllowed) - attemptsUsedLocal));
+                    if (!isUnlimitedLocal && extraGrantedQuizIds && extraGrantedQuizIds.has(String(quizId))) {
                       left = Math.max(1, left);
                     }
                     return (
                       <Badge variant="secondary" className="text-xs">
-                        Left: {Math.max(0, left)}
+                        {isUnlimitedLocal ? "Attempts: Unlimited" : `Left: ${Math.max(0, left)}`}
                       </Badge>
                     );
                   })()}

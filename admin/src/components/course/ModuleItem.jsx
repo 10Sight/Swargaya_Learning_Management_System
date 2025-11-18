@@ -133,7 +133,7 @@ const ModuleItem = ({ module, onRefetch, isDeletingModule }) => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate(`/admin/edit-module/${moduleId}`)}
+              onClick={() => navigate(`${basePath}/edit-module/${moduleId}`)}
             >
               <IconPencil className="h-4 w-4" />
             </Button>

@@ -1,11 +1,11 @@
 import { ApiError } from "../utils/ApiError.js";
-import { UserStatusEnum } from "../constants.js";
+import { UserStatusEnum, mapLegacyStatusToNew } from "../constants.js";
 
 /**
  * Middleware to check user account status and restrict access accordingly
- * - PENDING: Can only access profile-related routes
- * - SUSPENDED/BANNED: Cannot access any student routes
- * - ACTIVE: Full access
+ * - PRESENT: Full access
+ * - ON_LEAVE: Limited access to specific routes when allowedForPending = true
+ * - ABSENT: Cannot access any student routes
  */
 const checkAccountStatus = (allowedForPending = false) => {
   return (req, res, next) => {
@@ -13,7 +13,8 @@ const checkAccountStatus = (allowedForPending = false) => {
       throw new ApiError("User not authenticated", 401);
     }
 
-    const userStatus = req.user.status;
+    const rawStatus = req.user.status;
+    const userStatus = mapLegacyStatusToNew(rawStatus);
     const userRole = req.user.role;
 
     // Only apply restrictions to STUDENT role
@@ -22,29 +23,23 @@ const checkAccountStatus = (allowedForPending = false) => {
     }
 
     switch (userStatus) {
-      case UserStatusEnum.ACTIVE:
-        // Active users have full access
+      case UserStatusEnum.PRESENT:
+        // Present users have full access
         return next();
         
-      case UserStatusEnum.PENDING:
-        // Pending users can only access specific routes (profile, etc.)
+      case UserStatusEnum.ON_LEAVE:
+        // On-leave users can only access specific routes (e.g. profile) when explicitly allowed
         if (allowedForPending) {
           return next();
         }
         throw new ApiError(
-          "Your account is currently pending approval. You can only access your profile page. Please contact your instructor for more information.",
+          "Your account is currently marked as On Leave. You can only access limited pages. Please contact your instructor for more information.",
           403
         );
         
-      case UserStatusEnum.SUSPENDED:
+      case UserStatusEnum.ABSENT:
         throw new ApiError(
-          "Your account has been suspended. Please contact your instructor for more information.",
-          403
-        );
-        
-      case UserStatusEnum.BANNED:
-        throw new ApiError(
-          "Your account has been banned. Please contact your instructor for more information.",
+          "Your account is currently marked as Absent. Please contact your instructor for more information.",
           403
         );
         

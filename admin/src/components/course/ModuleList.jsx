@@ -8,13 +8,21 @@ import {
   IconPlus,
   IconBook,
 } from "@tabler/icons-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useDeleteModuleMutation } from "@/Redux/AllApi/moduleApi";
 import ModuleItem from "./ModuleItem";
 
 const ModuleList = ({ modules, courseId, onRefetch }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [, { isLoading: isDeletingModule }] = useDeleteModuleMutation();
+
+  const basePath = React.useMemo(() => {
+    const p = location.pathname || '';
+    if (p.startsWith('/superadmin')) return '/superadmin';
+    if (p.startsWith('/instructor')) return '/instructor';
+    return '/admin';
+  }, [location.pathname]);
 
   // Create a sorted copy of the modules array
   const sortedModules = React.useMemo(() => {
@@ -40,7 +48,7 @@ const ModuleList = ({ modules, courseId, onRefetch }) => {
             Add modules to organize your course content
           </p>
           <Button 
-            onClick={() => navigate(`/admin/add-module/${courseId}`)} 
+            onClick={() => navigate(`${basePath}/add-module/${courseId}`)} 
             className="mt-4"
           >
             Add Module
@@ -59,7 +67,7 @@ const ModuleList = ({ modules, courseId, onRefetch }) => {
             Organize your course content into modules and lessons
           </p>
         </div>
-        <Button onClick={() => navigate(`/admin/add-module/${courseId}`)}>
+        <Button onClick={() => navigate(`${basePath}/add-module/${courseId}`)}>
           <IconPlus className="h-4 w-4 mr-2" />
           Add Module
         </Button>

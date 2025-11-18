@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useGetQuizByIdQuery, useUpdateQuizMutation } from "@/Redux/AllApi/QuizApi";
 import { toast } from "sonner";
 import {
@@ -18,9 +18,17 @@ import { IconArrowLeft, IconPlus, IconTrash, IconLoader, IconCheck, IconX } from
 const EditQuizPage = () => {
   const { quizId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const { data, isFetching, isError } = useGetQuizByIdQuery(quizId);
   const [updateQuiz, { isLoading: isSaving }] = useUpdateQuizMutation();
+
+  const basePath = React.useMemo(() => {
+    const p = location.pathname || '';
+    if (p.startsWith('/superadmin')) return '/superadmin';
+    if (p.startsWith('/instructor')) return '/instructor';
+    return '/admin';
+  }, [location.pathname]);
 
   const quiz = data?.data;
   const courseHandle = quiz?.course?.slug || quiz?.course?._id || quiz?.courseId || "";
@@ -174,7 +182,7 @@ const EditQuizPage = () => {
       }).unwrap();
 
       toast.success("Quiz updated successfully!");
-      if (courseHandle) navigate(`/admin/courses/${courseHandle}`);
+      if (courseHandle) navigate(`${basePath}/courses/${courseHandle}`);
     } catch (error) {
       console.error("Update quiz error:", error);
       toast.error(error?.data?.message || "Failed to update quiz");
@@ -201,7 +209,7 @@ const EditQuizPage = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="outline" size="sm" onClick={() => navigate(courseHandle ? `/admin/courses/${courseHandle}` : -1)}>
+        <Button variant="outline" size="sm" onClick={() => navigate(courseHandle ? `${basePath}/courses/${courseHandle}` : -1)}>
           <IconArrowLeft className="h-4 w-4 mr-2" />
           Back to Course
         </Button>
@@ -296,7 +304,7 @@ const EditQuizPage = () => {
         </Card>
 
         <div className="flex justify-end gap-4">
-          <Button type="button" variant="outline" onClick={() => navigate(courseHandle ? `/admin/courses/${courseHandle}` : -1)}>
+          <Button type="button" variant="outline" onClick={() => navigate(courseHandle ? `${basePath}/courses/${courseHandle}` : -1)}>
             Cancel
           </Button>
           <Button type="submit" disabled={isSaving} className="gap-2">

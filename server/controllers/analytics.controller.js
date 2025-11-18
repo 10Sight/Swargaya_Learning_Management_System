@@ -20,8 +20,8 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
         const totalCourses = await Course.countDocuments();
         const totalBatches = await Batch.countDocuments({ isDeleted: { $ne: true } });
 
-        // Get active counts
-        const activeStudents = await User.countDocuments({ role: "STUDENT", status: "ACTIVE" });
+        // Get present counts (was ACTIVE)
+        const activeStudents = await User.countDocuments({ role: "STUDENT", status: "PRESENT" });
         const activeBatches = await Batch.countDocuments({ status: "ONGOING", isDeleted: { $ne: true } });
         const publishedCourses = await Course.countDocuments({ status: "PUBLISHED" });
 
@@ -155,7 +155,7 @@ export const getUserStats = asyncHandler(async (req, res) => {
                     count: { $sum: 1 },
                     active: {
                         $sum: {
-                            $cond: [{ $eq: ["$status", "ACTIVE"] }, 1, 0]
+                            $cond: [{ $eq: ["$status", "PRESENT"] }, 1, 0]
                         }
                     }
                 }
@@ -517,7 +517,7 @@ export const getSystemHealth = asyncHandler(async (req, res) => {
 
         // Calculate system utilization
         const activeUsers = await User.countDocuments({ 
-            status: "ACTIVE",
+            status: "PRESENT",
             role: { $in: ["STUDENT", "INSTRUCTOR"] }
         });
 
@@ -817,7 +817,7 @@ export const getSystemPerformanceHistory = asyncHandler(async (req, res) => {
                 createdAt: { $gte: startDate }
             }),
             activeUsers: await User.countDocuments({
-                status: "ACTIVE",
+                status: "PRESENT",
                 lastLogin: { $gte: startDate }
             })
         };

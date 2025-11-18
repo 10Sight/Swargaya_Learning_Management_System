@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
 import { ApiError } from "../utils/ApiError.js";
-import { AvailableUserStatus, AvailableUserRoles, AvailableSocialLogins } from "../constants.js";
+import { AvailableUserStatus, AvailableUserRoles, AvailableSocialLogins, UserStatusEnum, UserRolesEnum } from "../constants.js";
 import ENV from "../configs/env.config.js";
 import { slugify, ensureUniqueSlug } from "../utils/slugify.js";
 
@@ -58,13 +58,13 @@ const userSchema = new Schema(
         role: {
             type: String,
             enum: AvailableUserRoles,
-            default: AvailableUserRoles.STUDENT,
+            default: UserRolesEnum.STUDENT,
             index: true, // Index for role-based filtering
         },
         status: {
             type: String,
             enum: AvailableUserStatus,
-            default: AvailableUserStatus.ACTIVE,
+            default: UserStatusEnum.PRESENT,
         },
         isVerified: {
             type: Boolean,

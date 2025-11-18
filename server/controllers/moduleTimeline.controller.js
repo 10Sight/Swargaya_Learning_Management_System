@@ -18,34 +18,65 @@ export const createOrUpdateTimeline = asyncHandler(async (req, res) => {
     gracePeriodHours = 24,
     enableWarnings = true,
     warningPeriods = [168, 72, 24],
-    description
+    description,
   } = req.body;
-  
+
   const { timelineId } = req.params; // For PUT requests
 
   if (!courseId || !moduleId || !batchId || !deadline) {
     throw new ApiError("Course ID, Module ID, Batch ID, and deadline are required", 400);
   }
 
+  // Basic ObjectId validation to fail fast on obviously invalid input
+  const isValidObjectId = (id) => {
+    return typeof id === "string" && /^[0-9a-fA-F]{24}$/.test(id);
+  };
+
+  if (!isValidObjectId(courseId)) {
+    throw new ApiError("Invalid course ID format", 400);
+  }
+  if (!isValidObjectId(moduleId)) {
+    throw new ApiError("Invalid module ID format", 400);
+  }
+  if (!isValidObjectId(batchId)) {
+    throw new ApiError("Invalid batch ID format", 400);
+  }
+
+  // Parse and validate deadline
+  const parsedDeadline = new Date(deadline);
+  if (Number.isNaN(parsedDeadline.getTime())) {
+    throw new ApiError("Invalid deadline date", 400);
+  }
+
+  // Normalize warning periods: ensure array of positive numbers
+  const normalizedWarningPeriods = Array.isArray(warningPeriods)
+    ? warningPeriods
+        .map((p) => Number(p))
+        .filter((p) => Number.isFinite(p) && p > 0)
+    : [168, 72, 24];
+
   // Validate that the course, module, and batch exist
   const [course, module, batch] = await Promise.all([
-    Course.findById(courseId),
-    Module.findById(moduleId),
-    Batch.findById(batchId)
+    Course.findById(courseId).select("_id modules"),
+    Module.findById(moduleId).select("_id"),
+    Batch.findById(batchId).select("_id"),
   ]);
 
   if (!course) throw new ApiError("Course not found", 404);
   if (!module) throw new ApiError("Module not found", 404);
   if (!batch) throw new ApiError("Batch not found", 404);
 
-  // Check if module belongs to the course
-  if (!course.modules.includes(moduleId)) {
+  // Check if module belongs to the course (need to compare ObjectIds as strings)
+  const moduleBelongsToCourse = Array.isArray(course.modules)
+    && course.modules.some((m) => m.toString() === moduleId.toString());
+
+  if (!moduleBelongsToCourse) {
     throw new ApiError("Module does not belong to the specified course", 400);
   }
 
   // Check if timeline already exists for this module and batch
   let timeline;
-  
+
   if (timelineId) {
     // PUT request - find specific timeline by ID
     timeline = await ModuleTimeline.findById(timelineId);
@@ -57,20 +88,20 @@ export const createOrUpdateTimeline = asyncHandler(async (req, res) => {
     timeline = await ModuleTimeline.findOne({
       course: courseId,
       module: moduleId,
-      batch: batchId
+      batch: batchId,
     });
   }
 
   if (timeline) {
     // Update existing timeline
-    timeline.deadline = new Date(deadline);
+    timeline.deadline = parsedDeadline;
     timeline.gracePeriodHours = gracePeriodHours;
     timeline.enableWarnings = enableWarnings;
-    timeline.warningPeriods = warningPeriods;
+    timeline.warningPeriods = normalizedWarningPeriods;
     timeline.description = description;
     timeline.updatedBy = req.user._id;
     timeline.lastProcessedAt = null; // Reset processing flag
-    
+
     await timeline.save();
   } else {
     // Create new timeline
@@ -78,19 +109,19 @@ export const createOrUpdateTimeline = asyncHandler(async (req, res) => {
       course: courseId,
       module: moduleId,
       batch: batchId,
-      deadline: new Date(deadline),
+      deadline: parsedDeadline,
       gracePeriodHours,
       enableWarnings,
-      warningPeriods,
+      warningPeriods: normalizedWarningPeriods,
       description,
-      createdBy: req.user._id
+      createdBy: req.user._id,
     });
   }
 
-  await timeline.populate(['course', 'module', 'batch']);
+  await timeline.populate(["course", "module", "batch"]);
 
   res.status(200).json(
-    new ApiResponse(200, timeline, "Module timeline set successfully")
+    new ApiResponse(200, timeline, "Module timeline set successfully"),
   );
 });
 
