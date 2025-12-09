@@ -24,14 +24,16 @@ import {
 import { HomeIcon } from "lucide-react";
 import clsx from "clsx";
 import axiosInstance from "@/Helper/axiosInstance";
+import useTranslate from "@/hooks/useTranslate";
+import LanguageSelector from "../components/common/LanguageSelector";
 
-const tabs = [
-  { link: "/student", label: "Dashboard", icon: IconLayoutDashboardFilled },
-  { link: "/student/profile", label: "Profile", icon: IconUser },
-  { link: "/student/batch", label: "Batch", icon: IconFolder },
-  { link: "/student/course", label: "Course", icon: IconBooks },
-  { link: "/student/reports", label: "Reports", icon: IconFileText },
-  { link: "/student/certificates", label: "Certificates", icon: IconAward },
+const baseTabs = [
+  { link: "/student", labelKey: "nav.dashboard", icon: IconLayoutDashboardFilled },
+  { link: "/student/profile", labelKey: "nav.profile", icon: IconUser },
+  { link: "/student/batch", labelKey: "nav.batch", icon: IconFolder },
+  { link: "/student/course", labelKey: "nav.course", icon: IconBooks },
+  { link: "/student/reports", labelKey: "nav.reports", icon: IconFileText },
+  { link: "/student/certificates", labelKey: "nav.certificates", icon: IconAward },
 ];
 
 export function StudentLayout() {
@@ -39,6 +41,9 @@ export function StudentLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [pageName, setPageName] = useState("Dashboard");
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  const { t, language } = useTranslate();
+  const tabs = baseTabs.map((tab) => ({ ...tab, label: t(tab.labelKey) }));
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -60,7 +65,7 @@ export function StudentLayout() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Update page name based on current route
+  // Update page name based on current route and language
   useEffect(() => {
     let cancelled = false;
 
@@ -98,7 +103,7 @@ export function StudentLayout() {
         if (currentTab) {
           if (!cancelled) setPageName(currentTab.label);
         } else if (pathname === "/student") {
-          if (!cancelled) setPageName("Dashboard");
+          if (!cancelled) setPageName(t("nav.dashboard"));
         } else {
           const routeName = pathname.split("/").pop() || "";
           if (!cancelled) setPageName(routeName.charAt(0).toUpperCase() + routeName.slice(1));
@@ -114,7 +119,7 @@ export function StudentLayout() {
     if (isMobile) setIsMobileMenuOpen(false);
 
     return () => { cancelled = true; };
-  }, [pathname, isMobile]);
+  }, [pathname, isMobile, language, tabs, t]);
 
   const toggleSidebar = () => {
     if (isMobile) {
@@ -269,7 +274,7 @@ export function StudentLayout() {
             )}
             {((!collapsed && !isMobile) || (isMobile)) && (
               <span className="ml-3 truncate transition-all duration-300">
-                {isLoading ? "Signing out..." : "Sign out"}
+                {isLoading ? t("auth.signingOut") : t("auth.signOut")}
               </span>
             )}
           </button>
@@ -329,6 +334,7 @@ export function StudentLayout() {
 
             {/* Right side - User info and avatar */}
             <div className="flex items-center gap-3">
+              <LanguageSelector />
               <div className="hidden lg:block text-right">
                 <p className="text-sm font-medium text-gray-900 leading-tight">
                   {user?.fullName || user?.userName || 'Student'}

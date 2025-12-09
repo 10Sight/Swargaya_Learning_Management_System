@@ -41,16 +41,18 @@ import {
 import { HomeIcon, Command } from "lucide-react";
 import { useUpdateAvatarMutation } from "@/Redux/AllApi/UserApi";
 import { profile as fetchProfile } from "@/Redux/Slice/AuthSlice";
+import useTranslate from "@/hooks/useTranslate";
+import LanguageSelector from "../components/common/LanguageSelector";
 
-const tabs = [
-  { link: "/instructor", label: "Dashboard", icon: IconLayoutDashboardFilled },
-  { link: "/instructor/courses", label: "My Courses", icon: IconCertificate },
-  { link: "/instructor/batches", label: "My Batches", icon: IconFolder },
-  { link: "/instructor/students", label: "Students", icon: IconUsers },
-  { link: "/instructor/quiz-monitoring", label: "Quiz Management", icon: IconClipboardList },
-  { link: "/instructor/attempt-requests", label: "Attempt Requests", icon: IconClipboardList },
-  { link: "/instructor/assignment-monitoring", label: "Assignment Management", icon: IconClipboard },
-  { link: "/instructor/certificate-issuance", label: "Certificate Issuance", icon: IconAward },
+const baseTabs = [
+  { link: "/instructor", labelKey: "nav.dashboard", icon: IconLayoutDashboardFilled },
+  { link: "/instructor/courses", labelKey: "nav.myCourses", icon: IconCertificate },
+  { link: "/instructor/batches", labelKey: "nav.myBatches", icon: IconFolder },
+  { link: "/instructor/students", labelKey: "nav.students", icon: IconUsers },
+  { link: "/instructor/quiz-monitoring", labelKey: "nav.quizManagement", icon: IconClipboardList },
+  { link: "/instructor/attempt-requests", labelKey: "nav.attemptRequests", icon: IconClipboardList },
+  { link: "/instructor/assignment-monitoring", labelKey: "nav.assignmentManagement", icon: IconClipboard },
+  { link: "/instructor/certificate-issuance", labelKey: "nav.certificateIssuance", icon: IconAward },
 ];
 
 export function InstructorLayout() {
@@ -59,6 +61,9 @@ export function InstructorLayout() {
   );
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [pageName, setPageName] = useState("Dashboard");
+
+  const { t, language } = useTranslate();
+  const tabs = baseTabs.map((tab) => ({ ...tab, label: t(tab.labelKey) }));
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -77,7 +82,7 @@ export function InstructorLayout() {
     finally { e.target.value=''; }
   };
 
-  // Update page name based on current route
+  // Update page name based on current route and language
   useEffect(() => {
     const currentTab = tabs.find(tab => 
       pathname === tab.link || 
@@ -87,13 +92,13 @@ export function InstructorLayout() {
     if (currentTab) {
       setPageName(currentTab.label);
     } else if (pathname === "/instructor") {
-      setPageName("Dashboard");
+      setPageName(t("nav.dashboard"));
     } else {
       // For nested routes, you might want to extract from pathname
       const routeName = pathname.split("/").pop();
       setPageName(routeName.charAt(0).toUpperCase() + routeName.slice(1));
     }
-  }, [pathname]);
+  }, [pathname, language, tabs, t]);
 
   // Handle window resize for responsive behavior
   useEffect(() => {
@@ -166,7 +171,7 @@ export function InstructorLayout() {
           />
           {!collapsed && (
             <span className="ml-4 py-1 text-sm font-bold uppercase tracking-wider bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
-              INSTRUCTOR PORTAL
+              {t("header.instructorPortal")}
             </span>
           )}
         </div>
@@ -241,7 +246,7 @@ export function InstructorLayout() {
             )}
             {!collapsed && (
               <span className="ml-3 text-sm font-medium transition-all group-hover:translate-x-0.5">
-                {isLoading ? "Logging out..." : "Logout"}
+                {isLoading ? t("auth.loggingOut") : t("auth.logout")}
               </span>
             )}
           </div>
@@ -301,6 +306,9 @@ export function InstructorLayout() {
 
           {/* Right side (Search & Avatar) */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Language Selector */}
+            <LanguageSelector />
+
             {/* Search Button - Desktop */}
             <Button
               variant="ghost"
@@ -350,19 +358,19 @@ export function InstructorLayout() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="cursor-pointer hover:bg-green-50" onClick={pickAvatar}>
                   <IconUser className="mr-2 h-4 w-4" />
-                  Change Profile Picture
+                  {t("profile.changeProfilePicture")}
                 </DropdownMenuItem>
                 <DropdownMenuItem className="cursor-pointer hover:bg-green-50">
                   <IconSettings className="mr-2 h-4 w-4" />
-                  Account Settings
+                  {t("settings.accountSettings")}
                 </DropdownMenuItem>
                 <DropdownMenuItem className="cursor-pointer hover:bg-green-50">
                   <IconSettings className="mr-2 h-4 w-4" />
-                  Account Settings
+                  {t("settings.accountSettings")}
                 </DropdownMenuItem>
                 <DropdownMenuItem className="cursor-pointer hover:bg-green-50">
                   <Command className="mr-2 h-4 w-4" />
-                  Keyboard Shortcuts
+                  {t("ui.keyboardShortcuts")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
@@ -375,7 +383,7 @@ export function InstructorLayout() {
                   ) : (
                     <IconLogout className="mr-2 h-4 w-4" />
                   )}
-                  {isLoading ? 'Signing out...' : 'Sign out'}
+                  {isLoading ? t("auth.signingOut") : t("auth.signOut")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

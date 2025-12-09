@@ -4,6 +4,7 @@ import { configureStore } from "@reduxjs/toolkit";
 import authSliceReducer from './Slice/AuthSlice';
 import userSliceReducer from './Slice/UserSlice';
 import courseSliceReducer from './Slice/CourseSlice';
+import localizationReducer from './Slice/LocalizationSlice';
 
 // API imports
 import { authApi } from "./AllApi/AuthApi";
@@ -33,6 +34,7 @@ const store = configureStore({
         auth: authSliceReducer,
         user: userSliceReducer,
         course: courseSliceReducer,
+        localization: localizationReducer,
         
         // API reducers
         [authApi.reducerPath]: authApi.reducer,

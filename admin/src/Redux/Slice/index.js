@@ -36,3 +36,10 @@ export {
     clearBulkSelection as clearCourseBulkSelection,
     default as courseSlice
 } from './CourseSlice';
+
+// Localization slice exports
+export {
+    setLanguage,
+    selectLanguage,
+    default as localizationSlice,
+} from './LocalizationSlice';

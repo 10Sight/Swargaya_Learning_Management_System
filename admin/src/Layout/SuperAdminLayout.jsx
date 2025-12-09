@@ -36,49 +36,51 @@ import {
   IconLayersIntersect,
 } from "@tabler/icons-react";
 import { HomeIcon } from "lucide-react";
+import useTranslate from "@/hooks/useTranslate";
+import LanguageSelector from "../components/common/LanguageSelector";
 
 const tabs = [
   { 
     category: "Overview",
     items: [
-      { link: "/superadmin", label: "Dashboard", icon: IconLayoutDashboardFilled },
+      { link: "/superadmin", labelKey: "nav.dashboard", icon: IconLayoutDashboardFilled },
     ]
   },
   { 
     category: "User Management",
     items: [
-      { link: "/superadmin/all-users", label: "All Users", icon: IconUsers },
-      { link: "/superadmin/instructors", label: "Instructors", icon: IconUser },
-      { link: "/superadmin/students", label: "Students", icon: IconUsers },
-      { link: "/superadmin/soft-deleted-users", label: "Deleted Users", icon: IconTrash },
-      { link: "/superadmin/roles-permissions", label: "Roles & Permissions", icon: IconShield },
+      { link: "/superadmin/all-users", labelKey: "nav.allUsers", icon: IconUsers },
+      { link: "/superadmin/instructors", labelKey: "nav.instructors", icon: IconUser },
+      { link: "/superadmin/students", labelKey: "nav.students", icon: IconUsers },
+      { link: "/superadmin/soft-deleted-users", labelKey: "nav.deletedUsers", icon: IconTrash },
+      { link: "/superadmin/roles-permissions", labelKey: "nav.rolesPermissions", icon: IconShield },
     ]
   },
   { 
     category: "Content Management",
     items: [
-      { link: "/superadmin/courses", label: "Courses", icon: IconCertificate },
-      { link: "/superadmin/batches", label: "Batches", icon: IconFolder },
-      { link: "/superadmin/module-timelines", label: "Module Timelines", icon: IconClock },
-      { link: "/superadmin/course-level-settings", label: "Course Level Settings", icon: IconLayersIntersect },
-      { link: "/superadmin/student-levels", label: "Student Levels", icon: IconSettings },
-      { link: "/superadmin/certificates", label: "Certificates", icon: IconCertificate },
+      { link: "/superadmin/courses", labelKey: "nav.courses", icon: IconCertificate },
+      { link: "/superadmin/batches", labelKey: "nav.batches", icon: IconFolder },
+      { link: "/superadmin/module-timelines", labelKey: "nav.moduleTimelines", icon: IconClock },
+      { link: "/superadmin/course-level-settings", labelKey: "nav.courseLevelSettings", icon: IconLayersIntersect },
+      { link: "/superadmin/student-levels", labelKey: "nav.studentLevels", icon: IconSettings },
+      { link: "/superadmin/certificates", labelKey: "nav.certificates", icon: IconCertificate },
     ]
   },
   { 
     category: "System Management",
     items: [
-      { link: "/superadmin/audit-logs", label: "Audit Logs", icon: IconFileAnalytics },
-      { link: "/superadmin/system-settings", label: "System Settings", icon: IconSettings },
-      { link: "/superadmin/analytics-reports", label: "Analytics & Reports", icon: IconReport },
-      { link: "/superadmin/system-monitoring", label: "System Health", icon: IconServerBolt },
+      { link: "/superadmin/audit-logs", labelKey: "nav.auditLogs", icon: IconFileAnalytics },
+      { link: "/superadmin/system-settings", labelKey: "nav.systemSettings", icon: IconSettings },
+      { link: "/superadmin/analytics-reports", labelKey: "nav.analyticsReports", icon: IconReport },
+      { link: "/superadmin/system-monitoring", labelKey: "nav.systemHealth", icon: IconServerBolt },
     ]
   },
   { 
     category: "Advanced Operations",
     items: [
-      { link: "/superadmin/data-management", label: "Data Management", icon: IconDatabase },
-      { link: "/superadmin/bulk-operations", label: "Bulk Operations", icon: IconBulb },
+      { link: "/superadmin/data-management", labelKey: "nav.dataManagement", icon: IconDatabase },
+      { link: "/superadmin/bulk-operations", labelKey: "nav.bulkOperations", icon: IconBulb },
     ]
   },
 ];
@@ -88,6 +90,16 @@ export function SuperAdminLayout() {
     window.innerWidth >= 820 ? false : true
   );
   const [pageName, setPageName] = useState("Dashboard");
+
+  const { t, language } = useTranslate();
+
+  const translatedTabs = tabs.map((category) => ({
+    ...category,
+    items: category.items.map((item) => ({
+      ...item,
+      label: item.labelKey ? t(item.labelKey) : item.label,
+    })),
+  }));
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -99,7 +111,7 @@ export function SuperAdminLayout() {
     let foundTab = null;
     
     // Search through all categories and items
-    for (const category of tabs) {
+    for (const category of translatedTabs) {
       foundTab = category.items.find(tab => 
         pathname === tab.link || 
         (tab.link !== "/superadmin" && pathname.startsWith(tab.link))
@@ -110,13 +122,13 @@ export function SuperAdminLayout() {
     if (foundTab) {
       setPageName(foundTab.label);
     } else if (pathname === "/superadmin") {
-      setPageName("Dashboard");
+      setPageName(t("nav.dashboard"));
     } else {
       // For nested routes, extract from pathname
       const routeName = pathname.split("/").pop();
       setPageName(routeName.charAt(0).toUpperCase() + routeName.slice(1).replace("-", " "));
     }
-  }, [pathname]);
+  }, [pathname, language, translatedTabs, t]);
 
   const toggleSidebar = () => {
     setCollapsed((prev) => !prev);
@@ -162,14 +174,14 @@ export function SuperAdminLayout() {
           />
           {!collapsed && (
             <span className="ml-4 py-1 text-sm font-bold uppercase tracking-wider bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-              SUPER ADMIN
+              {t("header.superAdmin")}
             </span>
           )}
         </div>
 
         {/* Sidebar Tabs */}
         <div className="px-2 flex flex-col w-full py-4 space-y-1 overflow-y-auto max-h-[calc(100vh-8rem)]">
-          {tabs.map((category) => (
+          {translatedTabs.map((category) => (
             <div key={category.category} className="mb-4">
               {!collapsed && (
                 <div className="px-2 mb-2">
@@ -246,7 +258,7 @@ export function SuperAdminLayout() {
             )}
             {!collapsed && (
               <span className="ml-3 text-sm font-medium">
-                {isLoading ? "Logging out..." : "Logout"}
+                {isLoading ? t("auth.loggingOut") : t("auth.logout")}
               </span>
             )}
           </div>
@@ -288,6 +300,7 @@ export function SuperAdminLayout() {
 
           {/* Right side (Avatar) */}
           <div className="relative flex items-center gap-3">
+            <LanguageSelector />
             <div className="mr-2 text-right hidden lg:block">
               <p className="text-sm font-medium text-gray-800 truncate max-w-32">
                 {user?.fullName || user?.userName || 'Admin User'}
