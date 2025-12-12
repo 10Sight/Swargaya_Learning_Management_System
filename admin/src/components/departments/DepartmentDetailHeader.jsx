@@ -1,10 +1,10 @@
-// src/components/batches/BatchDetailHeader.jsx
+// src/components/departments/DepartmentDetailHeader.jsx
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { IconCalendar, IconSchool, IconUsers } from "@tabler/icons-react";
 import { format } from "date-fns";
 
-const BatchDetailHeader = ({ batch }) => {
+const DepartmentDetailHeader = ({ department }) => {
   const getStatusBadge = (status) => {
     const statusConfig = {
       UPCOMING: { variant: "secondary", label: "Upcoming" },
@@ -29,12 +29,12 @@ const BatchDetailHeader = ({ batch }) => {
             <IconSchool className="h-8 w-8 text-primary" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">{batch.name}</h1>
-            {/* <p className="text-muted-foreground">ID: {batch.email}</p> */}
+            <h1 className="text-3xl font-bold tracking-tight">{department.name}</h1>
+            {/* <p className="text-muted-foreground">ID: {department.email}</p> */}
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {getStatusBadge(batch.status)}
+          {getStatusBadge(department.status)}
         </div>
       </div>
 
@@ -44,8 +44,8 @@ const BatchDetailHeader = ({ batch }) => {
           <div>
             <p className="text-sm text-muted-foreground">Start Date</p>
             <p className="font-medium">
-              {batch.startDate
-                ? format(new Date(batch.startDate), "PPP")
+              {department.startDate
+                ? format(new Date(department.startDate), "PPP")
                 : "Not set"}
             </p>
           </div>
@@ -56,8 +56,8 @@ const BatchDetailHeader = ({ batch }) => {
           <div>
             <p className="text-sm text-muted-foreground">End Date</p>
             <p className="font-medium">
-              {batch.endDate
-                ? format(new Date(batch.endDate), "PPP")
+              {department.endDate
+                ? format(new Date(department.endDate), "PPP")
                 : "Not set"}
             </p>
           </div>
@@ -68,7 +68,7 @@ const BatchDetailHeader = ({ batch }) => {
           <div>
             <p className="text-sm text-muted-foreground">Capacity</p>
             <p className="font-medium">
-              {batch.students?.length || 0} / {batch.capacity || "Unlimited"}
+              {department.students?.length || 0} / {department.capacity || "Unlimited"}
             </p>
           </div>
         </div>
@@ -77,4 +77,4 @@ const BatchDetailHeader = ({ batch }) => {
   );
 };
 
-export default BatchDetailHeader;
+export default DepartmentDetailHeader;

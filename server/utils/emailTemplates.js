@@ -15,16 +15,16 @@
  * @returns {string} HTML email template
  */
 export const generateWelcomeEmail = (userData, loginUrl) => {
-  const { fullName, email, userName, phoneNumber, password, role } = userData;
-  
-  const roleDisplayName = {
-    'STUDENT': 'Student',
-    'INSTRUCTOR': 'Instructor',
-    'ADMIN': 'Administrator',
-    'SUPERADMIN': 'Super Administrator'
-  }[role] || role;
+    const { fullName, email, userName, phoneNumber, password, role } = userData;
 
-  return `
+    const roleDisplayName = {
+        'STUDENT': 'Student',
+        'INSTRUCTOR': 'Instructor',
+        'ADMIN': 'Administrator',
+        'SUPERADMIN': 'Super Administrator'
+    }[role] || role;
+
+    return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -203,7 +203,7 @@ export const generateWelcomeEmail = (userData, loginUrl) => {
                 <li>Change your password after first login</li>
                 <li>Complete your profile setup</li>
                 ${role === 'STUDENT' ? '<li>Explore available courses and enroll</li>' : ''}
-                ${role === 'INSTRUCTOR' ? '<li>Review your assigned batches and courses</li>' : ''}
+                ${role === 'INSTRUCTOR' ? '<li>Review your assigned departments and courses</li>' : ''}
                 <li>Contact support if you need any assistance</li>
             </ul>
         </div>
@@ -229,7 +229,7 @@ export const generateWelcomeEmail = (userData, loginUrl) => {
  * @returns {string} HTML email template
  */
 export const generateInstructorWelcomeEmail = (userData, loginUrl) => {
-  return generateWelcomeEmail(userData, loginUrl);
+    return generateWelcomeEmail(userData, loginUrl);
 };
 
 /**
@@ -239,11 +239,11 @@ export const generateInstructorWelcomeEmail = (userData, loginUrl) => {
  * @returns {string} HTML email template
  */
 export const generateStudentWelcomeEmail = (userData, loginUrl) => {
-  return generateWelcomeEmail(userData, loginUrl);
+    return generateWelcomeEmail(userData, loginUrl);
 };
 
 export default {
-  generateWelcomeEmail,
-  generateInstructorWelcomeEmail,
-  generateStudentWelcomeEmail
+    generateWelcomeEmail,
+    generateInstructorWelcomeEmail,
+    generateStudentWelcomeEmail
 };

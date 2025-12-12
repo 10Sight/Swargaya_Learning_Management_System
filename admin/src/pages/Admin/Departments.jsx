@@ -1,3 +1,4 @@
+// src/pages/Admin/Departments.jsx
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import {
   DropdownMenu,
@@ -7,16 +8,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  useGetAllBatchesQuery,
-  useCreateBatchMutation,
-  useUpdateBatchMutation,
-  useDeleteBatchMutation,
+  useGetAllDepartmentsQuery,
+  useCreateDepartmentMutation,
+  useUpdateDepartmentMutation,
+  useDeleteDepartmentMutation,
   useAssignInstructorMutation,
-  useAddStudentToBatchMutation,
-  useRemoveStudentFromBatchMutation,
+  useAddStudentToDepartmentMutation,
+  useRemoveStudentFromDepartmentMutation,
   useRemoveInstructorMutation,
-  useCancelBatchMutation,
-} from "@/Redux/AllApi/BatchApi";
+  useCancelDepartmentMutation,
+} from "@/Redux/AllApi/DepartmentApi";
 import { useGetAllUsersQuery } from "@/Redux/AllApi/UserApi";
 import { useGetCoursesQuery } from "@/Redux/AllApi/CourseApi";
 import {
@@ -43,8 +44,6 @@ import {
   Card,
   CardContent,
   CardHeader,
-  CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
 import {
   IconPlus,
@@ -52,16 +51,13 @@ import {
   IconTrash,
   IconUsers,
   IconSchool,
-  IconSearch,
   IconUserPlus,
   IconFilter,
   IconX,
   IconLoader,
   IconRefresh,
-  IconInfoCircle,
   IconExternalLink,
   IconUser,
-  IconCalendar,
   IconBook,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
@@ -72,7 +68,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Tooltip,
   TooltipContent,
@@ -87,10 +83,10 @@ import StatCard from "@/components/common/StatCard";
 import FilterBar from "@/components/common/FilterBar";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from 'react-redux';
-import BatchStatusNotifications, { BatchStatusSummary } from "@/components/batches/BatchStatusNotifications";
-import { useLazyExportBatchesQuery } from "@/Redux/AllApi/BatchApi";
+import DepartmentStatusNotifications from "@/components/departments/DepartmentStatusNotifications";
+import { useLazyExportDepartmentsQuery } from "@/Redux/AllApi/DepartmentApi";
 
-const Batches = () => {
+const Departments = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -101,10 +97,10 @@ const Batches = () => {
     useState(false);
   const [isManageStudentsDialogOpen, setIsManageStudentsDialogOpen] =
     useState(false);
-  const [isCancelBatchDialogOpen, setIsCancelBatchDialogOpen] = useState(false);
-  const [selectedBatch, setSelectedBatch] = useState(null);
+  const [isCancelDepartmentDialogOpen, setIsCancelDepartmentDialogOpen] = useState(false);
+  const [selectedDepartment, setSelectedDepartment] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isCancelingBatch, setIsCancelingBatch] = useState(false);
+  const [isCancelingDepartment, setIsCancelingDepartment] = useState(false);
   const [lastToastId, setLastToastId] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -113,15 +109,17 @@ const Batches = () => {
     startDate: "",
     endDate: "",
     capacity: 50,
+    status: "UPCOMING",
   });
   const [formErrors, setFormErrors] = useState({});
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [activeTab, setActiveTab] = useState("all");
+  const [selectedCourses, setSelectedCourses] = useState([]);
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [cancelReason, setCancelReason] = useState("");
 
   const navigate = useNavigate();
-  
+
   // Get current user from Redux store
   const { user } = useSelector((state) => state.auth);
 
@@ -137,11 +135,11 @@ const Batches = () => {
 
   // API Hooks
   const {
-    data: batchesData,
+    data: departmentsData,
     isLoading,
-    error: batchesError,
+    error: departmentsError,
     refetch,
-  } = useGetAllBatchesQuery(
+  } = useGetAllDepartmentsQuery(
     {
       page: currentPage,
       limit: 10,
@@ -192,20 +190,20 @@ const Batches = () => {
     }
   );
 
-  const [createBatch] = useCreateBatchMutation();
-  const [updateBatch] = useUpdateBatchMutation();
-  const [deleteBatch] = useDeleteBatchMutation();
+  const [createDepartment] = useCreateDepartmentMutation();
+  const [updateDepartment] = useUpdateDepartmentMutation();
+  const [deleteDepartment] = useDeleteDepartmentMutation();
   const [assignInstructor] = useAssignInstructorMutation();
-  const [addStudentToBatch] = useAddStudentToBatchMutation();
-  const [removeStudentFromBatch] = useRemoveStudentFromBatchMutation();
+  const [addStudentToDepartment] = useAddStudentToDepartmentMutation();
+  const [removeStudentFromDepartment] = useRemoveStudentFromDepartmentMutation();
   const [removeInstructor, { isLoading: isRemovingInstructor }] =
     useRemoveInstructorMutation();
-  const [cancelBatch] = useCancelBatchMutation();
-  const [triggerExportBatches, { isFetching: isExportingBatches }] = useLazyExportBatchesQuery();
+  const [cancelDepartment] = useCancelDepartmentMutation();
+  const [triggerExportDepartments, { isFetching: isExportingDepartments }] = useLazyExportDepartmentsQuery();
 
-  const batches = batchesData?.data?.batches || [];
-  const totalPages = batchesData?.data?.totalPages || 1;
-  const totalCount = batchesData?.data?.totalBatches || 0;
+  const departments = departmentsData?.data?.departments || [];
+  const totalPages = departmentsData?.data?.totalPages || 1;
+  const totalCount = departmentsData?.data?.totalDepartments || 0;
   const instructors = instructorsData?.data?.users || [];
   const students = studentsData?.data?.users || [];
   const courses = coursesData?.data?.courses || [];
@@ -239,17 +237,17 @@ const Batches = () => {
     return filters;
   }, [statusFilter, searchTerm, statusOptions]);
 
-  // Filter batches based on status
-  const filteredBatches = useMemo(() => {
-    return batches.filter((batch) => {
+  // Filter departments based on status
+  const filteredDepartments = useMemo(() => {
+    return departments.filter((department) => {
       const statusMatch =
         statusFilter === "ALL" ||
-        (statusFilter === "HAS_INSTRUCTOR" && batch.instructor) ||
-        (statusFilter === "NO_INSTRUCTOR" && !batch.instructor) ||
-        batch.status === statusFilter;
+        (statusFilter === "HAS_INSTRUCTOR" && department.instructor) ||
+        (statusFilter === "NO_INSTRUCTOR" && !department.instructor) ||
+        department.status === statusFilter;
       return statusMatch;
     });
-  }, [batches, statusFilter]);
+  }, [departments, statusFilter]);
 
   // Toast helper
   const showToast = useCallback(
@@ -288,289 +286,197 @@ const Batches = () => {
       startDate: "",
       endDate: "",
       capacity: 50,
+      status: "UPCOMING",
     });
     setFormErrors({});
     setSelectedStudents([]);
+    setSelectedCourses([]);
   };
 
-  const handleCreateBatch = async () => {
-    setFormErrors({});
-    const errors = {};
-
-    if (!formData.name?.trim()) {
-      errors.name = "Batch name is required";
-    }
-
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
-      showToast("error", "Please fix the form errors before submitting");
-      return;
-    }
-
-    if (isSubmitting) return;
-
-    setIsSubmitting(true);
+  const handleCreateDepartment = async () => {
     try {
-      const batchData = {
-        name: formData.name.trim(),
-        instructorId: formData.instructorId || undefined,
-        courseId: formData.courseId || undefined,
-        startDate: formData.startDate || undefined,
-        endDate: formData.endDate || undefined,
-        capacity: formData.capacity ? parseInt(formData.capacity) : undefined,
-      };
+      if (!formData.name) {
+        setFormErrors({ name: "Department name is required" });
+        return;
+      }
 
-      await createBatch(batchData).unwrap();
-      showToast("success", "Batch created successfully!");
+      setIsSubmitting(true);
+      await createDepartment({
+        ...formData,
+        courseIds: selectedCourses,
+      }).unwrap();
+
+      showToast("success", "Department created successfully");
       setIsAddDialogOpen(false);
       resetForm();
       refetch();
-    } catch (error) {
-      console.error("Create batch error:", error);
-      const errorMessage =
-        error?.data?.message || error?.message || "Failed to create batch";
-      showToast("error", errorMessage);
+    } catch (err) {
+      showToast("error", err?.data?.message || "Failed to create department");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleUpdateBatch = async () => {
-    if (!formData.name?.trim()) {
-      showToast("error", "Batch name is required");
-      return;
-    }
-
-    if (!selectedBatch?._id) {
-      showToast("error", "No batch selected for update");
-      return;
-    }
-
-    if (isSubmitting) return;
-    setIsSubmitting(true);
-
+  const handleUpdateDepartment = async () => {
     try {
-      const updateData = {
-        id: selectedBatch._id,
-        name: formData.name.trim(),
-        status: formData.status, // Add this line
-        // Add other fields as needed
-      };
+      if (!formData.name) {
+        setFormErrors({ name: "Department name is required" });
+        return;
+      }
 
-      await updateBatch(updateData).unwrap();
-      showToast("success", "Batch updated successfully!");
+      setIsSubmitting(true);
+      await updateDepartment({
+        id: selectedDepartment._id,
+        data: {
+          ...formData,
+          courseIds: selectedCourses,
+        },
+      }).unwrap();
+
+      showToast("success", "Department updated successfully");
       setIsEditDialogOpen(false);
       resetForm();
-      setSelectedBatch(null);
       refetch();
-    } catch (error) {
-      console.error("Update batch error:", error);
-      const errorMessage =
-        error?.data?.message || error?.message || "Failed to update batch";
-      showToast("error", errorMessage);
+    } catch (err) {
+      showToast("error", err?.data?.message || "Failed to update department");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDeleteBatch = async () => {
-    if (!selectedBatch?._id) {
-      showToast("error", "No batch selected for deletion");
-      return;
-    }
-
+  const handleDeleteDepartment = async () => {
     try {
-      await deleteBatch(selectedBatch._id).unwrap();
-      showToast("success", "Batch deleted successfully!");
+      await deleteDepartment(selectedDepartment._id).unwrap();
+      showToast("success", "Department deleted successfully");
       setIsDeleteDialogOpen(false);
-      setSelectedBatch(null);
       refetch();
-    } catch (error) {
-      console.error("Delete batch error:", error);
-      const errorMessage =
-        error?.data?.message || error?.message || "Failed to delete batch";
-      showToast("error", errorMessage);
+    } catch (err) {
+      showToast("error", err?.data?.message || "Failed to delete department");
     }
   };
 
   const handleAssignInstructor = async (instructorId) => {
-    if (!selectedBatch?._id) {
-      showToast("error", "No batch selected for instructor assignment");
-      return;
-    }
-
     try {
       await assignInstructor({
-        batchId: selectedBatch._id,
+        departmentId: selectedDepartment._id,
         instructorId,
       }).unwrap();
-
-      showToast("success", "Instructor assigned successfully!");
+      showToast("success", "Instructor assigned successfully");
       setIsAssignInstructorDialogOpen(false);
-      setSelectedBatch(null);
       refetch();
-    } catch (error) {
-      console.error("Assign instructor error:", error);
-      const errorMessage =
-        error?.data?.message || error?.message || "Failed to assign instructor";
-      showToast("error", errorMessage);
+    } catch (err) {
+      showToast("error", err?.data?.message || "Failed to assign instructor");
     }
   };
 
-  const handleRemoveInstructor = async () => {
-    if (!selectedBatch?._id) {
-      showToast("error", "No batch selected for instructor removal");
-      return;
+  const handleRemoveInstructor = async (e) => {
+    e.stopPropagation();
+    try {
+      await removeInstructor(selectedDepartment._id).unwrap();
+      showToast("success", "Instructor removed successfully");
+      setIsAssignInstructorDialogOpen(false);
+      refetch();
+    } catch (err) {
+      showToast("error", err?.data?.message || "Failed to remove instructor");
     }
+  };
+
+  const handleCancelDepartment = async () => {
+    if (!selectedDepartment) return;
 
     try {
-      await removeInstructor(selectedBatch._id).unwrap();
-      showToast("success", "Instructor removed successfully!");
-      setIsAssignInstructorDialogOpen(false);
-      setSelectedBatch(null);
+      setIsCancelingDepartment(true);
+      await cancelDepartment({
+        id: selectedDepartment._id,
+        reason: cancelReason
+      }).unwrap();
+
+      showToast("success", "Department cancelled successfully");
+      setIsCancelDepartmentDialogOpen(false);
+      setCancelReason("");
       refetch();
-    } catch (error) {
-      console.error("Remove instructor error:", error);
-      const errorMessage =
-        error?.data?.message || error?.message || "Failed to remove instructor";
-      showToast("error", errorMessage);
+    } catch (err) {
+      showToast("error", err?.data?.message || "Failed to cancel department");
+    } finally {
+      setIsCancelingDepartment(false);
     }
   };
 
   const handleAddStudents = async () => {
-    if (selectedStudents.length === 0) {
-      showToast("error", "Please select at least one student");
-      return;
-    }
-
-    if (!selectedBatch?._id) {
-      showToast("error", "No batch selected for adding students");
-      return;
-    }
-
     try {
-      // Add students to batch
-      const batchPromises = selectedStudents.map((studentId) =>
-        addStudentToBatch({
-          batchId: selectedBatch._id,
-          studentId,
-        }).unwrap()
-      );
-
-      await Promise.all(batchPromises);
-      showToast(
-        "success",
-        `${selectedStudents.length} student(s) added to batch!`
-      );
-
+      await addStudentToDepartment({
+        departmentId: selectedDepartment._id,
+        studentIds: selectedStudents,
+      }).unwrap();
+      showToast("success", "Students added successfully");
       setIsManageStudentsDialogOpen(false);
-      setSelectedBatch(null);
       setSelectedStudents([]);
       refetch();
-    } catch (error) {
-      console.error("Add students error:", error);
-      const errorMessage =
-        error?.data?.message || error?.message || "Failed to add students";
-      showToast("error", errorMessage);
+    } catch (err) {
+      showToast("error", err?.data?.message || "Failed to add students");
     }
   };
 
-  const handleRemoveStudent = async ({ batchId, studentId, studentName }) => {
-    // Defensive: allow fallback to selectedBatch if caller didn't pass batchId
-    const safeBatchId = batchId ?? selectedBatch?._id ?? null;
-    if (!safeBatchId || !studentId) {
-      showToast(
-        "error",
-        "Unable to remove student: missing batch or student. Please try again."
-      );
-      return;
-    }
+  const handleRemoveStudent = async ({ departmentId, studentId, studentName }) => {
+    const isConfirmed = window.confirm(
+      `Are you sure you want to remove ${studentName} from this department?`
+    );
+
+    if (!isConfirmed) return;
 
     try {
-      await removeStudentFromBatch({
-        batchId: safeBatchId,
-        studentId,
-      }).unwrap();
-      showToast(
-        "success",
-        studentName
-          ? `${studentName} removed from batch!`
-          : "Student removed from batch!"
-      );
+      await removeStudentFromDepartment({ departmentId, studentId }).unwrap();
+      showToast("success", "Student removed successfully");
       refetch();
-    } catch (error) {
-      console.error("Remove student error:", error);
-      const errorMessage =
-        error?.data?.message || error?.message || "Failed to remove student";
-      showToast("error", errorMessage);
+
+      // Update local state if dialog is open
+      if (selectedDepartment && selectedDepartment._id === departmentId) {
+        setSelectedDepartment(prev => ({
+          ...prev,
+          students: prev.students.filter(s => s._id !== studentId)
+        }));
+      }
+    } catch (err) {
+      showToast("error", err?.data?.message || "Failed to remove student");
     }
   };
 
-  const handleCancelBatch = async () => {
-    if (!selectedBatch?._id) {
-      showToast("error", "No batch selected for cancellation");
-      return;
-    }
+  const openEditDialog = (department) => {
+    setSelectedDepartment(department);
+    // Handle legacy course vs courses array
+    const deptCourses = department.courses && department.courses.length > 0
+      ? department.courses.map(c => c._id)
+      : (department.course ? [department.course._id] : []);
 
-    if (isCancelingBatch) return;
-    setIsCancelingBatch(true);
-
-    try {
-      await cancelBatch({
-        id: selectedBatch._id,
-        reason: cancelReason.trim() || undefined
-      }).unwrap();
-
-      showToast("success", "Batch cancelled successfully! Students and instructors have been notified.");
-      setIsCancelBatchDialogOpen(false);
-      setSelectedBatch(null);
-      setCancelReason("");
-      refetch();
-    } catch (error) {
-      console.error("Cancel batch error:", error);
-      const errorMessage =
-        error?.data?.message || error?.message || "Failed to cancel batch";
-      showToast("error", errorMessage);
-    } finally {
-      setIsCancelingBatch(false);
-    }
-  };
-
-  const handleBatchClick = (batch) => {
-    const handle = batch.slug || batch._id;
-    navigate(`/admin/batches/${handle}`);
-  };
-
-  const openEditDialog = (batch) => {
-    setSelectedBatch(batch);
     setFormData({
-      name: batch.name,
-      instructorId: batch.instructor?._id || "",
-      courseId: batch.course?._id || "",
-      startDate: batch.startDate
-        ? new Date(batch.startDate).toISOString().split("T")[0]
+      name: department.name,
+      instructorId: department.instructor?._id || "",
+      courseId: "", // Legacy field cleared
+      startDate: department.startDate
+        ? new Date(department.startDate).toISOString().split("T")[0]
         : "",
-      endDate: batch.endDate
-        ? new Date(batch.endDate).toISOString().split("T")[0]
+      endDate: department.endDate
+        ? new Date(department.endDate).toISOString().split("T")[0]
         : "",
-      capacity: batch.capacity || 50,
-      status: batch.status || "UPCOMING", // Add this line
+      capacity: department.capacity || 50,
+      status: department.status || "UPCOMING",
     });
+    setSelectedCourses(deptCourses);
     setIsEditDialogOpen(true);
   };
 
-  const openDeleteDialog = (batch) => {
-    setSelectedBatch(batch);
+  const openDeleteDialog = (department) => {
+    setSelectedDepartment(department);
     setIsDeleteDialogOpen(true);
   };
 
-  const openAssignInstructorDialog = (batch) => {
-    setSelectedBatch(batch);
+  const openAssignInstructorDialog = (department) => {
+    setSelectedDepartment(department);
     setIsAssignInstructorDialogOpen(true);
   };
 
-  const openManageStudentsDialog = (batch) => {
-    setSelectedBatch(batch);
+  const openManageStudentsDialog = (department) => {
+    setSelectedDepartment(department);
     setIsManageStudentsDialogOpen(true);
   };
 
@@ -582,8 +488,8 @@ const Batches = () => {
     );
   };
 
-  const getInstructorInfo = (batch) => {
-    if (!batch.instructor) {
+  const getInstructorInfo = (department) => {
+    if (!department.instructor) {
       return (
         <Badge variant="secondary" className="flex items-center gap-1">
           No Instructor
@@ -591,7 +497,7 @@ const Batches = () => {
       );
     }
 
-    const instructor = batch.instructor;
+    const instructor = department.instructor;
     return (
       <div className="flex items-center gap-2">
         <Avatar className="h-6 w-6">
@@ -608,13 +514,17 @@ const Batches = () => {
     );
   };
 
-  const getStudentCount = (batch) => {
-    if (!batch) return 0;
-    return batch.students?.length || 0;
+  const getStudentCount = (department) => {
+    if (!department) return 0;
+    return department.students?.length || 0;
   };
 
-  const getCourseInfo = (batch) => {
-    if (!batch.course) {
+  const getCourseInfo = (department) => {
+    const courses = department.courses && department.courses.length > 0
+      ? department.courses
+      : (department.course ? [department.course] : []);
+
+    if (courses.length === 0) {
       return (
         <Badge variant="outline" className="text-muted-foreground">
           No Course
@@ -622,37 +532,66 @@ const Batches = () => {
       );
     }
 
-    // Handle both course object structures
-    const courseName =
-      batch.course.title || batch.course.name || "Unnamed Course";
+    if (courses.length === 1) {
+      const courseName = courses[0].title || courses[0].name || "Unnamed Course";
+      return (
+        <div className="flex items-center gap-2">
+          <IconBook className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm">{courseName}</span>
+        </div>
+      );
+    }
 
     return (
-      <div className="flex items-center gap-2">
-        <IconBook className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm">{courseName}</span>
-      </div>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger>
+            <div className="flex items-center gap-2">
+              <IconBook className="h-4 w-4 text-muted-foreground" />
+              <Badge variant="secondary" className="text-xs">
+                {courses.length} Courses
+              </Badge>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <div className="flex flex-col gap-1">
+              {courses.map(c => (
+                <span key={c._id || Math.random()}>{c.title || c.name}</span>
+              ))}
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     );
+  };
+
+  const handleDepartmentClick = (department) => {
+    // Navigate to department details or manage page
+    // For now, let's open the edit dialog if no dedicated page exists
+    // OR if there is a route, navigate to it.
+    // Based on typical patterns:
+    navigate(`/admin/departments/${department._id}`);
   };
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      UPCOMING: { 
-        variant: "secondary", 
+      UPCOMING: {
+        variant: "secondary",
         label: "Upcoming",
         className: "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200"
       },
-      ONGOING: { 
-        variant: "default", 
+      ONGOING: {
+        variant: "default",
         label: "Ongoing",
         className: "bg-green-100 text-green-800 border-green-200 hover:bg-green-200"
       },
-      COMPLETED: { 
-        variant: "outline", 
+      COMPLETED: {
+        variant: "outline",
         label: "Completed",
         className: "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200"
       },
-      CANCELLED: { 
-        variant: "destructive", 
+      CANCELLED: {
+        variant: "destructive",
         label: "Cancelled",
         className: "bg-red-100 text-red-800 border-red-200 hover:bg-red-200 font-medium"
       },
@@ -665,8 +604,8 @@ const Batches = () => {
     };
 
     return (
-      <Badge 
-        variant={config.variant} 
+      <Badge
+        variant={config.variant}
         className={config.className}
       >
         {config.label}
@@ -716,15 +655,15 @@ const Batches = () => {
     );
   }
 
-  if (batchesError) {
-    if (batchesError.status === 401) {
+  if (departmentsError) {
+    if (departmentsError.status === 401) {
       return (
         <div className="flex flex-col justify-center items-center h-64 space-y-4 p-4">
           <div className="text-red-600 text-lg font-medium">
             Authentication Required
           </div>
           <p className="text-gray-600 text-center">
-            Please log in as an admin to view batches
+            Please log in as an admin to view departments
           </p>
           <Button
             onClick={() => (window.location.href = "/login")}
@@ -739,10 +678,10 @@ const Batches = () => {
     return (
       <div className="flex flex-col justify-center items-center h-64 space-y-4 p-4">
         <div className="text-red-600 text-lg font-medium">
-          Error loading batches
+          Error loading departments
         </div>
         <p className="text-gray-600 text-center">
-          {batchesError?.message || "Failed to fetch batches"}
+          {departmentsError?.message || "Failed to fetch departments"}
         </p>
         <Button onClick={() => refetch()} variant="outline" className="gap-2">
           <IconRefresh className="h-4 w-4" />
@@ -757,9 +696,9 @@ const Batches = () => {
       {/* Header with Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
-          title="Total Batches"
+          title="Total Departments"
           value={totalCount}
-          description="All created batches"
+          description="All created departments"
           icon={IconSchool}
           iconBgColor="bg-blue-100"
           iconColor="text-blue-600"
@@ -771,8 +710,8 @@ const Batches = () => {
         />
 
         <StatCard
-          title="Assigned Batches"
-          value={batches.filter((b) => b.instructor).length}
+          title="Assigned Departments"
+          value={departments.filter((d) => d.instructor).length}
           description="With instructors"
           icon={IconUser}
           iconBgColor="bg-green-100"
@@ -785,12 +724,12 @@ const Batches = () => {
         />
 
         <StatCard
-          title="Total Students"
-          value={batches.reduce(
-            (total, batch) => total + getStudentCount(batch),
+          title="Total Trainees"
+          value={departments.reduce(
+            (total, department) => total + getStudentCount(department),
             0
           )}
-          description="Across all batches"
+          description="Across all departments"
           icon={IconUsers}
           iconBgColor="bg-purple-100"
           iconColor="text-purple-600"
@@ -802,26 +741,18 @@ const Batches = () => {
         />
       </div>
 
-      {/* Batch Status Notifications */}
-      {user?._id && (
-        <BatchStatusNotifications 
-          userId={user._id} 
-          className="mb-6"
-        />
-      )}
-
       {/* Tabs for filtering */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <TabsList className="grid grid-cols-3 w-full sm:w-auto">
-            <TabsTrigger 
-              value="all" 
+            <TabsTrigger
+              value="all"
               onClick={() => {
                 setActiveTab("all");
                 setStatusFilter("ALL");
               }}
             >
-              All ({batches.length})
+              All ({departments.length})
             </TabsTrigger>
             <TabsTrigger
               value="assigned"
@@ -830,7 +761,7 @@ const Batches = () => {
                 setStatusFilter("HAS_INSTRUCTOR");
               }}
             >
-              Assigned ({batches.filter(b => b.instructor).length})
+              Assigned ({departments.filter(d => d.instructor).length})
             </TabsTrigger>
             <TabsTrigger
               value="unassigned"
@@ -839,7 +770,7 @@ const Batches = () => {
                 setStatusFilter("NO_INSTRUCTOR");
               }}
             >
-              Unassigned ({batches.filter(b => !b.instructor).length})
+              Unassigned ({departments.filter(d => !d.instructor).length})
             </TabsTrigger>
           </TabsList>
 
@@ -848,7 +779,7 @@ const Batches = () => {
             className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
           >
             <IconPlus className="h-4 w-4 mr-2" />
-            Create Batch
+            Create Department
           </Button>
         </div>
       </Tabs>
@@ -858,7 +789,7 @@ const Batches = () => {
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <SearchInput
-              placeholder="Search batches by name..."
+              placeholder="Search departments by name..."
               value={searchTerm}
               onChange={setSearchTerm}
               className="w-full sm:w-96"
@@ -889,10 +820,10 @@ const Batches = () => {
               <Button
                 variant="outline"
                 size="sm"
-                disabled={isExportingBatches}
+                disabled={isExportingDepartments}
                 onClick={async () => {
                   try {
-                    const { data } = await triggerExportBatches({
+                    const { data } = await triggerExportDepartments({
                       format: 'excel',
                       search: debouncedSearchTerm || '',
                       status: statusFilter !== 'ALL' ? statusFilter : ''
@@ -901,12 +832,12 @@ const Batches = () => {
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `batches_${new Date().toISOString().slice(0,10)}.xlsx`;
+                    a.download = `departments_${new Date().toISOString().slice(0, 10)}.xlsx`;
                     document.body.appendChild(a);
                     a.click();
                     a.remove();
                     window.URL.revokeObjectURL(url);
-                  } catch {}
+                  } catch { }
                 }}
               >
                 Export Excel
@@ -914,10 +845,10 @@ const Batches = () => {
               <Button
                 variant="outline"
                 size="sm"
-                disabled={isExportingBatches}
+                disabled={isExportingDepartments}
                 onClick={async () => {
                   try {
-                    const { data } = await triggerExportBatches({
+                    const { data } = await triggerExportDepartments({
                       format: 'pdf',
                       search: debouncedSearchTerm || '',
                       status: statusFilter !== 'ALL' ? statusFilter : ''
@@ -926,12 +857,12 @@ const Batches = () => {
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `batches_${new Date().toISOString().slice(0,10)}.pdf`;
+                    a.download = `departments_${new Date().toISOString().slice(0, 10)}.pdf`;
                     document.body.appendChild(a);
                     a.click();
                     a.remove();
                     window.URL.revokeObjectURL(url);
-                  } catch {}
+                  } catch { }
                 }}
               >
                 Export PDF
@@ -950,22 +881,22 @@ const Batches = () => {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
-                <TableHead className="w-[220px]">Batch Name</TableHead>
+                <TableHead className="w-[220px]">Department Name</TableHead>
                 <TableHead>Course</TableHead>
                 <TableHead>Instructor</TableHead>
-                <TableHead>Students</TableHead>
+                <TableHead>Trainees</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredBatches.length > 0 ? (
-                filteredBatches.map((batch) => (
+              {filteredDepartments.length > 0 ? (
+                filteredDepartments.map((department) => (
                   <TableRow
-                    key={batch._id}
+                    key={department._id}
                     className="group hover:bg-muted/30"
-                    onClick={() => handleBatchClick(batch)}
+                    onClick={() => handleDepartmentClick(department)}
                   >
                     <TableCell>
                       <div className="flex items-center space-x-3">
@@ -974,16 +905,16 @@ const Batches = () => {
                         </div>
                         <div>
                           <p className="font-medium text-foreground">
-                            {batch.name}
+                            {department.name}
                           </p>
                         </div>
                         <IconExternalLink className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                     </TableCell>
-                    <TableCell>{getCourseInfo(batch)}</TableCell>
+                    <TableCell>{getCourseInfo(department)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        {getInstructorInfo(batch)}
+                        {getInstructorInfo(department)}
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -992,7 +923,7 @@ const Batches = () => {
                                 size="sm"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  openAssignInstructorDialog(batch);
+                                  openAssignInstructorDialog(department);
                                 }}
                                 className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                               >
@@ -1013,7 +944,7 @@ const Batches = () => {
                           className="flex items-center gap-1"
                         >
                           <IconUsers className="h-3 w-3" />
-                          {getStudentCount(batch)} students
+                          {getStudentCount(department)} trainees
                         </Badge>
 
                         <DropdownMenu>
@@ -1033,23 +964,23 @@ const Batches = () => {
                             <DropdownMenuItem
                               onClick={(e) => {
                                 e.stopPropagation();
-                                openManageStudentsDialog(batch);
+                                openManageStudentsDialog(department);
                               }}
                             >
                               <IconUserPlus className="h-4 w-4 mr-2" />
-                              Manage Students
+                              Manage Trainees
                             </DropdownMenuItem>
 
-                            {batch.students && batch.students.length > 0 && (
+                            {department.students && department.students.length > 0 && (
                               <>
                                 <DropdownMenuSeparator />
                                 <div className="max-h-48 overflow-y-auto">
-                                  {batch.students.slice(0, 5).map((student) => (
+                                  {department.students.slice(0, 5).map((student) => (
                                     <DropdownMenuItem
                                       key={student._id}
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        handleRemoveStudent({ batchId: batch._id, studentId: student._id, studentName: student.fullName });
+                                        handleRemoveStudent({ departmentId: department._id, studentId: student._id, studentName: student.fullName });
                                       }}
                                       className="text-red-600 focus:text-red-600"
                                     >
@@ -1064,14 +995,14 @@ const Batches = () => {
                         </DropdownMenu>
                       </div>
                     </TableCell>
-                    <TableCell>{getStatusBadge(batch.status)}</TableCell>
+                    <TableCell>{getStatusBadge(department.status)}</TableCell>
                     <TableCell>
                       <div className="flex flex-col">
                         <span className="text-sm">
-                          {new Date(batch.createdAt).toLocaleDateString()}
+                          {new Date(department.createdAt).toLocaleDateString()}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {new Date(batch.createdAt).toLocaleTimeString()}
+                          {new Date(department.createdAt).toLocaleTimeString()}
                         </span>
                       </div>
                     </TableCell>
@@ -1085,7 +1016,7 @@ const Batches = () => {
                                 size="sm"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  openEditDialog(batch);
+                                  openEditDialog(department);
                                 }}
                                 className="h-8 w-8 p-0"
                               >
@@ -1093,12 +1024,12 @@ const Batches = () => {
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Edit batch</p>
+                              <p>Edit department</p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
 
-                        {batch.status !== 'CANCELLED' && (
+                        {department.status !== 'CANCELLED' && (
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -1107,8 +1038,8 @@ const Batches = () => {
                                   size="sm"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setSelectedBatch(batch);
-                                    setIsCancelBatchDialogOpen(true);
+                                    setSelectedDepartment(department);
+                                    setIsCancelDepartmentDialogOpen(true);
                                   }}
                                   className="h-8 w-8 p-0 text-orange-600 hover:text-orange-800 hover:bg-orange-50"
                                 >
@@ -1116,7 +1047,7 @@ const Batches = () => {
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Cancel batch</p>
+                                <p>Cancel department</p>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
@@ -1130,7 +1061,7 @@ const Batches = () => {
                                 size="sm"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  openDeleteDialog(batch);
+                                  openDeleteDialog(department);
                                 }}
                                 className="h-8 w-8 p-0 text-red-600 hover:text-red-800 hover:bg-red-50"
                               >
@@ -1138,7 +1069,7 @@ const Batches = () => {
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Delete batch</p>
+                              <p>Delete department</p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
@@ -1152,12 +1083,12 @@ const Batches = () => {
                     <div className="flex flex-col items-center space-y-3">
                       <IconSchool className="h-12 w-12 text-muted-foreground/60" />
                       <p className="text-muted-foreground font-medium">
-                        No batches found
+                        No departments found
                       </p>
                       <p className="text-sm text-muted-foreground">
                         {searchTerm || statusFilter !== "ALL"
                           ? "Try adjusting your search or filters"
-                          : "Create your first batch to get started"}
+                          : "Create your first department to get started"}
                       </p>
                       {(searchTerm || statusFilter !== "ALL") && (
                         <Button
@@ -1181,7 +1112,7 @@ const Batches = () => {
       {totalPages > 1 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            Showing {filteredBatches.length} of {totalCount} batches
+            Showing {filteredDepartments.length} of {totalCount} departments
           </p>
           <div className="flex space-x-2">
             <Button
@@ -1207,27 +1138,27 @@ const Batches = () => {
         </div>
       )}
 
-      {/* Create Batch Dialog */}
+      {/* Create Department Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <IconPlus className="h-5 w-5" />
-              Create New Batch
+              Create New Department
             </DialogTitle>
             <DialogDescription>
-              Create a new batch. You can assign an instructor later.
+              Create a new department. You can assign an instructor later.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="name">Batch Name *</Label>
+              <Label htmlFor="name">Department Name *</Label>
               <Input
                 id="name"
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
-                placeholder="Enter batch name"
+                placeholder="Enter department name"
                 className={
                   formErrors.name ? "border-red-500 focus:border-red-500" : ""
                 }
@@ -1237,48 +1168,67 @@ const Batches = () => {
               )}
             </div>
 
-            {/* Create Batch Dialog - Course Selector */}
             <div className="grid gap-2">
-              <Label htmlFor="courseId">Course (Optional)</Label>
-              <Select
-                value={formData.courseId}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, courseId: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a course">
-                    {formData.courseId
-                      ? courses.find((c) => c._id === formData.courseId)
-                          ?.title || courses.find((c) => c._id === formData.courseId)?.name || "Selected Course"
-                      : "Select a course"}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {coursesLoading ? (
-                    <SelectItem value="loading" disabled>
-                      <div className="flex items-center gap-2">
-                        <IconLoader className="h-4 w-4 animate-spin" />
-                        Loading courses...
-                      </div>
-                    </SelectItem>
-                  ) : coursesError ? (
-                    <SelectItem value="error" disabled>
-                      Error loading courses
-                    </SelectItem>
-                  ) : courses.length > 0 ? (
-                    courses.map((course) => (
-                      <SelectItem key={course._id} value={course._id}>
-                        {course.title || course.name} - {course.difficulty || 'Not specified'}
+              <Label>Courses (Optional)</Label>
+              <div className="space-y-3">
+                <Select
+                  onValueChange={(value) => {
+                    if (value && !selectedCourses.includes(value)) {
+                      setSelectedCourses([...selectedCourses, value]);
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Add courses..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {coursesLoading ? (
+                      <SelectItem value="loading" disabled>
+                        <div className="flex items-center gap-2">
+                          <IconLoader className="h-4 w-4 animate-spin" />
+                          Loading courses...
+                        </div>
                       </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="none" disabled>
-                      No courses available
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
+                    ) : coursesError ? (
+                      <SelectItem value="error" disabled>
+                        Error loading courses
+                      </SelectItem>
+                    ) : courses.length > 0 ? (
+                      courses.map((course) => (
+                        <SelectItem key={course._id} value={course._id}>
+                          {course.title || course.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="none" disabled>
+                        No courses available
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+
+                {selectedCourses.length > 0 && (
+                  <div className="flex flex-wrap gap-2 p-2 border rounded-md bg-muted/20">
+                    {selectedCourses.map((courseId) => {
+                      const course = courses.find((c) => c._id === courseId);
+                      return (
+                        <Badge key={courseId} variant="secondary" className="flex items-center gap-1 pl-2 pr-1 py-1">
+                          {course?.title || course?.name || "Loading..."}
+                          <div
+                            className="ml-1 hover:bg-red-200 rounded-full p-0.5 cursor-pointer transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedCourses(prev => prev.filter(id => id !== courseId));
+                            }}
+                          >
+                            <IconX className="h-3 w-3 text-red-600" />
+                          </div>
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="grid gap-2">
@@ -1363,84 +1313,104 @@ const Batches = () => {
               Cancel
             </Button>
             <Button
-              onClick={handleCreateBatch}
+              onClick={handleCreateDepartment}
               disabled={isSubmitting}
               className="gap-2"
             >
               {isSubmitting && <IconLoader className="h-4 w-4 animate-spin" />}
-              {isSubmitting ? "Creating..." : "Create Batch"}
+              {isSubmitting ? "Creating..." : "Create Department"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Edit Batch Dialog */}
-      {/* Edit Batch Dialog */}
+      {/* Edit Department Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <IconPencil className="h-5 w-5" />
-              Edit Batch
+              Edit Department
             </DialogTitle>
-            <DialogDescription>Update batch information.</DialogDescription>
+            <DialogDescription>Update department information.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="edit-name">Batch Name *</Label>
+              <Label htmlFor="edit-name">Department Name *</Label>
               <Input
                 id="edit-name"
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
-                placeholder="Enter batch name"
+                placeholder="Enter department name"
               />
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="edit-courseId">Course</Label>
-              <Select
-                value={formData.courseId}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, courseId: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a course">
-                    {formData.courseId
-                      ? courses.find((c) => c._id === formData.courseId)
-                          ?.title || courses.find((c) => c._id === formData.courseId)?.name || "Selected Course"
-                      : "Select a course"}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {coursesLoading ? (
-                    <SelectItem value="loading" disabled>
-                      <div className="flex items-center gap-2">
-                        <IconLoader className="h-4 w-4 animate-spin" />
-                        Loading courses...
-                      </div>
-                    </SelectItem>
-                  ) : coursesError ? (
-                    <SelectItem value="error" disabled>
-                      Error loading courses
-                    </SelectItem>
-                  ) : courses.length > 0 ? (
-                    courses.map((course) => (
-                      <SelectItem key={course._id} value={course._id}>
-                        {course.title || course.name} - {course.difficulty || 'Not specified'}
+              <Label>Courses</Label>
+              <div className="space-y-3">
+                <Select
+                  onValueChange={(value) => {
+                    if (value && !selectedCourses.includes(value)) {
+                      setSelectedCourses([...selectedCourses, value]);
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Add courses..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {coursesLoading ? (
+                      <SelectItem value="loading" disabled>
+                        <div className="flex items-center gap-2">
+                          <IconLoader className="h-4 w-4 animate-spin" />
+                          Loading courses...
+                        </div>
                       </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="none" disabled>
-                      No courses available
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
+                    ) : coursesError ? (
+                      <SelectItem value="error" disabled>
+                        Error loading courses
+                      </SelectItem>
+                    ) : courses.length > 0 ? (
+                      courses.map((course) => (
+                        <SelectItem key={course._id} value={course._id}>
+                          {course.title || course.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="none" disabled>
+                        No courses available
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+
+                {selectedCourses.length > 0 && (
+                  <div className="flex flex-wrap gap-2 p-2 border rounded-md bg-muted/20">
+                    {selectedCourses.map((courseId) => {
+                      const course = courses.find((c) => c._id === courseId);
+                      // Fallback if course not found in list (e.g. pagination limit)
+                      // In real app we might need to fetch it or rely on department data if available
+                      return (
+                        <Badge key={courseId} variant="secondary" className="flex items-center gap-1 pl-2 pr-1 py-1">
+                          {course?.title || course?.name || "Unknown Course"}
+                          <div
+                            className="ml-1 hover:bg-red-200 rounded-full p-0.5 cursor-pointer transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedCourses(prev => prev.filter(id => id !== courseId));
+                            }}
+                          >
+                            <IconX className="h-3 w-3 text-red-600" />
+                          </div>
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* In Edit Batch Dialog */}
             <div className="grid gap-2">
               <Label htmlFor="edit-status">Status</Label>
               <Select
@@ -1461,7 +1431,6 @@ const Batches = () => {
               </Select>
             </div>
 
-            {/* Rest of the edit form remains the same */}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="edit-startDate">Start Date</Label>
@@ -1509,12 +1478,12 @@ const Batches = () => {
               Cancel
             </Button>
             <Button
-              onClick={handleUpdateBatch}
+              onClick={handleUpdateDepartment}
               disabled={isSubmitting}
               className="gap-2"
             >
               {isSubmitting && <IconLoader className="h-4 w-4 animate-spin" />}
-              {isSubmitting ? "Updating..." : "Update Batch"}
+              {isSubmitting ? "Updating..." : "Update Department"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1526,10 +1495,10 @@ const Batches = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
               <IconTrash className="h-5 w-5" />
-              Delete Batch
+              Delete Department
             </DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete the batch "{selectedBatch?.name}"?
+              Are you sure you want to delete the department "{selectedDepartment?.name}"?
               This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
@@ -1542,11 +1511,11 @@ const Batches = () => {
             </Button>
             <Button
               variant="destructive"
-              onClick={handleDeleteBatch}
+              onClick={handleDeleteDepartment}
               className="gap-2"
             >
               <IconTrash className="h-4 w-4" />
-              Delete Batch
+              Delete Department
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1561,25 +1530,23 @@ const Batches = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <IconUser className="h-5 w-5" />
-              {selectedBatch?.instructor
+              {selectedDepartment?.instructor
                 ? "Reassign Instructor"
                 : "Assign Instructor"}
             </DialogTitle>
             <DialogDescription>
-              {selectedBatch?.instructor
-                ? `Change instructor for batch "${selectedBatch?.name}"`
-                : `Assign an instructor to the batch "${selectedBatch?.name}"`}
+              {selectedDepartment?.instructor
+                ? `Change instructor for department "${selectedDepartment?.name}"`
+                : `Assign an instructor to the department "${selectedDepartment?.name}"`}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            {/* Add option to remove current instructor */}
-            {selectedBatch?.instructor && (
+            {selectedDepartment?.instructor && (
               <div
-                className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors mb-4 ${
-                  isRemovingInstructor
-                    ? "bg-gray-100 border-gray-200 cursor-not-allowed"
-                    : "hover:bg-red-50 border-red-200"
-                }`}
+                className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors mb-4 ${isRemovingInstructor
+                  ? "bg-gray-100 border-gray-200 cursor-not-allowed"
+                  : "hover:bg-red-50 border-red-200"
+                  }`}
                 onClick={
                   isRemovingInstructor ? undefined : handleRemoveInstructor
                 }
@@ -1599,8 +1566,8 @@ const Batches = () => {
                         : "Remove Current Instructor"}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      Unassign {selectedBatch.instructor.fullName} from this
-                      batch
+                      Unassign {selectedDepartment.instructor.fullName} from this
+                      department
                     </p>
                   </div>
                 </div>
@@ -1623,11 +1590,10 @@ const Batches = () => {
                 {instructors.map((instructor) => (
                   <div
                     key={instructor._id}
-                    className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
-                      selectedBatch?.instructor?._id === instructor._id
-                        ? "bg-blue-50 border-blue-200"
-                        : "hover:bg-muted"
-                    }`}
+                    className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${selectedDepartment?.instructor?._id === instructor._id
+                      ? "bg-blue-50 border-blue-200"
+                      : "hover:bg-muted"
+                      }`}
                     onClick={() => handleAssignInstructor(instructor._id)}
                   >
                     <div className="flex items-center gap-3">
@@ -1650,7 +1616,7 @@ const Batches = () => {
                         </p>
                       </div>
                     </div>
-                    {selectedBatch?.instructor?._id === instructor._id && (
+                    {selectedDepartment?.instructor?._id === instructor._id && (
                       <Badge variant="default">Current</Badge>
                     )}
                   </div>
@@ -1678,17 +1644,17 @@ const Batches = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <IconUsers className="h-5 w-5" />
-              Manage Students
+              Manage Trainees
             </DialogTitle>
             <DialogDescription>
-              Manage students in the batch "{selectedBatch?.name}".
+              Manage trainees in the department "{selectedDepartment?.name}".
             </DialogDescription>
           </DialogHeader>
 
           <Tabs defaultValue="add" className="w-full flex-1 flex flex-col">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="add">Add Students</TabsTrigger>
-              <TabsTrigger value="remove">Remove Students</TabsTrigger>
+              <TabsTrigger value="add">Add Trainees</TabsTrigger>
+              <TabsTrigger value="remove">Remove Trainees</TabsTrigger>
             </TabsList>
 
             <TabsContent
@@ -1702,18 +1668,18 @@ const Batches = () => {
                   </div>
                 ) : studentsError ? (
                   <div className="text-center text-red-600 py-4">
-                    Error loading students
+                    Error loading trainees
                   </div>
                 ) : students.length === 0 ? (
                   <div className="text-center text-muted-foreground py-8">
-                    No students available
+                    No trainees available
                   </div>
                 ) : (
                   <div className="space-y-2 max-h-60 overflow-y-auto">
                     {students
                       .filter(
                         (student) =>
-                          !selectedBatch?.students?.some(
+                          !selectedDepartment?.students?.some(
                             (s) => s._id === student._id
                           )
                       )
@@ -1725,11 +1691,10 @@ const Batches = () => {
                         return (
                           <div
                             key={student._id}
-                            className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
-                              isSelected
-                                ? "bg-blue-50 border-blue-200"
-                                : "hover:bg-muted"
-                            }`}
+                            className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${isSelected
+                              ? "bg-blue-50 border-blue-200"
+                              : "hover:bg-muted"
+                              }`}
                             onClick={() => toggleStudentSelection(student._id)}
                           >
                             <div className="flex items-center gap-3">
@@ -1765,7 +1730,7 @@ const Batches = () => {
               </div>
               <DialogFooter className="flex items-center justify-between pt-4 border-t">
                 <div className="text-sm text-muted-foreground">
-                  {selectedStudents.length} student(s) selected
+                  {selectedStudents.length} trainee(s) selected
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -1783,7 +1748,7 @@ const Batches = () => {
                     className="gap-2"
                   >
                     <IconUserPlus className="h-4 w-4" />
-                    Add Selected Students
+                    Add Selected Trainees
                   </Button>
                 </div>
               </DialogFooter>
@@ -1794,14 +1759,14 @@ const Batches = () => {
               className="flex-1 overflow-hidden flex flex-col"
             >
               <div className="py-4 flex-1 overflow-hidden">
-                {!selectedBatch?.students ||
-                selectedBatch.students.length === 0 ? (
+                {!selectedDepartment?.students ||
+                  selectedDepartment.students.length === 0 ? (
                   <div className="text-center text-muted-foreground py-8">
-                    No students in this batch
+                    No trainees in this department
                   </div>
                 ) : (
                   <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {selectedBatch.students.map((student) => (
+                    {selectedDepartment.students.map((student) => (
                       <div
                         key={student._id}
                         className="flex items-center justify-between p-3 rounded-lg border"
@@ -1829,9 +1794,9 @@ const Batches = () => {
                         <Button
                           variant="destructive"
                           size="sm"
-                          onClick={() => handleRemoveStudent({ batchId: selectedBatch?._id, studentId: student._id, studentName: student.fullName })}
+                          onClick={() => handleRemoveStudent({ departmentId: selectedDepartment?._id, studentId: student._id, studentName: student.fullName })}
                           className="gap-1"
-                          disabled={!selectedBatch?._id}
+                          disabled={!selectedDepartment?._id}
                         >
                           <IconTrash className="h-3 w-3" />
                           Remove
@@ -1854,17 +1819,17 @@ const Batches = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Cancel Batch Confirmation Dialog */}
-      <Dialog open={isCancelBatchDialogOpen} onOpenChange={setIsCancelBatchDialogOpen}>
+      {/* Cancel Department Confirmation Dialog */}
+      <Dialog open={isCancelDepartmentDialogOpen} onOpenChange={setIsCancelDepartmentDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-orange-600">
               <IconX className="h-5 w-5" />
-              Cancel Batch
+              Cancel Department
             </DialogTitle>
             <DialogDescription>
-              Are you sure you want to cancel the batch "{selectedBatch?.name}"?
-              This will notify all enrolled students and the instructor.
+              Are you sure you want to cancel the department "{selectedDepartment?.name}"?
+              This will notify all enrolled trainees and the instructor.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -1874,8 +1839,8 @@ const Batches = () => {
                 id="cancel-reason"
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
-                placeholder="Enter reason for cancelling this batch..."
-                disabled={isCancelingBatch}
+                placeholder="Enter reason for cancelling this department..."
+                disabled={isCancelingDepartment}
               />
               <p className="text-sm text-muted-foreground">
                 This reason will be included in notifications sent to affected users.
@@ -1885,23 +1850,23 @@ const Batches = () => {
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setIsCancelBatchDialogOpen(false)}
-              disabled={isCancelingBatch}
+              onClick={() => setIsCancelDepartmentDialogOpen(false)}
+              disabled={isCancelingDepartment}
             >
-              Keep Batch
+              Keep Department
             </Button>
             <Button
               variant="destructive"
-              onClick={handleCancelBatch}
-              disabled={isCancelingBatch}
+              onClick={handleCancelDepartment}
+              disabled={isCancelingDepartment}
               className="gap-2 bg-orange-600 hover:bg-orange-700"
             >
-              {isCancelingBatch ? (
+              {isCancelingDepartment ? (
                 <IconLoader className="h-4 w-4 animate-spin" />
               ) : (
                 <IconX className="h-4 w-4" />
               )}
-              {isCancelingBatch ? "Canceling..." : "Cancel Batch"}
+              {isCancelingDepartment ? "Canceling..." : "Cancel Department"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1910,4 +1875,4 @@ const Batches = () => {
   );
 };
 
-export default Batches;
+export default Departments;

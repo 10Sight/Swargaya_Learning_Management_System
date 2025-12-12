@@ -26,7 +26,7 @@ export const createCertificateTemplate = asyncHandler(async (req, res) => {
         placeholders: placeholders || [
             { key: "studentName", description: "Student's full name", required: true },
             { key: "courseName", description: "Course title", required: true },
-            { key: "batchName", description: "Batch name", required: true },
+            { key: "departmentName", description: "Department name", required: true },
             { key: "instructorName", description: "Instructor's full name", required: true },
             { key: "level", description: "Student's completion level", required: true },
             { key: "issueDate", description: "Certificate issue date", required: true },

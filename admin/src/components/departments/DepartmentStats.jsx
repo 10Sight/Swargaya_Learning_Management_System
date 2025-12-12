@@ -1,34 +1,34 @@
-// src/components/batches/BatchStats.jsx
+// src/components/departments/DepartmentStats.jsx
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { IconUser, IconUsers, IconBook, IconCalendar } from "@tabler/icons-react";
 
-const BatchStats = ({ batch }) => {
+const DepartmentStats = ({ department }) => {
   const stats = [
     {
       title: "Total Students",
-      value: batch.students?.length || 0,
+      value: department.students?.length || 0,
       icon: IconUsers,
       color: "text-blue-600",
       bgColor: "bg-blue-100",
     },
     {
       title: "Instructor",
-      value: batch.instructor ? "Assigned" : "Not Assigned",
+      value: department.instructor ? "Assigned" : "Not Assigned",
       icon: IconUser,
       color: "text-green-600",
       bgColor: "bg-green-100",
     },
     {
       title: "Course",
-      value: batch.course ? "Assigned" : "Not Assigned",
+      value: department.course ? "Assigned" : "Not Assigned",
       icon: IconBook,
       color: "text-purple-600",
       bgColor: "bg-purple-100",
     },
     {
       title: "Duration",
-      value: batch.startDate && batch.endDate ? "Set" : "Not Set",
+      value: department.startDate && department.endDate ? "Set" : "Not Set",
       icon: IconCalendar,
       color: "text-orange-600",
       bgColor: "bg-orange-100",
@@ -58,4 +58,4 @@ const BatchStats = ({ batch }) => {
   );
 };
 
-export default BatchStats;
+export default DepartmentStats;

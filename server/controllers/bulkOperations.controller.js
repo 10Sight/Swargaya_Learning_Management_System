@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import User from "../models/auth.model.js";
 import Course from "../models/course.model.js";
-import Batch from "../models/batch.model.js";
+import Department from "../models/department.model.js";
 import Enrollment from "../models/enrollment.model.js";
 import Certificate from "../models/certificate.model.js";
 import CertificateTemplate from "../models/certificateTemplate.model.js";
@@ -13,17 +13,17 @@ import sendEmail from "../utils/mail.util.js";
 
 // === BULK USER ENROLLMENT ===
 
-// Bulk enroll users in courses/batches
+// Bulk enroll users in courses/departments
 export const bulkEnrollUsers = asyncHandler(async (req, res) => {
     try {
-        const { userIds, courseIds = [], batchId, enrollmentType = 'course', notify = true } = req.body;
+        const { userIds, courseIds = [], departmentId, enrollmentType = 'course', notify = true } = req.body;
 
         if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
             throw new ApiError("User IDs are required", 400);
         }
 
-        if (!courseIds.length && !batchId) {
-            throw new ApiError("Either course IDs or batch ID is required", 400);
+        if (!courseIds.length && !departmentId) {
+            throw new ApiError("Either course IDs or department ID is required", 400);
         }
 
         // Validate users exist
@@ -32,20 +32,22 @@ export const bulkEnrollUsers = asyncHandler(async (req, res) => {
             throw new ApiError("Some users not found", 404);
         }
 
-        let batch = null;
+        let department = null;
         let courses = [];
 
-        // Validate batch if provided
-        if (batchId) {
-            batch = await Batch.findById(batchId).populate('courseIds');
-            if (!batch) {
-                throw new ApiError("Batch not found", 404);
+        // Validate department if provided
+        if (departmentId) {
+            department = await Department.findById(departmentId).populate('course'); // Department has single course
+            if (!department) {
+                throw new ApiError("Department not found", 404);
             }
-            courses = batch.courseIds;
+            if (department.course) {
+                courses = [department.course];
+            }
         }
 
         // Validate courses if provided directly
-        if (courseIds.length > 0 && !batchId) {
+        if (courseIds.length > 0 && !departmentId) {
             courses = await Course.find({ _id: { $in: courseIds } });
             if (courses.length !== courseIds.length) {
                 throw new ApiError("Some courses not found", 404);
@@ -68,7 +70,7 @@ export const bulkEnrollUsers = asyncHandler(async (req, res) => {
                             const existingEnrollment = await Enrollment.findOne({
                                 userId,
                                 courseId: course._id,
-                                ...(batchId && { batchId })
+                                ...(departmentId && { departmentId })
                             });
 
                             if (existingEnrollment) {
@@ -84,7 +86,7 @@ export const bulkEnrollUsers = asyncHandler(async (req, res) => {
                             const enrollment = new Enrollment({
                                 userId,
                                 courseId: course._id,
-                                batchId: batchId || null,
+                                departmentId: departmentId || null,
                                 enrolledBy: req.user._id,
                                 enrollmentDate: new Date(),
                                 status: 'active'
@@ -92,11 +94,11 @@ export const bulkEnrollUsers = asyncHandler(async (req, res) => {
 
                             await enrollment.save({ session });
 
-                            // Add user to batch if specified
-                            if (batch) {
-                                await Batch.findByIdAndUpdate(
-                                    batchId,
-                                    { $addToSet: { studentIds: userId } },
+                            // Add user to department if specified
+                            if (department) {
+                                await Department.findByIdAndUpdate(
+                                    departmentId,
+                                    { $addToSet: { students: userId } },
                                     { session }
                                 );
                             }
@@ -121,12 +123,12 @@ export const bulkEnrollUsers = asyncHandler(async (req, res) => {
             // Send notifications if requested
             if (notify && results.successful.length > 0) {
                 try {
-                    const enrolledUsers = await User.find({ 
-                        _id: { $in: results.successful.map(r => r.userId) } 
+                    const enrolledUsers = await User.find({
+                        _id: { $in: results.successful.map(r => r.userId) }
                     });
 
                     for (const user of enrolledUsers) {
-                        const userCourses = courses.filter(course => 
+                        const userCourses = courses.filter(course =>
                             results.successful.some(r => r.userId.toString() === user._id.toString() && r.courseId.toString() === course._id.toString())
                         );
 
@@ -138,7 +140,7 @@ export const bulkEnrollUsers = asyncHandler(async (req, res) => {
                                 data: {
                                     userName: user.fullName,
                                     courses: userCourses,
-                                    batchName: batch?.name || null,
+                                    departmentName: department?.name || null,
                                     loginUrl: process.env.FRONTEND_URL
                                 }
                             });
@@ -157,7 +159,7 @@ export const bulkEnrollUsers = asyncHandler(async (req, res) => {
                 details: {
                     userCount: userIds.length,
                     courseCount: courses.length,
-                    batchId,
+                    departmentId,
                     results: {
                         successful: results.successful.length,
                         failed: results.failed.length,
@@ -194,14 +196,14 @@ export const bulkEnrollUsers = asyncHandler(async (req, res) => {
 // Send bulk emails
 export const bulkSendEmails = asyncHandler(async (req, res) => {
     try {
-        const { 
-            recipients = [], 
-            recipientType = 'users', // 'users', 'roles', 'batches'
+        const {
+            recipients = [],
+            recipientType = 'users', // 'users', 'roles', 'departments'
             userIds = [],
             roles = [],
-            batchIds = [],
-            subject, 
-            content, 
+            departmentIds = [],
+            subject,
+            content,
             template = null,
             templateData = {},
             scheduledFor = null
@@ -215,9 +217,9 @@ export const bulkSendEmails = asyncHandler(async (req, res) => {
 
         // Build recipient list based on type
         if (recipientType === 'users' && userIds.length > 0) {
-            const users = await User.find({ 
+            const users = await User.find({
                 _id: { $in: userIds },
-                isEmailVerified: true 
+                isEmailVerified: true
             }).select('email fullName');
             emailRecipients = users.map(user => ({
                 email: user.email,
@@ -225,9 +227,9 @@ export const bulkSendEmails = asyncHandler(async (req, res) => {
                 userId: user._id
             }));
         } else if (recipientType === 'roles' && roles.length > 0) {
-            const users = await User.find({ 
+            const users = await User.find({
                 role: { $in: roles },
-                isEmailVerified: true 
+                isEmailVerified: true
             }).select('email fullName role');
             emailRecipients = users.map(user => ({
                 email: user.email,
@@ -235,20 +237,20 @@ export const bulkSendEmails = asyncHandler(async (req, res) => {
                 userId: user._id,
                 role: user.role
             }));
-        } else if (recipientType === 'batches' && batchIds.length > 0) {
-            const batches = await Batch.find({ _id: { $in: batchIds } }).populate({
-                path: 'studentIds',
+        } else if (recipientType === 'departments' && departmentIds.length > 0) {
+            const departments = await Department.find({ _id: { $in: departmentIds } }).populate({
+                path: 'students',
                 select: 'email fullName'
             });
-            
-            for (const batch of batches) {
-                for (const student of batch.studentIds) {
+
+            for (const department of departments) {
+                for (const student of department.students) {
                     emailRecipients.push({
                         email: student.email,
                         name: student.fullName,
                         userId: student._id,
-                        batchId: batch._id,
-                        batchName: batch.name
+                        departmentId: department._id,
+                        departmentName: department.name
                     });
                 }
             }
@@ -262,7 +264,7 @@ export const bulkSendEmails = asyncHandler(async (req, res) => {
         }
 
         // Remove duplicates
-        emailRecipients = emailRecipients.filter((recipient, index, self) => 
+        emailRecipients = emailRecipients.filter((recipient, index, self) =>
             index === self.findIndex(r => r.email === recipient.email)
         );
 
@@ -344,11 +346,11 @@ export const bulkSendEmails = asyncHandler(async (req, res) => {
 // Generate certificates in bulk
 export const bulkGenerateCertificates = asyncHandler(async (req, res) => {
     try {
-        const { 
-            userIds = [], 
-            courseId, 
-            templateId, 
-            batchId = null,
+        const {
+            userIds = [],
+            courseId,
+            templateId,
+            departmentId = null,
             criteria = 'completion', // 'completion', 'enrollment', 'custom'
             customCriteria = {}
         } = req.body;
@@ -374,20 +376,20 @@ export const bulkGenerateCertificates = asyncHandler(async (req, res) => {
         } else {
             // Find eligible users based on criteria
             let query = {};
-            
+
             if (criteria === 'completion') {
                 // Users who completed the course
                 const completedEnrollments = await Enrollment.find({
                     courseId,
                     status: 'completed',
-                    ...(batchId && { batchId })
+                    ...(departmentId && { departmentId })
                 }).populate('userId');
                 eligibleUsers = completedEnrollments.map(e => e.userId);
             } else if (criteria === 'enrollment') {
                 // All enrolled users
                 const enrollments = await Enrollment.find({
                     courseId,
-                    ...(batchId && { batchId })
+                    ...(departmentId && { departmentId })
                 }).populate('userId');
                 eligibleUsers = enrollments.map(e => e.userId);
             }
@@ -429,7 +431,7 @@ export const bulkGenerateCertificates = asyncHandler(async (req, res) => {
                             userId: user._id,
                             courseId,
                             templateId,
-                            batchId,
+                            departmentId,
                             issuedBy: req.user._id,
                             issuedDate: new Date(),
                             certificateNumber: `CERT-${Date.now()}-${user._id.toString().slice(-6)}`,
@@ -491,7 +493,7 @@ export const bulkGenerateCertificates = asyncHandler(async (req, res) => {
                 details: {
                     courseId,
                     templateId,
-                    batchId,
+                    departmentId,
                     criteria,
                     totalUsers: eligibleUsers.length,
                     results: {
@@ -530,10 +532,10 @@ export const bulkGenerateCertificates = asyncHandler(async (req, res) => {
 // Get bulk operation history
 export const getBulkOperationHistory = asyncHandler(async (req, res) => {
     try {
-        const { 
-            page = 1, 
-            limit = 20, 
-            operation = '', 
+        const {
+            page = 1,
+            limit = 20,
+            operation = '',
             status = '',
             dateFrom,
             dateTo,

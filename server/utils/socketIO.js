@@ -38,8 +38,8 @@ class SocketIOService {
     }
 
     // LMS-specific notification methods
-    notifyQuizStarted(batchId, quizData) {
-        this.emitToRoom(`batch-${batchId}`, 'quiz-started', {
+    notifyQuizStarted(departmentId, quizData) {
+        this.emitToRoom(`department-${departmentId}`, 'quiz-started', {
             type: 'quiz-started',
             message: `Quiz "${quizData.title}" has started`,
             quiz: quizData,
@@ -47,8 +47,8 @@ class SocketIOService {
         });
     }
 
-    notifyQuizSubmitted(batchId, submissionData) {
-        this.emitToRoom(`batch-${batchId}`, 'quiz-submitted', {
+    notifyQuizSubmitted(departmentId, submissionData) {
+        this.emitToRoom(`department-${departmentId}`, 'quiz-submitted', {
             type: 'quiz-submitted',
             message: `Quiz submitted by ${submissionData.studentName}`,
             submission: submissionData,
@@ -56,8 +56,8 @@ class SocketIOService {
         });
     }
 
-    notifyAssignmentCreated(batchId, assignmentData) {
-        this.emitToRoom(`batch-${batchId}`, 'assignment-created', {
+    notifyAssignmentCreated(departmentId, assignmentData) {
+        this.emitToRoom(`department-${departmentId}`, 'assignment-created', {
             type: 'assignment-created',
             message: `New assignment: "${assignmentData.title}"`,
             assignment: assignmentData,
@@ -65,8 +65,8 @@ class SocketIOService {
         });
     }
 
-    notifyAssignmentSubmitted(batchId, submissionData) {
-        this.emitToRoom(`batch-${batchId}`, 'assignment-submitted', {
+    notifyAssignmentSubmitted(departmentId, submissionData) {
+        this.emitToRoom(`department-${departmentId}`, 'assignment-submitted', {
             type: 'assignment-submitted',
             message: `Assignment submitted by ${submissionData.studentName}`,
             submission: submissionData,
@@ -83,8 +83,8 @@ class SocketIOService {
         });
     }
 
-    notifyNewAnnouncement(batchId, announcementData) {
-        this.emitToRoom(`batch-${batchId}`, 'new-announcement', {
+    notifyNewAnnouncement(departmentId, announcementData) {
+        this.emitToRoom(`department-${departmentId}`, 'new-announcement', {
             type: 'announcement',
             message: announcementData.message,
             announcement: announcementData,

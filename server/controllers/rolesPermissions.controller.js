@@ -9,84 +9,84 @@ const SYSTEM_PERMISSIONS = {
   // User Management
   USER_CREATE: "user:create",
   USER_READ: "user:read",
-  USER_UPDATE: "user:update", 
+  USER_UPDATE: "user:update",
   USER_DELETE: "user:delete",
   USER_SUSPEND: "user:suspend",
   USER_ACTIVATE: "user:activate",
-  
+
   // Course Management
   COURSE_CREATE: "course:create",
   COURSE_READ: "course:read",
   COURSE_UPDATE: "course:update",
   COURSE_DELETE: "course:delete",
   COURSE_PUBLISH: "course:publish",
-  
+
   // Module Management
   MODULE_CREATE: "module:create",
   MODULE_READ: "module:read",
   MODULE_UPDATE: "module:update",
   MODULE_DELETE: "module:delete",
-  
+
   // Lesson Management
   LESSON_CREATE: "lesson:create",
   LESSON_READ: "lesson:read",
   LESSON_UPDATE: "lesson:update",
   LESSON_DELETE: "lesson:delete",
-  
+
   // Resource Management
   RESOURCE_CREATE: "resource:create",
   RESOURCE_READ: "resource:read",
   RESOURCE_UPDATE: "resource:update",
   RESOURCE_DELETE: "resource:delete",
-  
-  // Batch Management
-  BATCH_CREATE: "batch:create",
-  BATCH_READ: "batch:read",
-  BATCH_UPDATE: "batch:update",
-  BATCH_DELETE: "batch:delete",
-  BATCH_MANAGE_STUDENTS: "batch:manage_students",
-  
+
+  // Department Management
+  DEPARTMENT_CREATE: "department:create",
+  DEPARTMENT_READ: "department:read",
+  DEPARTMENT_UPDATE: "department:update",
+  DEPARTMENT_DELETE: "department:delete",
+  DEPARTMENT_MANAGE_STUDENTS: "department:manage_students",
+
   // Quiz Management
   QUIZ_CREATE: "quiz:create",
   QUIZ_READ: "quiz:read",
   QUIZ_UPDATE: "quiz:update",
   QUIZ_DELETE: "quiz:delete",
   QUIZ_GRADE: "quiz:grade",
-  
+
   // Assignment Management
   ASSIGNMENT_CREATE: "assignment:create",
-  ASSIGNMENT_READ: "assignment:read", 
+  ASSIGNMENT_READ: "assignment:read",
   ASSIGNMENT_UPDATE: "assignment:update",
   ASSIGNMENT_DELETE: "assignment:delete",
   ASSIGNMENT_GRADE: "assignment:grade",
-  
+
   // Certificate Management
   CERTIFICATE_CREATE: "certificate:create",
   CERTIFICATE_READ: "certificate:read",
   CERTIFICATE_UPDATE: "certificate:update",
   CERTIFICATE_DELETE: "certificate:delete",
   CERTIFICATE_ISSUE: "certificate:issue",
-  
+
   // Analytics & Reports
   ANALYTICS_READ: "analytics:read",
   ANALYTICS_EXPORT: "analytics:export",
   REPORTS_GENERATE: "reports:generate",
-  
+
   // System Administration
   SYSTEM_SETTINGS: "system:settings",
   SYSTEM_BACKUP: "system:backup",
   SYSTEM_RESTORE: "system:restore",
   SYSTEM_MAINTENANCE: "system:maintenance",
-  
+
   // Bulk Operations
   BULK_ENROLLMENT: "bulk:enrollment",
   BULK_EMAIL: "bulk:email",
   BULK_CERTIFICATES: "bulk:certificates",
-  
+
   // Audit & Logs
   AUDIT_READ: "audit:read",
   AUDIT_DELETE: "audit:delete",
-  
+
   // Role Management
   ROLE_CREATE: "role:create",
   ROLE_READ: "role:read",
@@ -137,11 +137,11 @@ const DEFAULT_ROLES = {
       SYSTEM_PERMISSIONS.RESOURCE_READ,
       SYSTEM_PERMISSIONS.RESOURCE_UPDATE,
       SYSTEM_PERMISSIONS.RESOURCE_DELETE,
-      // Batch Management
-      SYSTEM_PERMISSIONS.BATCH_CREATE,
-      SYSTEM_PERMISSIONS.BATCH_READ,
-      SYSTEM_PERMISSIONS.BATCH_UPDATE,
-      SYSTEM_PERMISSIONS.BATCH_MANAGE_STUDENTS,
+      // Department Management
+      SYSTEM_PERMISSIONS.DEPARTMENT_CREATE,
+      SYSTEM_PERMISSIONS.DEPARTMENT_READ,
+      SYSTEM_PERMISSIONS.DEPARTMENT_UPDATE,
+      SYSTEM_PERMISSIONS.DEPARTMENT_MANAGE_STUDENTS,
       // Assessment Management
       SYSTEM_PERMISSIONS.QUIZ_CREATE,
       SYSTEM_PERMISSIONS.QUIZ_READ,
@@ -168,9 +168,9 @@ const DEFAULT_ROLES = {
     name: "Admin",
     description: "Administrator access to system management",
     permissions: [
-      ...Object.values(SYSTEM_PERMISSIONS).filter(p => 
-        !p.includes('system:') && 
-        !p.includes('role:') && 
+      ...Object.values(SYSTEM_PERMISSIONS).filter(p =>
+        !p.includes('system:') &&
+        !p.includes('role:') &&
         p !== SYSTEM_PERMISSIONS.USER_DELETE
       ),
       SYSTEM_PERMISSIONS.AUDIT_READ,
@@ -228,12 +228,12 @@ export const getRolesAndPermissions = asyncHandler(async (req, res) => {
         { id: SYSTEM_PERMISSIONS.RESOURCE_UPDATE, name: "Update Resources", description: "Edit and update resources" },
         { id: SYSTEM_PERMISSIONS.RESOURCE_DELETE, name: "Delete Resources", description: "Delete uploaded resources" }
       ],
-      "Batch Management": [
-        { id: SYSTEM_PERMISSIONS.BATCH_CREATE, name: "Create Batches", description: "Create new student batches" },
-        { id: SYSTEM_PERMISSIONS.BATCH_READ, name: "View Batches", description: "View batch information" },
-        { id: SYSTEM_PERMISSIONS.BATCH_UPDATE, name: "Update Batches", description: "Edit batch information" },
-        { id: SYSTEM_PERMISSIONS.BATCH_DELETE, name: "Delete Batches", description: "Delete student batches" },
-        { id: SYSTEM_PERMISSIONS.BATCH_MANAGE_STUDENTS, name: "Manage Students", description: "Add/remove students from batches" }
+      "Department Management": [
+        { id: SYSTEM_PERMISSIONS.DEPARTMENT_CREATE, name: "Create Departments", description: "Create new student departments" },
+        { id: SYSTEM_PERMISSIONS.DEPARTMENT_READ, name: "View Departments", description: "View department information" },
+        { id: SYSTEM_PERMISSIONS.DEPARTMENT_UPDATE, name: "Update Departments", description: "Edit department information" },
+        { id: SYSTEM_PERMISSIONS.DEPARTMENT_DELETE, name: "Delete Departments", description: "Delete student departments" },
+        { id: SYSTEM_PERMISSIONS.DEPARTMENT_MANAGE_STUDENTS, name: "Manage Students", description: "Add/remove students from departments" }
       ],
       "Assessment Management": [
         { id: SYSTEM_PERMISSIONS.QUIZ_CREATE, name: "Create Quizzes", description: "Create new quizzes and tests" },
@@ -323,7 +323,7 @@ export const createCustomRole = asyncHandler(async (req, res) => {
     // Validate permissions
     const validPermissions = Object.values(SYSTEM_PERMISSIONS);
     const invalidPermissions = permissions.filter(p => !validPermissions.includes(p));
-    
+
     if (invalidPermissions.length > 0) {
       throw new ApiError(`Invalid permissions: ${invalidPermissions.join(", ")}`, 400);
     }
@@ -390,7 +390,7 @@ export const updateRolePermissions = asyncHandler(async (req, res) => {
     // Validate permissions
     const validPermissions = Object.values(SYSTEM_PERMISSIONS);
     const invalidPermissions = permissions.filter(p => !validPermissions.includes(p));
-    
+
     if (invalidPermissions.length > 0) {
       throw new ApiError(`Invalid permissions: ${invalidPermissions.join(", ")}`, 400);
     }
@@ -575,7 +575,7 @@ export const bulkAssignRoles = asyncHandler(async (req, res) => {
       try {
         const oldRole = user.role;
         await User.findByIdAndUpdate(user._id, { role: roleId });
-        
+
         results.successful.push({
           userId: user._id,
           userEmail: user.email,

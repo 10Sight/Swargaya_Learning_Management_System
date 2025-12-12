@@ -1,6 +1,6 @@
 import { Schema, model } from "mongoose";
 
-const batchSchema = new Schema(
+const departmentSchema = new Schema(
     {
         name: {
             type: String,
@@ -17,8 +17,11 @@ const batchSchema = new Schema(
         course: {
             type: Schema.Types.ObjectId,
             ref: "Course",
-            required: false,
-            index: true,
+        },
+        courses: {
+            type: [Schema.Types.ObjectId],
+            ref: "Course",
+            default: []
         },
         instructor: {
             type: Schema.Types.ObjectId,
@@ -66,12 +69,12 @@ const batchSchema = new Schema(
             default: Date.now,
             index: true, // Index for cleanup queries
         },
-        batchQuiz: {
+        departmentQuiz: {
             type: Schema.Types.ObjectId,
             ref: "Quiz",
             required: false,
         },
-        batchAssignment: {
+        departmentAssignment: {
             type: Schema.Types.ObjectId,
             ref: "Assignment",
             required: false,
@@ -88,7 +91,7 @@ const batchSchema = new Schema(
 
 import { slugify, ensureUniqueSlug } from "../utils/slugify.js";
 
-batchSchema.pre('save', async function(next) {
+departmentSchema.pre('save', async function (next) {
     if (!this.isModified('name') && this.slug) return next();
     const base = slugify(this.name);
     this.slug = await ensureUniqueSlug(this.constructor, base, {}, this._id);
@@ -96,31 +99,31 @@ batchSchema.pre('save', async function(next) {
 });
 
 // Method to calculate status based on dates
-batchSchema.methods.calculateStatus = function() {
+departmentSchema.methods.calculateStatus = function () {
     if (this.status === 'CANCELLED') {
         return 'CANCELLED'; // Keep cancelled status if manually set
     }
-    
+
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
-    
+
     if (this.startDate) {
         const startDate = new Date(this.startDate);
         startDate.setHours(0, 0, 0, 0);
-        
+
         if (startDate > today) {
             return 'UPCOMING';
         }
-        
+
         if (this.endDate) {
             const endDate = new Date(this.endDate);
             endDate.setHours(0, 0, 0, 0);
-            
+
             // If end date is today or before today, mark as completed
             if (endDate <= today) {
                 return 'COMPLETED';
             }
-            
+
             // If start date is today or before today, and end date is after today
             if (startDate <= today && endDate > today) {
                 return 'ONGOING';
@@ -132,13 +135,13 @@ batchSchema.methods.calculateStatus = function() {
             }
         }
     }
-    
+
     // Default to UPCOMING if no dates are set or logic doesn't match
     return 'UPCOMING';
 };
 
 // Method to update status based on dates
-batchSchema.methods.updateStatus = async function() {
+departmentSchema.methods.updateStatus = async function () {
     const newStatus = this.calculateStatus();
     if (this.status !== newStatus && this.status !== 'CANCELLED') {
         this.status = newStatus;
@@ -147,160 +150,160 @@ batchSchema.methods.updateStatus = async function() {
     return this.status;
 };
 
-// Static method to update all batch statuses
-batchSchema.statics.updateAllStatuses = async function() {
-    const batches = await this.find({ 
-        status: { $ne: 'CANCELLED' }, // Don't update cancelled batches
+// Static method to update all department statuses
+departmentSchema.statics.updateAllStatuses = async function () {
+    const departments = await this.find({
+        status: { $ne: 'CANCELLED' }, // Don't update cancelled departments
         $or: [
             { startDate: { $exists: true } },
             { endDate: { $exists: true } }
         ]
     });
-    
+
     let updatedCount = 0;
     const results = [];
-    
-    for (const batch of batches) {
-        const oldStatus = batch.status;
-        const newStatus = batch.calculateStatus();
-        
+
+    for (const department of departments) {
+        const oldStatus = department.status;
+        const newStatus = department.calculateStatus();
+
         if (oldStatus !== newStatus) {
-            batch.status = newStatus;
-            await batch.save();
+            department.status = newStatus;
+            await department.save();
             updatedCount++;
-            
+
             results.push({
-                batchId: batch._id,
-                name: batch.name,
+                departmentId: department._id,
+                name: department.name,
                 oldStatus,
                 newStatus,
-                startDate: batch.startDate,
-                endDate: batch.endDate
+                startDate: department.startDate,
+                endDate: department.endDate
             });
         }
     }
-    
+
     return {
-        totalProcessed: batches.length,
+        totalProcessed: departments.length,
         updatedCount,
         results
     };
 };
 
-// Static method to find old batches for cleanup
-batchSchema.statics.findOldBatchesForCleanup = async function() {
+// Static method to find old departments for cleanup
+departmentSchema.statics.findOldDepartmentsForCleanup = async function () {
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    
+
     return await this.find({
         status: { $in: ['COMPLETED', 'CANCELLED'] },
         statusUpdatedAt: { $lt: oneWeekAgo },
         isDeleted: { $ne: true }
     }).populate('students', 'fullName email')
-      .populate('instructor', 'fullName email')
-      .populate('course', 'title');
+        .populate('instructor', 'fullName email')
+        .populate('course', 'title');
 };
 
-// Static method to cleanup old batches
-batchSchema.statics.cleanupOldBatches = async function() {
+// Static method to cleanup old departments
+departmentSchema.statics.cleanupOldDepartments = async function () {
     const results = {
         found: 0,
         deleted: 0,
         errors: [],
-        deletedBatches: []
+        deletedDepartments: []
     };
-    
+
     try {
-        const oldBatches = await this.findOldBatchesForCleanup();
-        results.found = oldBatches.length;
-        
-        if (oldBatches.length === 0) {
+        const oldDepartments = await this.findOldDepartmentsForCleanup();
+        results.found = oldDepartments.length;
+
+        if (oldDepartments.length === 0) {
             return results;
         }
-        
+
         const User = model('User');
         const Progress = model('Progress');
         const Submission = model('Submission');
         const AttemptedQuiz = model('AttemptedQuiz');
-        
-        for (const batch of oldBatches) {
+
+        for (const department of oldDepartments) {
             try {
-                // Store batch info for result
-                results.deletedBatches.push({
-                    id: batch._id,
-                    name: batch.name,
-                    status: batch.status,
-                    statusUpdatedAt: batch.statusUpdatedAt,
-                    studentCount: batch.students.length,
-                    courseName: batch.course?.title || 'N/A'
+                // Store department info for result
+                results.deletedDepartments.push({
+                    id: department._id,
+                    name: department.name,
+                    status: department.status,
+                    statusUpdatedAt: department.statusUpdatedAt,
+                    studentCount: department.students.length,
+                    courseName: department.course?.title || 'N/A'
                 });
-                
-                // 1. Clean up user references (remove batch from users)
-                // Remove batch from students (single batch reference)
+
+                // 1. Clean up user references (remove department from users)
+                // Remove department from students (single department reference)
                 await User.updateMany(
-                    { _id: { $in: batch.students.map(s => s._id) } },
-                    { $unset: { batch: 1 } }
+                    { _id: { $in: department.students.map(s => s._id) } },
+                    { $unset: { department: 1 } }
                 );
-                
-                // Remove batch from instructor (array of batches)
-                if (batch.instructor) {
+
+                // Remove department from instructor (array of departments)
+                if (department.instructor) {
                     await User.updateOne(
-                        { _id: batch.instructor },
-                        { $pull: { batches: batch._id } }
+                        { _id: department.instructor },
+                        { $pull: { departments: department._id } }
                     );
                 }
-                
+
                 // 2. Clean up related data (optional - can be kept for historical purposes)
-                // Remove progress records for this batch's course and students
-                if (batch.course) {
+                // Remove progress records for this department's course and students
+                if (department.course) {
                     await Progress.deleteMany({
-                        student: { $in: batch.students.map(s => s._id) },
-                        course: batch.course._id
+                        student: { $in: department.students.map(s => s._id) },
+                        course: department.course._id
                     });
-                    
-                    // Remove submissions for this batch's course and students  
+
+                    // Remove submissions for this department's course and students  
                     await Submission.deleteMany({
-                        student: { $in: batch.students.map(s => s._id) },
+                        student: { $in: department.students.map(s => s._id) },
                         assignment: { $exists: true }
                     });
-                    
-                    // Remove quiz attempts for this batch's course and students
+
+                    // Remove quiz attempts for this department's course and students
                     await AttemptedQuiz.deleteMany({
-                        student: { $in: batch.students.map(s => s._id) },
+                        student: { $in: department.students.map(s => s._id) },
                         quiz: { $exists: true }
                     });
                 }
-                
-                // 3. Delete the batch itself
-                await batch.deleteOne();
-                
+
+                // 3. Delete the department itself
+                await department.deleteOne();
+
                 results.deleted++;
-                
-            } catch (batchError) {
+
+            } catch (departmentError) {
                 results.errors.push({
-                    batchId: batch._id,
-                    batchName: batch.name,
-                    error: batchError.message
+                    departmentId: department._id,
+                    departmentName: department.name,
+                    error: departmentError.message
                 });
             }
         }
-        
+
         return results;
-        
+
     } catch (error) {
-        console.error('❌ Critical error in batch cleanup:', error);
+        console.error('❌ Critical error in department cleanup:', error);
         results.errors.push({ error: error.message });
         return results;
     }
 };
 
 // Pre-save middleware to automatically calculate status and track status changes
-batchSchema.pre('save', function(next) {
+departmentSchema.pre('save', function (next) {
     // Track status changes
     if (this.isModified('status') && (this.status === 'COMPLETED' || this.status === 'CANCELLED')) {
         this.statusUpdatedAt = new Date();
     }
-    
+
     // Only auto-update status if it's not manually set to CANCELLED
     if (this.status !== 'CANCELLED' && (this.isModified('startDate') || this.isModified('endDate') || this.isNew)) {
         const newStatus = this.calculateStatus();
@@ -312,8 +315,8 @@ batchSchema.pre('save', function(next) {
             }
         }
     }
-    
+
     next();
 });
 
-export default model("Batch", batchSchema);
+export default model("Department", departmentSchema);

@@ -1,14 +1,14 @@
-// src/components/batches/BatchSkeleton.jsx
+// src/components/departments/DepartmentSkeleton.jsx
 import React from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
-const BatchSkeleton = () => {
+const DepartmentSkeleton = () => {
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Back button skeleton */}
       <Skeleton className="h-10 w-32" />
-      
+
       {/* Header skeleton */}
       <div className="p-6 bg-card rounded-lg border space-y-4">
         <div className="flex items-center gap-4">
@@ -30,7 +30,7 @@ const BatchSkeleton = () => {
           ))}
         </div>
       </div>
-      
+
       {/* Stats skeleton */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {[1, 2, 3, 4].map((i) => (
@@ -47,7 +47,7 @@ const BatchSkeleton = () => {
           </Card>
         ))}
       </div>
-      
+
       {/* Instructor and course skeleton */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
@@ -66,7 +66,7 @@ const BatchSkeleton = () => {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader>
             <Skeleton className="h-6 w-32" />
@@ -88,7 +88,7 @@ const BatchSkeleton = () => {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Students table skeleton */}
       <Card>
         <CardHeader>
@@ -134,4 +134,4 @@ const BatchSkeleton = () => {
   );
 };
 
-export default BatchSkeleton;
+export default DepartmentSkeleton;

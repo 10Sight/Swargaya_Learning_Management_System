@@ -20,7 +20,7 @@ import assignmentRoutes from "./routes/assignment.routes.js";
 import submissionRoutes from "./routes/submission.routes.js";
 import certificateRoutes from "./routes/certificate.routes.js";
 import certificateTemplateRoutes from "./routes/certificateTemplate.routes.js";
-import batchRoutes from "./routes/batch.routes.js";
+import departmentRoutes from "./routes/department.routes.js";
 import enrollmentRoutes from "./routes/enrollment.routes.js";
 import auditRoutes from "./routes/audit.routes.js";
 import resourceRoutes from "./routes/resource.routes.js";
@@ -38,7 +38,7 @@ import exportRoutes from "./routes/export.routes.js";
 import courseLevelConfigRoutes from "./routes/courseLevelConfig.routes.js";
 import languageRoutes from "./routes/language.routes.js";
 import timelineScheduler from "./services/timelineScheduler.js";
-import batchStatusScheduler from "./services/batchStatusScheduler.js";
+import departmentStatusScheduler from "./services/departmentStatusScheduler.js";
 // import cleanupOldFiles from './scripts/cleanup.js';
 
 const app = express();
@@ -76,6 +76,12 @@ app.use((req, res, next) => {
     next();
 });
 
+// GLOBAL DEBUG LOGGER - TOP OF STACK
+app.use((req, res, next) => {
+    console.log(`[DEBUG_GLOBAL] Request: ${req.method} ${req.url}`);
+    next();
+});
+
 const PORT = ENV.PORT;
 
 app.get("/", (req, res) => {
@@ -102,7 +108,27 @@ app.use("/api/assignments", assignmentRoutes);
 app.use("/api/submissions", submissionRoutes);
 app.use("/api/certificates", certificateRoutes);
 app.use("/api/certificate-templates", certificateTemplateRoutes);
-app.use("/api/batches", batchRoutes);
+// Debug logging middleware - MOVED UP
+app.use((req, res, next) => {
+    // Only log API requests to reduce noise
+    if (req.url.startsWith('/api')) {
+        console.log(`[DEBUG] Incoming API Request: ${req.method} ${req.url}`);
+    }
+    next();
+});
+
+console.log("Mounting department routes...", departmentRoutes ? "Router found (type: " + typeof departmentRoutes + ")" : "Router MISSING");
+
+// Test route to verify server is reachable at this path
+app.get("/api/test-departments", (req, res) => {
+    console.log("[DEBUG] Hit test-departments route");
+    res.send("Departments API is reachable");
+});
+
+app.use("/api/departments", (req, res, next) => {
+    console.log(`[DEBUG] Entering /api/departments mount for: ${req.url}`);
+    next();
+}, departmentRoutes);
 app.use("/api/enrollments", enrollmentRoutes);
 app.use("/api/audits", auditRoutes);
 // Mount lesson routes before modules to ensure /api/modules/:moduleId/lessons resolves correctly
@@ -129,77 +155,77 @@ socketIOService.initialize(io);
 // Socket.IO connection handling
 io.on('connection', (socket) => {
     logger.info(`User connected: ${socket.id}`);
-    
+
     // Handle user authentication and room joining
     socket.on('authenticate', (userData) => {
         socket.userId = userData.userId;
         socket.userRole = userData.role;
         socket.userName = userData.name;
-        
-        // Auto-join user to their batches/courses
-        if (userData.batches && Array.isArray(userData.batches)) {
-            userData.batches.forEach(batchId => {
-                socket.join(`batch-${batchId}`);
-                logger.info(`User ${userData.name} joined batch room: batch-${batchId}`);
+
+        // Auto-join user to their departments/courses
+        if (userData.departments && Array.isArray(userData.departments)) {
+            userData.departments.forEach(departmentId => {
+                socket.join(`department-${departmentId}`);
+                logger.info(`User ${userData.name} joined department room: department-${departmentId}`);
             });
         }
-        
+
         // Join user-specific room for direct notifications
         socket.join(`user-${userData.userId}`);
-        
+
         // Notify user of successful connection
         socket.emit('authenticated', {
             message: 'Successfully connected to real-time notifications',
             connectedUsers: socketIOService.getConnectedUsersCount()
         });
     });
-    
+
     // Handle manual room joining
     socket.on('join-room', (roomId) => {
         socket.join(roomId);
         logger.info(`User ${socket.id} joined room: ${roomId}`);
-        socket.to(roomId).emit('user-joined', { 
-            userId: socket.userId, 
+        socket.to(roomId).emit('user-joined', {
+            userId: socket.userId,
             userName: socket.userName,
-            roomId 
+            roomId
         });
     });
-    
+
     // Handle leaving rooms
     socket.on('leave-room', (roomId) => {
         socket.leave(roomId);
         logger.info(`User ${socket.id} left room: ${roomId}`);
-        socket.to(roomId).emit('user-left', { 
-            userId: socket.userId, 
+        socket.to(roomId).emit('user-left', {
+            userId: socket.userId,
             userName: socket.userName,
-            roomId 
+            roomId
         });
     });
-    
+
     // Handle quiz events
     socket.on('quiz-started', (data) => {
-        socketIOService.notifyQuizStarted(data.batchId, data.quizData);
+        socketIOService.notifyQuizStarted(data.departmentId, data.quizData);
     });
-    
+
     socket.on('quiz-submitted', (data) => {
-        socketIOService.notifyQuizSubmitted(data.batchId, {
+        socketIOService.notifyQuizSubmitted(data.departmentId, {
             ...data.submissionData,
             studentName: socket.userName
         });
     });
-    
+
     // Handle assignment events
     socket.on('assignment-created', (data) => {
-        socketIOService.notifyAssignmentCreated(data.batchId, data.assignmentData);
+        socketIOService.notifyAssignmentCreated(data.departmentId, data.assignmentData);
     });
-    
+
     socket.on('assignment-submitted', (data) => {
-        socketIOService.notifyAssignmentSubmitted(data.batchId, {
+        socketIOService.notifyAssignmentSubmitted(data.departmentId, {
             ...data.submissionData,
             studentName: socket.userName
         });
     });
-    
+
     // Handle general notifications
     socket.on('send-notification', (data) => {
         socketIOService.emitToRoom(data.targetRoom, 'notification', {
@@ -209,7 +235,7 @@ io.on('connection', (socket) => {
             from: socket.userName || data.from
         });
     });
-    
+
     // Handle typing indicators (for chat features)
     socket.on('typing', (data) => {
         socket.to(data.roomId).emit('user-typing', {
@@ -218,7 +244,7 @@ io.on('connection', (socket) => {
             roomId: data.roomId
         });
     });
-    
+
     socket.on('stop-typing', (data) => {
         socket.to(data.roomId).emit('user-stopped-typing', {
             userId: socket.userId,
@@ -226,7 +252,7 @@ io.on('connection', (socket) => {
             roomId: data.roomId
         });
     });
-    
+
     // Handle disconnection
     socket.on('disconnect', () => {
         logger.info(`User disconnected: ${socket.id} (${socket.userName || 'Unknown'})`);
@@ -239,12 +265,12 @@ app.set('socketIOService', socketIOService);
 
 // Global Error Handler (must be after all routes)
 app.use((err, req, res, next) => {
-    
+
     // Default error values
     let statusCode = err.statuscode || err.status || 500;
     let message = err.message || 'Internal Server Error';
     let success = false;
-    
+
     // Handle specific error types
     if (err.name === 'ValidationError') {
         statusCode = 400;
@@ -256,7 +282,7 @@ app.use((err, req, res, next) => {
         statusCode = 400;
         message = 'Duplicate field value';
     }
-    
+
     // Send JSON error response
     res.status(statusCode).json({
         success,
@@ -266,7 +292,9 @@ app.use((err, req, res, next) => {
 });
 
 // Handle 404 for unmatched API routes (fixed pattern)
+// Handle 404 for unmatched API routes (fixed pattern)
 app.use('/api', (req, res) => {
+    console.log(`[DEBUG_404] 404 Handler reached for: ${req.originalUrl}`);
     res.status(404).json({
         success: false,
         message: `API route ${req.originalUrl} not found`
@@ -277,30 +305,30 @@ const startServer = async () => {
     try {
 
         await connectDB();
-        
+
         // Initialize schedulers after DB connection
         timelineScheduler.init();
-        batchStatusScheduler.init();
-        
+        departmentStatusScheduler.init();
+
         server.listen(PORT, () => {
             logger.info(`Server with Socket.IO running at http://localhost:${PORT}`);
         });
-        
+
         // Graceful shutdown handling
         process.on('SIGINT', () => {
             timelineScheduler.stop();
-            batchStatusScheduler.stop();
+            departmentStatusScheduler.stop();
             process.exit(0);
         });
-        
+
         process.on('SIGTERM', () => {
             timelineScheduler.stop();
-            batchStatusScheduler.stop();
+            departmentStatusScheduler.stop();
             process.exit(0);
         });
-        
+
     } catch (error) {
-        process.exit(1); 
+        process.exit(1);
     }
 };
 startServer();

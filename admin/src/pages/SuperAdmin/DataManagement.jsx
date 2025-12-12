@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { 
+import {
   useCreateDatabaseBackupMutation,
   useGetBackupHistoryQuery,
   useRestoreFromBackupMutation,
@@ -10,16 +10,16 @@ import {
   useGetDataOperationHistoryQuery,
   useCleanupOldDataMutation
 } from "../../Redux/AllApi/SuperAdminApi";
-import { 
-  Database, 
-  Download, 
-  Upload, 
-  RefreshCcw, 
-  Trash2, 
-  Archive, 
-  AlertTriangle, 
-  Clock, 
-  HardDrive, 
+import {
+  Database,
+  Download,
+  Upload,
+  RefreshCcw,
+  Trash2,
+  Archive,
+  AlertTriangle,
+  Clock,
+  HardDrive,
   BarChart3,
   FileText,
   Settings,
@@ -66,7 +66,7 @@ const DataManagement = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
-  
+
   // API Hooks
   const [createBackup, { isLoading: creatingBackup }] = useCreateDatabaseBackupMutation();
   const [restoreBackup, { isLoading: restoring }] = useRestoreFromBackupMutation();
@@ -74,7 +74,7 @@ const DataManagement = () => {
   const [exportData, { isLoading: exporting }] = useExportSystemDataMutation();
   const [importData, { isLoading: importing }] = useImportSystemDataMutation();
   const [cleanupData, { isLoading: cleaning }] = useCleanupOldDataMutation();
-  
+
   // Data Queries
   const { data: backupHistory, isLoading: loadingBackups, refetch: refetchBackups } = useGetBackupHistoryQuery({
     page: 1,
@@ -85,19 +85,19 @@ const DataManagement = () => {
     page: 1,
     limit: 10
   });
-  
+
   // Available collections for export/import
   const availableCollections = [
     { id: 'users', label: 'Users', icon: Users },
     { id: 'courses', label: 'Courses', icon: BookOpen },
-    { id: 'batches', label: 'Batches', icon: Users },
+    { id: 'departments', label: 'Departments', icon: Users },
     { id: 'progress', label: 'Progress', icon: TrendingUp },
     { id: 'quizzes', label: 'Quizzes', icon: FileText },
     { id: 'assignments', label: 'Assignments', icon: FileText },
     { id: 'certificates', label: 'Certificates', icon: Award },
     { id: 'audits', label: 'Audit Logs', icon: Activity }
   ];
-  
+
   // Handle file upload
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
@@ -110,7 +110,7 @@ const DataManagement = () => {
       }
     }
   };
-  
+
   // Create backup
   const handleCreateBackup = async () => {
     try {
@@ -127,7 +127,7 @@ const DataManagement = () => {
       toast.error(error.data?.message || 'Failed to create backup');
     }
   };
-  
+
   // Restore from backup
   const handleRestoreBackup = async (backupId) => {
     try {
@@ -143,7 +143,7 @@ const DataManagement = () => {
       toast.error(error.data?.message || 'Failed to restore backup');
     }
   };
-  
+
   // Delete backup
   const handleDeleteBackup = async (backupId) => {
     try {
@@ -155,12 +155,12 @@ const DataManagement = () => {
       toast.error(error.data?.message || 'Failed to delete backup');
     }
   };
-  
+
   // Export data
   const handleExportData = async () => {
     try {
       const result = await exportData(exportConfig).unwrap();
-      
+
       // Create download link
       const blob = new Blob([JSON.stringify(result.data, null, 2)], {
         type: 'application/json'
@@ -173,26 +173,26 @@ const DataManagement = () => {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      
+
       toast.success('Data exported successfully');
     } catch (error) {
       toast.error(error.data?.message || 'Failed to export data');
     }
   };
-  
+
   // Import data
   const handleImportData = async () => {
     if (!selectedFile) {
       toast.error('Please select a file to import');
       return;
     }
-    
+
     try {
       const formData = new FormData();
       formData.append('dataFile', selectedFile);
       formData.append('mode', importConfig.mode);
       formData.append('validateData', importConfig.validateData);
-      
+
       const result = await importData(formData).unwrap();
       toast.success(`Import completed: ${result.data.summary.totalImported} imported, ${result.data.summary.totalUpdated} updated`);
       setSelectedFile(null);
@@ -202,12 +202,12 @@ const DataManagement = () => {
       toast.error(error.data?.message || 'Failed to import data');
     }
   };
-  
+
   // Cleanup old data
   const handleCleanupData = async () => {
     try {
       const result = await cleanupData(cleanupConfig).unwrap();
-      
+
       if (cleanupConfig.dryRun) {
         const auditCount = result.data.results.auditLogs?.toDelete || 0;
         const backupCount = result.data.results.backups?.toDelete || 0;
@@ -221,7 +221,7 @@ const DataManagement = () => {
       toast.error(error.data?.message || 'Failed to cleanup data');
     }
   };
-  
+
   // Format file size
   const formatFileSize = (bytes) => {
     if (bytes === 0) return '0 Bytes';
@@ -230,12 +230,12 @@ const DataManagement = () => {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
-  
+
   // Format date
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleString();
   };
-  
+
   // Get operation status icon
   const getOperationStatusIcon = (action) => {
     switch (action) {
@@ -251,7 +251,7 @@ const DataManagement = () => {
         return <Activity className="h-4 w-4 text-gray-600" />;
     }
   };
-  
+
   const tabs = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
     { id: 'backups', label: 'Backups', icon: Archive },
@@ -259,7 +259,7 @@ const DataManagement = () => {
     { id: 'cleanup', label: 'Data Cleanup', icon: Trash2 },
     { id: 'operations', label: 'Operation History', icon: Clock }
   ];
-  
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -283,7 +283,7 @@ const DataManagement = () => {
           </button>
         </div>
       </div>
-      
+
       {/* Tabs */}
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
@@ -293,11 +293,10 @@ const DataManagement = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === tab.id
+                className={`flex items-center py-2 px-1 border-b-2 font-medium text-sm ${activeTab === tab.id
                     ? 'border-indigo-500 text-indigo-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                  }`}
               >
                 <Icon className="h-4 w-4 mr-2" />
                 {tab.label}
@@ -306,7 +305,7 @@ const DataManagement = () => {
           })}
         </nav>
       </div>
-      
+
       {/* Tab Content */}
       <div className="space-y-6">
         {activeTab === 'overview' && (
@@ -336,7 +335,7 @@ const DataManagement = () => {
                 );
               })}
             </div>
-            
+
             {/* System Summary */}
             {dataStats?.data?.summary && (
               <div className="bg-white rounded-lg shadow-sm border">
@@ -367,7 +366,7 @@ const DataManagement = () => {
             )}
           </div>
         )}
-        
+
         {activeTab === 'backups' && (
           <div className="space-y-6">
             {/* Create Backup Section */}
@@ -389,7 +388,7 @@ const DataManagement = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     />
                   </div>
-                  
+
                   <div className="flex items-center space-x-6">
                     <label className="flex items-center">
                       <input
@@ -400,7 +399,7 @@ const DataManagement = () => {
                       />
                       <span className="ml-2 text-sm text-gray-700">Enable compression</span>
                     </label>
-                    
+
                     <label className="flex items-center">
                       <input
                         type="checkbox"
@@ -411,7 +410,7 @@ const DataManagement = () => {
                       <span className="ml-2 text-sm text-gray-700">Include files</span>
                     </label>
                   </div>
-                  
+
                   <button
                     onClick={handleCreateBackup}
                     disabled={creatingBackup}
@@ -427,7 +426,7 @@ const DataManagement = () => {
                 </div>
               </div>
             </div>
-            
+
             {/* Backup History */}
             <div className="bg-white rounded-lg shadow-sm border">
               <div className="p-6 border-b">
@@ -467,11 +466,10 @@ const DataManagement = () => {
                           {backup.backup?.size ? formatFileSize(backup.backup.size) : 'N/A'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            backup.fileExists
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${backup.fileExists
                               ? 'bg-green-100 text-green-800'
                               : 'bg-red-100 text-red-800'
-                          }`}>
+                            }`}>
                             {backup.fileExists ? 'Available' : 'Missing'}
                           </span>
                         </td>
@@ -499,7 +497,7 @@ const DataManagement = () => {
             </div>
           </div>
         )}
-        
+
         {activeTab === 'import-export' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Export Data */}
@@ -541,7 +539,7 @@ const DataManagement = () => {
                     ))}
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Date From</label>
@@ -562,7 +560,7 @@ const DataManagement = () => {
                     />
                   </div>
                 </div>
-                
+
                 <label className="flex items-center">
                   <input
                     type="checkbox"
@@ -572,7 +570,7 @@ const DataManagement = () => {
                   />
                   <span className="ml-2 text-sm text-gray-700">Include metadata</span>
                 </label>
-                
+
                 <button
                   onClick={handleExportData}
                   disabled={exporting}
@@ -587,7 +585,7 @@ const DataManagement = () => {
                 </button>
               </div>
             </div>
-            
+
             {/* Import Data */}
             <div className="bg-white rounded-lg shadow-sm border">
               <div className="p-6 border-b">
@@ -614,7 +612,7 @@ const DataManagement = () => {
                     </p>
                   )}
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Import Mode
@@ -628,7 +626,7 @@ const DataManagement = () => {
                     <option value="replace">Replace (clear and import)</option>
                   </select>
                 </div>
-                
+
                 <label className="flex items-center">
                   <input
                     type="checkbox"
@@ -638,7 +636,7 @@ const DataManagement = () => {
                   />
                   <span className="ml-2 text-sm text-gray-700">Validate data before import</span>
                 </label>
-                
+
                 <button
                   onClick={handleImportData}
                   disabled={importing || !selectedFile}
@@ -655,7 +653,7 @@ const DataManagement = () => {
             </div>
           </div>
         )}
-        
+
         {activeTab === 'cleanup' && (
           <div className="bg-white rounded-lg shadow-sm border">
             <div className="p-6 border-b">
@@ -700,7 +698,7 @@ const DataManagement = () => {
                   </div>
                 )}
               </div>
-              
+
               {/* Backup Cleanup */}
               <div className="border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center mb-3">
@@ -733,7 +731,7 @@ const DataManagement = () => {
                   </div>
                 )}
               </div>
-              
+
               {/* Dry Run Option */}
               <div className="flex items-center p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <input
@@ -746,15 +744,14 @@ const DataManagement = () => {
                   Dry run (preview only, don't delete anything)
                 </label>
               </div>
-              
+
               <button
                 onClick={handleCleanupData}
                 disabled={cleaning || (!cleanupConfig.cleanupAuditLogs && !cleanupConfig.cleanupBackups)}
-                className={`inline-flex items-center px-4 py-2 text-white text-sm font-medium rounded-lg disabled:opacity-50 ${
-                  cleanupConfig.dryRun
+                className={`inline-flex items-center px-4 py-2 text-white text-sm font-medium rounded-lg disabled:opacity-50 ${cleanupConfig.dryRun
                     ? 'bg-yellow-600 hover:bg-yellow-700'
                     : 'bg-red-600 hover:bg-red-700'
-                }`}
+                  }`}
               >
                 {cleaning ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -766,7 +763,7 @@ const DataManagement = () => {
             </div>
           </div>
         )}
-        
+
         {activeTab === 'operations' && (
           <div className="bg-white rounded-lg shadow-sm border">
             <div className="p-6 border-b">
@@ -811,9 +808,9 @@ const DataManagement = () => {
                         {formatDate(operation.createdAt)}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
-                        {operation.details?.description || 
-                         operation.details?.collections?.join(', ') ||
-                         'No details available'}
+                        {operation.details?.description ||
+                          operation.details?.collections?.join(', ') ||
+                          'No details available'}
                       </td>
                     </tr>
                   ))}
@@ -823,7 +820,7 @@ const DataManagement = () => {
           </div>
         )}
       </div>
-      
+
       {/* Restore Confirmation Modal */}
       {showRestoreConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -854,7 +851,7 @@ const DataManagement = () => {
           </div>
         </div>
       )}
-      
+
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">

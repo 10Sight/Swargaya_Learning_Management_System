@@ -27,9 +27,9 @@ const Course = lazy(() => import("./pages/Admin/Course"));
 const AddModulePage = lazy(() => import("./pages/Admin/AddModulePage"));
 const EditModulePage = lazy(() => import("./pages/Admin/EditModulePage"));
 const AddCourse = lazy(() => import("./pages/Admin/AddCourse"));
-const Batches = lazy(() => import("./pages/Admin/Batches"));
+const Departments = lazy(() => import("./pages/Admin/Departments"));
 const Students = lazy(() => import("./pages/Admin/Students"));
-const BatchDetail = lazy(() => import("./pages/Admin/BatchDetail"));
+const DepartmentDetail = lazy(() => import("./pages/Admin/DepartmentDetail"));
 const CourseDetailPage = lazy(() => import("./pages/Admin/CourseDetailPage"));
 const AddQuizPage = lazy(() => import("./pages/Admin/AddQuizPage"));
 const EditQuizPage = lazy(() => import("./pages/Admin/EditQuizPage"));
@@ -48,11 +48,12 @@ const CertificateTemplates = lazy(() => import("./pages/Admin/CertificateTemplat
 const ModuleTimelines = lazy(() => import("./pages/Admin/ModuleTimelines"));
 const AuditLogs = lazy(() => import("./pages/Admin/AuditLogs"));
 const CourseLevelSettings = lazy(() => import("./pages/Admin/CourseLevelSettings"));
+const SkillMatrix = lazy(() => import("./pages/Admin/SkillMatrix"));
 
 // Instructor Pages
 const InstructorDashboard = lazy(() => import("./pages/Instructor/Dashboard"));
 const InstructorCourses = lazy(() => import("./pages/Instructor/Courses"));
-const InstructorBatches = lazy(() => import("./pages/Instructor/Batches"));
+const InstructorDepartments = lazy(() => import("./pages/Instructor/Departments"));
 const InstructorStudents = lazy(() => import("./pages/Instructor/Students"));
 const InstructorCourseDetailPage = lazy(() => import("./pages/Instructor/InstructorCourseDetailPage"));
 const QuizMonitoring = lazy(() => import("./pages/Instructor/QuizMonitoring"));
@@ -76,8 +77,8 @@ const CertificateManagement = lazy(() => import("./pages/SuperAdmin/CertificateM
 // Student Pages
 const StudentDashboard = lazy(() => import("./pages/Student/Dashboard"));
 const StudentProfile = lazy(() => import("./pages/Student/Profile"));
-const StudentBatch = lazy(() => import("./pages/Student/Batch"));
-const BatchCourse = lazy(() => import("./pages/Student/BatchCourse"));
+const StudentDepartment = lazy(() => import("./pages/Student/Department"));
+const DepartmentCourse = lazy(() => import("./pages/Student/DepartmentCourse"));
 const LessonDetail = lazy(() => import("./pages/Student/LessonDetail"));
 const TakeQuiz = lazy(() => import("./pages/Student/TakeQuiz"));
 const CourseReport = lazy(() => import("./pages/Student/CourseReport"));
@@ -101,163 +102,164 @@ const App = () => {
     <Router>
       <Suspense fallback={<PageLoader />}>
         <Routes>
-        {/* Public route for login */}
-        <Route
-          path="/login"
-          element={
-            <PublicRoute>
-              <Login />
-            </PublicRoute>
-          }
-        />
+          {/* Public route for login */}
+          <Route
+            path="/login"
+            element={
+              <PublicRoute>
+                <Login />
+              </PublicRoute>
+            }
+          />
 
-        {/* Role landing that redirects to the correct base by role */}
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <RoleRedirect />
-            </ProtectedRoute>
-          }
-        />
+          {/* Role landing that redirects to the correct base by role */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <RoleRedirect />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Admin routes */}
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute>
-              <HomeLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<Home />} />
-          <Route path="instructor" element={<Instructor pageName="Instructor" />} />
-          <Route path="instructor/:id" element={<InstructorDetail />} />
-          <Route path="courses" element={<Course pageName="Courses" />} />
-          <Route path="courses/:courseId" element={<CourseDetailPage pageName="Add Modules" />} />
-          <Route path="add-course" element={<AddCourse />} />
-          <Route path="batches" element={<Batches pageName="Batches" />} />
-          <Route path="students" element={<Students pageName="Students" />} />
-          <Route path="students/:studentId" element={<StudentDetail />} />
-          <Route path="batches/:batchId" element={<BatchDetail pageName="Batch Detail" />} />
-          <Route path="add-quiz/:courseId" element={<AddQuizPage />} />
-          <Route path="edit-quiz/:quizId" element={<EditQuizPage />} />
-          <Route path="add-module/:courseId" element={<AddModulePage />} />
-          <Route path="edit-module/:moduleId" element={<EditModulePage />} />
-          <Route path="add-lesson/:moduleId" element={<AddLessonPage />} />
-          <Route path="add-assignment/:courseId" element={<AddAssignmentPage />} />
-          <Route path="add-resource/:courseId" element={<AddResourcePage />} />
-          <Route path="edit-lesson/:moduleId/:lessonId" element={<EditLessonPage />} />
-          <Route path="quiz-monitoring" element={<AdminQuizMonitoring />} />
-          <Route path="attempt-requests" element={<AdminAttemptRequests />} />
-          <Route path="analytics" element={<Analytics pageName="Analytics" />} />
-          <Route path="exam-history" element={<ExamHistory />} />
-          <Route path="audit-logs" element={<AuditLogs />} />
-          <Route path="student-levels" element={<StudentLevelManagement />} />
-          <Route path="certificate-templates" element={<CertificateTemplates pageName="Certificate Templates" />} />
-          <Route path="module-timelines" element={<ModuleTimelines pageName="Module Timelines" />} />
-          <Route path="course-level-settings" element={<CourseLevelSettings />} />
-        </Route>
+          {/* Admin routes */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <HomeLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Home />} />
+            <Route path="instructor" element={<Instructor pageName="Instructor" />} />
+            <Route path="instructor/:id" element={<InstructorDetail />} />
+            <Route path="courses" element={<Course pageName="Courses" />} />
+            <Route path="courses/:courseId" element={<CourseDetailPage pageName="Add Modules" />} />
+            <Route path="add-course" element={<AddCourse />} />
+            <Route path="departments" element={<Departments pageName="Departments" />} />
+            <Route path="trainee" element={<Students pageName="Trainee" />} />
+            <Route path="students/:studentId" element={<StudentDetail />} />
+            <Route path="departments/:departmentId" element={<DepartmentDetail pageName="Department Detail" />} />
+            <Route path="add-quiz/:courseId" element={<AddQuizPage />} />
+            <Route path="edit-quiz/:quizId" element={<EditQuizPage />} />
+            <Route path="add-module/:courseId" element={<AddModulePage />} />
+            <Route path="edit-module/:moduleId" element={<EditModulePage />} />
+            <Route path="add-lesson/:moduleId" element={<AddLessonPage />} />
+            <Route path="add-assignment/:courseId" element={<AddAssignmentPage />} />
+            <Route path="add-resource/:courseId" element={<AddResourcePage />} />
+            <Route path="edit-lesson/:moduleId/:lessonId" element={<EditLessonPage />} />
+            <Route path="quiz-monitoring" element={<AdminQuizMonitoring />} />
+            <Route path="attempt-requests" element={<AdminAttemptRequests />} />
+            <Route path="analytics" element={<Analytics pageName="Analytics" />} />
+            <Route path="exam-history" element={<ExamHistory />} />
+            <Route path="audit-logs" element={<AuditLogs />} />
+            <Route path="student-levels" element={<StudentLevelManagement />} />
+            <Route path="certificate-templates" element={<CertificateTemplates pageName="Certificate Templates" />} />
+            <Route path="module-timelines" element={<ModuleTimelines pageName="Module Timelines" />} />
+            <Route path="course-level-settings" element={<CourseLevelSettings />} />
+            <Route path="skill-matrix" element={<SkillMatrix />} />
+          </Route>
 
-        {/* Instructor routes */}
-        <Route
-          path="/instructor"
-          element={
-            <ProtectedRoute>
-              <InstructorLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<InstructorDashboard />} />
-          <Route path="courses" element={<InstructorCourses />} />
-          <Route path="courses/:courseId" element={<InstructorCourseDetailPage />} />
-          <Route path="add-module/:courseId" element={<AddModulePage />} />
-          <Route path="edit-module/:moduleId" element={<EditModulePage />} />
-          <Route path="add-lesson/:moduleId" element={<AddLessonPage />} />
-          <Route path="edit-lesson/:moduleId/:lessonId" element={<EditLessonPage />} />
-          <Route path="add-quiz/:courseId" element={<AddQuizPage />} />
-          <Route path="edit-quiz/:quizId" element={<EditQuizPage />} />
-          <Route path="add-assignment/:courseId" element={<AddAssignmentPage />} />
-          <Route path="add-resource/:courseId" element={<AddResourcePage />} />
-          <Route path="batches" element={<InstructorBatches />} />
-          <Route path="students" element={<InstructorStudents />} />
-          <Route path="quiz-monitoring" element={<QuizMonitoring />} />
-          <Route path="assignment-monitoring" element={<AssignmentMonitoring />} />
-          <Route path="certificate-issuance" element={<CertificateIssuance />} />
-          <Route path="attempt-requests" element={<InstructorAttemptRequests />} />
-        </Route>
+          {/* Instructor routes */}
+          <Route
+            path="/instructor"
+            element={
+              <ProtectedRoute>
+                <InstructorLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<InstructorDashboard />} />
+            <Route path="courses" element={<InstructorCourses />} />
+            <Route path="courses/:courseId" element={<InstructorCourseDetailPage />} />
+            <Route path="add-module/:courseId" element={<AddModulePage />} />
+            <Route path="edit-module/:moduleId" element={<EditModulePage />} />
+            <Route path="add-lesson/:moduleId" element={<AddLessonPage />} />
+            <Route path="edit-lesson/:moduleId/:lessonId" element={<EditLessonPage />} />
+            <Route path="add-quiz/:courseId" element={<AddQuizPage />} />
+            <Route path="edit-quiz/:quizId" element={<EditQuizPage />} />
+            <Route path="add-assignment/:courseId" element={<AddAssignmentPage />} />
+            <Route path="add-resource/:courseId" element={<AddResourcePage />} />
+            <Route path="departments" element={<InstructorDepartments />} />
+            <Route path="students" element={<InstructorStudents />} />
+            <Route path="quiz-monitoring" element={<QuizMonitoring />} />
+            <Route path="assignment-monitoring" element={<AssignmentMonitoring />} />
+            <Route path="certificate-issuance" element={<CertificateIssuance />} />
+            <Route path="attempt-requests" element={<InstructorAttemptRequests />} />
+          </Route>
 
-        {/* SuperAdmin routes */}
-        <Route
-          path="/superadmin"
-          element={
-            <ProtectedRoute>
-              <SuperAdminLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<SuperAdminDashboard />} />
-          
-          {/* User Management Routes */}
-          <Route path="all-users" element={<AllUsersManagement />} />
-          <Route path="instructors" element={<Instructor pageName="Instructors" />} />
-          <Route path="instructors/:id" element={<InstructorDetail />} />
-          <Route path="students" element={<Students pageName="Students" />} />
-          <Route path="students/:studentId" element={<StudentDetail />} />
-          <Route path="soft-deleted-users" element={<SoftDeletedUsersManagement />} />
-          <Route path="roles-permissions" element={<RolesPermissions />} />
-          
-          {/* Content Management Routes */}
-          <Route path="courses" element={<Course pageName="Courses" />} />
-          <Route path="courses/:courseId" element={<CourseDetailPage pageName="Course Management" />} />
-          <Route path="add-course" element={<AddCourse />} />
-          <Route path="add-quiz/:courseId" element={<AddQuizPage />} />
-          <Route path="add-module/:courseId" element={<AddModulePage />} />
-          <Route path="add-lesson/:moduleId" element={<AddLessonPage />} />
-          <Route path="add-assignment/:courseId" element={<AddAssignmentPage />} />
-          <Route path="add-resource/:courseId" element={<AddResourcePage />} />
-          <Route path="edit-lesson/:moduleId/:lessonId" element={<EditLessonPage />} />
-          <Route path="batches" element={<Batches pageName="Batches" />} />
-          <Route path="batches/:batchId" element={<BatchDetail pageName="Batch Detail" />} />
-          <Route path="certificates" element={<CertificateManagement />} />
-          <Route path="module-timelines" element={<ModuleTimelines pageName="Module Timelines" />} />
-          
-          {/* System Management Routes */}
-          <Route path="audit-logs" element={<SystemAuditLogs />} />
-          <Route path="system-settings" element={<SystemSettings />} />
-          <Route path="analytics-reports" element={<AdvancedAnalytics />} />
-          <Route path="system-monitoring" element={<SystemMonitoring />} />
-          
-          {/* Advanced Operations Routes */}
-          <Route path="data-management" element={<DataManagement />} />
-          <Route path="bulk-operations" element={<BulkOperations />} />
-          
-          {/* Legacy Routes for Compatibility */}
-          <Route path="student-levels" element={<StudentLevelManagement />} />
-          <Route path="certificate-templates" element={<CertificateTemplates pageName="Certificate Templates" />} />
-          <Route path="course-level-settings" element={<CourseLevelSettings />} />
-        </Route>
+          {/* SuperAdmin routes */}
+          <Route
+            path="/superadmin"
+            element={
+              <ProtectedRoute>
+                <SuperAdminLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<SuperAdminDashboard />} />
 
-        {/* Student routes */}
-        <Route
-          path="/student"
-          element={
-            <ProtectedRoute>
-              <StudentLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<StudentDashboard />} />
-          <Route path="profile" element={<StudentProfile />} />
-          <Route path="batch" element={<StudentBatch />} />
-          <Route path="course" element={<BatchCourse />} />
-          <Route path="lesson/:lessonId" element={<LessonDetail />} />
-          <Route path="quiz/:quizId" element={<TakeQuiz />} />
-          <Route path="reports" element={<Reports />} />
-          <Route path="report/:courseId" element={<CourseReport />} />
-          <Route path="certificates" element={<StudentCertificates />} />
-          <Route path="resource-preview" element={<ResourcePreview />} />
-        </Route>
+            {/* User Management Routes */}
+            <Route path="all-users" element={<AllUsersManagement />} />
+            <Route path="instructors" element={<Instructor pageName="Instructors" />} />
+            <Route path="instructors/:id" element={<InstructorDetail />} />
+            <Route path="students" element={<Students pageName="Students" />} />
+            <Route path="students/:studentId" element={<StudentDetail />} />
+            <Route path="soft-deleted-users" element={<SoftDeletedUsersManagement />} />
+            <Route path="roles-permissions" element={<RolesPermissions />} />
+
+            {/* Content Management Routes */}
+            <Route path="courses" element={<Course pageName="Courses" />} />
+            <Route path="courses/:courseId" element={<CourseDetailPage pageName="Course Management" />} />
+            <Route path="add-course" element={<AddCourse />} />
+            <Route path="add-quiz/:courseId" element={<AddQuizPage />} />
+            <Route path="add-module/:courseId" element={<AddModulePage />} />
+            <Route path="add-lesson/:moduleId" element={<AddLessonPage />} />
+            <Route path="add-assignment/:courseId" element={<AddAssignmentPage />} />
+            <Route path="add-resource/:courseId" element={<AddResourcePage />} />
+            <Route path="edit-lesson/:moduleId/:lessonId" element={<EditLessonPage />} />
+            <Route path="departments" element={<Departments pageName="Departments" />} />
+            <Route path="departments/:departmentId" element={<DepartmentDetail pageName="Department Detail" />} />
+            <Route path="certificates" element={<CertificateManagement />} />
+            <Route path="module-timelines" element={<ModuleTimelines pageName="Module Timelines" />} />
+
+            {/* System Management Routes */}
+            <Route path="audit-logs" element={<SystemAuditLogs />} />
+            <Route path="system-settings" element={<SystemSettings />} />
+            <Route path="analytics-reports" element={<AdvancedAnalytics />} />
+            <Route path="system-monitoring" element={<SystemMonitoring />} />
+
+            {/* Advanced Operations Routes */}
+            <Route path="data-management" element={<DataManagement />} />
+            <Route path="bulk-operations" element={<BulkOperations />} />
+
+            {/* Legacy Routes for Compatibility */}
+            <Route path="student-levels" element={<StudentLevelManagement />} />
+            <Route path="certificate-templates" element={<CertificateTemplates pageName="Certificate Templates" />} />
+            <Route path="course-level-settings" element={<CourseLevelSettings />} />
+          </Route>
+
+          {/* Student routes */}
+          <Route
+            path="/student"
+            element={
+              <ProtectedRoute>
+                <StudentLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<StudentDashboard />} />
+            <Route path="profile" element={<StudentProfile />} />
+            <Route path="department" element={<StudentDepartment />} />
+            <Route path="course" element={<DepartmentCourse />} />
+            <Route path="lesson/:lessonId" element={<LessonDetail />} />
+            <Route path="quiz/:quizId" element={<TakeQuiz />} />
+            <Route path="reports" element={<Reports />} />
+            <Route path="report/:courseId" element={<CourseReport />} />
+            <Route path="certificates" element={<StudentCertificates />} />
+            <Route path="resource-preview" element={<ResourcePreview />} />
+          </Route>
         </Routes>
       </Suspense>
     </Router>

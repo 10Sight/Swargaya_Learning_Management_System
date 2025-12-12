@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useGetInstructorBatchAssignmentSubmissionsQuery, useGetInstructorAssignedBatchesQuery, useGetInstructorSubmissionDetailsQuery, useGradeInstructorSubmissionMutation } from '@/Redux/AllApi/InstructorApi'
+import { useGetInstructorDepartmentAssignmentSubmissionsQuery, useGetInstructorAssignedDepartmentsQuery, useGetInstructorSubmissionDetailsQuery, useGradeInstructorSubmissionMutation } from '@/Redux/AllApi/InstructorApi'
 import axiosInstance from '@/Helper/axiosInstance'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -10,13 +10,13 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
@@ -31,24 +31,24 @@ import {
 } from '@tabler/icons-react'
 
 const AssignmentMonitoring = () => {
-  const [selectedBatchId, setSelectedBatchId] = useState('')
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState('')
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(null)
   const [gradeForm, setGradeForm] = useState({ grade: '', feedback: '' })
-  
-  const { data: batchesData } = useGetInstructorAssignedBatchesQuery({ limit: 100 })
-  const { data, isLoading, error } = useGetInstructorBatchAssignmentSubmissionsQuery(
-    { batchId: selectedBatchId }, 
-    { skip: !selectedBatchId }
+
+  const { data: departmentsData } = useGetInstructorAssignedDepartmentsQuery({ limit: 100 })
+  const { data, isLoading, error } = useGetInstructorDepartmentAssignmentSubmissionsQuery(
+    { departmentId: selectedDepartmentId },
+    { skip: !selectedDepartmentId }
   )
   const { data: submissionDetails, isLoading: detailsLoading } = useGetInstructorSubmissionDetailsQuery(
     selectedSubmissionId,
     { skip: !selectedSubmissionId }
   )
-  
+
   const [gradeSubmission, { isLoading: gradingLoading }] = useGradeInstructorSubmissionMutation()
 
   const submissions = data?.data?.submissions || []
-  const batches = batchesData?.data?.batches || []
+  const departments = departmentsData?.data?.departments || []
   const submission = submissionDetails?.data
 
   const getStatusBadge = (status) => {
@@ -97,14 +97,14 @@ const AssignmentMonitoring = () => {
 
   const handleGradeSubmit = async () => {
     if (!submission) return
-    
+
     try {
       const gradeValue = gradeForm.grade === '' ? null : parseFloat(gradeForm.grade)
       if (gradeValue !== null && (isNaN(gradeValue) || gradeValue < 0)) {
         toast.error('Please enter a valid grade')
         return
       }
-      
+
       if (gradeValue !== null && submission.assignment?.maxScore && gradeValue > submission.assignment.maxScore) {
         toast.error(`Grade cannot exceed maximum score of ${submission.assignment.maxScore}`)
         return
@@ -115,7 +115,7 @@ const AssignmentMonitoring = () => {
         grade: gradeValue,
         feedback: gradeForm.feedback || ''
       }).unwrap()
-      
+
       toast.success('Submission graded successfully')
       handleCloseDialog()
     } catch (error) {
@@ -130,16 +130,16 @@ const AssignmentMonitoring = () => {
         method: 'GET',
         responseType: 'blob'
       })
-      
+
       // Create download link
       const url = window.URL.createObjectURL(response.data)
       const link = document.createElement('a')
       link.href = url
-      
+
       // Get filename from response headers or use fallback
       const contentDisposition = response.headers['content-disposition']
       let fileName = `file-${fileIndex}`
-      
+
       if (contentDisposition) {
         const fileNameMatch = contentDisposition.match(/filename="([^"]*)"/)
         if (fileNameMatch) {
@@ -150,13 +150,13 @@ const AssignmentMonitoring = () => {
       } else if (fileIndex === 'legacy') {
         fileName = 'legacy-file'
       }
-      
+
       link.download = fileName
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
-      
+
       toast.success('File downloaded successfully')
     } catch (error) {
       console.error('Download error:', error)
@@ -180,7 +180,7 @@ const AssignmentMonitoring = () => {
         <div>
           <h1 className="text-2xl font-bold">Assignment Monitoring</h1>
           <p className="text-muted-foreground">
-            Monitor student assignment submissions and progress across your batches
+            Monitor student assignment submissions and progress across your departments
           </p>
         </div>
         <Badge variant="outline" className="w-fit">
@@ -198,7 +198,7 @@ const AssignmentMonitoring = () => {
             <div>
               <h3 className="font-medium text-amber-900">Assignment Monitoring & Grading</h3>
               <p className="text-sm text-amber-700 mt-1">
-                View student assignment submissions, download files, and grade assignments. 
+                View student assignment submissions, download files, and grade assignments.
                 Click "View" on any submission to see details and provide grades with feedback.
               </p>
             </div>
@@ -206,24 +206,24 @@ const AssignmentMonitoring = () => {
         </CardContent>
       </Card>
 
-      {/* Batch Selection */}
+      {/* Department Selection */}
       <Card>
         <CardHeader>
-          <CardTitle>Select Batch</CardTitle>
+          <CardTitle>Select Department</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="w-full max-w-md">
-            <Select value={selectedBatchId} onValueChange={setSelectedBatchId}>
+            <Select value={selectedDepartmentId} onValueChange={setSelectedDepartmentId}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Choose a batch to view assignment data" />
+                <SelectValue placeholder="Choose a department to view assignment data" />
               </SelectTrigger>
               <SelectContent>
-                {batches.map((batch) => (
-                  <SelectItem key={batch._id} value={batch._id}>
+                {departments.map((department) => (
+                  <SelectItem key={department._id} value={department._id}>
                     <div className="flex flex-col sm:flex-row sm:justify-between w-full">
-                      <span className="font-medium">{batch.name}</span>
+                      <span className="font-medium">{department.name}</span>
                       <span className="text-sm text-muted-foreground">
-                        {batch.students?.length || 0} students
+                        {department.students?.length || 0} students
                       </span>
                     </div>
                   </SelectItem>
@@ -234,13 +234,13 @@ const AssignmentMonitoring = () => {
         </CardContent>
       </Card>
 
-      {!selectedBatchId ? (
+      {!selectedDepartmentId ? (
         <Card>
           <CardContent className="p-12 text-center">
             <IconClipboard className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">Select a Batch</h3>
+            <h3 className="text-lg font-medium mb-2">Select a Department</h3>
             <p className="text-muted-foreground">
-              Choose a batch from your assigned batches to view assignment monitoring data.
+              Choose a department from your assigned departments to view assignment monitoring data.
             </p>
           </CardContent>
         </Card>
@@ -270,103 +270,103 @@ const AssignmentMonitoring = () => {
                       <TableHead className="min-w-[100px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
-                <TableBody>
-                  {submissions.map((submission) => (
-                    <TableRow key={submission._id}>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <IconUser className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          <div className="min-w-0">
-                            <p className="font-medium truncate">{submission.student?.fullName}</p>
-                            <p className="text-sm text-muted-foreground truncate">
-                              @{submission.student?.userName}
-                            </p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      
-                      <TableCell>
-                        <div className="min-w-0">
-                          <p className="font-medium truncate">{submission.assignment?.title}</p>
-                          <div className="flex items-center space-x-1 text-sm text-muted-foreground mt-1">
-                            <IconCalendar className="h-3 w-3 flex-shrink-0" />
-                            <span className="truncate">Due: {new Date(submission.assignment?.dueDate).toLocaleDateString()}</span>
-                          </div>
-                        </div>
-                      </TableCell>
-                      
-                      <TableCell>
-                        {getStatusBadge(submission.status)}
-                      </TableCell>
-                      
-                      <TableCell>
-                        {submission.grade !== null && submission.assignment?.maxScore ? (
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
-                            <span className={`font-medium ${getGradeColor(submission.grade, submission.assignment.maxScore)}`}>
-                              {submission.grade}/{submission.assignment.maxScore}
-                            </span>
-                            <span className="text-sm text-muted-foreground">
-                              ({Math.round((submission.grade / submission.assignment.maxScore) * 100)}%)
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">Not graded</span>
-                        )}
-                      </TableCell>
-                      
-                      <TableCell>
-                        {submission.submittedAt ? (
-                          <div className="min-w-0">
-                            <p className="text-sm truncate">
-                              {new Date(submission.submittedAt).toLocaleDateString()}
-                            </p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {new Date(submission.submittedAt).toLocaleTimeString()}
-                            </p>
-                          </div>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">Not submitted</span>
-                        )}
-                      </TableCell>
-                      
-                      <TableCell>
-                        {submission.attachments?.length > 0 ? (
-                          <div className="space-y-1">
-                            {submission.attachments.slice(0, 2).map((file, index) => (
-                              <div key={index} className="flex items-center space-x-1 text-sm">
-                                <IconFile className="h-3 w-3 flex-shrink-0" />
-                                <span className="truncate max-w-24 sm:max-w-32">{file.filename}</span>
-                                <span className="text-xs text-muted-foreground hidden sm:inline">
-                                  ({formatFileSize(file.fileSize)})
-                                </span>
-                              </div>
-                            ))}
-                            {submission.attachments.length > 2 && (
-                              <p className="text-xs text-muted-foreground">
-                                +{submission.attachments.length - 2} more
+                  <TableBody>
+                    {submissions.map((submission) => (
+                      <TableRow key={submission._id}>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <IconUser className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <div className="min-w-0">
+                              <p className="font-medium truncate">{submission.student?.fullName}</p>
+                              <p className="text-sm text-muted-foreground truncate">
+                                @{submission.student?.userName}
                               </p>
-                            )}
+                            </div>
                           </div>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">No files</span>
-                        )}
-                      </TableCell>
+                        </TableCell>
 
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-xs px-2"
-                            onClick={() => handleViewSubmission(submission._id)}
-                          >
-                            <IconEye className="h-3 w-3 sm:mr-1" />
-                            <span className="hidden sm:inline">View</span>
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        <TableCell>
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{submission.assignment?.title}</p>
+                            <div className="flex items-center space-x-1 text-sm text-muted-foreground mt-1">
+                              <IconCalendar className="h-3 w-3 flex-shrink-0" />
+                              <span className="truncate">Due: {new Date(submission.assignment?.dueDate).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                        </TableCell>
+
+                        <TableCell>
+                          {getStatusBadge(submission.status)}
+                        </TableCell>
+
+                        <TableCell>
+                          {submission.grade !== null && submission.assignment?.maxScore ? (
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
+                              <span className={`font-medium ${getGradeColor(submission.grade, submission.assignment.maxScore)}`}>
+                                {submission.grade}/{submission.assignment.maxScore}
+                              </span>
+                              <span className="text-sm text-muted-foreground">
+                                ({Math.round((submission.grade / submission.assignment.maxScore) * 100)}%)
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">Not graded</span>
+                          )}
+                        </TableCell>
+
+                        <TableCell>
+                          {submission.submittedAt ? (
+                            <div className="min-w-0">
+                              <p className="text-sm truncate">
+                                {new Date(submission.submittedAt).toLocaleDateString()}
+                              </p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {new Date(submission.submittedAt).toLocaleTimeString()}
+                              </p>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">Not submitted</span>
+                          )}
+                        </TableCell>
+
+                        <TableCell>
+                          {submission.attachments?.length > 0 ? (
+                            <div className="space-y-1">
+                              {submission.attachments.slice(0, 2).map((file, index) => (
+                                <div key={index} className="flex items-center space-x-1 text-sm">
+                                  <IconFile className="h-3 w-3 flex-shrink-0" />
+                                  <span className="truncate max-w-24 sm:max-w-32">{file.filename}</span>
+                                  <span className="text-xs text-muted-foreground hidden sm:inline">
+                                    ({formatFileSize(file.fileSize)})
+                                  </span>
+                                </div>
+                              ))}
+                              {submission.attachments.length > 2 && (
+                                <p className="text-xs text-muted-foreground">
+                                  +{submission.attachments.length - 2} more
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">No files</span>
+                          )}
+                        </TableCell>
+
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-xs px-2"
+                              onClick={() => handleViewSubmission(submission._id)}
+                            >
+                              <IconEye className="h-3 w-3 sm:mr-1" />
+                              <span className="hidden sm:inline">View</span>
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               </div>
@@ -375,7 +375,7 @@ const AssignmentMonitoring = () => {
                 <IconClipboard className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-medium mb-2">No Assignment Submissions</h3>
                 <p className="text-muted-foreground">
-                  No assignment submissions found for the selected batch.
+                  No assignment submissions found for the selected department.
                 </p>
               </div>
             )}
@@ -392,7 +392,7 @@ const AssignmentMonitoring = () => {
               <span>Submission Details</span>
             </DialogTitle>
           </DialogHeader>
-          
+
           {detailsLoading ? (
             <div className="space-y-4">
               <Skeleton className="h-8 w-full" />
@@ -557,7 +557,7 @@ const AssignmentMonitoring = () => {
                       )}
                     </div>
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="feedback">Feedback</Label>
                     <Textarea
@@ -573,8 +573,8 @@ const AssignmentMonitoring = () => {
                     <Button variant="outline" onClick={handleCloseDialog}>
                       Cancel
                     </Button>
-                    <Button 
-                      onClick={handleGradeSubmit} 
+                    <Button
+                      onClick={handleGradeSubmit}
                       disabled={gradingLoading}
                     >
                       {gradingLoading ? 'Grading...' : 'Save Grade'}

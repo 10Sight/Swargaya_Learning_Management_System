@@ -1,17 +1,19 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { IconX } from "@tabler/icons-react";
+import useTranslate from "@/hooks/useTranslate";
 
 const FilterBar = ({
   filters = [],
   onClearFilters,
   className = "",
 }) => {
+  const { t } = useTranslate();
   if (filters.length === 0) return null;
 
   return (
     <div className={`flex flex-wrap items-center gap-2 ${className}`}>
-      <span className="text-sm text-muted-foreground">Filters:</span>
+      <span className="text-sm text-muted-foreground">{t("ui.filters")}</span>
       {filters.map((filter, index) => (
         <div
           key={index}
@@ -28,7 +30,7 @@ const FilterBar = ({
         className="h-8 gap-1"
       >
         <IconX className="h-3 w-3" />
-        Clear all
+        {t("ui.clearAll")}
       </Button>
     </div>
   );

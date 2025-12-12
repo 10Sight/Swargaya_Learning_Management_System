@@ -40,9 +40,9 @@ const Login = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   const { isLoading, isLoggedIn, user } = useSelector((state) => state.auth);
-  
+
   const {
     register,
     handleSubmit,
@@ -91,84 +91,46 @@ const Login = () => {
   };
 
   const onSubmit = async (data) => {
-    const loginData = loginMethod === 'email' 
+    const loginData = loginMethod === 'email'
       ? { email: data.email.toLowerCase(), password: data.password }
       : { userName: data.userName.toLowerCase(), password: data.password };
-    
+
     dispatch(login(loginData));
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative overflow-hidden">
       {/* Background Pattern */}
-      <div 
+      <div
         className="absolute inset-0 opacity-30"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23e2e8f0' fill-opacity='0.4'%3E%3Cpath d='m36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
         }}
       ></div>
-      
+
       <div className="relative z-10 min-h-screen flex">
         {/* Left Side - Branding */}
-        <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 text-white relative overflow-hidden">
-          <div className="absolute inset-0 bg-black/20"></div>
-          <div className="relative z-10 flex flex-col justify-center items-start p-16 max-w-lg">
-            <div className="mb-8">
-              <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-6">
-                <GraduationCap className="w-8 h-8 text-white" />
-              </div>
-              <h1 className="text-4xl font-bold mb-4 leading-tight">
-                Learning Management
-                <span className="block text-3xl font-semibold text-blue-200">System</span>
-              </h1>
-              <p className="text-lg text-blue-100 leading-relaxed">
-                Empowering education through innovative technology and seamless learning experiences.
-              </p>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                  <BookOpen className="w-6 h-6 text-blue-200" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-white">Interactive Learning</h3>
-                  <p className="text-blue-200 text-sm">Engage with dynamic content and real-time feedback</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                  <Shield className="w-6 h-6 text-blue-200" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-white">Secure & Reliable</h3>
-                  <p className="text-blue-200 text-sm">Your data is protected with enterprise-grade security</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                  <Sparkles className="w-6 h-6 text-blue-200" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-white">AI-Powered Insights</h3>
-                  <p className="text-blue-200 text-sm">Get personalized recommendations and analytics</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Decorative Elements */}
-          <div className="absolute top-20 right-20 w-32 h-32 bg-white/10 rounded-full blur-xl"></div>
-          <div className="absolute bottom-20 right-32 w-24 h-24 bg-blue-300/20 rounded-full blur-lg"></div>
-          <div className="absolute top-1/3 right-8 w-16 h-16 bg-purple-300/30 rounded-full blur-md"></div>
+        <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-white">
+          <img
+            src="/marelli-motherson.webp"
+            alt="Marelli Motherson"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
         </div>
-        
+
         {/* Right Side - Login Form */}
         <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
-          <Card className="w-full max-w-md shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
-            <CardHeader className="text-center space-y-4 pb-8">
+          <Card className="w-full max-w-md shadow-2xl border-0 bg-white/80 backdrop-blur-sm relative">
+            {/* Logo in top right */}
+            <div className="absolute top-6 right-6 z-20">
+              <img
+                src="/motherson+marelli.png"
+                alt="Logo"
+                className="h-8 w-auto object-contain"
+              />
+            </div>
+
+            <CardHeader className="text-center space-y-4 pb-8 pt-12">
               <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg">
                 <GraduationCap className="h-8 w-8 text-white" />
               </div>
@@ -181,17 +143,16 @@ const Login = () => {
                 </CardDescription>
               </div>
             </CardHeader>
-            
+
             <CardContent className="space-y-6">
               {/* Login Method Selector */}
               <div className="flex rounded-lg bg-slate-100/80 p-1 backdrop-blur-sm">
                 <button
                   type="button"
-                  className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 ${
-                    loginMethod === 'email' 
-                      ? 'bg-white text-blue-600 shadow-sm ring-1 ring-blue-100' 
+                  className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 ${loginMethod === 'email'
+                      ? 'bg-white text-blue-600 shadow-sm ring-1 ring-blue-100'
                       : 'text-gray-600 hover:text-gray-800 hover:bg-white/50'
-                  }`}
+                    }`}
                   onClick={() => handleLoginMethodChange('email')}
                 >
                   <Mail size={16} />
@@ -199,18 +160,17 @@ const Login = () => {
                 </button>
                 <button
                   type="button"
-                  className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 ${
-                    loginMethod === 'username' 
-                      ? 'bg-white text-blue-600 shadow-sm ring-1 ring-blue-100' 
+                  className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 ${loginMethod === 'username'
+                      ? 'bg-white text-blue-600 shadow-sm ring-1 ring-blue-100'
                       : 'text-gray-600 hover:text-gray-800 hover:bg-white/50'
-                  }`}
+                    }`}
                   onClick={() => handleLoginMethodChange('username')}
                 >
                   <User size={16} />
                   Username
                 </button>
               </div>
-              
+
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 {loginMethod === 'email' ? (
                   <FormInput
@@ -243,7 +203,7 @@ const Login = () => {
                     helperText="Your unique identifier"
                   />
                 )}
-                
+
                 <div className="space-y-2">
                   <FormInput
                     type="password"
@@ -260,7 +220,7 @@ const Login = () => {
                     helperText="Must be at least 6 characters"
                   />
                 </div>
-                
+
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="rememberMe"
@@ -272,9 +232,9 @@ const Login = () => {
                     Remember me for 30 days
                   </Label>
                 </div>
-                
-                <Button 
-                  type="submit" 
+
+                <Button
+                  type="submit"
                   size="lg"
                   className={`w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] disabled:scale-100 disabled:opacity-70`}
                   disabled={isLoading}
@@ -294,7 +254,7 @@ const Login = () => {
                   )}
                 </Button>
               </form>
-              
+
               <div className="mt-8 text-center">
                 <p className="text-gray-600 text-sm">
                   Don't have an account?{' '}

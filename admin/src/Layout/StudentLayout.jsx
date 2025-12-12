@@ -30,7 +30,7 @@ import LanguageSelector from "../components/common/LanguageSelector";
 const baseTabs = [
   { link: "/student", labelKey: "nav.dashboard", icon: IconLayoutDashboardFilled },
   { link: "/student/profile", labelKey: "nav.profile", icon: IconUser },
-  { link: "/student/batch", labelKey: "nav.batch", icon: IconFolder },
+  { link: "/student/department", labelKey: "nav.department", icon: IconFolder },
   { link: "/student/course", labelKey: "nav.course", icon: IconBooks },
   { link: "/student/reports", labelKey: "nav.reports", icon: IconFileText },
   { link: "/student/certificates", labelKey: "nav.certificates", icon: IconAward },
@@ -95,8 +95,8 @@ export function StudentLayout() {
         }
 
         // Default behavior: map to known tabs or prettify last segment
-        const currentTab = tabs.find(tab => 
-          pathname === tab.link || 
+        const currentTab = tabs.find(tab =>
+          pathname === tab.link ||
           (tab.link !== "/student" && pathname.startsWith(tab.link))
         );
 
@@ -157,12 +157,11 @@ export function StudentLayout() {
         />
       );
     }
-    
+
     return (
       <IconLayoutSidebarRightCollapse
-        className={`${
-          opened ? "rotate-180" : "mx-auto"
-        } w-5 h-5 transition-all duration-500 cursor-pointer text-gray-600 hover:text-gray-800 hidden md:block`}
+        className={`${opened ? "rotate-180" : "mx-auto"
+          } w-5 h-5 transition-all duration-500 cursor-pointer text-gray-600 hover:text-gray-800 hidden md:block`}
         onClick={onClick}
         aria-label={ariaLabel}
       />
@@ -173,10 +172,9 @@ export function StudentLayout() {
     <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-green-50/30 to-emerald-50/20">
       {/* Mobile Overlay */}
       {(isMobileMenuOpen || (!collapsed && !isMobile)) && (
-        <div 
-          className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity duration-300 animate-in fade-in ${
-            isMobile ? '' : 'md:hidden'
-          }`}
+        <div
+          className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity duration-300 animate-in fade-in ${isMobile ? '' : 'md:hidden'
+            }`}
           onClick={() => {
             if (isMobile) {
               setIsMobileMenuOpen(false);
@@ -186,14 +184,13 @@ export function StudentLayout() {
           }}
         />
       )}
-      
+
       {/* Sidebar */}
       <nav
-        className={`fixed top-0 left-0 h-screen bg-white/95 backdrop-blur-xl text-black shadow-2xl transition-all duration-300 z-50 border-r border-gray-200/50 ${
-          isMobile 
-            ? `${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} w-64`
-            : `${collapsed ? 'w-16' : 'w-64'}`
-        }`}
+        className={`fixed top-0 left-0 h-screen bg-white/95 backdrop-blur-xl text-black shadow-2xl transition-all duration-300 z-50 border-r border-gray-200/50 ${isMobile
+          ? `${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} w-64`
+          : `${collapsed ? 'w-16' : 'w-64'}`
+          }`}
       >
         <div className="relative h-16 items-center flex transition-all px-4 duration-300 border-b border-gray-200/80 bg-white/50 backdrop-blur-sm">
           <ToggleButton
@@ -202,9 +199,11 @@ export function StudentLayout() {
             ariaLabel="Toggle sidebar"
           />
           {((!collapsed && !isMobile) || (isMobile && isMobileMenuOpen)) && (
-            <span className="ml-4 text-sm font-bold uppercase tracking-wider bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent transition-opacity duration-300">
-              STUDENT PORTAL
-            </span>
+            <img
+              src="/motherson+marelli.png"
+              alt="Marelli Motherson"
+              className="ml-4 h-8 w-auto object-contain"
+            />
           )}
         </div>
 
@@ -212,26 +211,24 @@ export function StudentLayout() {
         <div className="flex-1 overflow-y-auto px-2 py-4">
           <div className="space-y-1">
             {tabs.map((item) => {
-              const isActive = pathname === item.link || 
+              const isActive = pathname === item.link ||
                 (item.link !== "/student" && pathname.startsWith(item.link));
 
               return (
                 <button
                   key={item.label}
                   onClick={() => handleNavigate(item.link)}
-                  className={`group relative flex items-center w-full px-3 py-3 text-sm font-medium rounded-xl transition-all duration-300 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${
-                    isActive
-                      ? "bg-gradient-to-r from-green-600 to-blue-600 text-white shadow-lg shadow-green-200"
-                      : "text-gray-700 hover:bg-gradient-to-r hover:from-green-50 hover:to-blue-50 hover:text-green-700 hover:shadow-md active:bg-green-100"
-                  } ${(collapsed && !isMobile) ? "justify-center px-2 mx-1" : ""}`}
+                  className={`group relative flex items-center w-full px-3 py-3 text-sm font-medium rounded-xl transition-all duration-300 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${isActive
+                    ? "bg-gradient-to-r from-green-600 to-blue-600 text-white shadow-lg shadow-green-200"
+                    : "text-gray-700 hover:bg-gradient-to-r hover:from-green-50 hover:to-blue-50 hover:text-green-700 hover:shadow-md active:bg-green-100"
+                    } ${(collapsed && !isMobile) ? "justify-center px-2 mx-1" : ""}`}
                 >
                   {isActive && ((!collapsed && !isMobile) || isMobile) && (
                     <div className="absolute left-0 top-0 h-full w-1 bg-white rounded-r-full" />
                   )}
                   <item.icon
-                    className={`shrink-0 transition-all duration-300 group-hover:scale-110 ${
-                      (collapsed && !isMobile) ? "w-6 h-6" : "w-5 h-5"
-                    } ${isActive ? "text-white" : "text-gray-500 group-hover:text-green-600"}`}
+                    className={`shrink-0 transition-all duration-300 group-hover:scale-110 ${(collapsed && !isMobile) ? "w-6 h-6" : "w-5 h-5"
+                      } ${isActive ? "text-white" : "text-gray-500 group-hover:text-green-600"}`}
                     strokeWidth={isActive ? 2.5 : 1.5}
                   />
                   {((!collapsed && !isMobile) || (isMobile)) && (
@@ -240,9 +237,8 @@ export function StudentLayout() {
                     </span>
                   )}
                   {((!collapsed && !isMobile) || (isMobile)) && (
-                    <div className={`ml-auto opacity-0 group-hover:opacity-100 transition-opacity ${
-                      isActive ? 'text-green-200' : 'text-gray-400'
-                    }`}>
+                    <div className={`ml-auto opacity-0 group-hover:opacity-100 transition-opacity ${isActive ? 'text-green-200' : 'text-gray-400'
+                      }`}>
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
@@ -259,18 +255,16 @@ export function StudentLayout() {
           <button
             onClick={isLoading ? undefined : handleLogout}
             disabled={isLoading}
-            className={`group flex items-center w-full px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 ${
-              isLoading 
-                ? "opacity-50 cursor-not-allowed bg-gray-100 text-gray-400" 
-                : "text-gray-700 hover:bg-red-50 hover:text-red-600 active:bg-red-100"
-            } ${(collapsed && !isMobile) ? "justify-center px-2" : ""}`}
+            className={`group flex items-center w-full px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 ${isLoading
+              ? "opacity-50 cursor-not-allowed bg-gray-100 text-gray-400"
+              : "text-gray-700 hover:bg-red-50 hover:text-red-600 active:bg-red-100"
+              } ${(collapsed && !isMobile) ? "justify-center px-2" : ""}`}
           >
             {isLoading ? (
               <div className="animate-spin rounded-full h-5 w-5 border-2 border-red-600 border-t-transparent shrink-0"></div>
             ) : (
-              <IconLogout className={`shrink-0 transition-colors ${
-                (collapsed && !isMobile) ? "w-6 h-6" : "w-5 h-5"
-              } text-gray-500 group-hover:text-red-600`} stroke={1.5} />
+              <IconLogout className={`shrink-0 transition-colors ${(collapsed && !isMobile) ? "w-6 h-6" : "w-5 h-5"
+                } text-gray-500 group-hover:text-red-600`} stroke={1.5} />
             )}
             {((!collapsed && !isMobile) || (isMobile)) && (
               <span className="ml-3 truncate transition-all duration-300">
@@ -283,13 +277,12 @@ export function StudentLayout() {
 
       {/* Main Content Area */}
       <div
-        className={`flex-1 transition-all duration-300 ${
-          isMobile 
-            ? "ml-0" 
-            : collapsed 
-            ? "ml-16" 
+        className={`flex-1 transition-all duration-300 ${isMobile
+          ? "ml-0"
+          : collapsed
+            ? "ml-16"
             : "ml-64"
-        }`}
+          }`}
       >
         {/* Header */}
         <header className="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
@@ -305,7 +298,7 @@ export function StudentLayout() {
                   <IconMenu2 className="w-6 h-6" />
                 </button>
               )}
-              
+
               <Breadcrumb className="hidden sm:block">
                 <BreadcrumbList>
                   <BreadcrumbItem>
@@ -325,7 +318,7 @@ export function StudentLayout() {
                   </BreadcrumbItem>
                 </BreadcrumbList>
               </Breadcrumb>
-              
+
               {/* Mobile page title */}
               <h1 className="text-lg font-semibold text-gray-900 sm:hidden">
                 {pageName}
@@ -343,7 +336,7 @@ export function StudentLayout() {
                   {user?.role?.toLowerCase().replace('_', ' ') || 'Student'}
                 </p>
               </div>
-              
+
               <div className="relative">
                 <img
                   src={user?.avatar?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.fullName || user?.userName || 'Student')}&background=2563eb&color=fff`}

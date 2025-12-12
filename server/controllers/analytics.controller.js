@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import User from "../models/auth.model.js";
 import Course from "../models/course.model.js";
-import Batch from "../models/batch.model.js";
+import Department from "../models/department.model.js";
 import AttemptedQuiz from "../models/attemptedQuiz.model.js";
 import Progress from "../models/progress.model.js";
 import Audit from "../models/audit.model.js";
@@ -18,24 +18,24 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
         const totalStudents = await User.countDocuments({ role: "STUDENT" });
         const totalInstructors = await User.countDocuments({ role: "INSTRUCTOR" });
         const totalCourses = await Course.countDocuments();
-        const totalBatches = await Batch.countDocuments({ isDeleted: { $ne: true } });
+        const totalDepartments = await Department.countDocuments({ isDeleted: { $ne: true } });
 
         // Get present counts (was ACTIVE)
         const activeStudents = await User.countDocuments({ role: "STUDENT", status: "PRESENT" });
-        const activeBatches = await Batch.countDocuments({ status: "ONGOING", isDeleted: { $ne: true } });
+        const activeDepartments = await Department.countDocuments({ status: "ONGOING", isDeleted: { $ne: true } });
         const publishedCourses = await Course.countDocuments({ status: "PUBLISHED" });
 
         // Get recent activity count with role-based filtering
         let recentActivityFilter = {
             createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } // Last 7 days
         };
-        
+
         // Apply role-based filtering for Admin users
         if (req.user && req.user.role === 'ADMIN') {
             // Get all SuperAdmin user IDs to exclude their activities
             const superAdminUsers = await User.find({ role: 'SUPERADMIN' }).select('_id');
             const superAdminIds = superAdminUsers.map(u => u._id);
-            
+
             if (superAdminIds.length > 0) {
                 recentActivityFilter.$and = [
                     {
@@ -51,12 +51,12 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
                 ];
             }
         }
-        
+
         const recentActivitiesCount = await Audit.countDocuments(recentActivityFilter);
 
         // Calculate engagement metrics
         const studentEngagement = totalStudents > 0 ? Math.round((activeStudents / totalStudents) * 100) : 0;
-        const batchUtilization = totalBatches > 0 ? Math.round((activeBatches / totalBatches) * 100) : 0;
+        const departmentUtilization = totalDepartments > 0 ? Math.round((activeDepartments / totalDepartments) * 100) : 0;
         const courseCompletion = totalCourses > 0 ? Math.round((publishedCourses / totalCourses) * 100) : 0;
 
         const stats = {
@@ -64,16 +64,16 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
                 students: totalStudents,
                 instructors: totalInstructors,
                 courses: totalCourses,
-                batches: totalBatches
+                departments: totalDepartments
             },
             active: {
                 students: activeStudents,
-                batches: activeBatches,
+                departments: activeDepartments,
                 publishedCourses
             },
             engagement: {
                 studentEngagement,
-                batchUtilization,
+                departmentUtilization,
                 courseCompletion
             },
             recentActivitiesCount
@@ -89,7 +89,7 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
 // Get user statistics
 export const getUserStats = asyncHandler(async (req, res) => {
     const { period = '30d' } = req.query;
-    
+
     try {
         // Calculate date range based on period
         let startDate;
@@ -111,13 +111,13 @@ export const getUserStats = asyncHandler(async (req, res) => {
         let userMatchConditions = {
             createdAt: { $gte: startDate }
         };
-        
+
         // Apply role-based filtering for Admin users
         if (req.user && req.user.role === 'ADMIN') {
             // Exclude SuperAdmin users from user registration analytics
             userMatchConditions.role = { $ne: 'SUPERADMIN' };
         }
-        
+
         // Get user registrations over time
         const userRegistrations = await User.aggregate([
             {
@@ -139,7 +139,7 @@ export const getUserStats = asyncHandler(async (req, res) => {
 
         // Build role aggregation match conditions
         let roleMatchConditions = {};
-        
+
         // Apply role-based filtering for Admin users
         if (req.user && req.user.role === 'ADMIN') {
             // Exclude SuperAdmin users from role statistics
@@ -178,7 +178,7 @@ export const getUserStats = asyncHandler(async (req, res) => {
 // Get course statistics
 export const getCourseStats = asyncHandler(async (req, res) => {
     const { period = '30d' } = req.query;
-    
+
     try {
         // Get course creation stats
         const coursesByStatus = await Course.aggregate([
@@ -224,7 +224,7 @@ export const getCourseStats = asyncHandler(async (req, res) => {
 // Get engagement statistics
 export const getEngagementStats = asyncHandler(async (req, res) => {
     const { period = '30d' } = req.query;
-    
+
     try {
         // Calculate date range
         let startDate;
@@ -284,18 +284,18 @@ export const getEngagementStats = asyncHandler(async (req, res) => {
             action: { $regex: /login/i },
             createdAt: { $gte: startDate }
         };
-        
+
         // Apply role-based filtering for Admin users
         if (req.user && req.user.role === 'ADMIN') {
             // Get all SuperAdmin user IDs to exclude their login activities
             const superAdminUsers = await User.find({ role: 'SUPERADMIN' }).select('_id');
             const superAdminIds = superAdminUsers.map(u => u._id);
-            
+
             if (superAdminIds.length > 0) {
                 loginActivityFilter.user = { $nin: superAdminIds };
             }
         }
-        
+
         const loginActivity = await Audit.countDocuments(loginActivityFilter);
 
         const stats = {
@@ -308,7 +308,7 @@ export const getEngagementStats = asyncHandler(async (req, res) => {
         res.json(new ApiResponse(200, stats, "Engagement statistics fetched successfully"));
     } catch (error) {
         console.error("Error fetching engagement stats:", error);
-        throw new ApiError("Failed to fetch engagement statistics", 500);
+        throw new ApiError("Failed to fetch engagement stats", 500);
     }
 });
 
@@ -383,7 +383,7 @@ const sendPDF = (res, filename, title, columns, rows) => {
     doc.fontSize(10);
     const headers = columns.map(c => c.header);
     const widths = columns.map(c => c.width || 100);
-    const draw = (vals, bold=false) => {
+    const draw = (vals, bold = false) => {
         const y = doc.y; let x = doc.page.margins.left;
         vals.forEach((v, i) => {
             if (bold) doc.font('Helvetica-Bold'); else doc.font('Helvetica');
@@ -409,7 +409,7 @@ export const exportExamHistoryStats = asyncHandler(async (req, res) => {
     let to = endDate ? new Date(endDate) : undefined;
     if (year && groupBy === 'month') {
         const y = parseInt(year);
-        if (!isNaN(y)) { from = new Date(Date.UTC(y,0,1)); to = new Date(Date.UTC(y+1,0,1)); }
+        if (!isNaN(y)) { from = new Date(Date.UTC(y, 0, 1)); to = new Date(Date.UTC(y + 1, 0, 1)); }
     }
     if (from) match.createdAt = { ...(match.createdAt || {}), $gte: from };
     if (to) match.createdAt = { ...(match.createdAt || {}), $lt: to };
@@ -417,7 +417,7 @@ export const exportExamHistoryStats = asyncHandler(async (req, res) => {
 
     const agg = await AttemptedQuiz.aggregate([
         { $match: match },
-        { $group: { _id: groupId, total: { $sum: 1 }, passed: { $sum: { $cond: [{ $eq: ['$status','PASSED']},1,0]}}, failed: { $sum: { $cond: [{ $eq: ['$status','FAILED']},1,0]}} } },
+        { $group: { _id: groupId, total: { $sum: 1 }, passed: { $sum: { $cond: [{ $eq: ['$status', 'PASSED'] }, 1, 0] } }, failed: { $sum: { $cond: [{ $eq: ['$status', 'FAILED'] }, 1, 0] } } } },
         { $sort: { '_id.year': 1, ...(groupBy === 'month' ? { '_id.month': 1 } : {}) } }
     ]);
 
@@ -428,13 +428,13 @@ export const exportExamHistoryStats = asyncHandler(async (req, res) => {
         { header: 'Failed', key: 'failed', width: 12 },
     ];
     const rows = agg.map(i => ({
-        period: groupBy === 'year' ? `${i._id.year}` : `${i._id.year}-${String(i._id.month).padStart(2,'0')}`,
+        period: groupBy === 'year' ? `${i._id.year}` : `${i._id.year}-${String(i._id.month).padStart(2, '0')}`,
         total: i.total,
         passed: i.passed,
         failed: i.failed,
     }));
 
-    const filename = `exam_history_${groupBy}_${new Date().toISOString().slice(0,10)}`;
+    const filename = `exam_history_${groupBy}_${new Date().toISOString().slice(0, 10)}`;
     if (format === 'pdf') return sendPDF(res, filename, 'Exam History Stats', columns, rows);
     return sendExcel(res, filename, columns, rows);
 });
@@ -448,7 +448,7 @@ export const getAuditStats = asyncHandler(async (req, res) => {
     let to = endDate ? new Date(endDate) : undefined;
     if (year && groupBy === 'month') {
         const y = parseInt(year);
-        if (!isNaN(y)) { from = new Date(Date.UTC(y,0,1)); to = new Date(Date.UTC(y+1,0,1)); }
+        if (!isNaN(y)) { from = new Date(Date.UTC(y, 0, 1)); to = new Date(Date.UTC(y + 1, 0, 1)); }
     }
     if (from) match.createdAt = { ...(match.createdAt || {}), $gte: from };
     if (to) match.createdAt = { ...(match.createdAt || {}), $lt: to };
@@ -460,7 +460,7 @@ export const getAuditStats = asyncHandler(async (req, res) => {
         { $sort: { '_id.year': 1, ...(groupBy === 'month' ? { '_id.month': 1 } : {}) } }
     ]);
 
-    const labels = agg.map(i => groupBy === 'year' ? `${i._id.year}` : `${i._id.year}-${String(i._id.month).padStart(2,'0')}`);
+    const labels = agg.map(i => groupBy === 'year' ? `${i._id.year}` : `${i._id.year}-${String(i._id.month).padStart(2, '0')}`);
     const series = { total: agg.map(i => i.total) };
     res.json(new ApiResponse(200, { labels, series }, 'Audit stats fetched'));
 });
@@ -474,7 +474,7 @@ export const exportAuditStats = asyncHandler(async (req, res) => {
     let to = endDate ? new Date(endDate) : undefined;
     if (year && groupBy === 'month') {
         const y = parseInt(year);
-        if (!isNaN(y)) { from = new Date(Date.UTC(y,0,1)); to = new Date(Date.UTC(y+1,0,1)); }
+        if (!isNaN(y)) { from = new Date(Date.UTC(y, 0, 1)); to = new Date(Date.UTC(y + 1, 0, 1)); }
     }
     if (from) match.createdAt = { ...(match.createdAt || {}), $gte: from };
     if (to) match.createdAt = { ...(match.createdAt || {}), $lt: to };
@@ -490,8 +490,8 @@ export const exportAuditStats = asyncHandler(async (req, res) => {
         { header: groupBy === 'year' ? 'Year' : 'Period', key: 'period', width: 18 },
         { header: 'Total Events', key: 'total', width: 14 }
     ];
-    const rows = agg.map(i => ({ period: groupBy === 'year' ? `${i._id.year}` : `${i._id.year}-${String(i._id.month).padStart(2,'0')}`, total: i.total }));
-    const filename = `audit_stats_${groupBy}_${new Date().toISOString().slice(0,10)}`;
+    const rows = agg.map(i => ({ period: groupBy === 'year' ? `${i._id.year}` : `${i._id.year}-${String(i._id.month).padStart(2, '0')}`, total: i.total }));
+    const filename = `audit_stats_${groupBy}_${new Date().toISOString().slice(0, 10)}`;
     if (format === 'pdf') return sendPDF(res, filename, 'Audit Logs Stats', columns, rows);
     return sendExcel(res, filename, columns, rows);
 });
@@ -503,7 +503,7 @@ export const getSystemHealth = asyncHandler(async (req, res) => {
         const collections = {
             users: await User.countDocuments(),
             courses: await Course.countDocuments(),
-            batches: await Batch.countDocuments(),
+            departments: await Department.countDocuments(),
             quizAttempts: await AttemptedQuiz.countDocuments(),
             progress: await Progress.countDocuments(),
             audits: await Audit.countDocuments()
@@ -516,7 +516,7 @@ export const getSystemHealth = asyncHandler(async (req, res) => {
         });
 
         // Calculate system utilization
-        const activeUsers = await User.countDocuments({ 
+        const activeUsers = await User.countDocuments({
             status: "PRESENT",
             role: { $in: ["STUDENT", "INSTRUCTOR"] }
         });
@@ -525,7 +525,7 @@ export const getSystemHealth = asyncHandler(async (req, res) => {
         const memoryUsage = process.memoryUsage();
         const cpuUsage = process.cpuUsage();
         const uptime = process.uptime();
-        
+
         // Convert memory usage to MB
         const memoryMetrics = {
             rss: Math.round(memoryUsage.rss / 1024 / 1024), // Resident Set Size in MB
@@ -537,7 +537,7 @@ export const getSystemHealth = asyncHandler(async (req, res) => {
 
         // Database health check
         const dbHealth = await checkDatabaseHealth();
-        
+
         // System load metrics
         const systemMetrics = {
             nodeVersion: process.version,
@@ -580,12 +580,12 @@ export const getSystemHealth = asyncHandler(async (req, res) => {
 export const getServerMetrics = asyncHandler(async (req, res) => {
     try {
         const { period = '1h' } = req.query;
-        
+
         // Get current metrics
         const memoryUsage = process.memoryUsage();
         const cpuUsage = process.cpuUsage();
         const uptime = process.uptime();
-        
+
         // Convert memory to MB for better readability
         const memoryMetrics = {
             rss: Math.round(memoryUsage.rss / 1024 / 1024),
@@ -597,7 +597,7 @@ export const getServerMetrics = asyncHandler(async (req, res) => {
 
         // Calculate memory usage percentages
         const heapUsagePercent = Math.round((memoryMetrics.heapUsed / memoryMetrics.heapTotal) * 100);
-        
+
         const metrics = {
             timestamp: new Date(),
             uptime: {
@@ -633,12 +633,12 @@ export const getServerMetrics = asyncHandler(async (req, res) => {
 export const getDatabaseMetrics = asyncHandler(async (req, res) => {
     try {
         const dbHealth = await checkDatabaseHealth();
-        
+
         // Get collection statistics
         const collectionStats = {
             users: await User.countDocuments(),
             courses: await Course.countDocuments(),
-            batches: await Batch.countDocuments(),
+            departments: await Department.countDocuments(),
             quizAttempts: await AttemptedQuiz.countDocuments(),
             progress: await Progress.countDocuments(),
             audits: await Audit.countDocuments()
@@ -688,11 +688,11 @@ export const getDatabaseMetrics = asyncHandler(async (req, res) => {
 export const getSystemAlerts = asyncHandler(async (req, res) => {
     try {
         const alerts = [];
-        
+
         // Memory usage alerts
         const memoryUsage = process.memoryUsage();
         const heapUsagePercent = (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100;
-        
+
         if (heapUsagePercent > 80) {
             alerts.push({
                 type: 'error',
@@ -781,7 +781,7 @@ export const getSystemAlerts = asyncHandler(async (req, res) => {
 export const getSystemPerformanceHistory = asyncHandler(async (req, res) => {
     try {
         const { period = '24h' } = req.query;
-        
+
         // Calculate time range
         let hours = 24;
         switch (period) {
@@ -800,9 +800,9 @@ export const getSystemPerformanceHistory = asyncHandler(async (req, res) => {
             default:
                 hours = 24;
         }
-        
+
         const startDate = new Date(Date.now() - hours * 60 * 60 * 1000);
-        
+
         // For now, we'll return current metrics as historical data
         // In a real implementation, you'd store these metrics in a time-series database
         const currentMetrics = {
@@ -826,7 +826,7 @@ export const getSystemPerformanceHistory = asyncHandler(async (req, res) => {
         const dataPoints = [];
         const now = new Date();
         const intervalMinutes = Math.max(1, Math.floor((hours * 60) / 50)); // Max 50 data points
-        
+
         for (let i = 0; i < 50 && i * intervalMinutes < hours * 60; i++) {
             const timestamp = new Date(now.getTime() - (i * intervalMinutes * 60 * 1000));
             dataPoints.unshift({
@@ -863,17 +863,17 @@ async function checkDatabaseHealth() {
         // Test database connection
         const connectionState = mongoose.connection.readyState;
         const isConnected = connectionState === 1;
-        
+
         let responseTime = 0;
         let status = 'unhealthy';
         let details = [];
-        
+
         if (isConnected) {
             // Measure response time with a simple query
             const startTime = Date.now();
             await User.findOne().limit(1);
             responseTime = Date.now() - startTime;
-            
+
             if (responseTime < 100) {
                 status = 'healthy';
             } else if (responseTime < 500) {
@@ -886,7 +886,7 @@ async function checkDatabaseHealth() {
         } else {
             details.push('Database connection is not established');
         }
-        
+
         return {
             status,
             connected: isConnected,
@@ -913,7 +913,7 @@ function formatUptime(uptimeSeconds) {
     const hours = Math.floor((uptimeSeconds % (24 * 60 * 60)) / (60 * 60));
     const minutes = Math.floor((uptimeSeconds % (60 * 60)) / 60);
     const seconds = Math.floor(uptimeSeconds % 60);
-    
+
     if (days > 0) {
         return `${days}d ${hours}h ${minutes}m`;
     } else if (hours > 0) {
@@ -941,7 +941,7 @@ function calculateHealthScore({ recentErrors, memoryUsage, dbHealth, uptime }) {
     let score = 100;
     let alerts = [];
     let status = 'healthy';
-    
+
     // Deduct points for recent errors
     if (recentErrors > 0) {
         const errorPenalty = Math.min(30, recentErrors * 3);
@@ -950,7 +950,7 @@ function calculateHealthScore({ recentErrors, memoryUsage, dbHealth, uptime }) {
             alerts.push('High error rate detected');
         }
     }
-    
+
     // Deduct points for high memory usage
     if (memoryUsage > 500) { // More than 500MB
         const memoryPenalty = Math.min(20, (memoryUsage - 500) / 100 * 5);
@@ -959,19 +959,19 @@ function calculateHealthScore({ recentErrors, memoryUsage, dbHealth, uptime }) {
             alerts.push('High memory usage detected');
         }
     }
-    
+
     // Deduct points for database issues
     if (dbHealth !== 'healthy') {
         score -= 25;
         alerts.push('Database health issues detected');
     }
-    
+
     // Deduct points for recent restarts
     if (uptime < 300) { // Less than 5 minutes
         score -= 10;
         alerts.push('Recent system restart detected');
     }
-    
+
     // Determine status based on score
     if (score >= 80) {
         status = 'healthy';
@@ -980,19 +980,19 @@ function calculateHealthScore({ recentErrors, memoryUsage, dbHealth, uptime }) {
     } else {
         status = 'critical';
     }
-    
+
     return { score: Math.max(0, Math.round(score)), status, alerts };
 }
 
 // Get comprehensive analytics data
 export const getComprehensiveAnalytics = asyncHandler(async (req, res) => {
     const { dateFrom, dateTo, granularity = 'day' } = req.query;
-    
+
     try {
         // Set default date range if not provided
         const endDate = dateTo ? new Date(dateTo) : new Date();
         const startDate = dateFrom ? new Date(dateFrom) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-        
+
         // User Analytics
         const userRegistrationTrends = await User.aggregate([
             {
@@ -1003,7 +1003,7 @@ export const getComprehensiveAnalytics = asyncHandler(async (req, res) => {
             {
                 $group: {
                     _id: {
-                        date: granularity === 'month' 
+                        date: granularity === 'month'
                             ? { $dateToString: { format: "%Y-%m", date: "$createdAt" } }
                             : { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
                         role: "$role"
@@ -1056,7 +1056,7 @@ export const getComprehensiveAnalytics = asyncHandler(async (req, res) => {
             {
                 $group: {
                     _id: {
-                        date: granularity === 'month' 
+                        date: granularity === 'month'
                             ? { $dateToString: { format: "%Y-%m", date: "$createdAt" } }
                             : { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }
                     },
@@ -1115,7 +1115,7 @@ export const getComprehensiveAnalytics = asyncHandler(async (req, res) => {
             {
                 $group: {
                     _id: {
-                        date: granularity === 'month' 
+                        date: granularity === 'month'
                             ? { $dateToString: { format: "%Y-%m", date: "$createdAt" } }
                             : { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
                         action: "$action"
@@ -1141,10 +1141,10 @@ export const getComprehensiveAnalytics = asyncHandler(async (req, res) => {
             },
             {
                 $lookup: {
-                    from: "batches",
+                    from: "departments",
                     localField: "_id",
                     foreignField: "instructor",
-                    as: "batches"
+                    as: "departments"
                 }
             },
             {
@@ -1160,12 +1160,12 @@ export const getComprehensiveAnalytics = asyncHandler(async (req, res) => {
                             }
                         }
                     },
-                    totalBatches: { $size: "$batches" },
-                    activeBatches: {
+                    totalDepartments: { $size: "$departments" },
+                    activeDepartments: {
                         $size: {
                             $filter: {
-                                input: "$batches",
-                                cond: { $eq: ["$$this.status", "ACTIVE"] }
+                                input: "$departments",
+                                cond: { $eq: ["$$this.status", "ONGOING"] }
                             }
                         }
                     }
@@ -1195,7 +1195,7 @@ export const getComprehensiveAnalytics = asyncHandler(async (req, res) => {
 // Generate custom report
 export const generateCustomReport = asyncHandler(async (req, res) => {
     const { reportType, dateRange, filters, metrics } = req.body;
-    
+
     try {
         let reportData = {};
         const startDate = new Date(dateRange.startDate);
@@ -1239,7 +1239,7 @@ async function generateUserActivityReport(startDate, endDate, filters) {
     const matchConditions = {
         createdAt: { $gte: startDate, $lte: endDate }
     };
-    
+
     if (filters.role) {
         matchConditions.role = filters.role;
     }
@@ -1349,10 +1349,10 @@ async function generateInstructorEffectivenessReport(startDate, endDate, filters
         },
         {
             $lookup: {
-                from: "batches",
+                from: "departments",
                 localField: "_id",
                 foreignField: "instructor",
-                as: "batches"
+                as: "departments"
             }
         },
         {
@@ -1368,7 +1368,7 @@ async function generateInstructorEffectivenessReport(startDate, endDate, filters
                 fullName: 1,
                 email: 1,
                 totalCourses: { $size: "$courses" },
-                totalBatches: { $size: "$batches" },
+                totalDepartments: { $size: "$departments" },
                 totalStudents: { $size: "$studentProgress" },
                 averageStudentProgress: { $avg: "$studentProgress.progressPercentage" },
                 coursesPublished: {
@@ -1388,7 +1388,7 @@ async function generateInstructorEffectivenessReport(startDate, endDate, filters
 // Export analytics data
 export const exportAnalyticsData = asyncHandler(async (req, res) => {
     const { format = 'json', reportType, dateRange, filters } = req.body;
-    
+
     try {
         // Generate the report data
         const startDate = new Date(dateRange.startDate);

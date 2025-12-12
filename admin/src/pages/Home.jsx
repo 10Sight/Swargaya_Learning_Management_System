@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useGetAllInstructorsQuery, useGetAllStudentsQuery } from '@/Redux/AllApi/InstructorApi';
-import { useGetAllBatchesQuery } from '@/Redux/AllApi/BatchApi';
+import { useGetAllDepartmentsQuery } from '@/Redux/AllApi/DepartmentApi';
 import { useGetCoursesQuery } from '@/Redux/AllApi/CourseApi';
 import { useGetAllAuditsQuery } from '@/Redux/AllApi/AuditApi';
 import {
@@ -27,7 +27,7 @@ import {
   IconChartBar,
   IconUserCheck,
   IconBook2,
-  IconClipboardCheck,  
+  IconClipboardCheck,
 } from "@tabler/icons-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -35,7 +35,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 const StatCard = ({ title, value, description, icon: Icon, iconBgColor, iconColor, isLoading, trend, linkTo }) => {
   const CardWrapper = linkTo ? Link : 'div';
   const cardProps = linkTo ? { to: linkTo, className: "block" } : {};
-  
+
   return (
     <CardWrapper {...cardProps}>
       <Card className={`border border-gray-200 shadow-sm transition-all hover:shadow-md ${linkTo ? 'hover:border-blue-200 cursor-pointer' : ''}`}>
@@ -54,9 +54,8 @@ const StatCard = ({ title, value, description, icon: Icon, iconBgColor, iconColo
             <div className="flex items-baseline justify-between">
               <div className="text-2xl font-bold text-gray-900">{value}</div>
               {trend && (
-                <div className={`flex items-center text-xs ${
-                  trend.type === 'positive' ? 'text-green-600' : trend.type === 'negative' ? 'text-red-600' : 'text-gray-500'
-                }`}>
+                <div className={`flex items-center text-xs ${trend.type === 'positive' ? 'text-green-600' : trend.type === 'negative' ? 'text-red-600' : 'text-gray-500'
+                  }`}>
                   <IconTrendingUp className="h-3 w-3 mr-1" />
                   {trend.value}
                 </div>
@@ -105,7 +104,7 @@ const Home = () => {
   // API calls for all stats
   const { data: studentsData, isLoading: studentsLoading } = useGetAllStudentsQuery();
   const { data: instructorsData, isLoading: instructorsLoading } = useGetAllInstructorsQuery();
-  const { data: batchesData, isLoading: batchesLoading } = useGetAllBatchesQuery();
+  const { data: departmentsData, isLoading: departmentsLoading } = useGetAllDepartmentsQuery();
   const { data: coursesData, isLoading: coursesLoading } = useGetCoursesQuery({
     page: 1,
     limit: 1000, // Get all courses for count
@@ -113,15 +112,15 @@ const Home = () => {
     category: "",
     status: ""
   });
-  const { data: auditsData, isLoading: auditsLoading } = useGetAllAuditsQuery({ 
-    page: 1, 
-    limit: 10 
+  const { data: auditsData, isLoading: auditsLoading } = useGetAllAuditsQuery({
+    page: 1,
+    limit: 10
   });
 
   // Extract counts from API responses
   const totalStudents = studentsData?.data?.totalUsers || 0;
   const totalInstructors = instructorsData?.data?.totalUsers || 0;
-  const totalBatches = batchesData?.data?.totalBatches || 0;
+  const totalDepartments = departmentsData?.data?.totalDepartments || 0;
   const totalCourses = coursesData?.data?.total || 0;
   const recentActivities = auditsData?.data?.audits || [];
 
@@ -131,10 +130,10 @@ const Home = () => {
     return studentsData.data.users.filter(student => student.status === 'ACTIVE').length;
   }, [studentsData]);
 
-  const activeBatches = useMemo(() => {
-    if (!batchesData?.data?.batches) return 0;
-    return batchesData.data.batches.filter(batch => batch.status === 'COMPLETED').length;
-  }, [batchesData]);
+  const activeDepartments = useMemo(() => {
+    if (!departmentsData?.data?.departments) return 0;
+    return departmentsData.data.departments.filter(department => department.status === 'COMPLETED').length;
+  }, [departmentsData]);
 
   const publishedCourses = useMemo(() => {
     if (!coursesData?.data?.courses) return 0;
@@ -143,7 +142,7 @@ const Home = () => {
 
   // Calculate engagement metrics
   const studentEngagement = totalStudents > 0 ? Math.round((activeStudents / totalStudents) * 100) : 0;
-  const batchUtilization = totalBatches > 0 ? Math.round((activeBatches / totalBatches) * 100) : 0;
+  const departmentUtilization = totalDepartments > 0 ? Math.round((activeDepartments / totalDepartments) * 100) : 0;
   const courseCompletion = totalCourses > 0 ? Math.round((publishedCourses / totalCourses) * 100) : 0;
 
   return (
@@ -180,15 +179,15 @@ const Home = () => {
         />
 
         <StatCard
-          title="Total Batches"
-          value={totalBatches}
+          title="Total Departments"
+          value={totalDepartments}
           description="Learning groups"
           icon={IconCalendar}
           iconBgColor="bg-purple-100"
           iconColor="text-purple-600"
-          isLoading={batchesLoading}
-          linkTo="/admin/batches"
-          trend={{ type: 'positive', value: `${activeBatches} active` }}
+          isLoading={departmentsLoading}
+          linkTo="/admin/departments"
+          trend={{ type: 'positive', value: `${activeDepartments} active` }}
         />
 
         <StatCard
@@ -222,14 +221,14 @@ const Home = () => {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Batch Utilization</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Department Utilization</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-2xl font-bold text-gray-900">{batchUtilization}%</span>
+              <span className="text-2xl font-bold text-gray-900">{departmentUtilization}%</span>
               <IconSchool className="h-5 w-5 text-purple-600" />
             </div>
-            <Progress value={batchUtilization} className="mb-2" />
+            <Progress value={departmentUtilization} className="mb-2" />
             <p className="text-xs text-gray-500">Active learning groups</p>
           </CardContent>
         </Card>
@@ -324,15 +323,15 @@ const Home = () => {
                 linkTo="/admin/add-course"
                 color="blue"
               />
-              
+
               <QuickActionCard
-                title="Manage Batches"
-                description="View and organize batches"
+                title="Manage Departments"
+                description="View and organize departments"
                 icon={IconCalendar}
-                linkTo="/admin/batches"
+                linkTo="/admin/departments"
                 color="purple"
               />
-              
+
               <QuickActionCard
                 title="View Reports"
                 description="Analytics and insights"
@@ -340,7 +339,7 @@ const Home = () => {
                 linkTo="/admin/analytics"
                 color="green"
               />
-              
+
               <QuickActionCard
                 title="Student Management"
                 description="Manage student accounts"
@@ -369,8 +368,8 @@ const Home = () => {
               <div className="text-sm text-gray-500">Active Students</div>
             </div>
             <div className="text-center">
-              <div className="text-lg font-bold text-blue-600">{activeBatches}</div>
-              <div className="text-sm text-gray-500">Running Batches</div>
+              <div className="text-lg font-bold text-blue-600">{activeDepartments}</div>
+              <div className="text-sm text-gray-500">Running Departments</div>
             </div>
             <div className="text-center">
               <div className="text-lg font-bold text-purple-600">{publishedCourses}</div>

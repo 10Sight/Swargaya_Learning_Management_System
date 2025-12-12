@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCreateCourseMutation } from "@/Redux/AllApi/CourseApi";
 import { useCreateModuleMutation } from "@/Redux/AllApi/moduleApi";
@@ -6,9 +6,10 @@ import { useCreateQuizMutation } from "@/Redux/AllApi/QuizApi";
 import { useCreateAssignmentMutation } from "@/Redux/AllApi/AssignmentApi";
 import { useCreateResourceMutation } from "@/Redux/AllApi/resourceApi"; // Added resource API import
 import { useGetAllInstructorsQuery } from "@/Redux/AllApi/InstructorApi";
+import { useGetActiveConfigQuery } from "@/Redux/AllApi/CourseLevelConfigApi";
 import { Button } from "@/components/ui/button";
 import { FormCard, FormInput, FormTextarea, FormSelect } from "@/components/form";
-import  { CModuleForm } from "@/components/course/CModuleForm";
+import { CModuleForm } from "@/components/course/CModuleForm";
 import { QuizForm } from "@/components/course/QuizForm";
 import { AssignmentForm } from "@/components/course/AssignmentForm";
 import {
@@ -28,7 +29,7 @@ const AddCourse = () => {
   const [createAssignment] = useCreateAssignmentMutation();
   const [createResource] = useCreateResourceMutation(); // Added resource mutation
   const { data: instructorsData } = useGetAllInstructorsQuery({});
-  
+
   const instructors = instructorsData?.data?.users || [];
   const [isLoading, setIsLoading] = useState(false);
 
@@ -97,11 +98,11 @@ const AddCourse = () => {
       if ((direction === 'up' && index === 0) || (direction === 'down' && index === prev.length - 1)) {
         return prev;
       }
-      
+
       const newModules = [...prev];
       const newIndex = direction === 'up' ? index - 1 : index + 1;
       [newModules[index], newModules[newIndex]] = [newModules[newIndex], newModules[index]];
-      
+
       // Update order numbers
       return newModules.map((module, idx) => ({ ...module, order: idx + 1 }));
     });
@@ -111,19 +112,19 @@ const AddCourse = () => {
   const addResource = (moduleId) => {
     setModules(prev => prev.map(module =>
       module.id === moduleId
-        ? { 
-            ...module, 
-            resources: [
-              ...module.resources,
-              {
-                id: Date.now(),
-                title: "",
-                type: "pdf",
-                file: null,
-                url: ""
-              }
-            ]
-          }
+        ? {
+          ...module,
+          resources: [
+            ...module.resources,
+            {
+              id: Date.now(),
+              title: "",
+              type: "pdf",
+              file: null,
+              url: ""
+            }
+          ]
+        }
         : module
     ));
   };
@@ -132,11 +133,11 @@ const AddCourse = () => {
     setModules(prev => prev.map(module =>
       module.id === moduleId
         ? {
-            ...module,
-            resources: module.resources.map(resource =>
-              resource.id === resourceId ? { ...resource, [field]: value } : resource
-            )
-          }
+          ...module,
+          resources: module.resources.map(resource =>
+            resource.id === resourceId ? { ...resource, [field]: value } : resource
+          )
+        }
         : module
     ));
   };
@@ -144,10 +145,10 @@ const AddCourse = () => {
   const removeResource = (moduleId, resourceId) => {
     setModules(prev => prev.map(module =>
       module.id === moduleId
-        ? { 
-            ...module, 
-            resources: module.resources.filter(resource => resource.id !== resourceId) 
-          }
+        ? {
+          ...module,
+          resources: module.resources.filter(resource => resource.id !== resourceId)
+        }
         : module
     ));
   };
@@ -185,20 +186,20 @@ const AddCourse = () => {
   const addQuestionToQuiz = (quizId) => {
     setQuizzes(prev => prev.map(quiz =>
       quiz.id === quizId
-        ? { 
-            ...quiz, 
-            questions: [
-              ...quiz.questions, 
-              {
-                id: Date.now(),
-                questionText: "",
-                options: [
-                  { id: Date.now() + 1, text: "", isCorrect: false },
-                  { id: Date.now() + 2, text: "", isCorrect: false }
-                ]
-              }
-            ] 
-          }
+        ? {
+          ...quiz,
+          questions: [
+            ...quiz.questions,
+            {
+              id: Date.now(),
+              questionText: "",
+              options: [
+                { id: Date.now() + 1, text: "", isCorrect: false },
+                { id: Date.now() + 2, text: "", isCorrect: false }
+              ]
+            }
+          ]
+        }
         : quiz
     ));
   };
@@ -207,11 +208,11 @@ const AddCourse = () => {
     setQuizzes(prev => prev.map(quiz =>
       quiz.id === quizId
         ? {
-            ...quiz,
-            questions: quiz.questions.map(q =>
-              q.id === questionId ? { ...q, [field]: value } : q
-            )
-          }
+          ...quiz,
+          questions: quiz.questions.map(q =>
+            q.id === questionId ? { ...q, [field]: value } : q
+          )
+        }
         : quiz
     ));
   };
@@ -220,18 +221,18 @@ const AddCourse = () => {
     setQuizzes(prev => prev.map(quiz =>
       quiz.id === quizId
         ? {
-            ...quiz,
-            questions: quiz.questions.map(q =>
-              q.id === questionId
-                ? {
-                    ...q,
-                    options: q.options.map(opt =>
-                      opt.id === optionId ? { ...opt, [field]: value } : opt
-                    )
-                  }
-                : q
-            )
-          }
+          ...quiz,
+          questions: quiz.questions.map(q =>
+            q.id === questionId
+              ? {
+                ...q,
+                options: q.options.map(opt =>
+                  opt.id === optionId ? { ...opt, [field]: value } : opt
+                )
+              }
+              : q
+          )
+        }
         : quiz
     ));
   };
@@ -240,19 +241,19 @@ const AddCourse = () => {
     setQuizzes(prev => prev.map(quiz =>
       quiz.id === quizId
         ? {
-            ...quiz,
-            questions: quiz.questions.map(q =>
-              q.id === questionId
-                ? {
-                    ...q,
-                    options: [
-                      ...q.options,
-                      { id: Date.now(), text: "", isCorrect: false }
-                    ]
-                  }
-                : q
-            )
-          }
+          ...quiz,
+          questions: quiz.questions.map(q =>
+            q.id === questionId
+              ? {
+                ...q,
+                options: [
+                  ...q.options,
+                  { id: Date.now(), text: "", isCorrect: false }
+                ]
+              }
+              : q
+          )
+        }
         : quiz
     ));
   };
@@ -261,16 +262,16 @@ const AddCourse = () => {
     setQuizzes(prev => prev.map(quiz =>
       quiz.id === quizId
         ? {
-            ...quiz,
-            questions: quiz.questions.map(q =>
-              q.id === questionId
-                ? {
-                    ...q,
-                    options: q.options.filter(opt => opt.id !== optionId)
-                  }
-                : q
-            )
-          }
+          ...quiz,
+          questions: quiz.questions.map(q =>
+            q.id === questionId
+              ? {
+                ...q,
+                options: q.options.filter(opt => opt.id !== optionId)
+              }
+              : q
+          )
+        }
         : quiz
     ));
   };
@@ -279,19 +280,19 @@ const AddCourse = () => {
     setQuizzes(prev => prev.map(quiz =>
       quiz.id === quizId
         ? {
-            ...quiz,
-            questions: quiz.questions.map(q =>
-              q.id === questionId
-                ? {
-                    ...q,
-                    options: q.options.map(opt => ({
-                      ...opt,
-                      isCorrect: opt.id === optionId
-                    }))
-                  }
-                : q
-            )
-          }
+          ...quiz,
+          questions: quiz.questions.map(q =>
+            q.id === questionId
+              ? {
+                ...q,
+                options: q.options.map(opt => ({
+                  ...opt,
+                  isCorrect: opt.id === optionId
+                }))
+              }
+              : q
+          )
+        }
         : quiz
     ));
   };
@@ -329,15 +330,15 @@ const AddCourse = () => {
 
   const validateForm = () => {
     const errors = {};
-    
+
     if (!formData.title.trim()) errors.title = "Title is required";
     if (!formData.description.trim()) errors.description = "Description is required";
     if (!formData.category.trim()) errors.category = "Category is required";
     if (!formData.instructor) errors.instructor = "Instructor is required";
-    
+
     modules.forEach((module, index) => {
       if (!module.title.trim()) errors[`module-${module.id}-title`] = `Module ${index + 1} title is required`;
-      
+
       // Validate resources
       module.resources.forEach((resource, resIndex) => {
         if (!resource.title.trim()) {
@@ -355,44 +356,44 @@ const AddCourse = () => {
     // Validate quizzes
     quizzes.forEach((quiz, quizIndex) => {
       if (!quiz.title.trim()) errors[`quiz-${quiz.id}-title`] = `Quiz ${quizIndex + 1} title is required`;
-      
+
       quiz.questions.forEach((question, qIndex) => {
         if (!question.questionText.trim()) {
           errors[`quiz-${quiz.id}-question-${question.id}-text`] = `Question ${qIndex + 1} text is required`;
         }
-        
+
         // Validate that at least one option is correct
         const hasCorrectAnswer = question.options.some(opt => opt.isCorrect);
         if (!hasCorrectAnswer) {
           errors[`quiz-${quiz.id}-question-${question.id}-correct`] = `Question ${qIndex + 1} must have a correct answer`;
         }
-        
+
         // Validate that all options have text
         question.options.forEach((option, oIndex) => {
           if (!option.text.trim()) {
             errors[`quiz-${quiz.id}-question-${question.id}-option-${option.id}-text`] = `Option ${oIndex + 1} text is required`;
           }
         });
-        
+
         // Validate that there are at least 2 options
         if (question.options.length < 2) {
           errors[`quiz-${quiz.id}-question-${question.id}-options`] = `Question ${qIndex + 1} must have at least 2 options`;
         }
       });
-      
+
       // Validate that there's at least one question
       if (quiz.questions.length === 0) {
         errors[`quiz-${quiz.id}-questions`] = `Quiz ${quizIndex + 1} must have at least one question`;
       }
     });
-    
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       toast.error("Please fix the form errors");
       return;
@@ -420,9 +421,9 @@ const AddCourse = () => {
           description: module.description,
           order: module.order
         }).unwrap();
-        
+
         const moduleId = moduleResponse.data._id;
-        
+
         // Create resources for this module
         if (module.resources && module.resources.length > 0) {
           const resourcePromises = module.resources.map(async (resource) => {
@@ -434,10 +435,10 @@ const AddCourse = () => {
               url: resource.url
             }).unwrap();
           });
-          
+
           await Promise.all(resourcePromises);
         }
-        
+
         return moduleId;
       });
 
@@ -457,7 +458,7 @@ const AddCourse = () => {
             }))
           }))
         }).unwrap();
-        
+
         return quizResponse.data._id;
       });
 
@@ -471,7 +472,7 @@ const AddCourse = () => {
           description: assignment.description,
           dueDate: assignment.dueDate
         }).unwrap();
-        
+
         return assignmentResponse.data._id;
       });
 
@@ -487,11 +488,26 @@ const AddCourse = () => {
     }
   };
 
-  const difficultyOptions = [
-    { value: "BEGINNER", label: "Beginner" },
-    { value: "INTERMEDIATE", label: "Intermediate" },
-    { value: "ADVANCED", label: "Advanced" }
-  ];
+  const { data: configData } = useGetActiveConfigQuery();
+  const activeLevels = configData?.data?.levels || [];
+
+  const difficultyOptions = activeLevels.length > 0
+    ? activeLevels.map(level => ({
+      value: level.name, // Assuming we want to store the level name. Or we could store the level object or a code if available. Storing name for now as per previous schema likely expecting string.
+      label: level.name
+    }))
+    : [
+      { value: "BEGINNER", label: "Beginner" },
+      { value: "INTERMEDIATE", label: "Intermediate" },
+      { value: "ADVANCED", label: "Advanced" }
+    ];
+
+  // If formData.level is empty and we have active levels, set default to first level
+  useEffect(() => {
+    if (activeLevels.length > 0 && formData.level === "BEGINNER") {
+      setFormData(prev => ({ ...prev, level: activeLevels[0].name }));
+    }
+  }, [activeLevels, formData.level]);
 
   const instructorOptions = instructors.map(instructor => ({
     value: instructor._id,
@@ -503,7 +519,7 @@ const AddCourse = () => {
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <button 
+          <button
             onClick={() => navigate("/admin/courses")}
             className="flex items-center text-sm text-muted-foreground hover:text-foreground mb-2 transition-colors"
           >

@@ -70,7 +70,7 @@ const InstructorDashboard = () => {
     )
   }
 
-  const { courses, batches, students, recentActivities } = stats?.data || {}
+  const { courses, departments, students, recentActivities } = stats?.data || {}
 
   return (
     <div className="space-y-6">
@@ -107,14 +107,14 @@ const InstructorDashboard = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Active Batches
+              Active Departments
             </CardTitle>
             <IconUsers className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{batches?.total || 0}</div>
+            <div className="text-2xl font-bold">{departments?.total || 0}</div>
             <p className="text-xs text-muted-foreground">
-              {batches?.active || 0} currently active
+              {departments?.active || 0} currently active
             </p>
           </CardContent>
         </Card>
@@ -129,7 +129,7 @@ const InstructorDashboard = () => {
           <CardContent>
             <div className="text-2xl font-bold">{students?.total || 0}</div>
             <p className="text-xs text-muted-foreground">
-              Across all your batches
+              Across all your departments
             </p>
           </CardContent>
         </Card>
@@ -164,15 +164,15 @@ const InstructorDashboard = () => {
                 <IconEye className="h-4 w-4 ml-auto" />
               </Button>
             </Link>
-            
-            <Link to="/instructor/batches">
+
+            <Link to="/instructor/departments">
               <Button variant="outline" className="w-full justify-start">
                 <IconUsers className="h-4 w-4 mr-2" />
-                View My Batches
+                View My Departments
                 <IconEye className="h-4 w-4 ml-auto" />
               </Button>
             </Link>
-            
+
             <Link to="/instructor/students">
               <Button variant="outline" className="w-full justify-start">
                 <IconUsers className="h-4 w-4 mr-2" />
@@ -180,7 +180,7 @@ const InstructorDashboard = () => {
                 <IconEye className="h-4 w-4 ml-auto" />
               </Button>
             </Link>
-            
+
             <Link to="/instructor/quiz-monitoring">
               <Button variant="outline" className="w-full justify-start">
                 <IconClipboardList className="h-4 w-4 mr-2" />
@@ -188,7 +188,7 @@ const InstructorDashboard = () => {
                 <IconEye className="h-4 w-4 ml-auto" />
               </Button>
             </Link>
-            
+
             <Link to="/instructor/assignment-monitoring">
               <Button variant="outline" className="w-full justify-start">
                 <IconClipboard className="h-4 w-4 mr-2" />
@@ -238,8 +238,8 @@ const InstructorDashboard = () => {
             <div>
               <h3 className="font-medium text-green-900">Full Content Management</h3>
               <p className="text-sm text-green-700 mt-1">
-                You now have full authority to create, edit, and delete courses, modules, lessons, 
-                resources, quizzes, and assignments. You can also manage student batches, 
+                You now have full authority to create, edit, and delete courses, modules, lessons,
+                resources, quizzes, and assignments. You can also manage student departments,
                 grade submissions, and issue certificates for your courses.
               </p>
             </div>

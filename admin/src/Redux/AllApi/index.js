@@ -53,18 +53,26 @@ export {
     useDeleteAssignmentMutation,
 } from './AssignmentApi';
 
-// Batch API exports
+// Department API exports
 export {
-    batchApi,
-    useCreateBatchMutation,
+    departmentApi,
+    useCreateDepartmentMutation,
     useAssignInstructorMutation,
-    useAddStudentToBatchMutation,
-    useRemoveStudentFromBatchMutation,
-    useGetAllBatchesQuery,
-    useGetBatchByIdQuery,
-    useUpdateBatchMutation,
-    useDeleteBatchMutation,
-} from './BatchApi';
+    useAddStudentToDepartmentMutation,
+    useRemoveStudentFromDepartmentMutation,
+    useGetAllDepartmentsQuery,
+    useGetDepartmentByIdQuery,
+    useUpdateDepartmentMutation,
+    useDeleteDepartmentMutation,
+    useGetDepartmentProgressQuery,
+    useGetDepartmentSubmissionsQuery,
+    useGetDepartmentAttemptsQuery,
+    useGetSoftDeletedDepartmentsQuery,
+    useRestoreDepartmentMutation,
+    useCancelDepartmentMutation,
+    useGetMyDepartmentsQuery,
+    useLazyExportDepartmentsQuery,
+} from './DepartmentApi';
 
 // Quiz API exports
 export {

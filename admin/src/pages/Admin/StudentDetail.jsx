@@ -124,7 +124,7 @@ const StudentDetail = () => {
     );
 
     const gradedSubmissions = submissions.filter(sub => sub.grade !== undefined);
-    const averageGrade = gradedSubmissions.length > 0 
+    const averageGrade = gradedSubmissions.length > 0
       ? gradedSubmissions.reduce((sum, sub) => sum + sub.grade, 0) / gradedSubmissions.length
       : 0;
 
@@ -159,9 +159,9 @@ const StudentDetail = () => {
       PENDING: { variant: "warning", label: "Pending", color: "text-amber-700" },
       BANNED: { variant: "destructive", label: "Banned", color: "text-red-700" },
     };
-    
+
     const config = statusConfig[status] || { variant: "secondary", label: status, color: "text-gray-700" };
-    
+
     return (
       <Badge variant={config.variant} className={`${config.color}`}>
         {config.label}
@@ -172,7 +172,7 @@ const StudentDetail = () => {
   const getSubmissionStatusBadge = (submission) => {
     // Determine status based on submission properties
     let status, variant, icon, label;
-    
+
     if (submission.grade !== undefined && submission.grade !== null) {
       status = "GRADED";
       variant = "success";
@@ -189,7 +189,7 @@ const StudentDetail = () => {
       icon = IconFileText;
       label = "Submitted";
     }
-    
+
     return (
       <Badge variant={variant} className="flex items-center gap-1">
         {icon && React.createElement(icon, { className: "h-3 w-3" })}
@@ -395,13 +395,13 @@ const StudentDetail = () => {
                 </p>
               </div>
             </div>
-            {student.batch && (
+            {student.department && (
               <div className="flex items-center gap-2">
                 <IconSchool className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <p className="text-sm font-medium">Batch</p>
+                  <p className="text-sm font-medium">Department</p>
                   <p className="text-sm text-muted-foreground">
-                    {student.batch.name || student.batch}
+                    {student.department.name || student.department}
                   </p>
                 </div>
               </div>
@@ -493,7 +493,7 @@ const StudentDetail = () => {
                     const courseProgress = progress.completedModuleIds?.length || 0;
                     const totalModules = progress.totalModules || 0;
                     const progressPercentage = totalModules > 0 ? Math.round((courseProgress / totalModules) * 100) : 0;
-                    
+
                     return (
                       <div key={index} className="space-y-3 p-4 border rounded-lg">
                         <div className="flex items-center justify-between">
@@ -517,7 +517,7 @@ const StudentDetail = () => {
                           <div>
                             <span className="font-medium">Last Activity: </span>
                             <span>
-                              {progress.updatedAt 
+                              {progress.updatedAt
                                 ? new Date(progress.updatedAt).toLocaleDateString()
                                 : "No activity"
                               }
@@ -567,9 +567,9 @@ const StudentDetail = () => {
                       </div>
                     ))}
                     {submissions.length > 3 && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => setActiveTab("submissions")}
                         className="w-full mt-2"
                       >
@@ -611,9 +611,9 @@ const StudentDetail = () => {
                       </div>
                     ))}
                     {attempts.length > 3 && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => setActiveTab("quizzes")}
                         className="w-full mt-2"
                       >
@@ -651,7 +651,7 @@ const StudentDetail = () => {
                     const courseProgress = progress.completedModuleIds?.length || 0;
                     const totalModules = progress.totalModules || 0;
                     const progressPercentage = totalModules > 0 ? Math.round((courseProgress / totalModules) * 100) : 0;
-                    
+
                     return (
                       <div key={index} className="border rounded-lg p-6 space-y-4">
                         <div className="flex items-center justify-between">
@@ -669,9 +669,9 @@ const StudentDetail = () => {
                             <p className="text-xs text-muted-foreground">Complete</p>
                           </div>
                         </div>
-                        
+
                         <Progress value={progressPercentage} className="h-3" />
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
                           <div className="flex justify-between">
                             <span>Current Level:</span>
@@ -688,14 +688,14 @@ const StudentDetail = () => {
                           <div className="flex justify-between">
                             <span>Last Activity:</span>
                             <span className="font-medium">
-                              {progress.updatedAt 
+                              {progress.updatedAt
                                 ? new Date(progress.updatedAt).toLocaleDateString()
                                 : "No activity"
                               }
                             </span>
                           </div>
                         </div>
-                        
+
                         {progress.completedModuleIds?.length > 0 && (
                           <div>
                             <p className="text-sm font-medium mb-2">Completed Modules:</p>
@@ -883,11 +883,11 @@ const StudentDetail = () => {
         </TabsContent>
       </Tabs>
       {/* Attempt Review Modal (admin editable) */}
-      <AttemptReviewModal 
-        attemptId={viewAttemptId} 
-        isOpen={attemptModalOpen} 
-        onClose={() => setAttemptModalOpen(false)} 
-        canEdit={true} 
+      <AttemptReviewModal
+        attemptId={viewAttemptId}
+        isOpen={attemptModalOpen}
+        onClose={() => setAttemptModalOpen(false)}
+        canEdit={true}
       />
     </div>
   );

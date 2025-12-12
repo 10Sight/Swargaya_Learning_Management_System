@@ -5,7 +5,7 @@ import ModuleTimeline from "../models/moduleTimeline.model.js";
 import Progress from "../models/progress.model.js";
 import Course from "../models/course.model.js";
 import Module from "../models/module.model.js";
-import Batch from "../models/batch.model.js";
+import Department from "../models/department.model.js";
 import User from "../models/auth.model.js";
 
 // Create or update module timeline
@@ -13,7 +13,7 @@ export const createOrUpdateTimeline = asyncHandler(async (req, res) => {
   const {
     courseId,
     moduleId,
-    batchId,
+    departmentId,
     deadline,
     gracePeriodHours = 24,
     enableWarnings = true,
@@ -23,8 +23,8 @@ export const createOrUpdateTimeline = asyncHandler(async (req, res) => {
 
   const { timelineId } = req.params; // For PUT requests
 
-  if (!courseId || !moduleId || !batchId || !deadline) {
-    throw new ApiError("Course ID, Module ID, Batch ID, and deadline are required", 400);
+  if (!courseId || !moduleId || !departmentId || !deadline) {
+    throw new ApiError("Course ID, Module ID, Department ID, and deadline are required", 400);
   }
 
   // Basic ObjectId validation to fail fast on obviously invalid input
@@ -38,8 +38,8 @@ export const createOrUpdateTimeline = asyncHandler(async (req, res) => {
   if (!isValidObjectId(moduleId)) {
     throw new ApiError("Invalid module ID format", 400);
   }
-  if (!isValidObjectId(batchId)) {
-    throw new ApiError("Invalid batch ID format", 400);
+  if (!isValidObjectId(departmentId)) {
+    throw new ApiError("Invalid department ID format", 400);
   }
 
   // Parse and validate deadline
@@ -51,20 +51,20 @@ export const createOrUpdateTimeline = asyncHandler(async (req, res) => {
   // Normalize warning periods: ensure array of positive numbers
   const normalizedWarningPeriods = Array.isArray(warningPeriods)
     ? warningPeriods
-        .map((p) => Number(p))
-        .filter((p) => Number.isFinite(p) && p > 0)
+      .map((p) => Number(p))
+      .filter((p) => Number.isFinite(p) && p > 0)
     : [168, 72, 24];
 
-  // Validate that the course, module, and batch exist
-  const [course, module, batch] = await Promise.all([
+  // Validate that the course, module, and department exist
+  const [course, module, department] = await Promise.all([
     Course.findById(courseId).select("_id modules"),
     Module.findById(moduleId).select("_id"),
-    Batch.findById(batchId).select("_id"),
+    Department.findById(departmentId).select("_id"),
   ]);
 
   if (!course) throw new ApiError("Course not found", 404);
   if (!module) throw new ApiError("Module not found", 404);
-  if (!batch) throw new ApiError("Batch not found", 404);
+  if (!department) throw new ApiError("Department not found", 404);
 
   // Check if module belongs to the course (need to compare ObjectIds as strings)
   const moduleBelongsToCourse = Array.isArray(course.modules)
@@ -74,7 +74,7 @@ export const createOrUpdateTimeline = asyncHandler(async (req, res) => {
     throw new ApiError("Module does not belong to the specified course", 400);
   }
 
-  // Check if timeline already exists for this module and batch
+  // Check if timeline already exists for this module and department
   let timeline;
 
   if (timelineId) {
@@ -84,11 +84,11 @@ export const createOrUpdateTimeline = asyncHandler(async (req, res) => {
       throw new ApiError("Timeline not found", 404);
     }
   } else {
-    // POST request - find by course, module, batch combination
+    // POST request - find by course, module, department combination
     timeline = await ModuleTimeline.findOne({
       course: courseId,
       module: moduleId,
-      batch: batchId,
+      department: departmentId,
     });
   }
 
@@ -108,7 +108,7 @@ export const createOrUpdateTimeline = asyncHandler(async (req, res) => {
     timeline = await ModuleTimeline.create({
       course: courseId,
       module: moduleId,
-      batch: batchId,
+      department: departmentId,
       deadline: parsedDeadline,
       gracePeriodHours,
       enableWarnings,
@@ -118,30 +118,30 @@ export const createOrUpdateTimeline = asyncHandler(async (req, res) => {
     });
   }
 
-  await timeline.populate(["course", "module", "batch"]);
+  await timeline.populate(["course", "module", "department"]);
 
   res.status(200).json(
     new ApiResponse(200, timeline, "Module timeline set successfully"),
   );
 });
 
-// Get timelines for a course and batch
-export const getTimelinesForBatch = asyncHandler(async (req, res) => {
-  const { courseId, batchId } = req.params;
+// Get timelines for a course and department
+export const getTimelinesForDepartment = asyncHandler(async (req, res) => {
+  const { courseId, departmentId } = req.params;
 
-  if (!courseId || !batchId) {
-    throw new ApiError("Course ID and Batch ID are required", 400);
+  if (!courseId || !departmentId) {
+    throw new ApiError("Course ID and Department ID are required", 400);
   }
 
   const timelines = await ModuleTimeline.find({
     course: courseId,
-    batch: batchId,
+    department: departmentId,
     isActive: true
   })
-  .populate('module', 'title description order')
-  .populate('course', 'title')
-  .populate('batch', 'name')
-  .sort({ 'module.order': 1 });
+    .populate('module', 'title description order')
+    .populate('course', 'title')
+    .populate('department', 'name')
+    .sort({ 'module.order': 1 });
 
   res.status(200).json(
     new ApiResponse(200, timelines, "Timelines retrieved successfully")
@@ -160,7 +160,7 @@ export const getAllTimelines = asyncHandler(async (req, res) => {
 
   // Add filters if provided
   if (req.query.courseId) filter.course = req.query.courseId;
-  if (req.query.batchId) filter.batch = req.query.batchId;
+  if (req.query.departmentId) filter.department = req.query.departmentId;
   if (req.query.overdue === 'true') {
     filter.deadline = { $lt: new Date() };
   }
@@ -169,7 +169,7 @@ export const getAllTimelines = asyncHandler(async (req, res) => {
     ModuleTimeline.find(filter)
       .populate('course', 'title')
       .populate('module', 'title order')
-      .populate('batch', 'name')
+      .populate('department', 'name')
       .populate('createdBy', 'fullName')
       .sort({ deadline: 1 })
       .skip(skip)
@@ -211,29 +211,29 @@ export const deleteTimeline = asyncHandler(async (req, res) => {
   );
 });
 
-// Get timeline status for students in a batch
+// Get timeline status for students in a department
 export const getTimelineStatus = asyncHandler(async (req, res) => {
-  const { courseId, batchId } = req.params;
+  const { courseId, departmentId } = req.params;
 
-  // Get all active timelines for this course and batch
+  // Get all active timelines for this course and department
   const timelines = await ModuleTimeline.find({
     course: courseId,
-    batch: batchId,
+    department: departmentId,
     isActive: true
   })
-  .populate('module', 'title order')
-  .sort({ 'module.order': 1 });
+    .populate('module', 'title order')
+    .sort({ 'module.order': 1 });
 
-  // Get all students in the batch
-  const batch = await Batch.findById(batchId).populate('students', 'fullName email');
-  if (!batch) {
-    throw new ApiError("Batch not found", 404);
+  // Get all students in the department
+  const department = await Department.findById(departmentId).populate('students', 'fullName email');
+  if (!department) {
+    throw new ApiError("Department not found", 404);
   }
 
   // Get progress for all students
   const progressRecords = await Progress.find({
     course: courseId,
-    student: { $in: batch.students.map(s => s._id) }
+    student: { $in: department.students.map(s => s._id) }
   }).populate('student', 'fullName email');
 
   // Build status report
@@ -246,8 +246,8 @@ export const getTimelineStatus = asyncHandler(async (req, res) => {
       students: []
     };
 
-    batch.students.forEach(student => {
-      const studentProgress = progressRecords.find(p => 
+    department.students.forEach(student => {
+      const studentProgress = progressRecords.find(p =>
         p.student._id.toString() === student._id.toString()
       );
 
@@ -267,15 +267,15 @@ export const getTimelineStatus = asyncHandler(async (req, res) => {
           email: student.email
         },
         isCompleted,
-        completedAt: isCompleted ? 
-          studentProgress.completedModules.find(cm => 
+        completedAt: isCompleted ?
+          studentProgress.completedModules.find(cm =>
             cm.moduleId.toString() === timeline.module._id.toString()
           )?.completedAt : null,
         hasMissedDeadline,
         hasViolation,
-        status: isCompleted ? 'COMPLETED' : 
-                hasMissedDeadline ? 'MISSED_DEADLINE' :
-                moduleStatus.isOverdue ? 'OVERDUE' : 'IN_PROGRESS'
+        status: isCompleted ? 'COMPLETED' :
+          hasMissedDeadline ? 'MISSED_DEADLINE' :
+            moduleStatus.isOverdue ? 'OVERDUE' : 'IN_PROGRESS'
       });
     });
 
@@ -290,25 +290,25 @@ export const getTimelineStatus = asyncHandler(async (req, res) => {
 // Process timeline enforcement (background job endpoint)
 export const processTimelineEnforcement = asyncHandler(async (req, res) => {
   const now = new Date();
-  
+
   // Get timelines that need processing
   const timelinesToProcess = await ModuleTimeline.getTimelinesToProcess();
-  
+
   let processedCount = 0;
   let demotionCount = 0;
   const errors = [];
 
   for (const timeline of timelinesToProcess) {
     try {
-      // Get students in this batch who haven't completed the module
-      const batchStudents = await User.find({
-        _id: { $in: timeline.batch.students },
+      // Get students in this department who haven't completed the module
+      const departmentStudents = await User.find({
+        _id: { $in: timeline.department.students },
         role: 'STUDENT'
       });
 
       const progressRecords = await Progress.find({
         course: timeline.course._id,
-        student: { $in: batchStudents.map(s => s._id) }
+        student: { $in: departmentStudents.map(s => s._id) }
       });
 
       for (const progress of progressRecords) {
@@ -333,10 +333,10 @@ export const processTimelineEnforcement = asyncHandler(async (req, res) => {
 
             if (currentModuleIndex > 0) {
               const previousModule = sortedModules[currentModuleIndex - 1];
-              
+
               // Demote student
               const demoted = await progress.demoteToModule(previousModule._id);
-              
+
               if (demoted) {
                 // Record timeline violation
                 progress.addTimelineViolation(
@@ -391,10 +391,10 @@ export const processTimelineEnforcement = asyncHandler(async (req, res) => {
 // Send timeline warnings (background job endpoint)
 export const sendTimelineWarnings = asyncHandler(async (req, res) => {
   const now = new Date();
-  
+
   // Get upcoming timelines that might need warnings
   const upcomingTimelines = await ModuleTimeline.getUpcomingWarnings();
-  
+
   let warningsSent = 0;
   const errors = [];
 
@@ -407,18 +407,18 @@ export const sendTimelineWarnings = asyncHandler(async (req, res) => {
       for (const warningHours of timeline.warningPeriods) {
         if (hoursUntilDeadline <= warningHours && hoursUntilDeadline > (warningHours - 1)) {
           const warningType = warningHours === 168 ? '7_DAYS' :
-                            warningHours === 72 ? '3_DAYS' :
-                            warningHours === 24 ? '1_DAY' : 'CUSTOM';
+            warningHours === 72 ? '3_DAYS' :
+              warningHours === 24 ? '1_DAY' : 'CUSTOM';
 
           // Get students who need this warning
-          const batchStudents = await User.find({
-            _id: { $in: timeline.batch.students },
+          const departmentStudents = await User.find({
+            _id: { $in: timeline.department.students },
             role: 'STUDENT'
           });
 
           const progressRecords = await Progress.find({
             course: timeline.course._id,
-            student: { $in: batchStudents.map(s => s._id) }
+            student: { $in: departmentStudents.map(s => s._id) }
           });
 
           for (const progress of progressRecords) {
@@ -430,13 +430,13 @@ export const sendTimelineWarnings = asyncHandler(async (req, res) => {
             if (!hasCompleted && timeline.shouldSendWarning(progress.student, warningType)) {
               // Send warning
               const warningMessage = `Reminder: You have ${Math.ceil(hoursUntilDeadline)} hours left to complete "${timeline.module.title}" before the deadline.`;
-              
+
               progress.addTimelineNotification(
                 'WARNING',
                 timeline.module._id,
                 warningMessage
               );
-              
+
               await progress.save();
 
               // Record warning sent

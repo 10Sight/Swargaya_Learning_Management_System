@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
 import { ApiError } from "../utils/ApiError.js";
-import { AvailableUserStatus, AvailableUserRoles, AvailableSocialLogins, UserStatusEnum, UserRolesEnum } from "../constants.js";
+import { AvailableUserStatus, AvailableUserRoles, AvailableSocialLogins, UserStatusEnum, UserRolesEnum, AvailableUnits } from "../constants.js";
 import ENV from "../configs/env.config.js";
 import { slugify, ensureUniqueSlug } from "../utils/slugify.js";
 
@@ -88,16 +88,22 @@ const userSchema = new Schema(
             type: Boolean,
             default: false,
         },
-        batch: {
+        department: {
             type: Schema.Types.ObjectId,
-            ref: "Batch",
-            index: true, // Index for batch-based queries (for students)
+            ref: "Department",
+            index: true, // Index for department-based queries (for students)
         },
-        batches: [{
+        departments: [{
             type: Schema.Types.ObjectId,
-            ref: "Batch",
-            index: true, // Index for batch-based queries (for instructors)
+            ref: "Department",
+            index: true, // Index for department-based queries (for instructors)
         }],
+        unit: {
+            type: String,
+            enum: AvailableUnits,
+            required: true,
+            index: true, // Index for unit-based queries
+        },
     },
     {
         timestamps: true,
@@ -117,8 +123,8 @@ userSchema.pre("save", async function (next) {
             this.password = await bcrypt.hash(this.password, 10);
         }
 
-        // Note: Instructors can now be assigned to multiple batches
-        // Batch assignment validation is now handled in the batch controller
+        // Note: Instructors can now be assigned to multiple departments
+        // Department assignment validation is now handled in the department controller
         next();
     } catch (error) {
         return next(new ApiError(error.message, 500));
@@ -147,9 +153,9 @@ userSchema.methods = {
         const resetToken = crypto.randomBytes(20).toString("hex");
 
         this.resetPasswordToken = crypto
-          .createHash("sha256")
-          .update(resetToken)
-          .digest("hex");
+            .createHash("sha256")
+            .update(resetToken)
+            .digest("hex");
         this.resetPasswordExpiry = Date.now() + 5 * 60 * 1000;
 
         return resetToken;

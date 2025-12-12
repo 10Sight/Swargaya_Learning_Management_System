@@ -8,7 +8,7 @@ import Submission from "../models/submission.model.js";
 import Assignment from "../models/assignment.model.js";
 import AttemptedQuiz from "../models/attemptedQuiz.model.js";
 import Progress from "../models/progress.model.js";
-import Batch from "../models/batch.model.js";
+import Department from "../models/department.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -16,18 +16,18 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 export const issueCertificate = asyncHandler(async (req, res) => {
     const { courseId, studentId } = req.body;
 
-    if(!mongoose.Types.ObjectId.isValid(courseId) || !mongoose.Types.ObjectId.isValid(studentId)) {
+    if (!mongoose.Types.ObjectId.isValid(courseId) || !mongoose.Types.ObjectId.isValid(studentId)) {
         throw new ApiError("Invalid course or student ID", 400);
     }
 
     const course = await Course.findById(courseId);
-    if(!course) throw new ApiError("Course not found", 404);
+    if (!course) throw new ApiError("Course not found", 404);
 
     const student = await User.findById(studentId);
-    if(!student) throw new ApiError("Student not found", 404);
+    if (!student) throw new ApiError("Student not found", 404);
 
     const existing = await Certificate.findOne({ student: studentId, course: courseId });
-    if(existing) {
+    if (existing) {
         throw new ApiError("Certificate already issued for this student & course", 400);
     }
 
@@ -55,7 +55,7 @@ export const issueCertificateWithTemplate = asyncHandler(async (req, res) => {
         throw new ApiError("Certificate already exists for this student and course", 400);
     }
 
-    const student = await User.findById(studentId).populate('batch');
+    const student = await User.findById(studentId).populate('department');
     if (!student) throw new ApiError("Student not found", 404);
 
     const course = await Course.findById(courseId);
@@ -78,18 +78,18 @@ export const issueCertificateWithTemplate = asyncHandler(async (req, res) => {
         }
     }
 
-    // Get batch and progress information
-    const batch = await Batch.findById(student.batch?._id)
+    // Get department and progress information
+    const department = await Department.findById(student.department?._id)
         .populate('instructor', 'fullName');
-    
+
     const progress = await Progress.findOne({ student: studentId, course: courseId });
 
     // Generate certificate data
     const certificateData = {
         studentName: student.fullName,
         courseName: course.title,
-        batchName: batch?.name || 'N/A',
-        instructorName: batch?.instructor?.fullName || 'N/A',
+        departmentName: department?.name || 'N/A',
+        instructorName: department?.instructor?.fullName || 'N/A',
         level: progress?.currentLevel || 'Beginner',
         issueDate: new Date().toLocaleDateString('en-US', {
             year: 'numeric',
@@ -146,17 +146,17 @@ export const generateCertificatePreview = asyncHandler(async (req, res) => {
     }
 
     // For preview, we can use sample data if student/course not found
-    let student, course, batch, progress;
-    
+    let student, course, department, progress;
+
     try {
         if (mongoose.Types.ObjectId.isValid(studentId)) {
-            student = await User.findById(studentId).populate('batch');
+            student = await User.findById(studentId).populate('department');
         }
         if (mongoose.Types.ObjectId.isValid(courseId)) {
             course = await Course.findById(courseId);
         }
-        if (student?.batch) {
-            batch = await Batch.findById(student.batch._id).populate('instructor', 'fullName');
+        if (student?.department) {
+            department = await Department.findById(student.department._id).populate('instructor', 'fullName');
         }
         if (student && course) {
             progress = await Progress.findOne({ student: studentId, course: courseId });
@@ -184,8 +184,8 @@ export const generateCertificatePreview = asyncHandler(async (req, res) => {
     const previewData = {
         studentName: student?.fullName || 'John Doe',
         courseName: course?.title || 'Sample Course',
-        batchName: batch?.name || 'Sample Batch',
-        instructorName: batch?.instructor?.fullName || 'Jane Smith',
+        departmentName: department?.name || 'Sample Department',
+        instructorName: department?.instructor?.fullName || 'Jane Smith',
         level: progress?.currentLevel || 'Intermediate',
         issueDate: new Date().toLocaleDateString('en-US', {
             year: 'numeric',
@@ -217,16 +217,16 @@ export const generateCertificatePreview = asyncHandler(async (req, res) => {
 export const getCertificateById = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
-    if(!mongoose.Types.ObjectId.isValid(id)) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
         throw new ApiError("Invalid certificate ID", 400);
-    } 
+    }
 
     const certificate = await Certificate.findById(id)
         .populate("student", "fullName email")
         .populate("course", "title")
         .populate("issuedBy", "fullName email");
 
-    if(!certificate) throw new ApiError("Certificate not found", 404);
+    if (!certificate) throw new ApiError("Certificate not found", 404);
 
     res.json(new ApiResponse(200, certificate, "Certificate fetched successfully"));
 });
@@ -246,7 +246,7 @@ export const getStudentCertificates = asyncHandler(async (req, res) => {
 export const getCourseCertificates = asyncHandler(async (req, res) => {
     const { courseId } = req.params;
 
-    if(!mongoose.Types.ObjectId.isValid(courseId)) {
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
         throw new ApiError("Invalid course ID", 400);
     }
 
@@ -261,12 +261,12 @@ export const getCourseCertificates = asyncHandler(async (req, res) => {
 export const revokeCertificate = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
-    if(!mongoose.Types.ObjectId.isValid(id)) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
         throw new ApiError("Invalid certificate ID", 400);
     }
 
     const certificate = await Certificate.findById(id);
-    if(!certificate) throw new ApiError("Certificate not found", 404);
+    if (!certificate) throw new ApiError("Certificate not found", 404);
 
     await certificate.deleteOne();
 
@@ -282,19 +282,19 @@ export const checkCertificateEligibility = asyncHandler(async (req, res) => {
     }
 
     // Get student and course details
-    const student = await User.findById(studentId).populate('batch');
+    const student = await User.findById(studentId).populate('department');
     if (!student) throw new ApiError("Student not found", 404);
 
     const course = await Course.findById(courseId).populate('modules');
     if (!course) throw new ApiError("Course not found", 404);
 
-    // Check if student is enrolled in instructor's batch for this course
-    if (!student.batch) {
-        throw new ApiError("Student not assigned to any batch", 400);
+    // Check if student is enrolled in instructor's department for this course
+    if (!student.department) {
+        throw new ApiError("Student not assigned to any department", 400);
     }
 
-    const batch = await Batch.findById(student.batch._id);
-    if (batch.course.toString() !== courseId || batch.instructor.toString() !== req.user._id.toString()) {
+    const department = await Department.findById(student.department._id);
+    if (department.course.toString() !== courseId || department.instructor.toString() !== req.user._id.toString()) {
         throw new ApiError("You are not authorized to issue certificates for this student", 403);
     }
 
@@ -359,7 +359,7 @@ export const checkCertificateEligibility = asyncHandler(async (req, res) => {
     const gradedSubmissions = submissions.filter(sub => sub.grade !== null && sub.grade !== undefined);
     // If course has no assignments, consider it passed. 
     // If has assignments, all assignments must have submissions and all submissions must be graded.
-    const assignmentsGraded = assignments.length === 0 || 
+    const assignmentsGraded = assignments.length === 0 ||
         (assignments.length === submissions.length && gradedSubmissions.length === submissions.length);
 
     const eligible = courseCompleted && quizPassed && assignmentsGraded;

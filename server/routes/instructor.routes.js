@@ -6,14 +6,14 @@ import {
   getDashboardStats,
   getAssignedCourses,
   getCourseDetails,
-  getAssignedBatches,
-  getBatchDetails,
-  getBatchStudents,
+  getAssignedDepartments,
+  getDepartmentDetails,
+  getDepartmentStudents,
   getStudentProgress,
-  getBatchQuizAttempts,
+  getDepartmentQuizAttempts,
   getQuizDetails,
   getStudentQuizAttempts,
-  getBatchAssignmentSubmissions,
+  getDepartmentAssignmentSubmissions,
   getAssignmentDetails,
   getStudentAssignmentSubmissions,
   getSubmissionDetails,
@@ -37,21 +37,21 @@ router.get("/dashboard/stats", getDashboardStats);
 router.get("/courses", getAssignedCourses);
 router.get("/courses/:courseId", getCourseDetails);
 
-// Batch routes - only batches assigned to instructor
-router.get("/batches", getAssignedBatches);
-router.get("/batches/:batchId", getBatchDetails);
-router.get("/batches/:batchId/students", getBatchStudents);
+// Department routes - only departments assigned to instructor
+router.get("/departments", getAssignedDepartments);
+router.get("/departments/:departmentId", getDepartmentDetails);
+router.get("/departments/:departmentId/students", getDepartmentStudents);
 
 // Student progress tracking
 router.get("/students/:studentId/progress", getStudentProgress);
 
 // Quiz monitoring - read only
-router.get("/batches/:batchId/quiz-attempts", getBatchQuizAttempts);
+router.get("/departments/:departmentId/quiz-attempts", getDepartmentQuizAttempts);
 router.get("/quizzes/:quizId", getQuizDetails);
 router.get("/students/:studentId/quiz-attempts/:quizId", getStudentQuizAttempts);
 
 // Assignment monitoring - read only
-router.get("/batches/:batchId/assignment-submissions", getBatchAssignmentSubmissions);
+router.get("/departments/:departmentId/assignment-submissions", getDepartmentAssignmentSubmissions);
 router.get("/assignments/:assignmentId", getAssignmentDetails);
 router.get("/students/:studentId/assignment-submissions/:assignmentId", getStudentAssignmentSubmissions);
 

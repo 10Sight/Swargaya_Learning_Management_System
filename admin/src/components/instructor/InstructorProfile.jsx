@@ -40,21 +40,30 @@ const InstructorProfile = ({ instructor }) => {
     }
   };
 
-  const getBatchInfo = (instructor) => {
-    if (!instructor.batch) {
+  const getDepartmentInfo = (instructor) => {
+    if (!instructor.department && (!instructor.departments || instructor.departments.length === 0)) {
       return (
         <Badge variant="secondary" className="flex items-center gap-1">
-          No Batch Assigned
+          No Department Assigned
         </Badge>
       );
     }
-    
-    const batchName = instructor.batch?.name || instructor.batch;
+
+    // Handle single department or multiple
+    const departments = instructor.departments || (instructor.department ? [instructor.department] : []);
+
     return (
-      <Badge variant="info" className="flex items-center gap-1">
-        <IconSchool className="h-3 w-3" />
-        {batchName}
-      </Badge>
+      <div className="flex flex-wrap gap-1">
+        {departments.map((dept, idx) => {
+          const deptName = dept?.name || dept;
+          return (
+            <Badge key={idx} variant="info" className="flex items-center gap-1">
+              <IconSchool className="h-3 w-3" />
+              {deptName}
+            </Badge>
+          )
+        })}
+      </div>
     );
   };
 
@@ -93,8 +102,8 @@ const InstructorProfile = ({ instructor }) => {
               {getStatusBadge(instructor.status)}
             </div>
             <div className="space-y-1">
-              <p className="text-sm font-medium text-muted-foreground">Batch</p>
-              {getBatchInfo(instructor)}
+              <p className="text-sm font-medium text-muted-foreground">Department</p>
+              {getDepartmentInfo(instructor)}
             </div>
             <div className="space-y-1">
               <p className="text-sm font-medium text-muted-foreground">Member Since</p>

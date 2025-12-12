@@ -21,7 +21,7 @@ import {
   IconAlertTriangle,
   IconInfoCircle
 } from "@tabler/icons-react";
-import { 
+import {
   useGetAllUsersQuery as useSuperAdminGetAllUsersQuery,
   useCreateUserMutation as useSuperAdminCreateUserMutation,
   useUpdateUserMutation as useSuperAdminUpdateUserMutation,
@@ -56,13 +56,14 @@ const AllUsersManagement = () => {
   const [sortBy, setSortBy] = useState("createdAt");
   const [sortOrder, setSortOrder] = useState("desc");
   const [showDebugInfo, setShowDebugInfo] = useState(false);
-  
+
   const [filters, setFilters] = useState({
     role: "",
     status: "",
     dateFrom: "",
     dateTo: "",
-    batchId: ""
+    departmentId: "",
+    unit: "",
   });
 
   const [newUser, setNewUser] = useState({
@@ -72,16 +73,17 @@ const AllUsersManagement = () => {
     phoneNumber: "",
     role: "STUDENT",
     password: "",
-    status: "ACTIVE"
+    status: "ACTIVE",
+    unit: "UNIT_1",
   });
 
   // API hooks
-  const { 
-    data: usersData, 
-    isLoading, 
-    isError, 
-    error, 
-    refetch 
+  const {
+    data: usersData,
+    isLoading,
+    isError,
+    error,
+    refetch
   } = useSuperAdminGetAllUsersQuery({
     page: currentPage,
     limit: 20,
@@ -92,7 +94,8 @@ const AllUsersManagement = () => {
     status: filters.status,
     dateFrom: filters.dateFrom,
     dateTo: filters.dateTo,
-    batchId: filters.batchId
+    departmentId: filters.departmentId,
+    unit: filters.unit,
   });
 
   // Refetch when filters change
@@ -121,7 +124,8 @@ const AllUsersManagement = () => {
         phoneNumber: "",
         role: "STUDENT",
         password: "",
-        status: "ACTIVE"
+        status: "ACTIVE",
+        unit: "UNIT_1",
       });
       refetch();
     } catch (error) {
@@ -148,7 +152,7 @@ const AllUsersManagement = () => {
       toast.error("Please select users to perform bulk action");
       return;
     }
-    
+
     if (window.confirm(`Are you sure you want to ${action} ${selectedUsers.length} selected users?`)) {
       try {
         // Note: Bulk operations would need to be implemented in the API
@@ -284,7 +288,7 @@ const AllUsersManagement = () => {
                       className="w-full"
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="email" className="text-sm font-medium">
                       Email *
@@ -298,7 +302,7 @@ const AllUsersManagement = () => {
                       className="w-full"
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="phoneNumber" className="text-sm font-medium">
                       Phone Number
@@ -312,8 +316,8 @@ const AllUsersManagement = () => {
                       className="w-full"
                     />
                   </div>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="role" className="text-sm font-medium">
                         Role *
@@ -330,7 +334,25 @@ const AllUsersManagement = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    
+
+                    <div className="space-y-2">
+                      <Label htmlFor="unit" className="text-sm font-medium">
+                        Unit *
+                      </Label>
+                      <Select value={newUser.unit} onValueChange={(value) => setNewUser({ ...newUser, unit: value })}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select unit" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="UNIT_1">Unit 1</SelectItem>
+                          <SelectItem value="UNIT_2">Unit 2</SelectItem>
+                          <SelectItem value="UNIT_3">Unit 3</SelectItem>
+                          <SelectItem value="UNIT_4">Unit 4</SelectItem>
+                          <SelectItem value="UNIT_5">Unit 5</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                     <div className="space-y-2">
                       <Label htmlFor="password" className="text-sm font-medium">
                         Password *
@@ -348,15 +370,15 @@ const AllUsersManagement = () => {
                 </div>
               </div>
               <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => setShowCreateModal(false)}
                   className="w-full sm:w-auto"
                 >
                   Cancel
                 </Button>
-                <Button 
-                  onClick={handleCreateUser} 
+                <Button
+                  onClick={handleCreateUser}
                   disabled={!newUser.fullName || !newUser.email}
                   className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
                 >
@@ -400,7 +422,7 @@ const AllUsersManagement = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 <div>
                   <strong className="text-yellow-800">API Request Status:</strong>
                   <div className="text-yellow-700 mt-1">
@@ -420,7 +442,7 @@ const AllUsersManagement = () => {
                     )}
                   </div>
                 </div>
-                
+
                 <div>
                   <strong className="text-yellow-800">API Endpoint:</strong>
                   <div className="text-yellow-700 mt-1">
@@ -435,7 +457,7 @@ const AllUsersManagement = () => {
                       status: filters.status,
                       dateFrom: filters.dateFrom,
                       dateTo: filters.dateTo,
-                      batchId: filters.batchId
+                      departmentId: filters.departmentId
                     }, null, 2)}</div>
                   </div>
                 </div>
@@ -448,7 +470,7 @@ const AllUsersManagement = () => {
       {/* Filters */}
       {showFilters && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
               <select
@@ -463,7 +485,7 @@ const AllUsersManagement = () => {
                 <option value="STUDENT">Student</option>
               </select>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
               <select
@@ -478,7 +500,23 @@ const AllUsersManagement = () => {
                 <option value="PENDING">Pending</option>
               </select>
             </div>
-            
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Unit</label>
+              <select
+                value={filters.unit}
+                onChange={(e) => setFilters({ ...filters, unit: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Units</option>
+                <option value="UNIT_1">Unit 1</option>
+                <option value="UNIT_2">Unit 2</option>
+                <option value="UNIT_3">Unit 3</option>
+                <option value="UNIT_4">Unit 4</option>
+                <option value="UNIT_5">Unit 5</option>
+              </select>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Date From</label>
               <input
@@ -488,7 +526,7 @@ const AllUsersManagement = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Date To</label>
               <input
@@ -515,7 +553,7 @@ const AllUsersManagement = () => {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          
+
           <div className="flex items-center space-x-3">
             {selectedUsers.length > 0 && (
               <div className="flex items-center space-x-2">
@@ -545,7 +583,7 @@ const AllUsersManagement = () => {
                 </button>
               </div>
             )}
-            
+
             <button
               onClick={() => refetch()}
               className="flex items-center space-x-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
@@ -553,7 +591,7 @@ const AllUsersManagement = () => {
               <IconRefresh className="w-4 h-4" />
               <span>Refresh</span>
             </button>
-            
+
             <button className="flex items-center space-x-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors">
               <IconDownload className="w-4 h-4" />
               <span>Export</span>
@@ -597,7 +635,7 @@ const AllUsersManagement = () => {
                     Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Batch
+                    Department
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Last Login
@@ -607,115 +645,115 @@ const AllUsersManagement = () => {
                   </th>
                 </tr>
               </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {isLoading ? (
-                <tr>
-                  <td colSpan="8" className="px-6 py-8 text-center">
-                    <div className="flex justify-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                    </div>
-                  </td>
-                </tr>
-              ) : isError ? (
-                <tr>
-                  <td colSpan="8" className="px-6 py-8 text-center">
-                    <div className="text-red-600">
-                      Error loading users: {error?.data?.message || error?.message}
-                    </div>
-                  </td>
-                </tr>
-              ) : users.length === 0 ? (
-                <tr>
-                  <td colSpan="8" className="px-6 py-8 text-center">
-                    <div className="text-gray-500">No users found</div>
-                  </td>
-                </tr>
-              ) : (
-                users.map((user) => (
-                  <tr key={user._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <input
-                        type="checkbox"
-                        checked={selectedUsers.includes(user._id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedUsers([...selectedUsers, user._id]);
-                          } else {
-                            setSelectedUsers(selectedUsers.filter(id => id !== user._id));
-                          }
-                        }}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <img
-                          className="h-10 w-10 rounded-full object-cover"
-                          src={user.avatar?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=2563eb&color=fff`}
-                          alt={user.fullName}
-                        />
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{user.fullName}</div>
-                          <div className="text-sm text-gray-500">@{user.userName}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">{user.email}</div>
-                      <div className="text-sm text-gray-500">{user.phoneNumber}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(user.role)}`}>
-                        {user.role}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(user.status)}`}>
-                        {user.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {user.batch?.name || 'No Batch'}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="flex items-center justify-center space-x-2">
-                        <button
-                          onClick={() => {/* View user details */}}
-                          className="text-blue-600 hover:text-blue-900 transition-colors"
-                          title="View Details"
-                        >
-                          <IconEye className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setShowEditModal(true);
-                          }}
-                          className="text-green-600 hover:text-green-900 transition-colors"
-                          title="Edit User"
-                        >
-                          <IconEdit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteUser(user._id, true)}
-                          className="text-red-600 hover:text-red-900 transition-colors"
-                          title="Permanently Delete"
-                        >
-                          <IconTrash className="w-4 h-4" />
-                        </button>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {isLoading ? (
+                  <tr>
+                    <td colSpan="8" className="px-6 py-8 text-center">
+                      <div className="flex justify-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : isError ? (
+                  <tr>
+                    <td colSpan="8" className="px-6 py-8 text-center">
+                      <div className="text-red-600">
+                        Error loading users: {error?.data?.message || error?.message}
+                      </div>
+                    </td>
+                  </tr>
+                ) : users.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" className="px-6 py-8 text-center">
+                      <div className="text-gray-500">No users found</div>
+                    </td>
+                  </tr>
+                ) : (
+                  users.map((user) => (
+                    <tr key={user._id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedUsers.includes(user._id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedUsers([...selectedUsers, user._id]);
+                            } else {
+                              setSelectedUsers(selectedUsers.filter(id => id !== user._id));
+                            }
+                          }}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center">
+                          <img
+                            className="h-10 w-10 rounded-full object-cover"
+                            src={user.avatar?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=2563eb&color=fff`}
+                            alt={user.fullName}
+                          />
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">{user.fullName}</div>
+                            <div className="text-sm text-gray-500">@{user.userName}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900">{user.email}</div>
+                        <div className="text-sm text-gray-500">{user.phoneNumber}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(user.role)}`}>
+                          {user.role}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(user.status)}`}>
+                          {user.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900">
+                        {user.department?.name || 'No Department'}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex items-center justify-center space-x-2">
+                          <button
+                            onClick={() => {/* View user details */ }}
+                            className="text-blue-600 hover:text-blue-900 transition-colors"
+                            title="View Details"
+                          >
+                            <IconEye className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setShowEditModal(true);
+                            }}
+                            className="text-green-600 hover:text-green-900 transition-colors"
+                            title="Edit User"
+                          >
+                            <IconEdit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(user._id, true)}
+                            className="text-red-600 hover:text-red-900 transition-colors"
+                            title="Permanently Delete"
+                          >
+                            <IconTrash className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
-        
+
         {/* Mobile Cards */}
         <div className="lg:hidden space-y-4 p-4">
           {isLoading ? (
@@ -751,8 +789,8 @@ const AllUsersManagement = () => {
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-3"
                       />
                       <Avatar className="h-12 w-12">
-                        <AvatarImage 
-                          src={user.avatar?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=2563eb&color=fff`} 
+                        <AvatarImage
+                          src={user.avatar?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=2563eb&color=fff`}
                           alt={user.fullName}
                         />
                         <AvatarFallback className="bg-blue-100 text-blue-800">
@@ -760,7 +798,7 @@ const AllUsersManagement = () => {
                         </AvatarFallback>
                       </Avatar>
                     </div>
-                    
+
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between">
                         <div className="min-w-0 flex-1">
@@ -771,10 +809,10 @@ const AllUsersManagement = () => {
                             <p className="text-sm text-gray-500">{user.phoneNumber}</p>
                           )}
                         </div>
-                        
+
                         <div className="flex items-center space-x-1 ml-2">
                           <button
-                            onClick={() => {/* View user details */}}
+                            onClick={() => {/* View user details */ }}
                             className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-colors"
                             title="View Details"
                           >
@@ -799,7 +837,7 @@ const AllUsersManagement = () => {
                           </button>
                         </div>
                       </div>
-                      
+
                       <div className="flex flex-wrap items-center gap-2 mt-3">
                         <Badge className={getRoleColor(user.role)}>
                           <IconShield className="w-3 h-3 mr-1" />
@@ -808,13 +846,13 @@ const AllUsersManagement = () => {
                         <Badge className={getStatusColor(user.status)}>
                           {user.status}
                         </Badge>
-                        {user.batch?.name && (
+                        {user.department?.name && (
                           <Badge variant="outline">
-                            {user.batch.name}
+                            {user.department.name}
                           </Badge>
                         )}
                       </div>
-                      
+
                       <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
                         <div className="text-xs text-gray-500">
                           Last login: {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
@@ -827,7 +865,7 @@ const AllUsersManagement = () => {
             ))
           )}
         </div>
-        
+
         {/* Pagination */}
         <div className="px-4 sm:px-6 py-4 border-t border-gray-200">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">

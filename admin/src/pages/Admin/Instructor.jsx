@@ -6,9 +6,9 @@ import {
 } from "@/Redux/AllApi/InstructorApi";
 import { useUserRegisterMutation } from "@/Redux/AllApi/AuthApi";
 import {
-  useGetAllBatchesQuery,
+  useGetAllDepartmentsQuery,
   useAssignInstructorMutation,
-} from "@/Redux/AllApi/BatchApi";
+} from "@/Redux/AllApi/DepartmentApi";
 import {
   Table,
   TableBody,
@@ -83,7 +83,7 @@ const Instructor = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isBatchDialogOpen, setIsBatchDialogOpen] = useState(false);
+  const [isDepartmentDialogOpen, setIsDepartmentDialogOpen] = useState(false);
   const [selectedInstructor, setSelectedInstructor] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastToastId, setLastToastId] = useState(null);
@@ -94,10 +94,12 @@ const Instructor = () => {
     phoneNumber: "",
     password: "",
     status: "PENDING",
+    unit: "UNIT_1",
   });
   const [formErrors, setFormErrors] = useState({});
   const [statusFilter, setStatusFilter] = useState("ALL");
-  const [batchFilter, setBatchFilter] = useState("ALL");
+  const [departmentFilter, setDepartmentFilter] = useState("ALL");
+  const [unitFilter, setUnitFilter] = useState("ALL");
   const [activeTab, setActiveTab] = useState("all");
 
   const navigate = useNavigate();
@@ -128,6 +130,8 @@ const Instructor = () => {
       page: currentPage,
       limit: 10,
       search: debouncedSearchTerm || "",
+      status: statusFilter !== "ALL" ? statusFilter : "",
+      unit: unitFilter !== "ALL" ? unitFilter : "",
     },
     {
       // Prevent unnecessary refetches
@@ -137,11 +141,11 @@ const Instructor = () => {
     }
   );
   const {
-    data: batchesData,
-    isLoading: batchesLoading,
-    error: batchesError,
-    refetch: refetchBatches,
-  } = useGetAllBatchesQuery(
+    data: departmentsData,
+    isLoading: departmentsLoading,
+    error: departmentsError,
+    refetch: refetchDepartments,
+  } = useGetAllDepartmentsQuery(
     {
       page: 1,
       limit: 1000,
@@ -159,20 +163,20 @@ const Instructor = () => {
 
   const instructors = instructorsData?.data?.users || [];
   const totalPages = instructorsData?.data?.totalPages || 1;
-  const batches = batchesData?.data?.batches || [];
+  const departments = departmentsData?.data?.departments || [];
 
-  const instructorBatchMap = useMemo(() => {
-    if (!batches || !Array.isArray(batches)) return {};
+  const instructorDepartmentMap = useMemo(() => {
+    if (!departments || !Array.isArray(departments)) return {};
 
     const map = {};
 
-    batches.forEach((batch) => {
-      if (!batch?.instructor) return;
+    departments.forEach((department) => {
+      if (!department?.instructor) return;
 
       const instructorId =
-        typeof batch.instructor === "object"
-          ? batch.instructor?._id
-          : batch.instructor;
+        typeof department.instructor === "object"
+          ? department.instructor?._id
+          : department.instructor;
 
       if (!instructorId) return;
 
@@ -180,11 +184,11 @@ const Instructor = () => {
         map[instructorId] = [];
       }
 
-      map[instructorId].push(batch);
+      map[instructorId].push(department);
     });
 
     return map;
-  }, [batches]);
+  }, [departments]);
 
   // Filter options for reusable components
   const statusOptions = [
@@ -195,10 +199,19 @@ const Instructor = () => {
     { value: "BANNED", label: "Banned" },
   ];
 
-  const batchOptions = [
-    { value: "ALL", label: "All Batches" },
-    { value: "HAS_BATCH", label: "Has Batch" },
-    { value: "NO_BATCH", label: "No Batch" },
+  const departmentOptions = [
+    { value: "ALL", label: "All Departments" },
+    { value: "HAS_DEPARTMENT", label: "Has Department" },
+    { value: "NO_DEPARTMENT", label: "No Department" },
+  ];
+
+  const unitOptions = [
+    { value: "ALL", label: "All Units" },
+    { value: "UNIT_1", label: "Unit 1" },
+    { value: "UNIT_2", label: "Unit 2" },
+    { value: "UNIT_3", label: "Unit 3" },
+    { value: "UNIT_4", label: "Unit 4" },
+    { value: "UNIT_5", label: "Unit 5" },
   ];
 
   // Active filters for FilterBar
@@ -212,11 +225,16 @@ const Instructor = () => {
       filters.push({ label: "Status", value: statusLabel });
     }
 
-    if (batchFilter !== "ALL") {
-      const batchLabel = batchOptions.find(
-        (opt) => opt.value === batchFilter
+    if (departmentFilter !== "ALL") {
+      const departmentLabel = departmentOptions.find(
+        (opt) => opt.value === departmentFilter
       )?.label;
-      filters.push({ label: "Batch", value: batchLabel });
+      filters.push({ label: "Department", value: departmentLabel });
+    }
+
+    if (unitFilter !== "ALL") {
+      const unitLabel = unitOptions.find((opt) => opt.value === unitFilter)?.label;
+      filters.push({ label: "Unit", value: unitLabel });
     }
 
     if (searchTerm) {
@@ -224,25 +242,25 @@ const Instructor = () => {
     }
 
     return filters;
-  }, [statusFilter, batchFilter, searchTerm, statusOptions, batchOptions]);
+  }, [statusFilter, departmentFilter, searchTerm, statusOptions, departmentOptions]);
 
-  // Filter instructors based on status and batch
+  // Filter instructors based on department and unit (status handled by API)
   const filteredInstructors = useMemo(() => {
     return instructors.filter((instructor) => {
-      const statusMatch =
-        statusFilter === "ALL" || instructor.status === statusFilter;
+      const departmentsForInstructor = instructorDepartmentMap[instructor._id] || [];
+      const hasDepartment = departmentsForInstructor.length > 0;
 
-      const batchesForInstructor = instructorBatchMap[instructor._id] || [];
-      const hasBatch = batchesForInstructor.length > 0;
+      const departmentMatch =
+        departmentFilter === "ALL" ||
+        (departmentFilter === "HAS_DEPARTMENT" && hasDepartment) ||
+        (departmentFilter === "NO_DEPARTMENT" && !hasDepartment);
 
-      const batchMatch =
-        batchFilter === "ALL" ||
-        (batchFilter === "HAS_BATCH" && hasBatch) ||
-        (batchFilter === "NO_BATCH" && !hasBatch);
+      const unitMatch =
+        unitFilter === "ALL" || instructor.unit === unitFilter;
 
-      return statusMatch && batchMatch;
+      return departmentMatch && unitMatch;
     });
-  }, [instructors, statusFilter, batchFilter, instructorBatchMap]);
+  }, [instructors, departmentFilter, unitFilter, instructorDepartmentMap]);
 
   // Toast helpers to prevent spam
   const showToast = useCallback(
@@ -281,6 +299,8 @@ const Instructor = () => {
       email: "",
       phoneNumber: "",
       password: "",
+      status: "PENDING",
+      unit: "UNIT_1",
     });
     setFormErrors({});
   };
@@ -305,6 +325,9 @@ const Instructor = () => {
     }
     if (!formData.password?.trim()) {
       errors.password = "Password is required";
+    }
+    if (!formData.unit) {
+      errors.unit = "Unit is required";
     }
 
     // Validate email format
@@ -348,6 +371,7 @@ const Instructor = () => {
         phoneNumber: formData.phoneNumber.trim(),
         password: formData.password.trim(),
         role: "INSTRUCTOR",
+        unit: formData.unit,
       };
 
       const result = await registerInstructor(instructorData).unwrap();
@@ -414,6 +438,7 @@ const Instructor = () => {
         email: updateData.email.trim().toLowerCase(),
         phoneNumber: updateData.phoneNumber.trim(),
         status: updateData.status,
+        unit: updateData.unit,
       };
 
       await updateInstructor({
@@ -451,30 +476,30 @@ const Instructor = () => {
     }
   };
 
-  const handleAssignToBatch = async (batchId) => {
+  const handleAssignToDepartment = async (departmentId) => {
     try {
       await assignInstructor({
-        batchId,
+        departmentId,
         instructorId: selectedInstructor._id,
       }).unwrap();
 
-      showToast("success", "Instructor assigned to batch successfully!");
-      setIsBatchDialogOpen(false);
+      showToast("success", "Instructor assigned to department successfully!");
+      setIsDepartmentDialogOpen(false);
       setSelectedInstructor(null);
 
-      // Refetch both instructors and batches to get updated data
+      // Refetch both instructors and departments to get updated data
       refetch();
-      if (typeof refetchBatches === "function") {
-        refetchBatches();
+      if (typeof refetchDepartments === "function") {
+        refetchDepartments();
       }
     } catch (error) {
       console.error("Assign instructor error:", error);
-      let errorMessage = "Failed to assign instructor to batch";
+      let errorMessage = "Failed to assign instructor to department";
 
       if (error?.data?.message) {
         errorMessage = error.data.message;
       } else if (error?.status === 400) {
-        errorMessage = "Invalid batch or instructor selection";
+        errorMessage = "Invalid department or instructor selection";
       }
 
       showToast("error", errorMessage);
@@ -490,6 +515,7 @@ const Instructor = () => {
       phoneNumber: instructor.phoneNumber,
       password: "",
       status: instructor.status,
+      unit: instructor.unit || "UNIT_1",
     });
     setIsEditDialogOpen(true);
   };
@@ -499,9 +525,9 @@ const Instructor = () => {
     setIsDeleteDialogOpen(true);
   };
 
-  const openBatchDialog = (instructor) => {
+  const openDepartmentDialog = (instructor) => {
     setSelectedInstructor(instructor);
-    setIsBatchDialogOpen(true);
+    setIsDepartmentDialogOpen(true);
   };
 
   const getStatusBadge = (status) => {
@@ -576,23 +602,23 @@ const Instructor = () => {
     }
   };
 
-  const getBatchInfo = (instructor) => {
-    const batchesForInstructor = instructorBatchMap[instructor._id] || [];
+  const getDepartmentInfo = (instructor) => {
+    const departmentsForInstructor = instructorDepartmentMap[instructor._id] || [];
 
-    if (!batchesForInstructor.length) {
+    if (!departmentsForInstructor.length) {
       return (
         <Badge variant="secondary" className="flex items-center gap-1">
-          No Batch
+          No Department
         </Badge>
       );
     }
 
-    if (batchesForInstructor.length === 1) {
-      const batchName = batchesForInstructor[0]?.name || "Unnamed Batch";
+    if (departmentsForInstructor.length === 1) {
+      const departmentName = departmentsForInstructor[0]?.name || "Unnamed Department";
       return (
         <Badge variant="info" className="flex items-center gap-1">
           <IconSchool className="h-3 w-3" />
-          {batchName}
+          {departmentName}
         </Badge>
       );
     }
@@ -600,29 +626,30 @@ const Instructor = () => {
     return (
       <Badge variant="info" className="flex items-center gap-1">
         <IconSchool className="h-3 w-3" />
-        {batchesForInstructor.length} Batches
+        {departmentsForInstructor.length} Departments
       </Badge>
     );
   };
 
-  const getCurrentBatchesLabel = () => {
+  const getCurrentDepartmentsLabel = () => {
     if (!selectedInstructor?._id) return null;
 
-    const batchesForInstructor =
-      instructorBatchMap[selectedInstructor._id] || [];
+    const departmentsForInstructor =
+      instructorDepartmentMap[selectedInstructor._id] || [];
 
-    if (!batchesForInstructor.length) return null;
+    if (!departmentsForInstructor.length) return null;
 
-    if (batchesForInstructor.length === 1) {
-      return batchesForInstructor[0]?.name || "Unknown Batch";
+    if (departmentsForInstructor.length === 1) {
+      return departmentsForInstructor[0]?.name || "Unknown Department";
     }
 
-    return `${batchesForInstructor.length} batches`;
+    return `${departmentsForInstructor.length} departments`;
   };
 
   const clearFilters = () => {
     setStatusFilter("ALL");
-    setBatchFilter("ALL");
+    setDepartmentFilter("ALL");
+    setUnitFilter("ALL");
     setSearchTerm("");
     setActiveTab("all");
   };
@@ -736,8 +763,8 @@ const Instructor = () => {
         />
 
         <StatCard
-          title="Assigned to Batches"
-          value={Object.keys(instructorBatchMap).length}
+          title="Assigned to Departments"
+          value={Object.keys(instructorDepartmentMap).length}
           description="Currently teaching"
           icon={IconSchool}
           iconBgColor="bg-purple-100"
@@ -765,13 +792,13 @@ const Instructor = () => {
             </TabsTrigger>
             <TabsTrigger
               value="assigned"
-              onClick={() => setBatchFilter("HAS_BATCH")}
+              onClick={() => setDepartmentFilter("HAS_DEPARTMENT")}
             >
               Assigned
             </TabsTrigger>
             <TabsTrigger
               value="unassigned"
-              onClick={() => setBatchFilter("NO_BATCH")}
+              onClick={() => setDepartmentFilter("NO_DEPARTMENT")}
             >
               Unassigned
             </TabsTrigger>
@@ -808,26 +835,36 @@ const Instructor = () => {
               />
 
               <FilterSelect
-                value={batchFilter}
-                onValueChange={setBatchFilter}
-                options={batchOptions}
-                placeholder="Batch"
+                value={departmentFilter}
+                onValueChange={setDepartmentFilter}
+                options={departmentOptions}
+                placeholder="Department"
                 icon={IconSchool}
                 className="w-[160px]"
               />
 
+              <FilterSelect
+                value={unitFilter}
+                onValueChange={setUnitFilter}
+                options={unitOptions}
+                placeholder="Unit"
+                icon={IconUsers}
+                className="w-[140px]"
+              />
+
               {(statusFilter !== "ALL" ||
-                batchFilter !== "ALL" ||
+                departmentFilter !== "ALL" ||
+                unitFilter !== "ALL" ||
                 searchTerm) && (
-                <Button
-                  variant="outline"
-                  onClick={clearFilters}
-                  className="gap-1"
-                >
-                  <IconX className="h-4 w-4" />
-                  Clear
-                </Button>
-              )}
+                  <Button
+                    variant="outline"
+                    onClick={clearFilters}
+                    className="gap-1"
+                  >
+                    <IconX className="h-4 w-4" />
+                    Clear
+                  </Button>
+                )}
             </div>
           </div>
 
@@ -846,7 +883,8 @@ const Instructor = () => {
                 <TableHead className="w-[220px]">Instructor</TableHead>
                 <TableHead>Contact</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Batch</TableHead>
+                <TableHead>Unit</TableHead>
+                <TableHead>Department</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -927,8 +965,13 @@ const Instructor = () => {
                       </Select>
                     </TableCell>
                     <TableCell>
+                      <div className="text-sm text-muted-foreground">
+                        {instructor.unit ? instructor.unit.replace("UNIT_", "Unit ") : "No unit"}
+                      </div>
+                    </TableCell>
+                    <TableCell>
                       <div className="flex items-center gap-2">
-                        {getBatchInfo(instructor)}
+                        {getDepartmentInfo(instructor)}
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -937,7 +980,7 @@ const Instructor = () => {
                                 size="sm"
                                 onClick={(e) => {
                                   e.stopPropagation(); // Prevent row click
-                                  openBatchDialog(instructor);
+                                  openDepartmentDialog(instructor);
                                 }}
                                 className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity action-button"
                               >
@@ -945,7 +988,7 @@ const Instructor = () => {
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Assign to batch</p>
+                              <p>Assign to department</p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
@@ -1010,7 +1053,7 @@ const Instructor = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-10">
+                  <TableCell colSpan={7} className="text-center py-10">
                     <div className="flex flex-col items-center space-y-3">
                       <IconUsers className="h-12 w-12 text-muted-foreground/60" />
                       <p className="text-muted-foreground font-medium">
@@ -1018,22 +1061,22 @@ const Instructor = () => {
                       </p>
                       <p className="text-sm text-muted-foreground">
                         {searchTerm ||
-                        statusFilter !== "ALL" ||
-                        batchFilter !== "ALL"
+                          statusFilter !== "ALL" ||
+                          departmentFilter !== "ALL"
                           ? "Try adjusting your search or filters"
                           : "Add your first instructor to get started"}
                       </p>
                       {(searchTerm ||
                         statusFilter !== "ALL" ||
-                        batchFilter !== "ALL") && (
-                        <Button
-                          variant="outline"
-                          onClick={clearFilters}
-                          className="mt-2"
-                        >
-                          Clear filters
-                        </Button>
-                      )}
+                        departmentFilter !== "ALL") && (
+                          <Button
+                            variant="outline"
+                            onClick={clearFilters}
+                            className="mt-2"
+                          >
+                            Clear filters
+                          </Button>
+                        )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -1177,6 +1220,26 @@ const Instructor = () => {
                   <SelectItem value="PENDING">Pending</SelectItem>
                   <SelectItem value="SUSPENDED">Suspended</SelectItem>
                   <SelectItem value="BANNED">Banned</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-unit">Unit</Label>
+              <Select
+                value={formData.unit}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, unit: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select unit" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="UNIT_1">Unit 1</SelectItem>
+                  <SelectItem value="UNIT_2">Unit 2</SelectItem>
+                  <SelectItem value="UNIT_3">Unit 3</SelectItem>
+                  <SelectItem value="UNIT_4">Unit 4</SelectItem>
+                  <SelectItem value="UNIT_5">Unit 5</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1345,86 +1408,83 @@ const Instructor = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Batch Assignment Dialog */}
-      <Dialog open={isBatchDialogOpen} onOpenChange={setIsBatchDialogOpen}>
+      {/* Department Assignment Dialog */}
+      <Dialog open={isDepartmentDialogOpen} onOpenChange={setIsDepartmentDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <IconSchool className="h-5 w-5" />
-              Assign to Batch
+              Assign to Department
             </DialogTitle>
             <DialogDescription>
-              Select a batch for <strong>{selectedInstructor?.fullName}</strong>
-              {getCurrentBatchesLabel() && (
+              Select a department for <strong>{selectedInstructor?.fullName}</strong>
+              {getCurrentDepartmentsLabel() && (
                 <span className="text-amber-600 font-medium">
-                  {" "}(Currently assigned to: {getCurrentBatchesLabel()})
+                  {" "}(Currently assigned to: {getCurrentDepartmentsLabel()})
                 </span>
               )}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <div className="space-y-2 max-h-60 overflow-y-auto">
-              {batchesLoading ? (
+              {departmentsLoading ? (
                 <div className="flex justify-center py-8">
                   <IconLoader className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
-              ) : batchesError ? (
+              ) : departmentsError ? (
                 <div className="text-center py-8">
-                  <p className="text-red-500">Error loading batches</p>
+                  <p className="text-red-500">Error loading departments</p>
                   <p className="text-sm text-muted-foreground mt-1">
                     Please try again later
                   </p>
                 </div>
-              ) : batches.length > 0 ? (
-                batches.map((batch) => {
+              ) : departments.length > 0 ? (
+                departments.map((department) => {
                   const selectedId = selectedInstructor?._id?.toString();
-                  const batchInstructorRaw = batch.instructor;
-                  const batchInstructorId =
-                    typeof batchInstructorRaw === "object"
-                      ? batchInstructorRaw?._id?.toString()
-                      : batchInstructorRaw?.toString();
+                  const departmentInstructorRaw = department.instructor;
+                  const departmentInstructorId =
+                    typeof departmentInstructorRaw === "object"
+                      ? departmentInstructorRaw?._id?.toString()
+                      : departmentInstructorRaw?.toString();
 
                   const isCurrentlyAssigned =
-                    batchInstructorId && selectedId && batchInstructorId === selectedId;
+                    departmentInstructorId && selectedId && departmentInstructorId === selectedId;
                   const hasInstructor =
-                    batchInstructorId && (!selectedId || batchInstructorId !== selectedId);
-                  
+                    departmentInstructorId && (!selectedId || departmentInstructorId !== selectedId);
+
                   return (
                     <div
-                      key={batch._id}
-                      className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                        isCurrentlyAssigned 
-                          ? "bg-green-50 border-green-200 cursor-default" 
-                          : hasInstructor 
-                          ? "bg-red-50 border-red-200 cursor-not-allowed opacity-60" 
-                          : "hover:bg-muted/50 cursor-pointer"
-                      }`}
+                      key={department._id}
+                      className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${isCurrentlyAssigned
+                          ? "bg-green-50 border-green-200 cursor-default"
+                          : hasInstructor
+                            ? "bg-red-50 border-red-200 cursor-not-allowed opacity-60"
+                            : "hover:bg-muted/50 cursor-pointer"
+                        }`}
                       onClick={() => {
                         if (!isCurrentlyAssigned && !hasInstructor) {
-                          handleAssignToBatch(batch._id);
+                          handleAssignToDepartment(department._id);
                         }
                       }}
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-full ${
-                          isCurrentlyAssigned 
-                            ? "bg-green-100" 
-                            : hasInstructor 
-                            ? "bg-red-100" 
-                            : "bg-blue-100"
-                        }`}>
-                          <IconSchool className={`h-4 w-4 ${
-                            isCurrentlyAssigned 
-                              ? "text-green-600" 
-                              : hasInstructor 
-                              ? "text-red-600" 
-                              : "text-blue-600"
-                          }`} />
+                        <div className={`p-2 rounded-full ${isCurrentlyAssigned
+                            ? "bg-green-100"
+                            : hasInstructor
+                              ? "bg-red-100"
+                              : "bg-blue-100"
+                          }`}>
+                          <IconSchool className={`h-4 w-4 ${isCurrentlyAssigned
+                              ? "text-green-600"
+                              : hasInstructor
+                                ? "text-red-600"
+                                : "text-blue-600"
+                            }`} />
                         </div>
                         <div>
-                          <p className="font-medium">{batch.name}</p>
+                          <p className="font-medium">{department.name}</p>
                           <p className="text-sm text-muted-foreground">
-                            {batch.students?.length || 0} students
+                            {department.students?.length || 0} students
                           </p>
                         </div>
                       </div>
@@ -1451,9 +1511,9 @@ const Instructor = () => {
               ) : (
                 <div className="text-center py-8">
                   <IconSchool className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-muted-foreground">No batches available</p>
+                  <p className="text-muted-foreground">No departments available</p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Create a batch first to assign instructors
+                    Create a department first to assign instructors
                   </p>
                 </div>
               )}
@@ -1463,7 +1523,7 @@ const Instructor = () => {
             <Button
               variant="outline"
               onClick={() => {
-                setIsBatchDialogOpen(false);
+                setIsDepartmentDialogOpen(false);
                 setSelectedInstructor(null);
               }}
             >

@@ -7,10 +7,10 @@ export const userApi = createApi({
     tagTypes: ['User'],
     endpoints: (builder) => ({
         getAllUsers: builder.query({
-            query: ({ page = 1, limit = 20, sortBy = "createdAt", order = "desc", search = "", role = "" } = {}) => ({
+            query: ({ page = 1, limit = 20, sortBy = "createdAt", order = "desc", search = "", role = "", unit = "" } = {}) => ({
                 url: "/api/users",
                 method: "GET",
-                params: { page, limit, sortBy, order, search, role }
+                params: { page, limit, sortBy, order, search, role, unit }
             }),
             providesTags: ['User'],
         }),
@@ -80,10 +80,10 @@ export const userApi = createApi({
         }),
 
         exportStudents: builder.query({
-            query: ({ format = 'excel', search = '', status = '', batchId = '' } = {}) => ({
+            query: ({ format = 'excel', search = '', status = '', departmentId = '' } = {}) => ({
                 url: `/api/exports/students`,
                 method: "GET",
-                params: { format, search, status, batchId },
+                params: { format, search, status, departmentId },
                 responseHandler: (response) => response.data
             }),
             keepUnusedDataFor: 0,

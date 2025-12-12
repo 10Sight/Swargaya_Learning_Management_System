@@ -17,7 +17,7 @@ export const SocketProvider = ({ children }) => {
     const [socket, setSocket] = useState(null);
     const [isConnected, setIsConnected] = useState(false);
     const [notifications, setNotifications] = useState([]);
-    
+
     // Get auth data from Redux store
     const { user, isLoggedIn } = useSelector((state) => state.auth);
 
@@ -55,172 +55,172 @@ export const SocketProvider = ({ children }) => {
                     forceNew: true,
                 });
 
-            // Connection event handlers
-            newSocket.on('connect', () => {
-                setIsConnected(true);
-                
-                // Authenticate user with socket
-                newSocket.emit('authenticate', {
-                    userId: user._id,
-                    name: user.fullName || user.userName || user.name || 'User',
-                    role: user.role,
-                    batches: user.batches || [], // Assuming user has batches array
-                });
-            });
+                // Connection event handlers
+                newSocket.on('connect', () => {
+                    setIsConnected(true);
 
-            newSocket.on('disconnect', () => {
-                setIsConnected(false);
-            });
-
-            newSocket.on('authenticated', () => {
-                toast.success('Real-time notifications enabled');
-            });
-
-            // Real-time notification handlers
-            newSocket.on('notification', (data) => {
-                console.log('New notification:', data);
-                setNotifications(prev => [data, ...prev.slice(0, 49)]); // Keep last 50 notifications
-                
-                // Show toast notification
-                toast(data.message, {
-                    description: `From: ${data.from} • ${new Date(data.timestamp).toLocaleTimeString()}`,
-                    action: {
-                        label: 'View',
-                        onClick: () => console.log('Notification clicked:', data),
-                    },
-                });
-            });
-
-            // Quiz notifications
-            newSocket.on('quiz-started', (data) => {
-                console.log('Quiz started:', data);
-                setNotifications(prev => [data, ...prev.slice(0, 49)]);
-                toast.info(data.message, {
-                    description: `Quiz: ${data.quiz?.title}`,
-                    duration: 6000,
-                });
-            });
-
-            newSocket.on('quiz-submitted', (data) => {
-                console.log('Quiz submitted:', data);
-                setNotifications(prev => [data, ...prev.slice(0, 49)]);
-                toast.success(data.message, {
-                    description: 'Quiz submission received',
-                });
-            });
-
-            // Assignment notifications
-            newSocket.on('assignment-created', (data) => {
-                console.log('New assignment:', data);
-                setNotifications(prev => [data, ...prev.slice(0, 49)]);
-                toast.info(data.message, {
-                    description: `Due: ${data.assignment?.dueDate ? new Date(data.assignment.dueDate).toLocaleDateString() : 'No due date'}`,
-                    duration: 8000,
-                });
-            });
-
-            newSocket.on('assignment-submitted', (data) => {
-                console.log('Assignment submitted:', data);
-                setNotifications(prev => [data, ...prev.slice(0, 49)]);
-                toast.success(data.message);
-            });
-
-            // Grade notifications
-            newSocket.on('grade-updated', (data) => {
-                console.log('Grade updated:', data);
-                setNotifications(prev => [data, ...prev.slice(0, 49)]);
-                toast.success(data.message, {
-                    description: `Score: ${data.grade?.score || 'N/A'}`,
-                    duration: 6000,
-                });
-            });
-
-            // Announcement notifications
-            newSocket.on('new-announcement', (data) => {
-                console.log('New announcement:', data);
-                setNotifications(prev => [data, ...prev.slice(0, 49)]);
-                toast.info('📢 New Announcement', {
-                    description: data.message,
-                    duration: 10000,
-                });
-            });
-
-            // Extra attempt notifications
-            newSocket.on('attempt-approved', (data) => {
-                setNotifications(prev => [data, ...prev.slice(0, 49)]);
-                toast.success('Extra attempt approved', {
-                    description: data.message,
-                    duration: 6000,
-                });
-                // emit custom app-wide event
-                window.dispatchEvent(new CustomEvent('attempt-extension-updated', { detail: { quizId: data.quiz?._id, status: 'APPROVED' } }));
-            });
-            newSocket.on('attempt-rejected', (data) => {
-                setNotifications(prev => [data, ...prev.slice(0, 49)]);
-                toast.error('Extra attempt rejected', {
-                    description: data.message,
-                    duration: 6000,
-                });
-                window.dispatchEvent(new CustomEvent('attempt-extension-updated', { detail: { quizId: data.quiz?._id, status: 'REJECTED' } }));
-            });
-
-            // User activity notifications
-            newSocket.on('user-joined', (data) => {
-                console.log('User joined room:', data);
-                if (data.userName) {
-                    toast(`${data.userName} joined`, {
-                        description: `Room: ${data.roomId}`,
-                        duration: 3000,
+                    // Authenticate user with socket
+                    newSocket.emit('authenticate', {
+                        userId: user._id,
+                        name: user.fullName || user.userName || user.name || 'User',
+                        role: user.role,
+                        departments: user.departments || [], // Assuming user has departments array
                     });
-                }
-            });
-
-            newSocket.on('user-left', (data) => {
-                console.log('User left room:', data);
-                if (data.userName) {
-                    toast(`${data.userName} left`, {
-                        description: `Room: ${data.roomId}`,
-                        duration: 3000,
-                    });
-                }
-            });
-
-            // Typing indicators (for future chat features)
-            newSocket.on('user-typing', (data) => {
-                console.log('User typing:', data);
-                // Handle typing indicator display
-            });
-
-            newSocket.on('user-stopped-typing', (data) => {
-                console.log('User stopped typing:', data);
-                // Handle typing indicator removal
-            });
-
-            // Error handling
-            newSocket.on('connect_error', (error) => {
-                console.error('Socket connection error:', error);
-                toast.error('Connection error', {
-                    description: 'Failed to connect to real-time notifications',
                 });
-            });
 
-            setSocket(newSocket);
+                newSocket.on('disconnect', () => {
+                    setIsConnected(false);
+                });
 
-            // Cleanup on unmount or auth change
-            cleanup = () => {
-                newSocket.disconnect();
-                setSocket(null);
-                setIsConnected(false);
-            };
-        } else {
-            // Disconnect socket if user logs out
-            if (socket) {
-                socket.disconnect();
-                setSocket(null);
-                setIsConnected(false);
-                setNotifications([]);
+                newSocket.on('authenticated', () => {
+                    toast.success('Real-time notifications enabled');
+                });
+
+                // Real-time notification handlers
+                newSocket.on('notification', (data) => {
+                    console.log('New notification:', data);
+                    setNotifications(prev => [data, ...prev.slice(0, 49)]); // Keep last 50 notifications
+
+                    // Show toast notification
+                    toast(data.message, {
+                        description: `From: ${data.from} • ${new Date(data.timestamp).toLocaleTimeString()}`,
+                        action: {
+                            label: 'View',
+                            onClick: () => console.log('Notification clicked:', data),
+                        },
+                    });
+                });
+
+                // Quiz notifications
+                newSocket.on('quiz-started', (data) => {
+                    console.log('Quiz started:', data);
+                    setNotifications(prev => [data, ...prev.slice(0, 49)]);
+                    toast.info(data.message, {
+                        description: `Quiz: ${data.quiz?.title}`,
+                        duration: 6000,
+                    });
+                });
+
+                newSocket.on('quiz-submitted', (data) => {
+                    console.log('Quiz submitted:', data);
+                    setNotifications(prev => [data, ...prev.slice(0, 49)]);
+                    toast.success(data.message, {
+                        description: 'Quiz submission received',
+                    });
+                });
+
+                // Assignment notifications
+                newSocket.on('assignment-created', (data) => {
+                    console.log('New assignment:', data);
+                    setNotifications(prev => [data, ...prev.slice(0, 49)]);
+                    toast.info(data.message, {
+                        description: `Due: ${data.assignment?.dueDate ? new Date(data.assignment.dueDate).toLocaleDateString() : 'No due date'}`,
+                        duration: 8000,
+                    });
+                });
+
+                newSocket.on('assignment-submitted', (data) => {
+                    console.log('Assignment submitted:', data);
+                    setNotifications(prev => [data, ...prev.slice(0, 49)]);
+                    toast.success(data.message);
+                });
+
+                // Grade notifications
+                newSocket.on('grade-updated', (data) => {
+                    console.log('Grade updated:', data);
+                    setNotifications(prev => [data, ...prev.slice(0, 49)]);
+                    toast.success(data.message, {
+                        description: `Score: ${data.grade?.score || 'N/A'}`,
+                        duration: 6000,
+                    });
+                });
+
+                // Announcement notifications
+                newSocket.on('new-announcement', (data) => {
+                    console.log('New announcement:', data);
+                    setNotifications(prev => [data, ...prev.slice(0, 49)]);
+                    toast.info('📢 New Announcement', {
+                        description: data.message,
+                        duration: 10000,
+                    });
+                });
+
+                // Extra attempt notifications
+                newSocket.on('attempt-approved', (data) => {
+                    setNotifications(prev => [data, ...prev.slice(0, 49)]);
+                    toast.success('Extra attempt approved', {
+                        description: data.message,
+                        duration: 6000,
+                    });
+                    // emit custom app-wide event
+                    window.dispatchEvent(new CustomEvent('attempt-extension-updated', { detail: { quizId: data.quiz?._id, status: 'APPROVED' } }));
+                });
+                newSocket.on('attempt-rejected', (data) => {
+                    setNotifications(prev => [data, ...prev.slice(0, 49)]);
+                    toast.error('Extra attempt rejected', {
+                        description: data.message,
+                        duration: 6000,
+                    });
+                    window.dispatchEvent(new CustomEvent('attempt-extension-updated', { detail: { quizId: data.quiz?._id, status: 'REJECTED' } }));
+                });
+
+                // User activity notifications
+                newSocket.on('user-joined', (data) => {
+                    console.log('User joined room:', data);
+                    if (data.userName) {
+                        toast(`${data.userName} joined`, {
+                            description: `Room: ${data.roomId}`,
+                            duration: 3000,
+                        });
+                    }
+                });
+
+                newSocket.on('user-left', (data) => {
+                    console.log('User left room:', data);
+                    if (data.userName) {
+                        toast(`${data.userName} left`, {
+                            description: `Room: ${data.roomId}`,
+                            duration: 3000,
+                        });
+                    }
+                });
+
+                // Typing indicators (for future chat features)
+                newSocket.on('user-typing', (data) => {
+                    console.log('User typing:', data);
+                    // Handle typing indicator display
+                });
+
+                newSocket.on('user-stopped-typing', (data) => {
+                    console.log('User stopped typing:', data);
+                    // Handle typing indicator removal
+                });
+
+                // Error handling
+                newSocket.on('connect_error', (error) => {
+                    console.error('Socket connection error:', error);
+                    toast.error('Connection error', {
+                        description: 'Failed to connect to real-time notifications',
+                    });
+                });
+
+                setSocket(newSocket);
+
+                // Cleanup on unmount or auth change
+                cleanup = () => {
+                    newSocket.disconnect();
+                    setSocket(null);
+                    setIsConnected(false);
+                };
+            } else {
+                // Disconnect socket if user logs out
+                if (socket) {
+                    socket.disconnect();
+                    setSocket(null);
+                    setIsConnected(false);
+                    setNotifications([]);
+                }
             }
-        }
         };
         init();
         return () => cleanup && cleanup();
@@ -250,37 +250,37 @@ export const SocketProvider = ({ children }) => {
         }
     };
 
-    const notifyQuizStarted = (batchId, quizData) => {
+    const notifyQuizStarted = (departmentId, quizData) => {
         if (socket && isConnected) {
             socket.emit('quiz-started', {
-                batchId,
+                departmentId,
                 quizData
             });
         }
     };
 
-    const notifyQuizSubmitted = (batchId, submissionData) => {
+    const notifyQuizSubmitted = (departmentId, submissionData) => {
         if (socket && isConnected) {
             socket.emit('quiz-submitted', {
-                batchId,
+                departmentId,
                 submissionData
             });
         }
     };
 
-    const notifyAssignmentCreated = (batchId, assignmentData) => {
+    const notifyAssignmentCreated = (departmentId, assignmentData) => {
         if (socket && isConnected) {
             socket.emit('assignment-created', {
-                batchId,
+                departmentId,
                 assignmentData
             });
         }
     };
 
-    const notifyAssignmentSubmitted = (batchId, submissionData) => {
+    const notifyAssignmentSubmitted = (departmentId, submissionData) => {
         if (socket && isConnected) {
             socket.emit('assignment-submitted', {
-                batchId,
+                departmentId,
                 submissionData
             });
         }

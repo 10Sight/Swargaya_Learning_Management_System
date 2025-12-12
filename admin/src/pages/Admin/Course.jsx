@@ -8,6 +8,9 @@ import {
 } from "@/Redux/AllApi/CourseApi";
 import { useLazyExportCoursesQuery } from "@/Redux/AllApi/CourseApi";
 import {
+  useGetActiveConfigQuery
+} from "@/Redux/AllApi/CourseLevelConfigApi";
+import {
   Table,
   TableBody,
   TableCell,
@@ -138,6 +141,8 @@ const Course = () => {
   const [deleteCourse] = useDeleteCourseMutation();
   const [togglePublish] = useTogglePublishCourseMutation();
   const [triggerExportCourses, { isFetching: isExportingCourses }] = useLazyExportCoursesQuery();
+  const { data: configData } = useGetActiveConfigQuery();
+  const activeLevels = configData?.data?.levels || [];
 
   const courses = coursesData?.data?.courses || [];
   const totalPages = coursesData?.data?.totalPages || 1;
@@ -196,8 +201,8 @@ const Course = () => {
         type === "success"
           ? toast.success(message)
           : type === "error"
-          ? toast.error(message)
-          : toast(message);
+            ? toast.error(message)
+            : toast(message);
       setLastToastId(toastId);
     },
     [lastToastId]
@@ -284,8 +289,7 @@ const Course = () => {
       await togglePublish(courseId).unwrap();
       showToast(
         "success",
-        `Course ${
-          currentStatus === "PUBLISHED" ? "unpublished" : "published"
+        `Course ${currentStatus === "PUBLISHED" ? "unpublished" : "published"
         } successfully!`
       );
       refetch();
@@ -571,17 +575,17 @@ const Course = () => {
               {(statusFilter !== "ALL" ||
                 categoryFilter !== "ALL" ||
                 searchTerm) && (
-                <Button
-                  variant="outline"
-                  onClick={clearFilters}
-                  className="gap-1 w-full xs:w-auto"
-                  size="sm"
-                >
-                  <IconX className="h-4 w-4" />
-                  <span className="hidden xs:inline">Clear</span>
-                  <span className="xs:hidden">Clear Filters</span>
-                </Button>
-              )}
+                  <Button
+                    variant="outline"
+                    onClick={clearFilters}
+                    className="gap-1 w-full xs:w-auto"
+                    size="sm"
+                  >
+                    <IconX className="h-4 w-4" />
+                    <span className="hidden xs:inline">Clear</span>
+                    <span className="xs:hidden">Clear Filters</span>
+                  </Button>
+                )}
             </div>
 
             <div className="flex gap-2">
@@ -601,12 +605,12 @@ const Course = () => {
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `courses_${new Date().toISOString().slice(0,10)}.xlsx`;
+                    a.download = `courses_${new Date().toISOString().slice(0, 10)}.xlsx`;
                     document.body.appendChild(a);
                     a.click();
                     a.remove();
                     window.URL.revokeObjectURL(url);
-                  } catch {}
+                  } catch { }
                 }}
               >
                 Export Excel
@@ -627,12 +631,12 @@ const Course = () => {
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `courses_${new Date().toISOString().slice(0,10)}.pdf`;
+                    a.download = `courses_${new Date().toISOString().slice(0, 10)}.pdf`;
                     document.body.appendChild(a);
                     a.click();
                     a.remove();
                     window.URL.revokeObjectURL(url);
-                  } catch {}
+                  } catch { }
                 }}
               >
                 Export PDF
@@ -769,22 +773,22 @@ const Course = () => {
                         </p>
                         <p className="text-sm text-muted-foreground">
                           {searchTerm ||
-                          statusFilter !== "ALL" ||
-                          categoryFilter !== "ALL"
+                            statusFilter !== "ALL" ||
+                            categoryFilter !== "ALL"
                             ? "Try adjusting your search or filters"
                             : "Add your first course to get started"}
                         </p>
                         {(searchTerm ||
                           statusFilter !== "ALL" ||
                           categoryFilter !== "ALL") && (
-                          <Button
-                            variant="outline"
-                            onClick={clearFilters}
-                            className="mt-2"
-                          >
-                            Clear filters
-                          </Button>
-                        )}
+                            <Button
+                              variant="outline"
+                              onClick={clearFilters}
+                              className="mt-2"
+                            >
+                              Clear filters
+                            </Button>
+                          )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -809,7 +813,7 @@ const Course = () => {
                           <IconBook className="h-6 w-6" />
                         </AvatarFallback>
                       </Avatar>
-                      
+
                       <div className="flex-1 min-w-0 space-y-2">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
@@ -822,7 +826,7 @@ const Course = () => {
                           </div>
                           <IconExternalLink className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                         </div>
-                        
+
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge variant="outline" className="text-xs">
                             {course.category}
@@ -830,7 +834,7 @@ const Course = () => {
                           {getDifficultyBadge(course.difficulty)}
                           {getStatusBadge(course.status)}
                         </div>
-                        
+
                         <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                           <div className="flex items-center gap-2">
                             <Select
@@ -850,7 +854,7 @@ const Course = () => {
                               </SelectContent>
                             </Select>
                           </div>
-                          
+
                           <div className="flex items-center space-x-1">
                             <Button
                               variant="ghost"
@@ -889,22 +893,22 @@ const Course = () => {
                 </h3>
                 <p className="text-sm text-muted-foreground mb-4">
                   {searchTerm ||
-                  statusFilter !== "ALL" ||
-                  categoryFilter !== "ALL"
+                    statusFilter !== "ALL" ||
+                    categoryFilter !== "ALL"
                     ? "Try adjusting your search or filters"
                     : "Add your first course to get started"}
                 </p>
                 {(searchTerm ||
                   statusFilter !== "ALL" ||
                   categoryFilter !== "ALL") && (
-                  <Button
-                    variant="outline"
-                    onClick={clearFilters}
-                    className="mt-2"
-                  >
-                    Clear filters
-                  </Button>
-                )}
+                    <Button
+                      variant="outline"
+                      onClick={clearFilters}
+                      className="mt-2"
+                    >
+                      Clear filters
+                    </Button>
+                  )}
               </div>
             )}
           </div>
@@ -1000,9 +1004,19 @@ const Course = () => {
                   <SelectValue placeholder="Select difficulty" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="BEGINNER">Beginner</SelectItem>
-                  <SelectItem value="INTERMEDIATE">Intermediate</SelectItem>
-                  <SelectItem value="ADVANCED">Advanced</SelectItem>
+                  {activeLevels.length > 0 ? (
+                    activeLevels.map((level) => (
+                      <SelectItem key={level.name} value={level.name}>
+                        {level.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <>
+                      <SelectItem value="BEGINNER">Beginner</SelectItem>
+                      <SelectItem value="INTERMEDIATE">Intermediate</SelectItem>
+                      <SelectItem value="ADVANCED">Advanced</SelectItem>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>

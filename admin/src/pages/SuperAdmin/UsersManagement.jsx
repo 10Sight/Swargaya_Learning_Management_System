@@ -35,6 +35,7 @@ const UsersManagement = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
+  const [unitFilter, setUnitFilter] = useState('');
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
     type: null,
@@ -53,6 +54,7 @@ const UsersManagement = () => {
     limit,
     search: searchTerm,
     role: roleFilter,
+    unit: unitFilter,
   }, {
     skip: activeTab !== 'active',
     refetchOnMountOrArgChange: true
@@ -101,6 +103,15 @@ const UsersManagement = () => {
     { value: 'STUDENT', label: 'Student' }
   ];
 
+  const unitOptions = [
+    { value: '', label: 'All Units' },
+    { value: 'UNIT_1', label: 'Unit 1' },
+    { value: 'UNIT_2', label: 'Unit 2' },
+    { value: 'UNIT_3', label: 'Unit 3' },
+    { value: 'UNIT_4', label: 'Unit 4' },
+    { value: 'UNIT_5', label: 'Unit 5' },
+  ];
+
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
     setCurrentPage(1);
@@ -111,11 +122,17 @@ const UsersManagement = () => {
     setCurrentPage(1);
   };
 
+  const handleUnitFilter = (value) => {
+    setUnitFilter(value);
+    setCurrentPage(1);
+  };
+
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     setCurrentPage(1);
     setSearchTerm('');
     setRoleFilter('');
+    setUnitFilter('');
   };
 
   const openConfirmModal = (type, user) => {
@@ -128,7 +145,7 @@ const UsersManagement = () => {
 
   const handleConfirmAction = async () => {
     const { type, user } = confirmModal;
-    
+
     try {
       if (type === 'delete') {
         await deleteUser(user._id).unwrap();
@@ -137,14 +154,14 @@ const UsersManagement = () => {
         await restoreUser(user._id).unwrap();
         toast.success('User restored successfully!');
       }
-      
+
       // Refetch data
       if (activeTab === 'active') {
         refetchActive();
       } else {
         refetchDeleted();
       }
-      
+
       closeConfirmModal();
     } catch (error) {
       toast.error(error?.data?.message || 'Something went wrong');
@@ -158,7 +175,7 @@ const UsersManagement = () => {
       BANNED: 'bg-red-100 text-red-800',
       PENDING: 'bg-blue-100 text-blue-800',
     };
-    
+
     return (
       <Badge className={statusColors[status] || 'bg-gray-100 text-gray-800'}>
         {status}
@@ -173,7 +190,7 @@ const UsersManagement = () => {
       STUDENT: 'bg-green-100 text-green-800',
       SUPERADMIN: 'bg-red-100 text-red-800',
     };
-    
+
     return (
       <Badge className={roleColors[role] || 'bg-gray-100 text-gray-800'}>
         {role?.replace('_', ' ')}
@@ -220,13 +237,25 @@ const UsersManagement = () => {
                 className="w-full"
               />
             </div>
-            <div className="w-full sm:w-48">
+            <div className="w-full sm:w-48 flex gap-2">
               <Select value={roleFilter} onValueChange={handleRoleFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="Filter by role" />
                 </SelectTrigger>
                 <SelectContent>
                   {roleOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={unitFilter} onValueChange={handleUnitFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter by unit" />
+                </SelectTrigger>
+                <SelectContent>
+                  {unitOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>
@@ -243,8 +272,9 @@ const UsersManagement = () => {
                 <TableRow>
                   <TableHead>User</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead>Unit</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Batch</TableHead>
+                  <TableHead>Department</TableHead>
                   <TableHead>{activeTab === 'active' ? 'Created' : 'Deleted'}</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -253,14 +283,14 @@ const UsersManagement = () => {
                 {isLoading ? (
                   Array.from({ length: 5 }).map((_, index) => (
                     <TableRow key={index}>
-                      <TableCell colSpan={6}>
+                      <TableCell colSpan={7}>
                         <div className="animate-pulse bg-gray-200 h-4 rounded"></div>
                       </TableCell>
                     </TableRow>
                   ))
                 ) : currentData?.users?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
+                    <TableCell colSpan={7} className="text-center py-8">
                       <div className="flex flex-col items-center gap-2">
                         <Users className="w-12 h-12 text-gray-400" />
                         <p className="text-gray-500">No users found</p>
@@ -296,11 +326,16 @@ const UsersManagement = () => {
                         {getRoleBadge(user.role)}
                       </TableCell>
                       <TableCell>
+                        {user.unit ? user.unit.replace("UNIT_", "Unit ") : (
+                          <span className="text-gray-400">No unit</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         {getUserStatusBadge(user.status)}
                       </TableCell>
                       <TableCell>
-                        {user.batch?.name || (
-                          <span className="text-gray-400">No batch</span>
+                        {user.department?.name || (
+                          <span className="text-gray-400">No department</span>
                         )}
                       </TableCell>
                       <TableCell>
@@ -308,7 +343,7 @@ const UsersManagement = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <ActionButtons.View 
+                          <ActionButtons.View
                             onClick={() => window.open(`/superadmin/users/${user._id}`, '_blank')}
                           />
                           {activeTab === 'deleted' ? (

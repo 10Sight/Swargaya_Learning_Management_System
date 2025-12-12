@@ -18,29 +18,19 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { 
-  Clock, 
-  AlertTriangle, 
-  Calendar, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Play, 
-  Bell, 
-  Users, 
+  Clock,
+  Plus,
+  Edit,
+  Trash2,
+  Play,
+  Bell,
+  Users,
   BookOpen,
   CheckCircle,
   XCircle,
   AlertCircle,
   TrendingUp,
-  Settings
+  Calendar,
 } from 'lucide-react';
 import axiosInstance from '@/Helper/axiosInstance';
 import { toast } from 'sonner';
@@ -48,17 +38,17 @@ import { toast } from 'sonner';
 const ModuleTimelines = () => {
   const [timelines, setTimelines] = useState([]);
   const [courses, setCourses] = useState([]);
-  const [batches, setBatches] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [selectedCourseForStatus, setSelectedCourseForStatus] = useState(null);
-  const [selectedBatchForStatus, setSelectedBatchForStatus] = useState(null);
+  const [selectedDepartmentForStatus, setSelectedDepartmentForStatus] = useState(null);
   const [timelineStatus, setTimelineStatus] = useState([]);
   const [formData, setFormData] = useState({
     courseId: '',
     moduleId: '',
-    batchId: '',
+    departmentId: '',
     deadline: '',
     gracePeriodHours: 24,
     enableWarnings: true,
@@ -75,22 +65,22 @@ const ModuleTimelines = () => {
   const fetchInitialData = async () => {
     try {
       setLoading(true);
-      const [timelinesRes, coursesRes, batchesRes] = await Promise.all([
+      const [timelinesRes, coursesRes, departmentsRes] = await Promise.all([
         axiosInstance.get('/api/module-timelines'),
         axiosInstance.get('/api/courses'),
-        axiosInstance.get('/api/batches')
+        axiosInstance.get('/api/departments')
       ]);
 
       console.log('API Responses:', {
         timelines: timelinesRes.data,
         courses: coursesRes.data,
-        batches: batchesRes.data
+        departments: departmentsRes.data
       });
 
       // Handle timeline response structure
       const timelineData = timelinesRes.data?.data?.timelines || timelinesRes.data?.data || [];
       setTimelines(Array.isArray(timelineData) ? timelineData : []);
-      
+
       // Handle courses response structure - try multiple possible structures
       let coursesData = coursesRes.data?.data?.courses || coursesRes.data?.data || coursesRes.data || [];
       if (!Array.isArray(coursesData)) {
@@ -98,21 +88,21 @@ const ModuleTimelines = () => {
         coursesData = [];
       }
       setCourses(coursesData);
-      
-      // Handle batches response structure
-      let batchesData = batchesRes.data?.data?.batches || batchesRes.data?.data || batchesRes.data || [];
-      if (!Array.isArray(batchesData)) {
-        console.warn('Batches data is not an array:', batchesData);
-        batchesData = [];
+
+      // Handle departments response structure
+      let departmentsData = departmentsRes.data?.data?.departments || departmentsRes.data?.data || departmentsRes.data || [];
+      if (!Array.isArray(departmentsData)) {
+        console.warn('Departments data is not an array:', departmentsData);
+        departmentsData = [];
       }
-      setBatches(batchesData);
+      setDepartments(departmentsData);
     } catch (error) {
       console.error('Error fetching initial data:', error);
       toast.error('Failed to load timeline data');
       // Set empty arrays to prevent rendering errors
       setTimelines([]);
       setCourses([]);
-      setBatches([]);
+      setDepartments([]);
     } finally {
       setLoading(false);
     }
@@ -120,22 +110,22 @@ const ModuleTimelines = () => {
 
   const handleCourseChange = async (courseId) => {
     setFormData(prev => ({ ...prev, courseId, moduleId: '' }));
-    
+
     if (courseId) {
       try {
         const course = courses.find(c => c._id === courseId);
         console.log('Selected course:', course);
-        
+
         if (course && course.modules && Array.isArray(course.modules)) {
           console.log('Course modules:', course.modules);
-          
+
           // Check if modules are already populated with full data
           if (course.modules.length > 0 && typeof course.modules[0] === 'object' && course.modules[0]._id) {
             console.log('Modules already populated in course data');
             setModules(course.modules.sort((a, b) => (a.order || 0) - (b.order || 0)));
             return;
           }
-          
+
           // Try to fetch detailed module information
           console.log('Attempting to fetch individual modules...');
           const modulePromises = course.modules.map(async (moduleId) => {
@@ -154,19 +144,19 @@ const ModuleTimelines = () => {
               };
             }
           });
-          
+
           const moduleData = await Promise.all(modulePromises);
           const validModules = moduleData.filter(module => module && module._id);
-          
+
           console.log('Processed module data:', validModules);
           setModules(validModules.sort((a, b) => (a.order || 0) - (b.order || 0)));
-          
+
           if (validModules.length === 0) {
             toast.error('No valid modules found for this course');
           } else if (validModules.length < course.modules.length) {
             toast.warning(`Only ${validModules.length} of ${course.modules.length} modules could be loaded`);
           }
-          
+
         } else if (course && course.modules) {
           console.log('Course modules exist but not as expected array:', course.modules);
           // Try to use course.modules directly if it's a different structure
@@ -198,12 +188,12 @@ const ModuleTimelines = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     console.log('Form submission started');
     console.log('Form data:', formData);
     console.log('Selected module from modules array:', modules.find(m => m._id === formData.moduleId));
-    
-    if (!formData.courseId || !formData.moduleId || !formData.batchId || !formData.deadline) {
+
+    if (!formData.courseId || !formData.moduleId || !formData.departmentId || !formData.deadline) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -222,7 +212,7 @@ const ModuleTimelines = () => {
         deadline: new Date(formData.deadline).toISOString(),
         warningPeriods: formData.warningPeriods.filter(p => p > 0)
       };
-      
+
       console.log('Payload being sent:', payload);
 
       if (editingTimeline) {
@@ -234,7 +224,7 @@ const ModuleTimelines = () => {
         console.log('Creating new timeline');
         await axiosInstance.post('/api/module-timelines', payload);
       }
-      
+
       toast.success(editingTimeline ? 'Timeline updated successfully' : 'Timeline created successfully');
       setDialogOpen(false);
       resetForm();
@@ -251,14 +241,14 @@ const ModuleTimelines = () => {
     setFormData({
       courseId: timeline.course?._id || '',
       moduleId: timeline.module?._id || '',
-      batchId: timeline.batch?._id || '',
+      departmentId: timeline.department?._id || '',
       deadline: timeline.deadline ? new Date(timeline.deadline).toISOString().slice(0, 16) : '',
       gracePeriodHours: timeline.gracePeriodHours || 24,
       enableWarnings: timeline.enableWarnings !== undefined ? timeline.enableWarnings : true,
       warningPeriods: timeline.warningPeriods || [168, 72, 24],
       description: timeline.description || ''
     });
-    
+
     // Load modules for the selected course
     if (timeline.course?._id) {
       handleCourseChange(timeline.course._id);
@@ -285,15 +275,15 @@ const ModuleTimelines = () => {
     try {
       const response = await axiosInstance.post('/api/module-timelines/process-enforcement');
       const result = response.data.data;
-      
+
       toast.success(
         `Enforcement completed: ${result.processedCount} timelines processed, ${result.demotionCount} students demoted`
       );
-      
+
       if (result.errors && result.errors.length > 0) {
         console.warn('Enforcement errors:', result.errors);
       }
-      
+
       fetchInitialData();
     } catch (error) {
       console.error('Error running enforcement:', error);
@@ -305,9 +295,9 @@ const ModuleTimelines = () => {
     try {
       const response = await axiosInstance.post('/api/module-timelines/send-warnings');
       const result = response.data.data;
-      
+
       toast.success(`Warnings sent: ${result.warningsSent} notifications sent`);
-      
+
       if (result.errors && result.errors.length > 0) {
         console.warn('Warning errors:', result.errors);
       }
@@ -317,12 +307,12 @@ const ModuleTimelines = () => {
     }
   };
 
-  const viewTimelineStatus = async (courseId, batchId) => {
+  const viewTimelineStatus = async (courseId, departmentId) => {
     try {
       setSelectedCourseForStatus(courseId);
-      setSelectedBatchForStatus(batchId);
-      
-      const response = await axiosInstance.get(`/api/module-timelines/status/${courseId}/${batchId}`);
+      setSelectedDepartmentForStatus(departmentId);
+
+      const response = await axiosInstance.get(`/api/module-timelines/status/${courseId}/${departmentId}`);
       setTimelineStatus(response.data.data);
       setStatusDialogOpen(true);
     } catch (error) {
@@ -335,7 +325,7 @@ const ModuleTimelines = () => {
     setFormData({
       courseId: '',
       moduleId: '',
-      batchId: '',
+      departmentId: '',
       deadline: '',
       gracePeriodHours: 24,
       enableWarnings: true,
@@ -401,7 +391,7 @@ const ModuleTimelines = () => {
           <h1 className="text-2xl font-bold text-gray-900">Module Timelines</h1>
           <p className="text-gray-600">Manage module deadlines and automatic progression</p>
         </div>
-        
+
         <div className="flex gap-2">
           <Button onClick={sendWarnings} variant="outline">
             <Bell className="w-4 h-4 mr-2" />
@@ -427,7 +417,7 @@ const ModuleTimelines = () => {
                   Set a deadline for module completion. Students will be demoted if they miss the deadline.
                 </DialogDescription>
               </DialogHeader>
-              
+
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -445,17 +435,17 @@ const ModuleTimelines = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="space-y-2">
-                    <Label htmlFor="batch">Batch *</Label>
-                    <Select value={formData.batchId} onValueChange={value => setFormData(prev => ({ ...prev, batchId: value }))}>
+                    <Label htmlFor="department">Department *</Label>
+                    <Select value={formData.departmentId} onValueChange={value => setFormData(prev => ({ ...prev, departmentId: value }))}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select batch" />
+                        <SelectValue placeholder="Select department" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Array.isArray(batches) && batches.map(batch => (
-                          <SelectItem key={batch._id} value={batch._id}>
-                            {batch.name}
+                        {Array.isArray(departments) && departments.map(department => (
+                          <SelectItem key={department._id} value={department._id}>
+                            {department.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -490,7 +480,7 @@ const ModuleTimelines = () => {
                       required
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="gracePeriod">Grace Period (hours)</Label>
                     <Input
@@ -548,7 +538,7 @@ const ModuleTimelines = () => {
               Student progress against module deadlines
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 max-h-96 overflow-y-auto">
             {Array.isArray(timelineStatus) && timelineStatus.map((moduleStatus, index) => (
               <Card key={index}>
@@ -636,11 +626,11 @@ const ModuleTimelines = () => {
                         <span className="text-gray-400">→</span>
                         <span className="font-medium">{timeline.module?.title || 'Unknown Module'}</span>
                       </div>
-                      
+
                       <div className="flex items-center gap-4 text-sm text-gray-600">
                         <div className="flex items-center gap-1">
                           <Users className="w-3 h-3" />
-                          {timeline.batch?.name || 'Unknown Batch'}
+                          {timeline.department?.name || 'Unknown Department'}
                         </div>
                         <div className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
@@ -651,28 +641,28 @@ const ModuleTimelines = () => {
                           {timeline.gracePeriodHours || 0}h grace
                         </div>
                       </div>
-                      
+
                       {timeline.description && (
                         <p className="text-sm text-gray-600">{timeline.description}</p>
                       )}
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       <Badge className={getStatusColor(timeline.deadline)}>
                         {getStatusText(timeline.deadline)}
                       </Badge>
-                      
+
                       <div className="flex items-center gap-1">
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => viewTimelineStatus(timeline.course?._id, timeline.batch?._id)}
-                          disabled={!timeline.course?._id || !timeline.batch?._id}
+                          onClick={() => viewTimelineStatus(timeline.course?._id, timeline.department?._id)}
+                          disabled={!timeline.course?._id || !timeline.department?._id}
                         >
                           <TrendingUp className="w-3 h-3 mr-1" />
                           Status
                         </Button>
-                        
+
                         <Button
                           size="sm"
                           variant="outline"
@@ -681,7 +671,7 @@ const ModuleTimelines = () => {
                           <Edit className="w-3 h-3 mr-1" />
                           Edit
                         </Button>
-                        
+
                         <Button
                           size="sm"
                           variant="outline"
@@ -694,7 +684,7 @@ const ModuleTimelines = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   {timeline.enableWarnings && (
                     <div className="mt-3 pt-3 border-t">
                       <div className="flex items-center gap-1 text-xs text-gray-500">

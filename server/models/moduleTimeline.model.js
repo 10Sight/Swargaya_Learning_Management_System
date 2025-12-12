@@ -10,13 +10,13 @@ const moduleTimelineSchema = new Schema(
     },
     module: {
       type: Schema.Types.ObjectId,
-      ref: "Module", 
+      ref: "Module",
       required: true,
       index: true,
     },
-    batch: {
+    department: {
       type: Schema.Types.ObjectId,
-      ref: "Batch",
+      ref: "Department",
       required: true,
       index: true,
     },
@@ -113,21 +113,21 @@ const moduleTimelineSchema = new Schema(
 );
 
 // Compound indexes for efficient queries
-moduleTimelineSchema.index({ course: 1, batch: 1 });
+moduleTimelineSchema.index({ course: 1, department: 1 });
 moduleTimelineSchema.index({ deadline: 1, isActive: 1 });
-moduleTimelineSchema.index({ batch: 1, deadline: 1 });
+moduleTimelineSchema.index({ department: 1, deadline: 1 });
 moduleTimelineSchema.index({ "missedDeadlineStudents.student": 1 });
 moduleTimelineSchema.index({ lastProcessedAt: 1 });
 
 // Method to check if a student has missed the deadline
-moduleTimelineSchema.methods.hasStudentMissedDeadline = function(studentId) {
+moduleTimelineSchema.methods.hasStudentMissedDeadline = function (studentId) {
   return this.missedDeadlineStudents.some(
     missed => missed.student.toString() === studentId.toString()
   );
 };
 
 // Method to add a student to missed deadline list
-moduleTimelineSchema.methods.addMissedDeadlineStudent = function(studentId, previousModuleId) {
+moduleTimelineSchema.methods.addMissedDeadlineStudent = function (studentId, previousModuleId) {
   if (!this.hasStudentMissedDeadline(studentId)) {
     this.missedDeadlineStudents.push({
       student: studentId,
@@ -138,7 +138,7 @@ moduleTimelineSchema.methods.addMissedDeadlineStudent = function(studentId, prev
 };
 
 // Method to mark student as demoted
-moduleTimelineSchema.methods.markStudentDemoted = function(studentId) {
+moduleTimelineSchema.methods.markStudentDemoted = function (studentId) {
   const missedRecord = this.missedDeadlineStudents.find(
     missed => missed.student.toString() === studentId.toString()
   );
@@ -148,17 +148,17 @@ moduleTimelineSchema.methods.markStudentDemoted = function(studentId) {
 };
 
 // Method to check if warning should be sent
-moduleTimelineSchema.methods.shouldSendWarning = function(studentId, warningType) {
+moduleTimelineSchema.methods.shouldSendWarning = function (studentId, warningType) {
   if (!this.enableWarnings) return false;
-  
+
   return !this.warningsSent.some(
-    warning => warning.student.toString() === studentId.toString() && 
-               warning.warningType === warningType
+    warning => warning.student.toString() === studentId.toString() &&
+      warning.warningType === warningType
   );
 };
 
 // Method to record warning sent
-moduleTimelineSchema.methods.recordWarningSent = function(studentId, warningType) {
+moduleTimelineSchema.methods.recordWarningSent = function (studentId, warningType) {
   this.warningsSent.push({
     student: studentId,
     warningType: warningType,
@@ -167,10 +167,10 @@ moduleTimelineSchema.methods.recordWarningSent = function(studentId, warningType
 };
 
 // Static method to get active timelines that need processing
-moduleTimelineSchema.statics.getTimelinesToProcess = function() {
+moduleTimelineSchema.statics.getTimelinesToProcess = function () {
   const now = new Date();
   const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-  
+
   return this.find({
     isActive: true,
     deadline: { $lte: now },
@@ -178,18 +178,18 @@ moduleTimelineSchema.statics.getTimelinesToProcess = function() {
       { lastProcessedAt: { $exists: false } },
       { lastProcessedAt: { $lte: oneHourAgo } }
     ]
-  }).populate(['course', 'module', 'batch']);
+  }).populate(['course', 'module', 'department']);
 };
 
 // Static method to get upcoming warnings
-moduleTimelineSchema.statics.getUpcomingWarnings = function() {
+moduleTimelineSchema.statics.getUpcomingWarnings = function () {
   const now = new Date();
-  
+
   return this.find({
     isActive: true,
     enableWarnings: true,
     deadline: { $gt: now },
-  }).populate(['course', 'module', 'batch']);
+  }).populate(['course', 'module', 'department']);
 };
 
 export default model("ModuleTimeline", moduleTimelineSchema);

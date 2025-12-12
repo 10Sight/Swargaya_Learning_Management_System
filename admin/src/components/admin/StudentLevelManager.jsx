@@ -37,15 +37,15 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import axiosInstance from "@/Helper/axiosInstance";
-import { useGetAllBatchesQuery, useGetBatchProgressQuery } from "@/Redux/AllApi/BatchApi";
+import { useGetAllDepartmentsQuery, useGetDepartmentProgressQuery } from "@/Redux/AllApi/DepartmentApi";
 import { useGetActiveConfigQuery } from "@/Redux/AllApi/CourseLevelConfigApi";
 
 const StudentLevelManager = () => {
   const [students, setStudents] = useState([]);
-  const [selectedBatch, setSelectedBatch] = useState(() => {
-    // Restore last selected batch from localStorage if available
+  const [selectedDepartment, setSelectedDepartment] = useState(() => {
+    // Restore last selected department from localStorage if available
     try {
-      return localStorage.getItem("selectedBatchId") || "";
+      return localStorage.getItem("selectedDepartmentId") || "";
     } catch {
       return "";
     }
@@ -53,10 +53,10 @@ const StudentLevelManager = () => {
   const [loading, setLoading] = useState(false);
   const [updating, setUpdating] = useState({});
 
-  // Fetch all batches using RTK Query
-  const { data: batchesData, isLoading: batchesLoading } = useGetAllBatchesQuery({ limit: 100 });
-  const batches = batchesData?.data?.batches || [];
-  
+  // Fetch all departments using RTK Query
+  const { data: departmentsData, isLoading: departmentsLoading } = useGetAllDepartmentsQuery({ limit: 100 });
+  const departments = departmentsData?.data?.departments || [];
+
   // Fetch active level configuration
   const { data: levelConfigData, isLoading: configLoading } = useGetActiveConfigQuery();
   const levelConfig = levelConfigData?.data;
@@ -66,30 +66,30 @@ const StudentLevelManager = () => {
     { name: "L3", color: "#10B981" },
   ];
 
-  // Get course ID from selected batch
-  const selectedBatchData = batches.find(batch => batch._id === selectedBatch);
-  const courseId = selectedBatchData?.course?._id || selectedBatchData?.courseId;
+  // Get course ID from selected department
+  const selectedDepartmentData = departments.find(dept => dept._id === selectedDepartment);
+  const courseId = selectedDepartmentData?.course?._id || selectedDepartmentData?.courseId;
 
-  // Auto-select first batch if none selected and batches are available
+  // Auto-select first department if none selected and departments are available
   useEffect(() => {
-    if (!selectedBatch && batches.length > 0 && !batchesLoading) {
-      const firstBatch = batches[0];
-      setSelectedBatch(firstBatch._id);
-      try { localStorage.setItem("selectedBatchId", firstBatch._id); } catch {}
+    if (!selectedDepartment && departments.length > 0 && !departmentsLoading) {
+      const firstDepartment = departments[0];
+      setSelectedDepartment(firstDepartment._id);
+      try { localStorage.setItem("selectedDepartmentId", firstDepartment._id); } catch { }
     }
-  }, [batches, selectedBatch, batchesLoading]);
+  }, [departments, selectedDepartment, departmentsLoading]);
 
-  // Fetch batch progress using RTK Query
-  const { data: batchProgressData, isLoading: progressLoading, refetch: refetchProgress } = useGetBatchProgressQuery(
-    selectedBatch,
-    { skip: !selectedBatch }
+  // Fetch department progress using RTK Query
+  const { data: departmentProgressData, isLoading: progressLoading, refetch: refetchProgress } = useGetDepartmentProgressQuery(
+    selectedDepartment,
+    { skip: !selectedDepartment }
   );
 
-  // Update students when batch progress data changes
+  // Update students when department progress data changes
   useEffect(() => {
-    if (batchProgressData?.data?.batchProgress && Array.isArray(batchProgressData.data.batchProgress)) {
-      const progressData = batchProgressData.data.batchProgress;
-      
+    if (departmentProgressData?.data?.departmentProgress && Array.isArray(departmentProgressData.data.departmentProgress)) {
+      const progressData = departmentProgressData.data.departmentProgress;
+
       // Transform progress data to include student info with actual level data from API
       const studentsWithProgress = progressData.map(progress => ({
         id: progress.student?._id || progress.student?.id,
@@ -101,21 +101,21 @@ const StudentLevelManager = () => {
         progressPercent: progress.progressPercentage || 0,
         completedModules: progress.completedModules || 0,
         lastAccessed: progress.lastActivity,
-        progressId: null, // Not available in batch progress
-        courseId: selectedBatchData?.course?._id // Use course ID from selected batch
+        progressId: null, // Not available in department progress
+        courseId: selectedDepartmentData?.course?._id // Use course ID from selected department
       }));
-      
+
       setStudents(studentsWithProgress);
-    } else if (selectedBatch && !progressLoading) {
+    } else if (selectedDepartment && !progressLoading) {
       setStudents([]);
     }
-  }, [batchProgressData, selectedBatch, progressLoading, selectedBatchData]);
+  }, [departmentProgressData, selectedDepartment, progressLoading, selectedDepartmentData]);
 
-  // Handle batch selection
-  const handleBatchChange = (batchId) => {
-    setSelectedBatch(batchId);
-    try { localStorage.setItem("selectedBatchId", batchId || ""); } catch {}
-    if (!batchId) {
+  // Handle department selection
+  const handleDepartmentChange = (departmentId) => {
+    setSelectedDepartment(departmentId);
+    try { localStorage.setItem("selectedDepartmentId", departmentId || ""); } catch { }
+    if (!departmentId) {
       setStudents([]);
     }
   };
@@ -124,7 +124,7 @@ const StudentLevelManager = () => {
   const handleSetStudentLevel = async (studentId, level, lock) => {
     const updateKey = `${studentId}-${level}-${lock}`;
     setUpdating(prev => ({ ...prev, [updateKey]: true }));
-    
+
     try {
       const response = await axiosInstance.patch("/api/progress/admin/set-level", {
         studentId,
@@ -135,22 +135,22 @@ const StudentLevelManager = () => {
 
       if (response.data.success) {
         toast.success(
-          lock 
-            ? `Student level locked to ${level}` 
-            : level 
-            ? `Student level set to ${level}` 
-            : "Level lock removed"
+          lock
+            ? `Student level locked to ${level}`
+            : level
+              ? `Student level set to ${level}`
+              : "Level lock removed"
         );
-        
+
         // Update the student in the local state
-        setStudents(prev => prev.map(student => 
-          student.id === studentId 
+        setStudents(prev => prev.map(student =>
+          student.id === studentId
             ? {
-                ...student,
-                currentLevel: level || student.currentLevel,
-                levelLockEnabled: lock,
-                lockedLevel: lock ? (level || student.currentLevel) : null
-              }
+              ...student,
+              currentLevel: level || student.currentLevel,
+              levelLockEnabled: lock,
+              lockedLevel: lock ? (level || student.currentLevel) : null
+            }
             : student
         ));
       } else {
@@ -182,21 +182,21 @@ const StudentLevelManager = () => {
     const level = availableLevels.find(
       l => l.name.toUpperCase() === levelName?.toUpperCase()
     );
-    
+
     if (!level) return "bg-gray-100 text-gray-800";
-    
+
     // Convert hex color to tailwind-like classes (simplified)
     // For actual hex colors, we'll use inline styles
     return "";
   };
-  
+
   const getLevelStyle = (levelName) => {
     const level = availableLevels.find(
       l => l.name.toUpperCase() === levelName?.toUpperCase()
     );
-    
+
     if (!level) return {};
-    
+
     return {
       backgroundColor: `${level.color}20`, // 20 is for 12.5% opacity
       color: level.color,
@@ -219,25 +219,25 @@ const StudentLevelManager = () => {
             Student Level Manager
           </CardTitle>
           <CardDescription>
-            Control student level progression and set level locks to prevent automatic promotions. Select a batch to manage its students.
+            Control student level progression and set level locks to prevent automatic promotions. Select a department to manage its students.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-4">
-            <Label htmlFor="batch-select">Select Batch:</Label>
-            <Select value={selectedBatch} onValueChange={handleBatchChange} disabled={batchesLoading}>
+            <Label htmlFor="department-select">Select Department:</Label>
+            <Select value={selectedDepartment} onValueChange={handleDepartmentChange} disabled={departmentsLoading}>
               <SelectTrigger className="w-72">
-                <SelectValue placeholder={batchesLoading ? "Loading batches..." : "Choose a batch to manage"} />
+                <SelectValue placeholder={departmentsLoading ? "Loading departments..." : "Choose a department to manage"} />
               </SelectTrigger>
               <SelectContent>
-                {batches.map((batch) => (
-                  <SelectItem key={batch._id} value={batch._id}>
-                    {batch.name} - {batch.course?.title || 'No Course'}
+                {departments.map((dept) => (
+                  <SelectItem key={dept._id} value={dept._id}>
+                    {dept.name} - {dept.course?.title || 'No Course'}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            {selectedBatch && (
+            {selectedDepartment && (
               <Button
                 variant="outline"
                 size="sm"
@@ -253,26 +253,26 @@ const StudentLevelManager = () => {
       </Card>
 
       {/* Level Lock Info */}
-      {selectedBatch && (
+      {selectedDepartment && (
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            <strong>Level Lock:</strong> When enabled, prevents automatic level promotions when students complete modules. 
+            <strong>Level Lock:</strong> When enabled, prevents automatic level promotions when students complete modules.
             The student will remain at the locked level regardless of their progress.
           </AlertDescription>
         </Alert>
       )}
 
       {/* Students Table */}
-      {selectedBatch && (
+      {selectedDepartment && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
-              Students ({students.length}) - {selectedBatchData?.name}
+              Students ({students.length}) - {selectedDepartmentData?.name}
             </CardTitle>
             <CardDescription>
-              Manage individual student levels and lock settings for {selectedBatchData?.course?.title || 'this batch'}
+              Manage individual student levels and lock settings for {selectedDepartmentData?.course?.title || 'this department'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -283,7 +283,7 @@ const StudentLevelManager = () => {
               </div>
             ) : students.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                No students enrolled in this batch
+                No students enrolled in this department
               </div>
             ) : (
               <Table>
@@ -306,7 +306,7 @@ const StudentLevelManager = () => {
                           <div className="text-sm text-muted-foreground">{student.email}</div>
                         </div>
                       </TableCell>
-                      
+
                       <TableCell>
                         <Badge
                           className="border"
@@ -315,7 +315,7 @@ const StudentLevelManager = () => {
                           {student.currentLevel}
                         </Badge>
                       </TableCell>
-                      
+
                       <TableCell>
                         <div className="space-y-1">
                           <div className="text-sm">{student.progressPercent}% complete</div>
@@ -324,7 +324,7 @@ const StudentLevelManager = () => {
                           </div>
                         </div>
                       </TableCell>
-                      
+
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {student.levelLockEnabled ? (
@@ -340,11 +340,11 @@ const StudentLevelManager = () => {
                           )}
                         </div>
                       </TableCell>
-                      
+
                       <TableCell>
                         <div className="text-sm">{formatLastAccessed(student.lastAccessed)}</div>
                       </TableCell>
-                      
+
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {/* Level Selection */}
@@ -364,7 +364,7 @@ const StudentLevelManager = () => {
                               ))}
                             </SelectContent>
                           </Select>
-                          
+
                           {/* Lock/Unlock Toggle */}
                           {student.levelLockEnabled ? (
                             <Button

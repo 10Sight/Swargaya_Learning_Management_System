@@ -47,7 +47,6 @@ const courseSchema = new Schema(
         },
         difficulty: {
             type: String,
-            enum: AvailableCourseDifficultyLevels,
             default: "BEGGINER",
         },
         status: {
@@ -117,7 +116,7 @@ const courseSchema = new Schema(
     }
 );
 
-courseSchema.virtual('studentCount').get(function() {
+courseSchema.virtual('studentCount').get(function () {
     return this.students ? this.students.length : 0;
 });
 
@@ -125,7 +124,7 @@ courseSchema.set('toJSON', { virtuals: true });
 
 import { slugify, ensureUniqueSlug } from "../utils/slugify.js";
 
-courseSchema.pre('save', async function(next) {
+courseSchema.pre('save', async function (next) {
     if (!this.isModified('title') && this.slug) return next();
     const base = slugify(this.title);
     this.slug = await ensureUniqueSlug(this.constructor, base, {}, this._id);

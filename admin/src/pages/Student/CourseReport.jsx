@@ -8,10 +8,10 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { 
-  GraduationCap, 
-  Download, 
-  Calendar, 
+import {
+  GraduationCap,
+  Download,
+  Calendar,
   User,
   BookOpen,
   CheckCircle,
@@ -29,14 +29,14 @@ const CourseReport = () => {
   const { courseId } = useParams()
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
   const reportRef = useRef(null)
-  
+
   // Get current user from Redux state
   const { user } = useSelector((state) => state.auth)
-  
+
   const { data, isLoading, error } = useGetCourseCompletionReportQuery(courseId, {
     skip: !courseId
   })
-  
+
 
   // Add print-friendly styles
   useEffect(() => {
@@ -62,12 +62,12 @@ const CourseReport = () => {
         }
       }
     `
-    
+
     const styleSheet = document.createElement("style")
     styleSheet.type = "text/css"
     styleSheet.innerText = printStyles
     document.head.appendChild(styleSheet)
-    
+
     return () => {
       document.head.removeChild(styleSheet)
     }
@@ -94,8 +94,8 @@ const CourseReport = () => {
   }
 
   const getQuizStatusColor = (status) => {
-    return status === 'PASSED' 
-      ? 'bg-green-100 text-green-800' 
+    return status === 'PASSED'
+      ? 'bg-green-100 text-green-800'
       : 'bg-red-100 text-red-800'
   }
 
@@ -103,15 +103,15 @@ const CourseReport = () => {
     if (!reportRef.current) return
 
     setIsGeneratingPDF(true)
-    
+
     try {
       // Hide the download button during print
       const downloadButton = document.querySelector('#download-button')
       if (downloadButton) downloadButton.style.display = 'none'
-      
+
       // Open print dialog
       window.print()
-      
+
       // Show button again after a delay
       setTimeout(() => {
         if (downloadButton) downloadButton.style.display = 'block'
@@ -151,16 +151,16 @@ const CourseReport = () => {
             {error?.data?.message || 'Failed to load course completion report. Please ensure you have completed the course.'}
           </AlertDescription>
         </Alert>
-        
+
         {/* Debug Information */}
         <Alert>
           <FileText className="h-4 w-4" />
           <AlertDescription>
-            <strong>Debug Info:</strong><br/>
-            Current User Role: {user?.role || 'Not found'}<br/>
-            User Name: {user?.userName || 'Not found'}<br/>
-            Course ID: {courseId}<br/>
-            Error Status: {error?.status}<br/>
+            <strong>Debug Info:</strong><br />
+            Current User Role: {user?.role || 'Not found'}<br />
+            User Name: {user?.userName || 'Not found'}<br />
+            Course ID: {courseId}<br />
+            Error Status: {error?.status}<br />
             Token in localStorage: {localStorage.getItem('token') ? 'Present' : 'Missing'}
           </AlertDescription>
         </Alert>
@@ -189,9 +189,9 @@ const CourseReport = () => {
             Your comprehensive course completion certificate and performance report
           </p>
         </div>
-        <Button 
+        <Button
           id="download-button"
-          onClick={generatePDF} 
+          onClick={generatePDF}
           disabled={isGeneratingPDF}
           className="flex items-center gap-2"
         >
@@ -246,8 +246,8 @@ const CourseReport = () => {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
-                    <span className="text-muted-foreground">Batch:</span>
-                    <span className="font-medium">{reportData.batch.name}</span>
+                    <span className="text-muted-foreground">Department:</span>
+                    <span className="font-medium">{reportData.department.name}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
                     <span className="text-muted-foreground">Instructor:</span>
@@ -255,7 +255,7 @@ const CourseReport = () => {
                   </div>
                   <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
                     <span className="text-muted-foreground">Start Date:</span>
-                    <span className="font-medium">{formatDate(reportData.batch.startDate)}</span>
+                    <span className="font-medium">{formatDate(reportData.department.startDate)}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
                     <span className="text-muted-foreground">Completion Date:</span>
@@ -302,7 +302,7 @@ const CourseReport = () => {
                 <Target className="h-5 w-5" />
                 Quiz Performance Summary
               </h3>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <Card className="text-center">
                   <CardContent className="pt-6">

@@ -6,10 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { useSocket } from '../../contexts/SocketContext';
 import { formatDistanceToNow } from 'date-fns';
+import useTranslate from '@/hooks/useTranslate';
 
 const NotificationCenter = () => {
     const { notifications, isConnected, clearNotifications, removeNotification } = useSocket();
     const [isOpen, setIsOpen] = useState(false);
+    const { t } = useTranslate();
 
     const getNotificationIcon = (type) => {
         switch (type) {
@@ -70,7 +72,7 @@ const NotificationCenter = () => {
                         <CardHeader className="pb-3">
                             <div className="flex items-center justify-between">
                                 <CardTitle className="text-lg">
-                                    Notifications
+                                    {t('notify.title')}
                                     <span className="ml-2 text-sm font-normal text-gray-500">
                                         ({notifications.length})
                                     </span>
@@ -78,7 +80,7 @@ const NotificationCenter = () => {
                                 <div className="flex items-center gap-2">
                                     <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
                                     <span className="text-xs text-gray-500">
-                                        {isConnected ? 'Connected' : 'Disconnected'}
+                                        {isConnected ? t('notify.connected') : t('notify.disconnected')}
                                     </span>
                                     {notifications.length > 0 && (
                                         <Button
@@ -87,7 +89,7 @@ const NotificationCenter = () => {
                                             onClick={clearNotifications}
                                             className="text-xs px-2 py-1 h-auto"
                                         >
-                                            Clear All
+                                            {t('notify.clearAll')}
                                         </Button>
                                     )}
                                 </div>
@@ -98,9 +100,9 @@ const NotificationCenter = () => {
                                 {notifications.length === 0 ? (
                                     <div className="p-4 text-center text-gray-500">
                                         <Bell className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                                        <p className="text-sm">No notifications yet</p>
+                                        <p className="text-sm">{t('notify.emptyTitle')}</p>
                                         <p className="text-xs text-gray-400 mt-1">
-                                            Real-time updates will appear here
+                                            {t('notify.emptyDescription')}
                                         </p>
                                     </div>
                                 ) : (
@@ -119,7 +121,7 @@ const NotificationCenter = () => {
                                                             </p>
                                                             {notification.from && (
                                                                 <p className="text-xs text-gray-600 mt-1">
-                                                                    From: {notification.from}
+                                                                    {t('notify.from')} {notification.from}
                                                                 </p>
                                                             )}
                                                             <p className="text-xs text-gray-500 mt-1">
@@ -128,17 +130,17 @@ const NotificationCenter = () => {
                                                             {/* Additional info based on notification type */}
                                                             {notification.quiz && (
                                                                 <p className="text-xs text-blue-600 mt-1">
-                                                                    Quiz: {notification.quiz.title}
+                                                                    {t('notify.quiz')} {notification.quiz.title}
                                                                 </p>
                                                             )}
                                                             {notification.assignment && (
                                                                 <p className="text-xs text-blue-600 mt-1">
-                                                                    Assignment: {notification.assignment.title}
+                                                                    {t('notify.assignment')} {notification.assignment.title}
                                                                 </p>
                                                             )}
                                                             {notification.grade && (
                                                                 <p className="text-xs text-orange-600 mt-1">
-                                                                    Score: {notification.grade.score || 'N/A'}
+                                                                    {t('notify.score')} {notification.grade.score || 'N/A'}
                                                                 </p>
                                                             )}
                                                         </div>

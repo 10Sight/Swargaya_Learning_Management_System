@@ -1,33 +1,33 @@
 import React, { useState } from 'react'
-import { useGetInstructorBatchQuizAttemptsQuery, useGetInstructorAssignedBatchesQuery } from '@/Redux/AllApi/InstructorApi'
+import { useGetInstructorDepartmentQuizAttemptsQuery, useGetInstructorAssignedDepartmentsQuery } from '@/Redux/AllApi/InstructorApi'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { IconEye, IconClipboardList, IconUser } from "@tabler/icons-react";
 import { Skeleton } from '@/components/ui/skeleton'
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import AttemptReviewModal from '@/components/common/AttemptReviewModal'
 
 const QuizMonitoring = () => {
-  const [selectedBatchId, setSelectedBatchId] = useState('')
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState('')
   const [viewAttemptId, setViewAttemptId] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
-  const { data: batchesData } = useGetInstructorAssignedBatchesQuery({ limit: 100 })
-  const { data, isLoading, error } = useGetInstructorBatchQuizAttemptsQuery(
-    { batchId: selectedBatchId }, 
-    { skip: !selectedBatchId }
+  const { data: departmentsData } = useGetInstructorAssignedDepartmentsQuery({ limit: 100 })
+  const { data, isLoading, error } = useGetInstructorDepartmentQuizAttemptsQuery(
+    { departmentId: selectedDepartmentId },
+    { skip: !selectedDepartmentId }
   )
 
   const quizAttempts = data?.data?.attempts || []
-  const batches = batchesData?.data?.batches || []
+  const departments = departmentsData?.data?.departments || []
 
   const getScoreColor = (score, totalScore) => {
     if (!totalScore || totalScore === 0) return 'text-gray-500'
@@ -58,7 +58,7 @@ const QuizMonitoring = () => {
         <div>
           <h1 className="text-2xl font-bold">Quiz Monitoring</h1>
           <p className="text-muted-foreground">
-            Monitor student quiz attempts and performance across your batches
+            Monitor student quiz attempts and performance across your departments
           </p>
         </div>
         <Badge variant="outline">
@@ -76,28 +76,28 @@ const QuizMonitoring = () => {
             <div>
               <h3 className="font-medium text-amber-900">Quiz Monitoring</h3>
               <p className="text-sm text-amber-700 mt-1">
-                You can view quiz results, attempts, and student performance but cannot create, 
-                edit, or grade quizzes. Select a batch to view quiz data.
+                You can view quiz results, attempts, and student performance but cannot create,
+                edit, or grade quizzes. Select a department to view quiz data.
               </p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Batch Selection */}
+      {/* Department Selection */}
       <Card>
         <CardHeader>
-          <CardTitle>Select Batch</CardTitle>
+          <CardTitle>Select Department</CardTitle>
         </CardHeader>
         <CardContent>
-          <Select value={selectedBatchId} onValueChange={setSelectedBatchId}>
+          <Select value={selectedDepartmentId} onValueChange={setSelectedDepartmentId}>
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Choose a batch to view quiz data" />
+              <SelectValue placeholder="Choose a department to view quiz data" />
             </SelectTrigger>
             <SelectContent>
-              {batches.map((batch) => (
-                <SelectItem key={batch._id} value={batch._id}>
-                  {batch.name} - {batch.students?.length || 0} students
+              {departments.map((department) => (
+                <SelectItem key={department._id} value={department._id}>
+                  {department.name} - {department.students?.length || 0} students
                 </SelectItem>
               ))}
             </SelectContent>
@@ -105,13 +105,13 @@ const QuizMonitoring = () => {
         </CardContent>
       </Card>
 
-      {!selectedBatchId ? (
+      {!selectedDepartmentId ? (
         <Card>
           <CardContent className="p-12 text-center">
             <IconClipboardList className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">Select a Batch</h3>
+            <h3 className="text-lg font-medium mb-2">Select a Department</h3>
             <p className="text-muted-foreground">
-              Choose a batch from your assigned batches to view quiz monitoring data.
+              Choose a department from your assigned departments to view quiz monitoring data.
             </p>
           </CardContent>
         </Card>
@@ -161,14 +161,14 @@ const QuizMonitoring = () => {
                           </div>
                         </div>
                       </TableCell>
-                      
+
                       <TableCell>
                         <p className="font-medium">{attempt.quiz?.title}</p>
                         <p className="text-sm text-muted-foreground">
                           {attempt.quiz?.questions?.length || 0} questions
                         </p>
                       </TableCell>
-                      
+
                       <TableCell>
                         <div className="flex items-center space-x-2">
                           <span className={`font-medium ${getScoreColor(attempt.score, attempt.totalScore)}`}>
@@ -179,11 +179,11 @@ const QuizMonitoring = () => {
                           </span>
                         </div>
                       </TableCell>
-                      
+
                       <TableCell>
                         {getStatusBadge(attempt.status)}
                       </TableCell>
-                      
+
                       <TableCell>
                         <p className="text-sm">
                           {new Date(attempt.submittedAt || attempt.startedAt).toLocaleDateString()}
@@ -192,7 +192,7 @@ const QuizMonitoring = () => {
                           {new Date(attempt.submittedAt || attempt.startedAt).toLocaleTimeString()}
                         </p>
                       </TableCell>
-                      
+
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <p className="text-sm">
@@ -212,7 +212,7 @@ const QuizMonitoring = () => {
                 <IconClipboardList className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-medium mb-2">No Quiz Attempts</h3>
                 <p className="text-muted-foreground">
-                  No quiz attempts found for the selected batch.
+                  No quiz attempts found for the selected department.
                 </p>
               </div>
             )}

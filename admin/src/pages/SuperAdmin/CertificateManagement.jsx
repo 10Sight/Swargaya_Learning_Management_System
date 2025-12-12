@@ -63,7 +63,7 @@ const CertificateManagement = () => {
     placeholders: [
       { key: "studentName", description: "Student's full name", required: true },
       { key: "courseName", description: "Course title", required: true },
-      { key: "batchName", description: "Batch name", required: true },
+      { key: "departmentName", description: "Department name", required: true },
       { key: "instructorName", description: "Instructor's full name", required: true },
       { key: "level", description: "Student's completion level", required: true },
       { key: "issueDate", description: "Certificate issue date", required: true },
@@ -83,7 +83,7 @@ const CertificateManagement = () => {
     userIds: [],
     courseId: "",
     templateId: "",
-    batchId: "",
+    departmentId: "",
     criteria: "completion"
   });
 
@@ -111,7 +111,7 @@ const CertificateManagement = () => {
 
   // Filter certificates based on search and filters
   const filteredCertificates = certificates.filter(cert => {
-    const matchesSearch = !searchTerm || 
+    const matchesSearch = !searchTerm ||
       cert.student?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       cert.course?.title?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = !selectedStatus || cert.status === selectedStatus;
@@ -224,7 +224,7 @@ const CertificateManagement = () => {
       placeholders: [
         { key: "studentName", description: "Student's full name", required: true },
         { key: "courseName", description: "Course title", required: true },
-        { key: "batchName", description: "Batch name", required: true },
+        { key: "departmentName", description: "Department name", required: true },
         { key: "instructorName", description: "Instructor's full name", required: true },
         { key: "level", description: "Student's completion level", required: true },
         { key: "issueDate", description: "Certificate issue date", required: true },
@@ -249,7 +249,7 @@ const CertificateManagement = () => {
       userIds: [],
       courseId: "",
       templateId: "",
-      batchId: "",
+      departmentId: "",
       criteria: "completion"
     });
   };
@@ -288,7 +288,7 @@ const CertificateManagement = () => {
   const updatePlaceholder = (index, field, value) => {
     setTemplateForm(prev => ({
       ...prev,
-      placeholders: prev.placeholders.map((placeholder, i) => 
+      placeholders: prev.placeholders.map((placeholder, i) =>
         i === index ? { ...placeholder, [field]: value } : placeholder
       )
     }));
@@ -308,7 +308,7 @@ const CertificateManagement = () => {
       <h2 style="color: #0f172a; font-size: 28px; margin-bottom: 20px; font-weight: bold; text-decoration: underline;">{{studentName}}</h2>
       <p style="color: #475569; font-size: 18px; margin-bottom: 10px;">has successfully completed the course</p>
       <h3 style="color: #1e40af; font-size: 24px; margin-bottom: 20px; font-weight: bold;">{{courseName}}</h3>
-      <p style="color: #64748b; font-size: 16px; margin-bottom: 10px;">in {{batchName}} batch</p>
+      <p style="color: #64748b; font-size: 16px; margin-bottom: 10px;">in {{departmentName}} department</p>
       <p style="color: #64748b; font-size: 16px; margin-bottom: 30px;">under the guidance of {{instructorName}}</p>
       <p style="color: #475569; font-size: 16px; margin-bottom: 10px;">Level: {{level}} | Grade: {{grade}}</p>
       <p style="color: #64748b; font-size: 14px; margin-top: 40px;">Issued on {{issueDate}}</p>
@@ -340,7 +340,7 @@ const CertificateManagement = () => {
             <IconX className="w-5 h-5" />
           </button>
         </div>
-        
+
         <div className="p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -375,7 +375,7 @@ const CertificateManagement = () => {
               placeholder="HTML template with placeholders like {{studentName}}, {{courseName}}, etc."
             />
             <p className="text-xs text-gray-500 mt-1">
-              Use placeholders like {{studentName}}, {{courseName}}, {{batchName}}, {{instructorName}}, {{level}}, {{issueDate}}, {{grade}}
+              Use placeholders like {{ studentName }}, {{ courseName }}, {{ departmentName }}, {{ instructorName }}, {{ level }}, {{ issueDate }}, {{ grade }}
             </p>
           </div>
 
@@ -450,7 +450,7 @@ const CertificateManagement = () => {
             <label className="text-sm text-gray-700">Set as default template</label>
           </div>
         </div>
-        
+
         <div className="flex justify-end space-x-3 p-6 border-t">
           <button
             onClick={() => setShowTemplateModal(false)}
@@ -480,7 +480,7 @@ const CertificateManagement = () => {
             <IconX className="w-5 h-5" />
           </button>
         </div>
-        
+
         <div className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Student</label>
@@ -542,7 +542,7 @@ const CertificateManagement = () => {
             </select>
           </div>
         </div>
-        
+
         <div className="flex justify-end space-x-3 p-6 border-t">
           <button
             onClick={() => setShowIssueModal(false)}
@@ -572,7 +572,7 @@ const CertificateManagement = () => {
             <IconX className="w-5 h-5" />
           </button>
         </div>
-        
+
         <div className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Course</label>
@@ -617,7 +617,7 @@ const CertificateManagement = () => {
             </select>
           </div>
         </div>
-        
+
         <div className="flex justify-end space-x-3 p-6 border-t">
           <button
             onClick={() => setShowBulkModal(false)}
@@ -647,7 +647,7 @@ const CertificateManagement = () => {
             <IconX className="w-5 h-5" />
           </button>
         </div>
-        
+
         <div className="p-6">
           <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
             <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
@@ -687,11 +687,10 @@ const CertificateManagement = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === tab.id
+                className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm ${activeTab === tab.id
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                  }`}
               >
                 <Icon className="w-4 h-4" />
                 <span>{tab.label}</span>
@@ -766,13 +765,13 @@ const CertificateManagement = () => {
                       </button>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm text-gray-500">
                       <span>Placeholders: {template.placeholders?.length || 0}</span>
                       <span>Active: {template.isActive ? 'Yes' : 'No'}</span>
                     </div>
-                    
+
                     {!template.isDefault && (
                       <button
                         onClick={() => handleSetDefault(template._id)}
@@ -865,15 +864,14 @@ const CertificateManagement = () => {
                           {certificate.course?.title}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            certificate.grade === 'A+' || certificate.grade === 'A' 
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${certificate.grade === 'A+' || certificate.grade === 'A'
                               ? 'bg-green-100 text-green-800'
                               : certificate.grade === 'B'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : certificate.grade === 'C'
-                              ? 'bg-orange-100 text-orange-800'
-                              : 'bg-blue-100 text-blue-800'
-                          }`}>
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : certificate.grade === 'C'
+                                  ? 'bg-orange-100 text-orange-800'
+                                  : 'bg-blue-100 text-blue-800'
+                            }`}>
                             {certificate.grade}
                           </span>
                         </td>
@@ -881,13 +879,12 @@ const CertificateManagement = () => {
                           {new Date(certificate.issueDate).toLocaleDateString()}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            certificate.status === 'ACTIVE'
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${certificate.status === 'ACTIVE'
                               ? 'bg-green-100 text-green-800'
                               : certificate.status === 'REVOKED'
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}>
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}>
                             {certificate.status}
                           </span>
                         </td>
@@ -937,7 +934,7 @@ const CertificateManagement = () => {
         <div className="max-w-2xl mx-auto">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-medium text-gray-900 mb-6">Issue New Certificate</h3>
-            
+
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -1022,7 +1019,7 @@ const CertificateManagement = () => {
         <div className="max-w-2xl mx-auto">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-medium text-gray-900 mb-6">Bulk Generate Certificates</h3>
-            
+
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Course</label>

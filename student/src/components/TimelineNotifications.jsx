@@ -3,13 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  AlertTriangle, 
-  Clock, 
-  Calendar, 
-  AlertCircle, 
-  CheckCircle, 
-  XCircle, 
+import {
+  AlertTriangle,
+  Clock,
+  Calendar,
+  AlertCircle,
+  CheckCircle,
+  XCircle,
   Bell,
   BookOpen,
   TrendingDown,
@@ -35,23 +35,23 @@ const TimelineNotifications = ({ studentId, courseId }) => {
   const fetchTimelineData = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch timeline notifications for student
       const notificationsRes = await axiosInstance.get(`/api/module-timelines/notifications/${courseId}`);
       const notificationsData = notificationsRes.data?.data || [];
       setNotifications(notificationsData);
-      
+
       // Get student's progress to extract timeline violations
       try {
         const progressRes = await axiosInstance.get(`/api/progress/student/${studentId}`);
         const progressData = progressRes.data?.data;
-        
+
         if (progressData) {
           // Extract timeline violations
           const violations = progressData.timelineViolations || [];
           setRecentViolations(violations);
-          
-          // For upcoming deadlines, we'd need to get timelines for the student's batches
+
+          // For upcoming deadlines, we'd need to get timelines for the student's departments
           // This is a more complex query that might need backend support
           setUpcomingDeadlines([]);
         }
@@ -60,7 +60,7 @@ const TimelineNotifications = ({ studentId, courseId }) => {
         setRecentViolations([]);
         setUpcomingDeadlines([]);
       }
-      
+
     } catch (error) {
       console.error('Error fetching timeline data:', error);
       toast.error('Failed to load timeline notifications');
@@ -76,10 +76,10 @@ const TimelineNotifications = ({ studentId, courseId }) => {
   const markNotificationAsRead = async (notificationId) => {
     try {
       await axiosInstance.patch(`/api/module-timelines/notifications/${courseId}/${notificationId}/read`);
-      
-      setNotifications(prev => 
-        prev.map(notif => 
-          notif._id === notificationId 
+
+      setNotifications(prev =>
+        prev.map(notif =>
+          notif._id === notificationId
             ? { ...notif, isRead: true }
             : notif
         )
@@ -126,13 +126,13 @@ const TimelineNotifications = ({ studentId, courseId }) => {
     const now = new Date();
     const deadlineDate = new Date(deadline);
     const timeDiff = deadlineDate - now;
-    
+
     if (timeDiff < 0) return 'Overdue';
-    
+
     const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
-    
+
     if (days > 0) return `${days}d ${hours}h remaining`;
     if (hours > 0) return `${hours}h ${minutes}m remaining`;
     return `${minutes}m remaining`;
@@ -142,7 +142,7 @@ const TimelineNotifications = ({ studentId, courseId }) => {
     const now = new Date();
     const deadlineDate = new Date(deadline);
     const hoursRemaining = (deadlineDate - now) / (1000 * 60 * 60);
-    
+
     if (hoursRemaining < 0) return 'overdue';
     if (hoursRemaining < 1) return 'critical';
     if (hoursRemaining < 24) return 'urgent';
@@ -176,11 +176,11 @@ const TimelineNotifications = ({ studentId, courseId }) => {
     );
   }
 
-  const visibleNotifications = notifications.filter(notif => 
+  const visibleNotifications = notifications.filter(notif =>
     !dismissedNotifications.has(notif._id) && !notif.isRead
   );
-  
-  const activeDeadlines = upcomingDeadlines.filter(deadline => 
+
+  const activeDeadlines = upcomingDeadlines.filter(deadline =>
     new Date(deadline.deadline) > new Date()
   );
 

@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import InstructorDetailHeader from "@/components/instructor/InstructorDetailHeader";
 import InstructorStats from "@/components/instructor/InstructorStats";
 import InstructorCourses from "@/components/instructor/InstructorCourses";
-import InstructorBatches from "@/components/instructor/InstructorBatchs";
+import InstructorDepartments from "@/components/instructor/InstructorDepartments";
 
 // Import Edit Dialog Component (to be created)
 import EditInstructorDialog from "@/components/instructor/EditInstructorDialog";
@@ -40,7 +40,7 @@ const InstructorDetail = () => {
         id: instructor._id,
         ...updateData
       }).unwrap();
-      
+
       toast.success("Instructor updated successfully");
       setIsEditDialogOpen(false);
       refetch();
@@ -57,7 +57,7 @@ const InstructorDetail = () => {
           <IconArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
-        
+
         <div className="grid gap-6">
           {/* Header Skeleton */}
           <Card>
@@ -129,8 +129,8 @@ const InstructorDetail = () => {
   // Mock stats data - you would replace this with actual API calls
   const statsData = {
     coursesCount: 5, // This would come from courses API filtered by instructor
-    batchesCount: 3, // This would come from batches API filtered by instructor
-    studentsCount: 45, // This would be calculated from all batches
+    departmentsCount: 3, // This would come from departments API filtered by instructor
+    studentsCount: 45, // This would be calculated from all departments
     averageRating: 4.7 // This would come from reviews/ratings API
   };
 
@@ -141,8 +141,8 @@ const InstructorDetail = () => {
         Back to Instructors
       </Button>
 
-      <InstructorDetailHeader 
-        instructor={instructor} 
+      <InstructorDetailHeader
+        instructor={instructor}
         onEdit={() => setIsEditDialogOpen(true)}
       />
 
@@ -151,7 +151,7 @@ const InstructorDetail = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid grid-cols-2 w-full max-w-md">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="batches">Batches</TabsTrigger>
+          <TabsTrigger value="departments">Departments</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4 mt-4">
@@ -199,16 +199,16 @@ const InstructorDetail = () => {
             </CardContent>
           </Card>
         </TabsContent>
-        <TabsContent value="batches" className="mt-4">
+        <TabsContent value="departments" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Batches</CardTitle>
+              <CardTitle>Departments</CardTitle>
               <CardDescription>
-                Batches assigned to this instructor
+                Departments assigned to this instructor
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <InstructorBatches instructorId={instructor._id} />
+              <InstructorDepartments instructorId={instructor._id} />
             </CardContent>
           </Card>
         </TabsContent>

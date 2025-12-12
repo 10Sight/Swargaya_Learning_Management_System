@@ -1,10 +1,10 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  IconBook, 
-  IconUsers, 
-  IconSchool, 
-  IconStar 
+import {
+  IconBook,
+  IconUsers,
+  IconSchool,
+  IconStar
 } from "@tabler/icons-react";
 
 const InstructorStats = ({ stats }) => {
@@ -17,8 +17,8 @@ const InstructorStats = ({ stats }) => {
       bgColor: "bg-blue-100"
     },
     {
-      title: "Active Batches",
-      value: stats.batchesCount || 0,
+      title: "Active Departments",
+      value: stats.departmentsCount || 0,
       icon: IconSchool,
       color: "text-green-600",
       bgColor: "bg-green-100"

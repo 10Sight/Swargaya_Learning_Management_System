@@ -40,13 +40,13 @@ import useTranslate from "@/hooks/useTranslate";
 import LanguageSelector from "../components/common/LanguageSelector";
 
 const tabs = [
-  { 
+  {
     category: "Overview",
     items: [
       { link: "/superadmin", labelKey: "nav.dashboard", icon: IconLayoutDashboardFilled },
     ]
   },
-  { 
+  {
     category: "User Management",
     items: [
       { link: "/superadmin/all-users", labelKey: "nav.allUsers", icon: IconUsers },
@@ -56,18 +56,18 @@ const tabs = [
       { link: "/superadmin/roles-permissions", labelKey: "nav.rolesPermissions", icon: IconShield },
     ]
   },
-  { 
+  {
     category: "Content Management",
     items: [
       { link: "/superadmin/courses", labelKey: "nav.courses", icon: IconCertificate },
-      { link: "/superadmin/batches", labelKey: "nav.batches", icon: IconFolder },
+      { link: "/superadmin/departments", labelKey: "nav.departments", icon: IconFolder },
       { link: "/superadmin/module-timelines", labelKey: "nav.moduleTimelines", icon: IconClock },
       { link: "/superadmin/course-level-settings", labelKey: "nav.courseLevelSettings", icon: IconLayersIntersect },
       { link: "/superadmin/student-levels", labelKey: "nav.studentLevels", icon: IconSettings },
       { link: "/superadmin/certificates", labelKey: "nav.certificates", icon: IconCertificate },
     ]
   },
-  { 
+  {
     category: "System Management",
     items: [
       { link: "/superadmin/audit-logs", labelKey: "nav.auditLogs", icon: IconFileAnalytics },
@@ -76,7 +76,7 @@ const tabs = [
       { link: "/superadmin/system-monitoring", labelKey: "nav.systemHealth", icon: IconServerBolt },
     ]
   },
-  { 
+  {
     category: "Advanced Operations",
     items: [
       { link: "/superadmin/data-management", labelKey: "nav.dataManagement", icon: IconDatabase },
@@ -109,16 +109,16 @@ export function SuperAdminLayout() {
   // Update page name based on current route
   useEffect(() => {
     let foundTab = null;
-    
+
     // Search through all categories and items
     for (const category of translatedTabs) {
-      foundTab = category.items.find(tab => 
-        pathname === tab.link || 
+      foundTab = category.items.find(tab =>
+        pathname === tab.link ||
         (tab.link !== "/superadmin" && pathname.startsWith(tab.link))
       );
       if (foundTab) break;
     }
-    
+
     if (foundTab) {
       setPageName(foundTab.label);
     } else if (pathname === "/superadmin") {
@@ -148,9 +148,8 @@ export function SuperAdminLayout() {
   const ToggleButton = ({ opened, onClick, ariaLabel }) => {
     return (
       <IconLayoutSidebarRightCollapse
-        className={`${
-          opened ? "rotate-180" : "mx-auto"
-        } min-w-5 min-h-5 duration-500 transition-all cursor-pointer text-gray-600 hover:text-gray-800`}
+        className={`${opened ? "rotate-180" : "mx-auto"
+          } min-w-5 min-h-5 duration-500 transition-all cursor-pointer text-gray-600 hover:text-gray-800`}
         onClick={onClick}
         aria-label={ariaLabel}
       />
@@ -200,11 +199,10 @@ export function SuperAdminLayout() {
                   return (
                     <div
                       className={`group relative flex items-center cursor-pointer w-full overflow-hidden h-10 rounded-xl transition-all duration-300 hover:scale-[1.02]
-                      ${
-                        isActive
+                      ${isActive
                           ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg shadow-purple-200"
                           : "text-gray-600 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 hover:text-purple-700 hover:shadow-md"
-                      }
+                        }
                       ${collapsed ? "justify-center mx-1" : "items-center px-3"}`}
                       key={item.label}
                       onClick={() => navigate(item.link)}
@@ -214,18 +212,16 @@ export function SuperAdminLayout() {
                         <div className="absolute left-0 top-0 h-full w-1 bg-white rounded-r-full" />
                       )}
                       <item.icon
-                        className={`${
-                          collapsed ? "w-5 h-5" : "min-w-4 min-h-4"
-                        } transition-transform group-hover:scale-110`}
+                        className={`${collapsed ? "w-5 h-5" : "min-w-4 min-h-4"
+                          } transition-transform group-hover:scale-110`}
                         strokeWidth={isActive ? 2.5 : 1.5}
                       />
                       {!collapsed && (
                         <span className="ml-3 text-sm font-medium transition-all group-hover:translate-x-0.5">{item.label}</span>
                       )}
                       {!collapsed && (
-                        <div className={`ml-auto opacity-0 group-hover:opacity-100 transition-opacity ${
-                          isActive ? 'text-purple-200' : 'text-gray-400'
-                        }`}>
+                        <div className={`ml-auto opacity-0 group-hover:opacity-100 transition-opacity ${isActive ? 'text-purple-200' : 'text-gray-400'
+                          }`}>
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>
@@ -242,13 +238,11 @@ export function SuperAdminLayout() {
         {/* Logout */}
         <div className="absolute bottom-4 w-full px-2">
           <div
-            className={`p-2 flex items-center rounded-lg w-full transition-all duration-200 ${
-              isLoading 
-                ? "opacity-50 cursor-not-allowed bg-gray-100" 
+            className={`p-2 flex items-center rounded-lg w-full transition-all duration-200 ${isLoading
+                ? "opacity-50 cursor-not-allowed bg-gray-100"
                 : "hover:bg-red-50 hover:text-red-600 cursor-pointer"
-            } ${
-              collapsed ? "justify-center" : "px-3"
-            }`}
+              } ${collapsed ? "justify-center" : "px-3"
+              }`}
             onClick={isLoading ? undefined : handleLogout}
           >
             {isLoading ? (
@@ -267,15 +261,13 @@ export function SuperAdminLayout() {
 
       {/* Main Content Area */}
       <div
-        className={`flex-1 transition-all duration-300 ${
-          collapsed ? "ml-16" : "ml-64"
-        }`}
+        className={`flex-1 transition-all duration-300 ${collapsed ? "ml-16" : "ml-64"
+          }`}
       >
         {/* Header */}
         <header
-          className={`px-4 sm:px-6 bg-white/95 backdrop-blur-lg shadow-sm border-b border-gray-200/80 flex h-16 items-center justify-between gap-2 sm:gap-4 fixed right-0 top-0 z-30 transition-all duration-300 ${
-            collapsed ? "w-[calc(100%-4rem)]" : "w-[calc(100%-16rem)]"
-          }`}
+          className={`px-4 sm:px-6 bg-white/95 backdrop-blur-lg shadow-sm border-b border-gray-200/80 flex h-16 items-center justify-between gap-2 sm:gap-4 fixed right-0 top-0 z-30 transition-all duration-300 ${collapsed ? "w-[calc(100%-4rem)]" : "w-[calc(100%-16rem)]"
+            }`}
         >
           {/* Left side (Breadcrumb) */}
           <Breadcrumb>
@@ -309,14 +301,16 @@ export function SuperAdminLayout() {
                 {user?.role?.toLowerCase().replace('_', ' ') || 'Super Admin'}
               </p>
             </div>
-            
+
             {/* Avatar */}
             <div className="relative">
-              <input id="superadmin-avatar-input" type="file" accept="image/*" className="hidden" onChange={async (e)=>{
-                const file = e.target.files?.[0]; if(!file) return; if(!file.type.startsWith('image/')){alert('Please select an image'); e.target.value=''; return;}
-                const form=new FormData(); form.append('avatar', file);
-                try { const { useUpdateAvatarMutation } = await import('@/Redux/AllApi/UserApi'); const { profile: fetchProfile } = await import('@/Redux/Slice/AuthSlice');
-                  const update = useUpdateAvatarMutation; /* placeholder to satisfy bundler */ } catch(_){}
+              <input id="superadmin-avatar-input" type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                const file = e.target.files?.[0]; if (!file) return; if (!file.type.startsWith('image/')) { alert('Please select an image'); e.target.value = ''; return; }
+                const form = new FormData(); form.append('avatar', file);
+                try {
+                  const { useUpdateAvatarMutation } = await import('@/Redux/AllApi/UserApi'); const { profile: fetchProfile } = await import('@/Redux/Slice/AuthSlice');
+                  const update = useUpdateAvatarMutation; /* placeholder to satisfy bundler */
+                } catch (_) { }
               }} />
               <div className="relative size-9 sm:size-10 group">
                 <img

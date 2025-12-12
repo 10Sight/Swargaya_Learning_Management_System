@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useGetAllAuditsQuery } from '@/Redux/AllApi/AuditApi';
 import { useGetAllInstructorsQuery, useGetAllStudentsQuery } from '@/Redux/AllApi/InstructorApi';
-import { useGetAllBatchesQuery } from '@/Redux/AllApi/BatchApi';
+import { useGetAllDepartmentsQuery } from '@/Redux/AllApi/DepartmentApi';
 import { useGetCoursesQuery } from '@/Redux/AllApi/CourseApi';
 import {
   Card,
@@ -29,13 +29,13 @@ const Analytics = ({ pageName = "Analytics" }) => {
   const navigate = useNavigate();
   const [auditGroupBy, setAuditGroupBy] = useState('month');
   const [triggerExportAuditStats, { isFetching: isExportingAudit }] = useLazyExportAuditStatsQuery();
-  const { data: auditsData, isLoading: auditsLoading } = useGetAllAuditsQuery({ 
-    page: 1, 
-    limit: 50 
+  const { data: auditsData, isLoading: auditsLoading } = useGetAllAuditsQuery({
+    page: 1,
+    limit: 50
   });
   const { data: studentsData } = useGetAllStudentsQuery();
   const { data: instructorsData } = useGetAllInstructorsQuery();
-  const { data: batchesData } = useGetAllBatchesQuery();
+  const { data: departmentsData } = useGetAllDepartmentsQuery();
   const { data: coursesData } = useGetCoursesQuery({
     page: 1,
     limit: 1000,
@@ -50,14 +50,14 @@ const Analytics = ({ pageName = "Analytics" }) => {
   // Calculate some basic stats
   const totalStudents = studentsData?.data?.totalUsers || 0;
   const totalInstructors = instructorsData?.data?.totalUsers || 0;
-  const totalBatches = batchesData?.data?.totalBatches || 0;
+  const totalDepartments = departmentsData?.data?.totalDepartments || 0;
   const totalCourses = coursesData?.data?.total || 0;
 
   const getActivityIcon = (action) => {
     const lowerAction = action?.toLowerCase() || '';
     if (lowerAction.includes('login')) return IconUsers;
     if (lowerAction.includes('course')) return IconBook;
-    if (lowerAction.includes('batch')) return IconCalendar;
+    if (lowerAction.includes('department')) return IconCalendar; // Using Calendar for Department for now
     if (lowerAction.includes('instructor')) return IconSchool;
     return IconActivity;
   };
@@ -150,8 +150,8 @@ const Analytics = ({ pageName = "Analytics" }) => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Batches</p>
-                <p className="text-2xl font-bold text-gray-900">{totalBatches}</p>
+                <p className="text-sm font-medium text-gray-600">Departments</p>
+                <p className="text-2xl font-bold text-gray-900">{totalDepartments}</p>
               </div>
               <IconCalendar className="h-8 w-8 text-orange-600" />
             </div>
@@ -201,7 +201,7 @@ const Analytics = ({ pageName = "Analytics" }) => {
               {activities.map((activity, index) => {
                 const ActivityIcon = getActivityIcon(activity.action);
                 const activityColor = getActivityColor(activity.action);
-                
+
                 return (
                   <div key={activity._id || index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                     <div className="flex items-center space-x-4">
@@ -223,8 +223,8 @@ const Analytics = ({ pageName = "Analytics" }) => {
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Badge 
-                        variant="outline" 
+                      <Badge
+                        variant="outline"
                         className={`${activityColor.replace('text-', 'border-').replace('-600', '-200')} ${activityColor.replace('text-', 'text-').replace('-600', '-700')}`}
                       >
                         {activity.action?.split(' ')[0] || 'Activity'}

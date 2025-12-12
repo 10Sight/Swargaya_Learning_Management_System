@@ -4,23 +4,23 @@ import { createApi } from "@reduxjs/toolkit/query/react";
 export const instructorApi = createApi({
     reducerPath: "instructorApi",
     baseQuery: axiosBaseQuery,
-    tagTypes: ['Instructor', 'InstructorCourse', 'InstructorBatch', 'InstructorStudent', 'InstructorQuiz', 'InstructorAssignment'],
+    tagTypes: ['Instructor', 'InstructorCourse', 'InstructorDepartment', 'InstructorStudent', 'InstructorQuiz', 'InstructorAssignment'],
     endpoints: (builder) => ({
         // Get all instructors with pagination, search and filters
         getAllInstructors: builder.query({
-            query: ({ page = 1, limit = 10, search = "", status = "", sortBy = "createdAt", order = "desc" } = {}) => ({
+            query: ({ page = 1, limit = 10, search = "", status = "", unit = "", sortBy = "createdAt", order = "desc" } = {}) => ({
                 url: "/api/users/instructors",
                 method: "GET",
-                params: { page, limit, search, status, sortBy, order }
+                params: { page, limit, search, status, unit, sortBy, order }
             }),
             providesTags: ['Instructor'],
         }),
 
         getAllStudents: builder.query({
-            query: ({ page = 1, limit = 10, search = "", status = "", sortBy = "createdAt", order = "desc"} = {}) => ({
+            query: ({ page = 1, limit = 10, search = "", status = "", unit = "", sortBy = "createdAt", order = "desc" } = {}) => ({
                 url: `/api/users/students`,
                 method: "GET",
-                params: { page, limit, search, status, sortBy, order }
+                params: { page, limit, search, status, unit, sortBy, order }
             }),
             providesTags: ['Instructor'],
         }),
@@ -74,14 +74,14 @@ export const instructorApi = createApi({
         }),
 
         // =============== INSTRUCTOR PORTAL ENDPOINTS ===============
-        
+
         // Dashboard stats for instructor
         getInstructorDashboardStats: builder.query({
             query: () => ({
                 url: "/api/instructor/dashboard/stats",
                 method: "GET",
             }),
-            providesTags: ['InstructorCourse', 'InstructorBatch', 'InstructorStudent'],
+            providesTags: ['InstructorCourse', 'InstructorDepartment', 'InstructorStudent'],
         }),
 
         // Get courses assigned to instructor
@@ -103,32 +103,32 @@ export const instructorApi = createApi({
             providesTags: (result, error, courseId) => [{ type: 'InstructorCourse', id: courseId }],
         }),
 
-        // Get batches assigned to instructor
-        getInstructorAssignedBatches: builder.query({
+        // Get departments assigned to instructor
+        getInstructorAssignedDepartments: builder.query({
             query: ({ page = 1, limit = 10, search = "" } = {}) => ({
-                url: "/api/instructor/batches",
+                url: "/api/instructor/departments",
                 method: "GET",
                 params: { page, limit, search }
             }),
-            providesTags: ['InstructorBatch'],
+            providesTags: ['InstructorDepartment'],
         }),
 
-        // Get batch details for instructor
-        getInstructorBatchDetails: builder.query({
-            query: (batchId) => ({
-                url: `/api/instructor/batches/${batchId}`,
+        // Get department details for instructor
+        getInstructorDepartmentDetails: builder.query({
+            query: (departmentId) => ({
+                url: `/api/instructor/departments/${departmentId}`,
                 method: "GET",
             }),
-            providesTags: (result, error, batchId) => [{ type: 'InstructorBatch', id: batchId }],
+            providesTags: (result, error, departmentId) => [{ type: 'InstructorDepartment', id: departmentId }],
         }),
 
-        // Get batch students for instructor
-        getInstructorBatchStudents: builder.query({
-            query: (batchId) => ({
-                url: `/api/instructor/batches/${batchId}/students`,
+        // Get department students for instructor
+        getInstructorDepartmentStudents: builder.query({
+            query: (departmentId) => ({
+                url: `/api/instructor/departments/${departmentId}/students`,
                 method: "GET",
             }),
-            providesTags: (result, error, batchId) => [{ type: 'InstructorStudent', id: batchId }],
+            providesTags: (result, error, departmentId) => [{ type: 'InstructorStudent', id: departmentId }],
         }),
 
         // Get student progress
@@ -141,10 +141,10 @@ export const instructorApi = createApi({
             providesTags: (result, error, { studentId }) => [{ type: 'InstructorStudent', id: studentId }],
         }),
 
-        // Get batch quiz attempts
-        getInstructorBatchQuizAttempts: builder.query({
-            query: ({ batchId, page = 1, limit = 10 } = {}) => ({
-                url: `/api/instructor/batches/${batchId}/quiz-attempts`,
+        // Get department quiz attempts
+        getInstructorDepartmentQuizAttempts: builder.query({
+            query: ({ departmentId, page = 1, limit = 10 } = {}) => ({
+                url: `/api/instructor/departments/${departmentId}/quiz-attempts`,
                 method: "GET",
                 params: { page, limit }
             }),
@@ -172,10 +172,10 @@ export const instructorApi = createApi({
             ],
         }),
 
-        // Get batch assignment submissions
-        getInstructorBatchAssignmentSubmissions: builder.query({
-            query: ({ batchId, page = 1, limit = 10 } = {}) => ({
-                url: `/api/instructor/batches/${batchId}/assignment-submissions`,
+        // Get department assignment submissions
+        getInstructorDepartmentAssignmentSubmissions: builder.query({
+            query: ({ departmentId, page = 1, limit = 10 } = {}) => ({
+                url: `/api/instructor/departments/${departmentId}/assignment-submissions`,
                 method: "GET",
                 params: { page, limit }
             }),
@@ -251,14 +251,14 @@ export const {
     useGetInstructorDashboardStatsQuery,
     useGetInstructorAssignedCoursesQuery,
     useGetInstructorCourseDetailsQuery,
-    useGetInstructorAssignedBatchesQuery,
-    useGetInstructorBatchDetailsQuery,
-    useGetInstructorBatchStudentsQuery,
+    useGetInstructorAssignedDepartmentsQuery,
+    useGetInstructorDepartmentDetailsQuery,
+    useGetInstructorDepartmentStudentsQuery,
     useGetInstructorStudentProgressQuery,
-    useGetInstructorBatchQuizAttemptsQuery,
+    useGetInstructorDepartmentQuizAttemptsQuery,
     useGetInstructorQuizDetailsQuery,
     useGetInstructorStudentQuizAttemptsQuery,
-    useGetInstructorBatchAssignmentSubmissionsQuery,
+    useGetInstructorDepartmentAssignmentSubmissionsQuery,
     useGetInstructorAssignmentDetailsQuery,
     useGetInstructorStudentAssignmentSubmissionsQuery,
     useGetInstructorSubmissionDetailsQuery,

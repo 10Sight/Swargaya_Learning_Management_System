@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import User from "../models/auth.model.js";
 import Course from "../models/course.model.js";
-import Batch from "../models/batch.model.js";
+import Department from "../models/department.model.js";
 import AttemptedQuiz from "../models/attemptedQuiz.model.js";
 import Quiz from "../models/quiz.model.js";
 import Assignment from "../models/assignment.model.js";
@@ -21,7 +21,7 @@ const generateToken = (userId) => {
 // @access  Public
 export const login = async (req, res) => {
   try {
-    
+
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -32,9 +32,9 @@ export const login = async (req, res) => {
     }
 
     // Find user and check if they are an instructor
-    const user = await User.findOne({ 
-      email, 
-      role: "INSTRUCTOR" 
+    const user = await User.findOne({
+      email,
+      role: "INSTRUCTOR"
     }).select("+password");
 
     if (!user) {
@@ -99,41 +99,41 @@ export const getDashboardStats = async (req, res) => {
   try {
     const instructorId = req.user._id;
 
-    // Get instructor's assigned batches
-    const batches = await Batch.find({ instructor: instructorId })
+    // Get instructor's assigned departments
+    const departments = await Department.find({ instructor: instructorId })
       .populate('course', 'title')
       .populate('students', 'fullName');
 
-    // Get instructor's courses (courses assigned through batches)
-    const assignedCourseIds = [...new Set(batches.map(batch => batch.course?._id).filter(Boolean))];
-    const courses = await Course.find({ 
+    // Get instructor's courses (courses assigned through departments)
+    const assignedCourseIds = [...new Set(departments.map(department => department.course?._id).filter(Boolean))];
+    const courses = await Course.find({
       _id: { $in: assignedCourseIds },
-      status: 'PUBLISHED' 
+      status: 'PUBLISHED'
     });
 
     // Calculate statistics
-    const totalStudents = [...new Set(batches.flatMap(batch => 
-      batch.students.map(student => student._id.toString())
+    const totalStudents = [...new Set(departments.flatMap(department =>
+      department.students.map(student => student._id.toString())
     ))].length;
 
-    const activeBatches = batches.filter(batch => batch.status === 'ONGOING').length;
+    const activeDepartments = departments.filter(department => department.status === 'ONGOING').length;
 
     // Get recent activities (quiz attempts, assignment submissions)
     const recentQuizAttempts = await AttemptedQuiz.find({
-      student: { $in: batches.flatMap(batch => batch.students) }
+      student: { $in: departments.flatMap(department => department.students) }
     })
-    .populate('student', 'fullName')
-    .populate('quiz', 'title')
-    .sort({ createdAt: -1 })
-    .limit(10);
+      .populate('student', 'fullName')
+      .populate('quiz', 'title')
+      .sort({ createdAt: -1 })
+      .limit(10);
 
     const recentSubmissions = await Submission.find({
-      student: { $in: batches.flatMap(batch => batch.students) }
+      student: { $in: departments.flatMap(department => department.students) }
     })
-    .populate('student', 'fullName')
-    .populate('assignment', 'title')
-    .sort({ createdAt: -1 })
-    .limit(10);
+      .populate('student', 'fullName')
+      .populate('assignment', 'title')
+      .sort({ createdAt: -1 })
+      .limit(10);
 
     // Combine and format recent activities
     const recentActivities = [
@@ -158,9 +158,9 @@ export const getDashboardStats = async (req, res) => {
           total: courses.length,
           published: courses.length // Only published courses are shown
         },
-        batches: {
-          total: batches.length,
-          active: activeBatches
+        departments: {
+          total: departments.length,
+          active: activeDepartments
         },
         students: {
           total: totalStudents
@@ -188,9 +188,9 @@ export const getAssignedCourses = async (req, res) => {
     const instructorId = req.user._id;
     const { page = 1, limit = 10, search } = req.query;
 
-    // Get instructor's assigned batches to find course IDs
-    const batches = await Batch.find({ instructor: instructorId }).populate('course');
-    const assignedCourseIds = [...new Set(batches.map(batch => batch.course?._id).filter(Boolean))];
+    // Get instructor's assigned departments to find course IDs
+    const departments = await Department.find({ instructor: instructorId }).populate('course');
+    const assignedCourseIds = [...new Set(departments.map(department => department.course?._id).filter(Boolean))];
 
     if (assignedCourseIds.length === 0) {
       return res.status(200).json({
@@ -205,7 +205,7 @@ export const getAssignedCourses = async (req, res) => {
     }
 
     // Build query
-    let query = { 
+    let query = {
       _id: { $in: assignedCourseIds },
       status: 'PUBLISHED' // Only published courses
     };
@@ -254,29 +254,29 @@ export const getCourseDetails = async (req, res) => {
     const { courseId } = req.params;
 
     // Verify instructor has access to this course
-    const batches = await Batch.find({ 
+    const departments = await Department.find({
       instructor: instructorId,
-      course: courseId 
+      course: courseId
     });
 
-    if (batches.length === 0) {
+    if (departments.length === 0) {
       return res.status(403).json({
         success: false,
         message: "Access denied. Course not assigned to you.",
       });
     }
 
-    const course = await Course.findOne({ 
+    const course = await Course.findOne({
       _id: courseId,
-      status: 'PUBLISHED' 
+      status: 'PUBLISHED'
     })
-    .populate({
-      path: 'modules',
-      populate: {
-        path: 'lessons',
-        select: 'title description duration videoUrl'
-      }
-    });
+      .populate({
+        path: 'modules',
+        populate: {
+          path: 'lessons',
+          select: 'title description duration videoUrl'
+        }
+      });
 
     if (!course) {
       return res.status(404).json({
@@ -298,10 +298,10 @@ export const getCourseDetails = async (req, res) => {
   }
 };
 
-// @desc    Get assigned batches for instructor
-// @route   GET /api/instructor/batches
+// @desc    Get assigned departments for instructor
+// @route   GET /api/instructor/departments
 // @access  Private (Instructor only)
-export const getAssignedBatches = async (req, res) => {
+export const getAssignedDepartments = async (req, res) => {
   try {
     const instructorId = req.user._id;
     const { page = 1, limit = 10, search } = req.query;
@@ -316,22 +316,22 @@ export const getAssignedBatches = async (req, res) => {
       ];
     }
 
-    const batches = await Batch.find(query)
+    const departments = await Department.find(query)
       .populate('course', 'title category level')
       .populate('students', 'fullName email userName status')
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
 
-    // Enhance batches with student progress data
-    const batchesWithProgress = await Promise.all(
-      batches.map(async (batch) => {
+    // Enhance departments with student progress data
+    const departmentsWithProgress = await Promise.all(
+      departments.map(async (department) => {
         const studentsWithProgress = await Promise.all(
-          batch.students.map(async (student) => {
+          department.students.map(async (student) => {
             // Get progress for the course
             const progress = await Progress.findOne({
               student: student._id,
-              course: batch.course?._id
+              course: department.course?._id
             });
 
             return {
@@ -342,97 +342,97 @@ export const getAssignedBatches = async (req, res) => {
         );
 
         return {
-          ...batch.toObject(),
+          ...department.toObject(),
           students: studentsWithProgress
         };
       })
     );
 
-    const total = await Batch.countDocuments(query);
+    const total = await Department.countDocuments(query);
     const totalPages = Math.ceil(total / limit);
 
     res.status(200).json({
       success: true,
       data: {
-        batches: batchesWithProgress,
+        departments: departmentsWithProgress,
         totalPages,
         currentPage: parseInt(page),
         total
       }
     });
   } catch (error) {
-    console.error("Get assigned batches error:", error);
+    console.error("Get assigned departments error:", error);
     res.status(500).json({
       success: false,
-      message: "Error fetching assigned batches",
+      message: "Error fetching assigned departments",
     });
   }
 };
 
-// @desc    Get batch details
-// @route   GET /api/instructor/batches/:batchId
+// @desc    Get department details
+// @route   GET /api/instructor/departments/:departmentId
 // @access  Private (Instructor only)
-export const getBatchDetails = async (req, res) => {
+export const getDepartmentDetails = async (req, res) => {
   try {
     const instructorId = req.user._id;
-    const { batchId } = req.params;
+    const { departmentId } = req.params;
 
-    const batch = await Batch.findOne({ 
-      _id: batchId, 
-      instructor: instructorId 
+    const department = await Department.findOne({
+      _id: departmentId,
+      instructor: instructorId
     })
-    .populate('course', 'title description category level')
-    .populate('students', 'fullName email phoneNumber');
+      .populate('course', 'title description category level')
+      .populate('students', 'fullName email phoneNumber');
 
-    if (!batch) {
+    if (!department) {
       return res.status(404).json({
         success: false,
-        message: "Batch not found or access denied",
+        message: "Department not found or access denied",
       });
     }
 
     res.status(200).json({
       success: true,
-      data: batch
+      data: department
     });
   } catch (error) {
-    console.error("Get batch details error:", error);
+    console.error("Get department details error:", error);
     res.status(500).json({
       success: false,
-      message: "Error fetching batch details",
+      message: "Error fetching department details",
     });
   }
 };
 
-// @desc    Get batch students
-// @route   GET /api/instructor/batches/:batchId/students
+// @desc    Get department students
+// @route   GET /api/instructor/departments/:departmentId/students
 // @access  Private (Instructor only)
-export const getBatchStudents = async (req, res) => {
+export const getDepartmentStudents = async (req, res) => {
   try {
     const instructorId = req.user._id;
-    const { batchId } = req.params;
+    const { departmentId } = req.params;
 
-    const batch = await Batch.findOne({ 
-      _id: batchId, 
-      instructor: instructorId 
+    const department = await Department.findOne({
+      _id: departmentId,
+      instructor: instructorId
     })
-.populate('students', 'fullName email slug phoneNumber userName status')
-    .populate('course', 'title');
+      .populate('students', 'fullName email slug phoneNumber userName status')
+      .populate('course', 'title');
 
-    if (!batch) {
+    if (!department) {
       return res.status(404).json({
         success: false,
-        message: "Batch not found or access denied",
+        message: "Department not found or access denied",
       });
     }
 
     // Get additional student data (progress, quiz scores, assignment submissions)
     const studentsWithStats = await Promise.all(
-      batch.students.map(async (student) => {
+      department.students.map(async (student) => {
         // Get progress for the course
         const progress = await Progress.findOne({
           student: student._id,
-          course: batch.course?._id
+          course: department.course?._id
         });
 
         // Get quiz attempts for quizzes in this course
@@ -440,7 +440,7 @@ export const getBatchStudents = async (req, res) => {
           student: student._id
         }).populate({
           path: 'quiz',
-          match: { course: batch.course?._id }, // Only quizzes from this course
+          match: { course: department.course?._id }, // Only quizzes from this course
           select: 'title questions totalMarks'
         });
 
@@ -452,7 +452,7 @@ export const getBatchStudents = async (req, res) => {
           student: student._id
         }).populate({
           path: 'assignment',
-          match: { course: batch.course?._id }, // Only assignments from this course
+          match: { course: department.course?._id }, // Only assignments from this course
           select: 'title maxScore course'
         });
 
@@ -463,19 +463,19 @@ export const getBatchStudents = async (req, res) => {
         const completedAttempts = relevantQuizAttempts.filter(a => a.status && a.status !== 'IN_PROGRESS');
 
         // Calculate quiz average - use sum of question marks (no totalMarks field on quiz)
-        const averageQuizScore = completedAttempts.length > 0 
+        const averageQuizScore = completedAttempts.length > 0
           ? completedAttempts.reduce((sum, attempt) => {
-              const totalMarks = attempt.quiz?.questions?.reduce((acc, q) => acc + (q.marks || 1), 0) || 0;
-              const percent = totalMarks > 0 ? (attempt.score / totalMarks) * 100 : 0;
-              return sum + percent;
-            }, 0) / completedAttempts.length
+            const totalMarks = attempt.quiz?.questions?.reduce((acc, q) => acc + (q.marks || 1), 0) || 0;
+            const percent = totalMarks > 0 ? (attempt.score / totalMarks) * 100 : 0;
+            return sum + percent;
+          }, 0) / completedAttempts.length
           : 0;
 
         // Get total quizzes available for this course
-        const totalQuizzesInCourse = await Quiz.countDocuments({ course: batch.course?._id });
-        
+        const totalQuizzesInCourse = await Quiz.countDocuments({ course: department.course?._id });
+
         // Get total assignments available for this course
-        const totalAssignmentsInCourse = await Assignment.countDocuments({ course: batch.course?._id });
+        const totalAssignmentsInCourse = await Assignment.countDocuments({ course: department.course?._id });
 
         return {
           ...student.toObject(),
@@ -492,19 +492,19 @@ export const getBatchStudents = async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
-        batch: {
-          _id: batch._id,
-          name: batch.name,
-          course: batch.course
+        department: {
+          _id: department._id,
+          name: department.name,
+          course: department.course
         },
         students: studentsWithStats
       }
     });
   } catch (error) {
-    console.error("Get batch students error:", error);
+    console.error("Get department students error:", error);
     res.status(500).json({
       success: false,
-      message: "Error fetching batch students",
+      message: "Error fetching department students",
     });
   }
 };
@@ -518,26 +518,26 @@ export const getStudentProgress = async (req, res) => {
     const { studentId } = req.params;
     const { courseId } = req.query;
 
-    // Verify instructor has access to this student (through batches)
-    const batch = await Batch.findOne({
+    // Verify instructor has access to this student (through departments)
+    const department = await Department.findOne({
       instructor: instructorId,
       students: studentId,
       ...(courseId && { course: courseId })
     });
 
-    if (!batch) {
+    if (!department) {
       return res.status(403).json({
         success: false,
-        message: "Access denied. Student not in your batch.",
+        message: "Access denied. Student not in your department.",
       });
     }
 
     const progress = await Progress.findOne({
       student: studentId,
-      course: courseId || batch.course
+      course: courseId || department.course
     })
-    .populate('completedLessons', 'title')
-    .populate('course', 'title');
+      .populate('completedLessons', 'title')
+      .populate('course', 'title');
 
     res.status(200).json({
       success: true,
@@ -552,41 +552,41 @@ export const getStudentProgress = async (req, res) => {
   }
 };
 
-// @desc    Get batch quiz attempts
-// @route   GET /api/instructor/batches/:batchId/quiz-attempts
+// @desc    Get department quiz attempts
+// @route   GET /api/instructor/departments/:departmentId/quiz-attempts
 // @access  Private (Instructor only)
-export const getBatchQuizAttempts = async (req, res) => {
+export const getDepartmentQuizAttempts = async (req, res) => {
   try {
     const instructorId = req.user._id;
-    const { batchId } = req.params;
+    const { departmentId } = req.params;
     const { page = 1, limit = 10 } = req.query;
 
-    // Verify instructor owns this batch and populate course for filtering
-    const batch = await Batch.findOne({ 
-      _id: batchId, 
-      instructor: instructorId 
+    // Verify instructor owns this department and populate course for filtering
+    const department = await Department.findOne({
+      _id: departmentId,
+      instructor: instructorId
     }).populate('course', '_id');
 
-    if (!batch) {
+    if (!department) {
       return res.status(404).json({
         success: false,
-        message: "Batch not found or access denied",
+        message: "Department not found or access denied",
       });
     }
 
-    // Find attempts for students in this batch, with quizzes from the batch's course
+    // Find attempts for students in this department, with quizzes from the department's course
     const attempts = await AttemptedQuiz.find({
-      student: { $in: batch.students }
+      student: { $in: department.students }
     })
-    .populate('student', 'fullName userName email')
-    .populate({
-      path: 'quiz',
-      select: 'title description questions course',
-      match: { course: batch.course._id } // Only quizzes from this course
-    })
-    .sort({ createdAt: -1 })
-    .limit(limit * 1)
-    .skip((page - 1) * limit);
+      .populate('student', 'fullName userName email')
+      .populate({
+        path: 'quiz',
+        select: 'title description questions course',
+        match: { course: department.course._id } // Only quizzes from this course
+      })
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
 
     // Filter out attempts where quiz is null (doesn't belong to course) and transform data
     const filteredAttempts = attempts
@@ -594,7 +594,7 @@ export const getBatchQuizAttempts = async (req, res) => {
       .map(attempt => {
         // Calculate total score from quiz questions
         const totalScore = attempt.quiz.questions?.reduce((sum, q) => sum + (q.marks || 1), 0) || 0;
-        
+
         return {
           _id: attempt._id,
           student: attempt.student,
@@ -617,7 +617,7 @@ export const getBatchQuizAttempts = async (req, res) => {
 
     // Count filtered attempts for correct pagination
     const totalFilteredAttempts = await AttemptedQuiz.aggregate([
-      { $match: { student: { $in: batch.students } } },
+      { $match: { student: { $in: department.students } } },
       {
         $lookup: {
           from: 'quizzes',
@@ -626,10 +626,10 @@ export const getBatchQuizAttempts = async (req, res) => {
           as: 'quizData'
         }
       },
-      { $match: { 'quizData.course': batch.course._id } },
+      { $match: { 'quizData.course': department.course._id } },
       { $count: 'total' }
     ]);
-    
+
     const total = totalFilteredAttempts.length > 0 ? totalFilteredAttempts[0].total : 0;
     const totalPages = Math.ceil(total / limit);
 
@@ -643,7 +643,7 @@ export const getBatchQuizAttempts = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error("Get batch quiz attempts error:", error);
+    console.error("Get department quiz attempts error:", error);
     res.status(500).json({
       success: false,
       message: "Error fetching quiz attempts",
@@ -697,15 +697,15 @@ export const getStudentQuizAttempts = async (req, res) => {
     const { studentId, quizId } = req.params;
 
     // Verify instructor has access to this student
-    const batch = await Batch.findOne({
+    const department = await Department.findOne({
       instructor: instructorId,
       students: studentId
     });
 
-    if (!batch) {
+    if (!department) {
       return res.status(403).json({
         success: false,
-        message: "Access denied. Student not in your batch.",
+        message: "Access denied. Student not in your department.",
       });
     }
 
@@ -713,8 +713,8 @@ export const getStudentQuizAttempts = async (req, res) => {
       student: studentId,
       quiz: quizId
     })
-    .populate('quiz', 'title description questions')
-    .sort({ createdAt: -1 });
+      .populate('quiz', 'title description questions')
+      .sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -729,47 +729,47 @@ export const getStudentQuizAttempts = async (req, res) => {
   }
 };
 
-// @desc    Get batch assignment submissions
-// @route   GET /api/instructor/batches/:batchId/assignment-submissions
+// @desc    Get department assignment submissions
+// @route   GET /api/instructor/departments/:departmentId/assignment-submissions
 // @access  Private (Instructor only)
-export const getBatchAssignmentSubmissions = async (req, res) => {
+export const getDepartmentAssignmentSubmissions = async (req, res) => {
   try {
     const instructorId = req.user._id;
-    const { batchId } = req.params;
+    const { departmentId } = req.params;
     const { page = 1, limit = 10 } = req.query;
 
-    // Verify instructor owns this batch
-    const batch = await Batch.findOne({ 
-      _id: batchId, 
-      instructor: instructorId 
+    // Verify instructor owns this department
+    const department = await Department.findOne({
+      _id: departmentId,
+      instructor: instructorId
     }).populate('course', 'title');
 
-    if (!batch) {
+    if (!department) {
       return res.status(404).json({
         success: false,
-        message: "Batch not found or access denied",
+        message: "Department not found or access denied",
       });
     }
 
     // Get assignments for this course to filter submissions
-    const courseAssignments = await Assignment.find({ course: batch.course?._id }).select('_id');
+    const courseAssignments = await Assignment.find({ course: department.course?._id }).select('_id');
     const assignmentIds = courseAssignments.map(assignment => assignment._id);
 
     const submissions = await Submission.find({
-      student: { $in: batch.students },
+      student: { $in: department.students },
       assignment: { $in: assignmentIds } // Only submissions for assignments in this course
     })
-    .populate('student', 'fullName userName email')
-    .populate('assignment', 'title description dueDate maxScore course')
-    .sort({ createdAt: -1 })
-    .limit(limit * 1)
-    .skip((page - 1) * limit);
+      .populate('student', 'fullName userName email')
+      .populate('assignment', 'title description dueDate maxScore course')
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
 
     const total = await Submission.countDocuments({
-      student: { $in: batch.students },
+      student: { $in: department.students },
       assignment: { $in: assignmentIds }
     });
-    
+
     const totalPages = Math.ceil(total / limit);
 
     res.status(200).json({
@@ -782,7 +782,7 @@ export const getBatchAssignmentSubmissions = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error("Get batch assignment submissions error:", error);
+    console.error("Get department assignment submissions error:", error);
     res.status(500).json({
       success: false,
       message: "Error fetching assignment submissions",
@@ -836,15 +836,15 @@ export const getStudentAssignmentSubmissions = async (req, res) => {
     const { studentId, assignmentId } = req.params;
 
     // Verify instructor has access to this student
-    const batch = await Batch.findOne({
+    const department = await Department.findOne({
       instructor: instructorId,
       students: studentId
     });
 
-    if (!batch) {
+    if (!department) {
       return res.status(403).json({
         success: false,
-        message: "Access denied. Student not in your batch.",
+        message: "Access denied. Student not in your department.",
       });
     }
 
@@ -852,8 +852,8 @@ export const getStudentAssignmentSubmissions = async (req, res) => {
       student: studentId,
       assignment: assignmentId
     })
-    .populate('assignment', 'title description dueDate maxScore')
-    .sort({ createdAt: -1 });
+      .populate('assignment', 'title description dueDate maxScore')
+      .sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -895,17 +895,17 @@ export const getSubmissionDetails = async (req, res) => {
       });
     }
 
-    // Verify instructor has access to this submission (through batches)
-    const batch = await Batch.findOne({
+    // Verify instructor has access to this submission (through departments)
+    const department = await Department.findOne({
       instructor: instructorId,
       students: submission.student._id,
       course: submission.assignment.course._id
     });
 
-    if (!batch) {
+    if (!department) {
       return res.status(403).json({
         success: false,
-        message: "Access denied. Student not in your batch.",
+        message: "Access denied. Student not in your department.",
       });
     }
 
@@ -952,16 +952,16 @@ export const gradeInstructorSubmission = async (req, res) => {
     }
 
     // Verify instructor has access to this submission
-    const batch = await Batch.findOne({
+    const department = await Department.findOne({
       instructor: instructorId,
       students: submission.student,
       course: submission.assignment.course
     });
 
-    if (!batch) {
+    if (!department) {
       return res.status(403).json({
         success: false,
-        message: "Access denied. Student not in your batch.",
+        message: "Access denied. Student not in your department.",
       });
     }
 
@@ -979,7 +979,7 @@ export const gradeInstructorSubmission = async (req, res) => {
     submission.status = 'GRADED';
     submission.gradedAt = new Date();
     submission.gradedBy = instructorId;
-    
+
     await submission.save();
 
     // Populate the updated submission for response
@@ -1025,13 +1025,13 @@ export const downloadSubmissionFile = async (req, res) => {
     }
 
     // Verify instructor has access
-    const batch = await Batch.findOne({
+    const department = await Department.findOne({
       instructor: instructorId,
       students: submission.student,
       course: submission.assignment.course
     });
 
-    if (!batch) {
+    if (!department) {
       return res.status(403).json({
         success: false,
         message: "Access denied",
@@ -1062,7 +1062,7 @@ export const downloadSubmissionFile = async (req, res) => {
             const u = new URL(fileUrl);
             const last = u.pathname.split('/').filter(Boolean).pop();
             if (last) filename = decodeURIComponent(last);
-          } catch {}
+          } catch { }
         }
 
         res.setHeader('Content-Type', ct);
@@ -1081,8 +1081,8 @@ export const downloadSubmissionFile = async (req, res) => {
         console.error('Legacy file proxy error:', err);
         return res.status(500).json({ success: false, message: 'Error fetching legacy file' });
       }
-    } 
-    
+    }
+
     if (submission.attachments && submission.attachments.length > 0) {
       const index = parseInt(fileIndex);
       if (isNaN(index) || index < 0 || index >= submission.attachments.length) {
@@ -1091,13 +1091,13 @@ export const downloadSubmissionFile = async (req, res) => {
           message: "Invalid file index",
         });
       }
-      
+
       const fileInfo = submission.attachments[index];
-      
+
       // For new file system, check if file exists and serve it
       const path = await import('path');
       const fs = await import('fs');
-      
+
       if (fs.existsSync(fileInfo.filePath)) {
         res.setHeader('Content-Disposition', `attachment; filename="${fileInfo.originalName}"`);
         res.setHeader('Content-Type', fileInfo.mimeType);
@@ -1109,13 +1109,13 @@ export const downloadSubmissionFile = async (req, res) => {
         });
       }
     }
-    
+
     // If no files found at all
     return res.status(404).json({
       success: false,
       message: "No files found in submission",
     });
-    
+
   } catch (error) {
     console.error("Download file error:", error);
     res.status(500).json({

@@ -12,7 +12,7 @@ import { userApi } from "./AllApi/UserApi";
 import { instructorApi } from "./AllApi/InstructorApi";
 import { courseApi } from "./AllApi/CourseApi";
 import { assignmentApi } from "./AllApi/AssignmentApi";
-import { batchApi } from "./AllApi/BatchApi";
+import { departmentApi } from "./AllApi/DepartmentApi";
 import { quizApi } from "./AllApi/QuizApi";
 import { enrollmentApi } from "./AllApi/EnrollmentApi";
 import { progressApi } from "./AllApi/ProgressApi";
@@ -35,14 +35,14 @@ const store = configureStore({
         user: userSliceReducer,
         course: courseSliceReducer,
         localization: localizationReducer,
-        
+
         // API reducers
         [authApi.reducerPath]: authApi.reducer,
         [userApi.reducerPath]: userApi.reducer,
         [instructorApi.reducerPath]: instructorApi.reducer,
         [courseApi.reducerPath]: courseApi.reducer,
         [assignmentApi.reducerPath]: assignmentApi.reducer,
-        [batchApi.reducerPath]: batchApi.reducer,
+        [departmentApi.reducerPath]: departmentApi.reducer,
         [quizApi.reducerPath]: quizApi.reducer,
         [enrollmentApi.reducerPath]: enrollmentApi.reducer,
         [progressApi.reducerPath]: progressApi.reducer,
@@ -58,14 +58,14 @@ const store = configureStore({
         [superAdminApi.reducerPath]: superAdminApi.reducer,
         [courseLevelConfigApi.reducerPath]: courseLevelConfigApi.reducer,
     },
-    middleware: (getDefaultMiddleware) => 
+    middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware().concat(
             authApi.middleware,
             userApi.middleware,
             instructorApi.middleware,
             courseApi.middleware,
             assignmentApi.middleware,
-            batchApi.middleware,
+            departmentApi.middleware,
             quizApi.middleware,
             enrollmentApi.middleware,
             progressApi.middleware,

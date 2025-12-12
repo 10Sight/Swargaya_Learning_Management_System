@@ -1,4 +1,4 @@
-// src/components/batches/BatchInstructorCard.jsx
+// src/components/departments/DepartmentInstructorCard.jsx
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { IconUser, IconMail, IconPhone, IconPencil } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 
-const BatchInstructorCard = ({ instructor, batchId }) => {
+const DepartmentInstructorCard = ({ instructor, departmentId }) => {
   const navigate = useNavigate();
 
   if (!instructor) {
@@ -22,10 +22,10 @@ const BatchInstructorCard = ({ instructor, batchId }) => {
         <CardContent>
           <div className="text-center py-8">
             <div className="text-muted-foreground mb-4">
-              No instructor assigned to this batch
+              No instructor assigned to this department
             </div>
             <Button
-              onClick={() => navigate(`/batches?assignInstructor=${batchId}`)}
+              onClick={() => navigate(`/departments?assignInstructor=${departmentId}`)}
             >
               Assign Instructor
             </Button>
@@ -45,7 +45,7 @@ const BatchInstructorCard = ({ instructor, batchId }) => {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => navigate(`/batches?assignInstructor=${batchId}`)}
+          onClick={() => navigate(`/departments?assignInstructor=${departmentId}`)}
         >
           <IconPencil className="h-4 w-4 mr-2" />
           Change
@@ -62,20 +62,20 @@ const BatchInstructorCard = ({ instructor, batchId }) => {
                 .join("")}
             </AvatarFallback>
           </Avatar>
-          
+
           <div>
             <h3 className="text-xl font-semibold">{instructor.fullName}</h3>
             <Badge variant="outline" className="mt-1">
               Instructor
             </Badge>
           </div>
-          
+
           <div className="w-full space-y-2">
             <div className="flex items-center gap-2 text-sm">
               <IconMail className="h-4 w-4 text-muted-foreground" />
               <span>{instructor.email}</span>
             </div>
-            
+
             {instructor.phone && (
               <div className="flex items-center gap-2 text-sm">
                 <IconPhone className="h-4 w-4 text-muted-foreground" />
@@ -89,4 +89,4 @@ const BatchInstructorCard = ({ instructor, batchId }) => {
   );
 };
 
-export default BatchInstructorCard;
+export default DepartmentInstructorCard;

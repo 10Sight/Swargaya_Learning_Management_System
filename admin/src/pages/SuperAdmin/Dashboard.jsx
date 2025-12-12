@@ -39,33 +39,33 @@ import { Skeleton } from "@/components/ui/skeleton";
 const SuperAdminDashboard = () => {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
-  
+
   // API calls
-  const { 
-    data: dashboardStatsData, 
-    isLoading: statsLoading, 
+  const {
+    data: dashboardStatsData,
+    isLoading: statsLoading,
     isError: statsError,
-    refetch: refetchStats 
+    refetch: refetchStats
   } = useGetDashboardStatsQuery();
-  
-  const { 
-    data: usersData, 
-    isLoading: usersLoading 
+
+  const {
+    data: usersData,
+    isLoading: usersLoading
   } = useGetAllUsersQuery({ limit: 10 });
-  
-  const { 
-    data: auditData, 
-    isLoading: auditLoading 
+
+  const {
+    data: auditData,
+    isLoading: auditLoading
   } = useGetAllAuditLogsQuery({ limit: 5 });
-  
+
   // Derived state from API data
   const systemStats = dashboardStatsData?.data || {
-    totals: { students: 0, instructors: 0, courses: 0, batches: 0 },
-    active: { students: 0, batches: 0, publishedCourses: 0 },
-    engagement: { studentEngagement: 0, batchUtilization: 0, courseCompletion: 0 },
+    totals: { students: 0, instructors: 0, courses: 0, departments: 0 },
+    active: { students: 0, departments: 0, publishedCourses: 0 },
+    engagement: { studentEngagement: 0, departmentUtilization: 0, courseCompletion: 0 },
     recentActivitiesCount: 0
   };
-  
+
   const recentActivities = auditData?.data?.audits?.map(audit => ({
     id: audit._id,
     user: audit.user?.fullName || "Unknown User",
@@ -117,9 +117,8 @@ const SuperAdminDashboard = () => {
               <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
             )}
             {trend && (
-              <div className={`flex items-center mt-2 text-sm ${
-                trend.type === 'positive' ? 'text-green-600' : 'text-red-600'
-              }`}>
+              <div className={`flex items-center mt-2 text-sm ${trend.type === 'positive' ? 'text-green-600' : 'text-red-600'
+                }`}>
                 <IconTrendingUp className="w-4 h-4 mr-1" />
                 <span>{trend.value} {trend.label}</span>
               </div>
@@ -134,7 +133,7 @@ const SuperAdminDashboard = () => {
   );
 
   const QuickActionCard = ({ title, description, icon: Icon, action, color }) => (
-    <div 
+    <div
       onClick={action}
       className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-all duration-200 cursor-pointer group"
     >
@@ -214,30 +213,30 @@ const SuperAdminDashboard = () => {
           </div>
         ) : (
           <>
-            <StatCard 
-              title="Total Users" 
-              value={(systemStats.totals.students + systemStats.totals.instructors + systemStats.totals.courses).toLocaleString()} 
+            <StatCard
+              title="Total Users"
+              value={(systemStats.totals.students + systemStats.totals.instructors + systemStats.totals.courses).toLocaleString()}
               subtitle={`${systemStats.active.students} active students`}
               icon={IconUsers}
               trend={{ type: 'positive', value: `${systemStats.engagement.studentEngagement}%`, label: 'engagement rate' }}
             />
-            <StatCard 
-              title="Total Courses" 
-              value={systemStats.totals.courses} 
+            <StatCard
+              title="Total Courses"
+              value={systemStats.totals.courses}
               subtitle={`${systemStats.active.publishedCourses} published`}
               icon={IconCertificate}
               trend={{ type: 'positive', value: `${systemStats.engagement.courseCompletion}%`, label: 'completion rate' }}
             />
-            <StatCard 
-              title="Active Batches" 
-              value={systemStats.totals.batches} 
-              subtitle={`${systemStats.active.batches} currently active`}
+            <StatCard
+              title="Active Departments"
+              value={systemStats.totals.departments}
+              subtitle={`${systemStats.active.departments} currently active`}
               icon={IconFolder}
-              trend={{ type: 'positive', value: `${systemStats.engagement.batchUtilization}%`, label: 'utilization rate' }}
+              trend={{ type: 'positive', value: `${systemStats.engagement.departmentUtilization || 0}%`, label: 'utilization rate' }}
             />
-            <StatCard 
-              title="System Health" 
-              value="98.5%" 
+            <StatCard
+              title="System Health"
+              value="98.5%"
               subtitle="All systems operational"
               icon={IconActivity}
               trend={{ type: 'positive', value: '+0.5%', label: 'uptime improvement' }}
@@ -252,8 +251,8 @@ const SuperAdminDashboard = () => {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-lg font-semibold">System Overview</CardTitle>
-              <Link 
-                to="/superadmin/system-monitoring" 
+              <Link
+                to="/superadmin/system-monitoring"
                 className="text-sm text-primary hover:underline font-medium"
               >
                 View Details →
@@ -303,8 +302,8 @@ const SuperAdminDashboard = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-lg font-semibold">Recent Activities</CardTitle>
-            <Link 
-              to="/superadmin/audit-logs" 
+            <Link
+              to="/superadmin/audit-logs"
               className="text-sm text-primary hover:underline font-medium"
             >
               View All →
@@ -332,8 +331,8 @@ const SuperAdminDashboard = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-lg font-semibold">User Statistics</CardTitle>
-            <Link 
-              to="/superadmin/analytics-reports" 
+            <Link
+              to="/superadmin/analytics-reports"
               className="text-sm text-primary hover:underline font-medium"
             >
               Detailed Report →
@@ -376,8 +375,8 @@ const SuperAdminDashboard = () => {
 
       {/* Management Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Link 
-          to="/superadmin/all-users" 
+        <Link
+          to="/superadmin/all-users"
           className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-6 hover:from-blue-100 hover:to-blue-200 transition-all duration-200 group"
         >
           <div className="flex items-center space-x-4">
@@ -391,8 +390,8 @@ const SuperAdminDashboard = () => {
           </div>
         </Link>
 
-        <Link 
-          to="/superadmin/courses" 
+        <Link
+          to="/superadmin/courses"
           className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-6 hover:from-green-100 hover:to-green-200 transition-all duration-200 group"
         >
           <div className="flex items-center space-x-4">
@@ -406,8 +405,8 @@ const SuperAdminDashboard = () => {
           </div>
         </Link>
 
-        <Link 
-          to="/superadmin/system-settings" 
+        <Link
+          to="/superadmin/system-settings"
           className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-6 hover:from-purple-100 hover:to-purple-200 transition-all duration-200 group"
         >
           <div className="flex items-center space-x-4">

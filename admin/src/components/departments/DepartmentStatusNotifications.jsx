@@ -3,11 +3,11 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  AlertTriangle, 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
+import {
+  AlertTriangle,
+  Clock,
+  CheckCircle,
+  XCircle,
   Bell,
   X,
   Calendar,
@@ -16,30 +16,30 @@ import {
 import axiosInstance from '@/Helper/axiosInstance';
 import { toast } from 'sonner';
 
-const BatchStatusNotifications = ({ userId, batchId, className = '' }) => {
+const DepartmentStatusNotifications = ({ userId, departmentId, className = '' }) => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dismissedNotifications, setDismissedNotifications] = useState(new Set());
 
   useEffect(() => {
     if (userId) {
-      fetchBatchNotifications();
+      fetchDepartmentNotifications();
     }
-  }, [userId, batchId]);
+  }, [userId, departmentId]);
 
-  const fetchBatchNotifications = async () => {
+  const fetchDepartmentNotifications = async () => {
     try {
       setLoading(true);
-      
-      const endpoint = batchId 
-        ? `/api/batches/notifications/${batchId}`
-        : '/api/batches/notifications/my-batch';
-      
+
+      const endpoint = departmentId
+        ? `/api/departments/notifications/${departmentId}`
+        : '/api/departments/notifications/my-department';
+
       const response = await axiosInstance.get(endpoint);
       const notificationsData = response.data?.data || [];
       setNotifications(notificationsData);
     } catch (error) {
-      console.error('Error fetching batch notifications:', error);
+      console.error('Error fetching department notifications:', error);
       // Don't show error toast for this as it might be called frequently
     } finally {
       setLoading(false);
@@ -106,7 +106,7 @@ const BatchStatusNotifications = ({ userId, batchId, className = '' }) => {
     );
   }
 
-  const visibleNotifications = notifications.filter((_, index) => 
+  const visibleNotifications = notifications.filter((_, index) =>
     !dismissedNotifications.has(index)
   );
 
@@ -119,9 +119,8 @@ const BatchStatusNotifications = ({ userId, batchId, className = '' }) => {
       {visibleNotifications.map((notification, index) => (
         <Alert
           key={index}
-          className={`${getNotificationColor(notification.type)} transition-all duration-300 ${
-            notification.urgent ? 'border-2' : ''
-          }`}
+          className={`${getNotificationColor(notification.type)} transition-all duration-300 ${notification.urgent ? 'border-2' : ''
+            }`}
         >
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-3 flex-1">
@@ -133,12 +132,12 @@ const BatchStatusNotifications = ({ userId, batchId, className = '' }) => {
                 <AlertDescription className={`mt-1 text-sm ${getNotificationTextColor(notification.type)}`}>
                   {notification.message}
                 </AlertDescription>
-                
+
                 {notification.metadata && (
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {notification.metadata.batchName && (
+                    {notification.metadata.departmentName && (
                       <Badge variant="outline" className="text-xs">
-                        Batch: {notification.metadata.batchName}
+                        Department: {notification.metadata.departmentName}
                       </Badge>
                     )}
                     {notification.metadata.courseTitle && (
@@ -155,7 +154,7 @@ const BatchStatusNotifications = ({ userId, batchId, className = '' }) => {
                 )}
               </div>
             </div>
-            
+
             <Button
               variant="ghost"
               size="sm"
@@ -171,24 +170,24 @@ const BatchStatusNotifications = ({ userId, batchId, className = '' }) => {
   );
 };
 
-// Helper component for batch status summary
-export const BatchStatusSummary = ({ batchId, refreshTrigger }) => {
+// Helper component for department status summary
+export const DepartmentStatusSummary = ({ departmentId, refreshTrigger }) => {
   const [statusInfo, setStatusInfo] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (batchId) {
-      fetchBatchStatusInfo();
+    if (departmentId) {
+      fetchDepartmentStatusInfo();
     }
-  }, [batchId, refreshTrigger]);
+  }, [departmentId, refreshTrigger]);
 
-  const fetchBatchStatusInfo = async () => {
+  const fetchDepartmentStatusInfo = async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.get(`/api/batches/status/${batchId}/info`);
+      const response = await axiosInstance.get(`/api/departments/status/${departmentId}/info`);
       setStatusInfo(response.data?.data);
     } catch (error) {
-      console.error('Error fetching batch status info:', error);
+      console.error('Error fetching department status info:', error);
     } finally {
       setLoading(false);
     }
@@ -207,29 +206,29 @@ export const BatchStatusSummary = ({ batchId, refreshTrigger }) => {
     );
   }
 
-  const { batch, statusCalculation, timeline } = statusInfo;
+  const { department, statusCalculation, timeline } = statusInfo;
   const isStatusAccurate = statusCalculation.isStatusAccurate;
 
   return (
     <Card className="w-full">
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium">Batch Status Information</CardTitle>
+        <CardTitle className="text-sm font-medium">Department Status Information</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="grid grid-cols-2 gap-4">
           <div>
             <p className="text-xs text-gray-500">Current Status</p>
-            <Badge 
-              variant={batch.status === 'CANCELLED' ? 'destructive' : 'default'}
+            <Badge
+              variant={department.status === 'CANCELLED' ? 'destructive' : 'default'}
               className="mt-1"
             >
-              {batch.status}
+              {department.status}
             </Badge>
           </div>
-          
+
           <div>
             <p className="text-xs text-gray-500">Calculated Status</p>
-            <Badge 
+            <Badge
               variant={statusCalculation.calculatedStatus === 'CANCELLED' ? 'destructive' : 'secondary'}
               className="mt-1"
             >
@@ -251,11 +250,11 @@ export const BatchStatusSummary = ({ batchId, refreshTrigger }) => {
           <div className="text-xs text-gray-600">
             <div className="flex items-center gap-1">
               <Calendar className="w-3 h-3" />
-              {timeline.daysUntilStart > 0 
+              {timeline.daysUntilStart > 0
                 ? `Starts in ${timeline.daysUntilStart} days`
                 : timeline.daysUntilStart === 0
-                ? "Starts today"
-                : `Started ${Math.abs(timeline.daysUntilStart)} days ago`
+                  ? "Starts today"
+                  : `Started ${Math.abs(timeline.daysUntilStart)} days ago`
               }
             </div>
           </div>
@@ -265,11 +264,11 @@ export const BatchStatusSummary = ({ batchId, refreshTrigger }) => {
           <div className="text-xs text-gray-600">
             <div className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
-              {timeline.daysUntilEnd > 0 
+              {timeline.daysUntilEnd > 0
                 ? `Ends in ${timeline.daysUntilEnd} days`
                 : timeline.daysUntilEnd === 0
-                ? "Ends today"
-                : `Ended ${Math.abs(timeline.daysUntilEnd)} days ago`
+                  ? "Ends today"
+                  : `Ended ${Math.abs(timeline.daysUntilEnd)} days ago`
               }
             </div>
           </div>
@@ -279,4 +278,4 @@ export const BatchStatusSummary = ({ batchId, refreshTrigger }) => {
   );
 };
 
-export default BatchStatusNotifications;
+export default DepartmentStatusNotifications;

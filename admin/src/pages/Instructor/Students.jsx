@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { useGetInstructorBatchStudentsQuery, useGetInstructorAssignedBatchesQuery } from '@/Redux/AllApi/InstructorApi'
+import { useGetInstructorDepartmentStudentsQuery, useGetInstructorAssignedDepartmentsQuery } from '@/Redux/AllApi/InstructorApi'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useLazyExportStudentsQuery } from '@/Redux/AllApi/UserApi'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
@@ -27,30 +27,30 @@ import {
 
 const InstructorStudents = () => {
   const [searchParams, setSearchParams] = useSearchParams()
-  const [selectedBatchId, setSelectedBatchId] = useState(searchParams.get('batch') || '')
-  
-  const { data: batchesData } = useGetInstructorAssignedBatchesQuery({ limit: 100 })
-  const { data, isLoading, error } = useGetInstructorBatchStudentsQuery(
-    selectedBatchId, 
-    { skip: !selectedBatchId }
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState(searchParams.get('department') || '')
+
+  const { data: departmentsData } = useGetInstructorAssignedDepartmentsQuery({ limit: 100 })
+  const { data, isLoading, error } = useGetInstructorDepartmentStudentsQuery(
+    selectedDepartmentId,
+    { skip: !selectedDepartmentId }
   )
-  
+
   const students = data?.data?.students || []
-  const batch = data?.data?.batch
-  const batches = batchesData?.data?.batches || []
+  const department = data?.data?.department
+  const departments = departmentsData?.data?.departments || []
   const [triggerExportStudents, { isFetching: isExporting }] = useLazyExportStudentsQuery()
 
   useEffect(() => {
-    const batchFromParams = searchParams.get('batch')
-    if (batchFromParams && batchFromParams !== selectedBatchId) {
-      setSelectedBatchId(batchFromParams)
+    const departmentFromParams = searchParams.get('department')
+    if (departmentFromParams && departmentFromParams !== selectedDepartmentId) {
+      setSelectedDepartmentId(departmentFromParams)
     }
-  }, [searchParams, selectedBatchId])
+  }, [searchParams, selectedDepartmentId])
 
-  const handleBatchChange = (batchId) => {
-    setSelectedBatchId(batchId)
-    if (batchId) {
-      setSearchParams({ batch: batchId })
+  const handleDepartmentChange = (departmentId) => {
+    setSelectedDepartmentId(departmentId)
+    if (departmentId) {
+      setSearchParams({ department: departmentId })
     } else {
       setSearchParams({})
     }
@@ -63,7 +63,7 @@ const InstructorStudents = () => {
     return 'text-red-600'
   }
 
-  if (isLoading && selectedBatchId) {
+  if (isLoading && selectedDepartmentId) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-8 w-64" />
@@ -89,22 +89,22 @@ const InstructorStudents = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold">
-            {batch?.name ? `${batch.name} - Students` : 'Student Management'}
+            {department?.name ? `${department.name} - Students` : 'Student Management'}
           </h1>
           <p className="text-muted-foreground">
             View and monitor student progress and performance
           </p>
         </div>
-        
+
         <div className="w-full sm:w-64">
-          <Select value={selectedBatchId} onValueChange={handleBatchChange}>
+          <Select value={selectedDepartmentId} onValueChange={handleDepartmentChange}>
             <SelectTrigger>
-              <SelectValue placeholder="Select a batch" />
+              <SelectValue placeholder="Select a department" />
             </SelectTrigger>
             <SelectContent>
-              {batches.map((batch) => (
-                <SelectItem key={batch._id} value={batch._id}>
-                  {batch.name}
+              {departments.map((department) => (
+                <SelectItem key={department._id} value={department._id}>
+                  {department.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -114,40 +114,40 @@ const InstructorStudents = () => {
         <div className="flex gap-2">
           <Button
             variant="outline"
-            disabled={!selectedBatchId || isExporting}
+            disabled={!selectedDepartmentId || isExporting}
             onClick={async () => {
               try {
-                const { data } = await triggerExportStudents({ format: 'excel', batchId: selectedBatchId })
+                const { data } = await triggerExportStudents({ format: 'excel', departmentId: selectedDepartmentId })
                 const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
                 const url = window.URL.createObjectURL(blob)
                 const a = document.createElement('a')
                 a.href = url
-                a.download = `batch_${selectedBatchId}_students_${new Date().toISOString().slice(0,10)}.xlsx`
+                a.download = `department_${selectedDepartmentId}_students_${new Date().toISOString().slice(0, 10)}.xlsx`
                 document.body.appendChild(a)
                 a.click()
                 a.remove()
                 window.URL.revokeObjectURL(url)
-              } catch {}
+              } catch { }
             }}
           >
             Export Excel
           </Button>
           <Button
             variant="outline"
-            disabled={!selectedBatchId || isExporting}
+            disabled={!selectedDepartmentId || isExporting}
             onClick={async () => {
               try {
-                const { data } = await triggerExportStudents({ format: 'pdf', batchId: selectedBatchId })
+                const { data } = await triggerExportStudents({ format: 'pdf', departmentId: selectedDepartmentId })
                 const blob = new Blob([data], { type: 'application/pdf' })
                 const url = window.URL.createObjectURL(blob)
                 const a = document.createElement('a')
                 a.href = url
-                a.download = `batch_${selectedBatchId}_students_${new Date().toISOString().slice(0,10)}.pdf`
+                a.download = `department_${selectedDepartmentId}_students_${new Date().toISOString().slice(0, 10)}.pdf`
                 document.body.appendChild(a)
                 a.click()
                 a.remove()
                 window.URL.revokeObjectURL(url)
-              } catch {}
+              } catch { }
             }}
           >
             Export PDF
@@ -155,13 +155,13 @@ const InstructorStudents = () => {
         </div>
       </div>
 
-      {!selectedBatchId ? (
+      {!selectedDepartmentId ? (
         <Card className="p-12">
           <div className="text-center">
             <IconUsers className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">Select a Batch</h3>
+            <h3 className="text-lg font-medium mb-2">Select a Department</h3>
             <p className="text-muted-foreground">
-              Choose a batch from your assigned batches to view student data.
+              Choose a department from your assigned departments to view student data.
             </p>
           </div>
         </Card>
@@ -206,7 +206,7 @@ const InstructorStudents = () => {
                             </p>
                           </div>
                         </TableCell>
-                        
+
                         <TableCell>
                           <div className="space-y-1">
                             <div className="flex items-center text-sm">
@@ -221,12 +221,12 @@ const InstructorStudents = () => {
                             )}
                           </div>
                         </TableCell>
-                        
+
                         <TableCell>
                           <div className="flex items-center space-x-2">
                             <div className="w-full bg-muted rounded-full h-2">
-                              <div 
-                                className="bg-primary h-2 rounded-full" 
+                              <div
+                                className="bg-primary h-2 rounded-full"
                                 style={{ width: `${student.progress || 0}%` }}
                               ></div>
                             </div>
@@ -235,7 +235,7 @@ const InstructorStudents = () => {
                             </span>
                           </div>
                         </TableCell>
-                        
+
                         <TableCell>
                           <div className="text-sm">
                             <p>Avg: {student.averageQuizScore ?? 'N/A'}{student.averageQuizScore != null ? '%' : ''}</p>
@@ -244,14 +244,14 @@ const InstructorStudents = () => {
                             </p>
                           </div>
                         </TableCell>
-                        
+
                         <TableCell>
                           <div className="text-sm">
                             <p>{student.submittedAssignments || 0}/{student.totalAssignments || 0}</p>
                             <p className="text-muted-foreground">submitted</p>
                           </div>
                         </TableCell>
-                        
+
                         <TableCell>
                           <Badge variant={student.status === 'ACTIVE' ? 'success' : 'secondary'}>
                             {student.status || 'ACTIVE'}
@@ -266,7 +266,7 @@ const InstructorStudents = () => {
                   <IconUsers className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-medium mb-2">No Students Found</h3>
                   <p className="text-muted-foreground">
-                    This batch doesn't have any enrolled students yet.
+                    This department doesn't have any enrolled students yet.
                   </p>
                 </div>
               )}
@@ -283,7 +283,7 @@ const InstructorStudents = () => {
                 <div>
                   <h3 className="font-medium text-blue-900">Read-Only Access</h3>
                   <p className="text-sm text-blue-700 mt-1">
-                    You can view student information, progress, quiz attempts, and assignment submissions 
+                    You can view student information, progress, quiz attempts, and assignment submissions
                     but cannot make any modifications or grade assignments.
                   </p>
                 </div>

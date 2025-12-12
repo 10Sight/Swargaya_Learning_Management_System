@@ -21,7 +21,7 @@ import {
   IconInfoCircle,
   IconTrash
 } from "@tabler/icons-react";
-import { 
+import {
   useGetAllAuditsQuery,
   useGetAuditByIdQuery,
   useDeleteAuditMutation
@@ -40,7 +40,7 @@ const AuditLogs = () => {
   const [sortBy, setSortBy] = useState("createdAt");
   const [sortOrder, setSortOrder] = useState("desc");
   const [dateRange, setDateRange] = useState("all");
-  
+
   const [filters, setFilters] = useState({
     action: "",
     userId: "",
@@ -57,7 +57,7 @@ const AuditLogs = () => {
     const now = new Date();
     let dateFrom = null;
     let dateTo = null;
-    
+
     switch (dateRange) {
       case 'today':
         dateFrom = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -80,7 +80,7 @@ const AuditLogs = () => {
         dateTo = null;
         break;
     }
-    
+
     return { dateFrom, dateTo };
   };
 
@@ -93,7 +93,7 @@ const AuditLogs = () => {
     sortBy,
     order: sortOrder,
   };
-  
+
   // Only add parameters that have values to avoid sending empty strings
   if (filters.action) apiParams.action = filters.action;
   if (filters.userId) apiParams.userId = filters.userId;
@@ -103,34 +103,34 @@ const AuditLogs = () => {
   if (dateTo) apiParams.dateTo = dateTo.toISOString();
   if (searchTerm) apiParams.search = searchTerm;
 
-  const { 
-    data: auditLogsData, 
-    isLoading, 
-    isError, 
-    error, 
-    refetch 
+  const {
+    data: auditLogsData,
+    isLoading,
+    isError,
+    error,
+    refetch
   } = useGetAllAuditsQuery(apiParams);
 
   // Handle different possible API response structures
-  const auditLogs = auditLogsData?.data?.audits || 
-                    auditLogsData?.data?.logs || 
-                    auditLogsData?.audits || 
-                    auditLogsData?.logs || 
-                    [];
-  
-  const totalPages = auditLogsData?.data?.pagination?.pages || 
-                     auditLogsData?.data?.pagination?.totalPages || 
-                     auditLogsData?.data?.totalPages || 
-                     auditLogsData?.pagination?.pages || 
-                     auditLogsData?.pagination?.totalPages ||
-                     auditLogsData?.totalPages ||
-                     Math.ceil((auditLogsData?.data?.pagination?.total || auditLogsData?.data?.total || auditLogs.length) / 20);
-  
-  const totalLogs = auditLogsData?.data?.pagination?.total || 
-                    auditLogsData?.data?.total || 
-                    auditLogsData?.pagination?.total || 
-                    auditLogsData?.total || 
-                    auditLogs.length;
+  const auditLogs = auditLogsData?.data?.audits ||
+    auditLogsData?.data?.logs ||
+    auditLogsData?.audits ||
+    auditLogsData?.logs ||
+    [];
+
+  const totalPages = auditLogsData?.data?.pagination?.pages ||
+    auditLogsData?.data?.pagination?.totalPages ||
+    auditLogsData?.data?.totalPages ||
+    auditLogsData?.pagination?.pages ||
+    auditLogsData?.pagination?.totalPages ||
+    auditLogsData?.totalPages ||
+    Math.ceil((auditLogsData?.data?.pagination?.total || auditLogsData?.data?.total || auditLogs.length) / 20);
+
+  const totalLogs = auditLogsData?.data?.pagination?.total ||
+    auditLogsData?.data?.total ||
+    auditLogsData?.pagination?.total ||
+    auditLogsData?.total ||
+    auditLogs.length;
 
   const handleExportLogs = async () => {
     try {
@@ -149,7 +149,7 @@ const AuditLogs = () => {
           log.userAgent || 'N/A'
         ].join(','))
       ].join('\n');
-      
+
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
@@ -159,7 +159,7 @@ const AuditLogs = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       toast.success('Audit logs exported successfully!');
     } catch (error) {
       console.error("Error exporting logs:", error);
@@ -213,7 +213,7 @@ const AuditLogs = () => {
             <IconX className="w-5 h-5" />
           </button>
         </div>
-        
+
         {selectedLog && (
           <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
             {/* Header Info */}
@@ -280,7 +280,7 @@ const AuditLogs = () => {
                 <div className="text-sm text-gray-900 break-all">{selectedLog.resourceId || 'N/A'}</div>
               </div>
             </div>
-            
+
             {/* Network Info */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -314,7 +314,7 @@ const AuditLogs = () => {
                 Close
               </button>
               <button
-                onClick={() => {/* Export single log */}}
+                onClick={() => {/* Export single log */ }}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
               >
                 Export Log
@@ -343,9 +343,8 @@ const AuditLogs = () => {
           </select>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-2 rounded-md transition-colors text-xs sm:text-sm ${
-              showFilters ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+            className={`flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-2 rounded-md transition-colors text-xs sm:text-sm ${showFilters ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
           >
             <IconFilter className="w-3 h-3 sm:w-4 sm:h-4" />
             <span>Filters</span>
@@ -397,7 +396,7 @@ const AuditLogs = () => {
             <IconFileAnalytics className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 flex-shrink-0" />
           </div>
         </div>
-        
+
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4">
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
@@ -409,7 +408,7 @@ const AuditLogs = () => {
             <IconAlertTriangle className="w-6 h-6 sm:w-8 sm:h-8 text-red-600 flex-shrink-0" />
           </div>
         </div>
-        
+
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4">
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
@@ -421,7 +420,7 @@ const AuditLogs = () => {
             <IconExclamationMark className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600 flex-shrink-0" />
           </div>
         </div>
-        
+
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4">
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
@@ -451,18 +450,17 @@ const AuditLogs = () => {
                 <button
                   key={range.value}
                   onClick={() => setDateRange(range.value)}
-                  className={`px-2 sm:px-3 py-1 rounded-md text-xs sm:text-sm transition-colors whitespace-nowrap ${
-                    dateRange === range.value 
-                      ? 'bg-blue-100 text-blue-700' 
+                  className={`px-2 sm:px-3 py-1 rounded-md text-xs sm:text-sm transition-colors whitespace-nowrap ${dateRange === range.value
+                      ? 'bg-blue-100 text-blue-700'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                    }`}
                 >
                   {range.label}
                 </button>
               ))}
             </div>
           </div>
-          
+
           <button
             onClick={() => refetch()}
             className="flex items-center justify-center space-x-2 px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-sm"
@@ -493,12 +491,12 @@ const AuditLogs = () => {
                 <option value="CREATE_COURSE">Create Course</option>
                 <option value="UPDATE_COURSE">Update Course</option>
                 <option value="DELETE_COURSE">Delete Course</option>
-                <option value="CREATE_BATCH">Create Batch</option>
-                <option value="UPDATE_BATCH">Update Batch</option>
-                <option value="DELETE_BATCH">Delete Batch</option>
+                <option value="CREATE_DEPARTMENT">Create Department</option>
+                <option value="UPDATE_DEPARTMENT">Update Department</option>
+                <option value="DELETE_DEPARTMENT">Delete Department</option>
               </select>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Severity</label>
               <select
@@ -512,7 +510,7 @@ const AuditLogs = () => {
                 <option value="high">High</option>
               </select>
             </div>
-            
+
             <div className="sm:col-span-2 lg:col-span-1">
               <label className="block text-sm font-medium text-gray-700 mb-2">User</label>
               <input
@@ -623,7 +621,7 @@ const AuditLogs = () => {
             )}
           </div>
         </div>
-        
+
         {/* Desktop Table View */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
@@ -771,7 +769,7 @@ const AuditLogs = () => {
             </tbody>
           </table>
         </div>
-        
+
         {/* Pagination */}
         <div className="px-4 sm:px-6 py-4 border-t border-gray-200">
           <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
@@ -802,11 +800,10 @@ const AuditLogs = () => {
                   <button
                     key={page}
                     onClick={() => setCurrentPage(page)}
-                    className={`px-2 sm:px-3 py-1 text-xs sm:text-sm border rounded-md ${
-                      currentPage === page 
-                        ? 'bg-blue-600 text-white border-blue-600' 
+                    className={`px-2 sm:px-3 py-1 text-xs sm:text-sm border rounded-md ${currentPage === page
+                        ? 'bg-blue-600 text-white border-blue-600'
                         : 'border-gray-300 hover:bg-gray-50'
-                    }`}
+                      }`}
                   >
                     {page}
                   </button>

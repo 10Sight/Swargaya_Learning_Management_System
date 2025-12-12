@@ -32,7 +32,7 @@ export async function ensureCertificateIfEligible(studentId, courseId, opts = {}
   const modulesCompleted = totalModules > 0 && completedModules >= totalModules;
 
   // Ensure progress is up-to-date and require 100%
-  try { await progress.calculateProgress(); } catch(_) {}
+  try { await progress.calculateProgress(); } catch (_) { }
   const progressComplete = (progress.progressPercent >= 100);
 
   // Quizzes requirement: all quizzes in course have a PASSED attempt
@@ -57,18 +57,18 @@ export async function ensureCertificateIfEligible(studentId, courseId, opts = {}
     return { created: false, reason: "Eligibility not met" };
   }
 
-  // Determine issuer (instructor of student's batch if available), else fallback to provided or student
+  // Determine issuer (instructor of student's department if available), else fallback to provided or student
   const User = (await import('../models/auth.model.js')).default;
-  const Batch = (await import('../models/batch.model.js')).default;
-  const student = await User.findById(studentId).populate('batch');
+  const Department = (await import('../models/department.model.js')).default;
+  const student = await User.findById(studentId).populate('department');
 
   let issuedBy = opts.issuedByUserId;
   try {
-    if (!issuedBy && student?.batch?._id) {
-      const batch = await Batch.findById(student.batch._id).select('instructor');
-      issuedBy = batch?.instructor || issuedBy;
+    if (!issuedBy && student?.department?._id) {
+      const department = await Department.findById(student.department._id).select('instructor');
+      issuedBy = department?.instructor || issuedBy;
     }
-  } catch (_) {}
+  } catch (_) { }
   if (!issuedBy) issuedBy = studentId; // last resort
 
   // Attach minimal metadata or use default template to enrich
@@ -80,7 +80,7 @@ export async function ensureCertificateIfEligible(studentId, courseId, opts = {}
       const certificateData = {
         studentName: student?.fullName || '',
         courseName: course?.title || '',
-        batchName: student?.batch?.name || 'N/A',
+        departmentName: student?.department?.name || 'N/A',
         instructorName: 'N/A',
         level: progress?.currentLevel || 'L1',
         issueDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
@@ -98,7 +98,7 @@ export async function ensureCertificateIfEligible(studentId, courseId, opts = {}
         styles: template.styles
       };
     }
-  } catch(_) {}
+  } catch (_) { }
 
   const cert = await Certificate.create({
     student: studentId,

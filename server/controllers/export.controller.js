@@ -2,7 +2,7 @@ import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
 import User from '../models/auth.model.js';
 import Course from '../models/course.model.js';
-import Batch from '../models/batch.model.js';
+import Department from '../models/department.model.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 const sendExcel = async (res, filename, columns, rows) => {
@@ -84,18 +84,18 @@ export const exportCourses = asyncHandler(async (req, res) => {
     createdAt: new Date(c.createdAt).toISOString(),
   }));
 
-  const filename = `courses_${new Date().toISOString().slice(0,10)}`;
+  const filename = `courses_${new Date().toISOString().slice(0, 10)}`;
   if (format === 'pdf') return sendPDF(res, filename, 'Courses Export', columns, rows);
   return sendExcel(res, filename, columns, rows);
 });
 
-export const exportBatches = asyncHandler(async (req, res) => {
+export const exportDepartments = asyncHandler(async (req, res) => {
   const { format = 'excel', search = '', status = '' } = req.query;
   const query = { isDeleted: { $ne: true } };
   if (search) query.name = { $regex: search, $options: 'i' };
   if (status) query.status = status;
 
-  const batches = await Batch.find(query)
+  const departments = await Department.find(query)
     .populate('course', 'title')
     .populate('instructor', 'fullName email')
     .select('name course instructor status startDate endDate capacity students createdAt')
@@ -103,7 +103,7 @@ export const exportBatches = asyncHandler(async (req, res) => {
     .lean();
 
   const columns = [
-    { header: 'Batch Name', key: 'name', width: 28 },
+    { header: 'Department Name', key: 'name', width: 28 },
     { header: 'Course', key: 'courseTitle', width: 28 },
     { header: 'Instructor', key: 'instructorName', width: 24 },
     { header: 'Status', key: 'status', width: 12 },
@@ -114,25 +114,25 @@ export const exportBatches = asyncHandler(async (req, res) => {
     { header: 'Created At', key: 'createdAt', width: 22 },
   ];
 
-  const rows = batches.map(b => ({
+  const rows = departments.map(b => ({
     name: b.name,
     courseTitle: b.course?.title || '',
     instructorName: b.instructor?.fullName || '',
     status: b.status,
-    startDate: b.startDate ? new Date(b.startDate).toISOString().slice(0,10) : '',
-    endDate: b.endDate ? new Date(b.endDate).toISOString().slice(0,10) : '',
+    startDate: b.startDate ? new Date(b.startDate).toISOString().slice(0, 10) : '',
+    endDate: b.endDate ? new Date(b.endDate).toISOString().slice(0, 10) : '',
     capacity: b.capacity || 0,
     studentCount: b.students?.length || 0,
     createdAt: new Date(b.createdAt).toISOString(),
   }));
 
-  const filename = `batches_${new Date().toISOString().slice(0,10)}`;
-  if (format === 'pdf') return sendPDF(res, filename, 'Batches Export', columns, rows);
+  const filename = `departments_${new Date().toISOString().slice(0, 10)}`;
+  if (format === 'pdf') return sendPDF(res, filename, 'Departments Export', columns, rows);
   return sendExcel(res, filename, columns, rows);
 });
 
 export const exportStudents = asyncHandler(async (req, res) => {
-  const { format = 'excel', search = '', status = '', batchId = '' } = req.query;
+  const { format = 'excel', search = '', status = '', departmentId = '' } = req.query;
 
   const query = { role: 'STUDENT', isDeleted: { $ne: true } };
   if (search) query.$or = [
@@ -143,8 +143,8 @@ export const exportStudents = asyncHandler(async (req, res) => {
   if (status) query.status = status;
 
   if (req.user.role === 'INSTRUCTOR') {
-    const instructor = await User.findById(req.user._id).select('batches');
-    const allowed = instructor?.batches || [];
+    const instructor = await User.findById(req.user._id).select('departments');
+    const allowed = instructor?.departments || [];
     if (!allowed.length) {
       const columns = [
         { header: 'Full Name', key: 'fullName', width: 26 },
@@ -152,21 +152,21 @@ export const exportStudents = asyncHandler(async (req, res) => {
         { header: 'Email', key: 'email', width: 28 },
         { header: 'Phone', key: 'phoneNumber', width: 16 },
         { header: 'Status', key: 'status', width: 12 },
-        { header: 'Batch', key: 'batchName', width: 22 },
+        { header: 'Department', key: 'departmentName', width: 22 },
         { header: 'Created At', key: 'createdAt', width: 22 },
       ];
-      const filename = `students_${new Date().toISOString().slice(0,10)}`;
+      const filename = `students_${new Date().toISOString().slice(0, 10)}`;
       if (format === 'pdf') return sendPDF(res, filename, 'Students Export', columns, []);
       return sendExcel(res, filename, columns, []);
     }
-    query.batch = { $in: allowed };
-  } else if (batchId) {
-    query.batch = batchId;
+    query.department = { $in: allowed };
+  } else if (departmentId) {
+    query.department = departmentId;
   }
 
   const students = await User.find(query)
-    .select('fullName userName email phoneNumber status batch createdAt')
-    .populate('batch', 'name')
+    .select('fullName userName email phoneNumber status department createdAt')
+    .populate('department', 'name')
     .sort({ createdAt: -1 })
     .lean();
 
@@ -176,7 +176,7 @@ export const exportStudents = asyncHandler(async (req, res) => {
     { header: 'Email', key: 'email', width: 28 },
     { header: 'Phone', key: 'phoneNumber', width: 16 },
     { header: 'Status', key: 'status', width: 12 },
-    { header: 'Batch', key: 'batchName', width: 22 },
+    { header: 'Department', key: 'departmentName', width: 22 },
     { header: 'Created At', key: 'createdAt', width: 22 },
   ];
 
@@ -186,11 +186,11 @@ export const exportStudents = asyncHandler(async (req, res) => {
     email: s.email,
     phoneNumber: s.phoneNumber,
     status: s.status,
-    batchName: s.batch?.name || '',
+    departmentName: s.department?.name || '',
     createdAt: new Date(s.createdAt).toISOString(),
   }));
 
-  const filename = `students_${new Date().toISOString().slice(0,10)}`;
+  const filename = `students_${new Date().toISOString().slice(0, 10)}`;
   if (format === 'pdf') return sendPDF(res, filename, 'Students Export', columns, rows);
   return sendExcel(res, filename, columns, rows);
 });

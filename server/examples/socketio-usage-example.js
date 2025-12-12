@@ -10,21 +10,21 @@ import socketIOService from '../utils/socketIO.js';
 // Example 1: In your Quiz Controller
 export const startQuiz = async (req, res) => {
     try {
-        const { batchId, quizId } = req.body;
-        
+        const { departmentId, quizId } = req.body;
+
         // Your existing quiz logic...
         const quiz = await Quiz.findById(quizId);
-        
+
         if (quiz) {
-            // Notify all students in the batch about the quiz start
-            socketIOService.notifyQuizStarted(batchId, {
+            // Notify all students in the department about the quiz start
+            socketIOService.notifyQuizStarted(departmentId, {
                 title: quiz.title,
                 id: quiz._id,
                 duration: quiz.duration,
                 startTime: new Date()
             });
         }
-        
+
         res.json({ success: true, quiz });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -34,21 +34,21 @@ export const startQuiz = async (req, res) => {
 // Example 2: In your Assignment Controller
 export const createAssignment = async (req, res) => {
     try {
-        const { batchId, ...assignmentData } = req.body;
-        
+        const { departmentId, ...assignmentData } = req.body;
+
         // Your existing assignment creation logic...
         const assignment = await Assignment.create(assignmentData);
-        
+
         if (assignment) {
-            // Notify all students in the batch about the new assignment
-            socketIOService.notifyAssignmentCreated(batchId, {
+            // Notify all students in the department about the new assignment
+            socketIOService.notifyAssignmentCreated(departmentId, {
                 title: assignment.title,
                 id: assignment._id,
                 dueDate: assignment.dueDate,
                 description: assignment.description
             });
         }
-        
+
         res.json({ success: true, assignment });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -58,19 +58,19 @@ export const createAssignment = async (req, res) => {
 // Example 3: In your Submission Controller
 export const submitAssignment = async (req, res) => {
     try {
-        const { batchId, assignmentId } = req.body;
+        const { departmentId, assignmentId } = req.body;
         const studentId = req.user._id;
-        
+
         // Your existing submission logic...
         const submission = await Submission.create({
             assignmentId,
             studentId,
             ...req.body
         });
-        
+
         if (submission) {
-            // Notify instructors in the batch about the submission
-            socketIOService.notifyAssignmentSubmitted(batchId, {
+            // Notify instructors in the department about the submission
+            socketIOService.notifyAssignmentSubmitted(departmentId, {
                 assignmentId,
                 studentName: req.user.name,
                 studentId,
@@ -78,7 +78,7 @@ export const submitAssignment = async (req, res) => {
                 submittedAt: submission.createdAt
             });
         }
-        
+
         res.json({ success: true, submission });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -89,10 +89,10 @@ export const submitAssignment = async (req, res) => {
 export const updateGrade = async (req, res) => {
     try {
         const { studentId, score, itemName } = req.body;
-        
+
         // Your existing grading logic...
         const grade = await Grade.findByIdAndUpdate(req.params.id, { score }, { new: true });
-        
+
         if (grade) {
             // Notify the specific student about their grade update
             socketIOService.notifyGradeUpdated(studentId, {
@@ -102,7 +102,7 @@ export const updateGrade = async (req, res) => {
                 gradedAt: new Date()
             });
         }
-        
+
         res.json({ success: true, grade });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -112,16 +112,16 @@ export const updateGrade = async (req, res) => {
 // Example 5: General notification function
 export const sendAnnouncement = async (req, res) => {
     try {
-        const { batchId, message, title } = req.body;
-        
-        // Send announcement to all users in the batch
-        socketIOService.notifyNewAnnouncement(batchId, {
+        const { departmentId, message, title } = req.body;
+
+        // Send announcement to all users in the department
+        socketIOService.notifyNewAnnouncement(departmentId, {
             message,
             title,
             from: req.user.name,
             createdAt: new Date()
         });
-        
+
         res.json({ success: true, message: 'Announcement sent' });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -132,18 +132,18 @@ export const sendAnnouncement = async (req, res) => {
 export const authenticateAndJoinRooms = async (req, res, next) => {
     try {
         // Your existing authentication logic...
-        
+
         // Get socket.io instance from app
         const io = req.app.get('socketio');
-        
+
         // Example: Force a user to join specific rooms programmatically
         // This would typically be done in the socket connection handler
         // but can also be triggered from API endpoints
-        
-        if (req.user && req.user.batches) {
+
+        if (req.user && req.user.departments) {
             // This is just an example - actual room joining happens in socket connection
         }
-        
+
         next();
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -155,13 +155,13 @@ export const authenticateAndJoinRooms = async (req, res, next) => {
  * 
  * Option 1: Using the singleton service (recommended)
  * import socketIOService from '../utils/socketIO.js';
- * socketIOService.notifyQuizStarted(batchId, quizData);
+ * socketIOService.notifyQuizStarted(departmentId, quizData);
  * 
  * Option 2: Getting io instance from Express app
  * const io = req.app.get('socketio');
- * io.to(`batch-${batchId}`).emit('quiz-started', data);
+ * io.to(`department-${departmentId}`).emit('quiz-started', data);
  * 
  * Option 3: Using the service instance from app
  * const socketService = req.app.get('socketIOService');
- * socketService.notifyQuizStarted(batchId, quizData);
+ * socketService.notifyQuizStarted(departmentId, quizData);
  */

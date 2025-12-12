@@ -1,24 +1,24 @@
 import cron from 'node-cron';
-import Batch from '../models/batch.model.js';
+import Department from '../models/department.model.js';
 import User from '../models/auth.model.js';
 import logger from '../logger/winston.logger.js';
 
-class BatchStatusScheduler {
+class DepartmentStatusScheduler {
   constructor() {
     this.jobs = new Map();
     this.isInitialized = false;
   }
 
-  // Initialize the batch status scheduler
+  // Initialize the department status scheduler
   init() {
     if (this.isInitialized) {
       return;
     }
 
     try {
-      // Schedule batch status updates to run daily at midnight
+      // Schedule department status updates to run daily at midnight
       const statusUpdateJob = cron.schedule('0 0 * * *', async () => {
-        await this.updateBatchStatuses();
+        await this.updateDepartmentStatuses();
       }, {
         scheduled: false,
         timezone: "UTC"
@@ -33,7 +33,7 @@ class BatchStatusScheduler {
       this.isInitialized = true;
 
     } catch (error) {
-      // Failed to initialize batch status scheduler
+      // Failed to initialize department status scheduler
     }
   }
 
@@ -44,47 +44,47 @@ class BatchStatusScheduler {
         job.stop();
         job.destroy();
       });
-      
+
       this.jobs.clear();
       this.isInitialized = false;
     } catch (error) {
-      // Error stopping batch status scheduler
+      // Error stopping department status scheduler
     }
   }
 
-  // Manual batch status update trigger
-  async updateBatchStatuses() {
+  // Manual department status update trigger
+  async updateDepartmentStatuses() {
     const startTime = Date.now();
-    
+
     try {
-      const result = await Batch.updateAllStatuses();
-      
+      const result = await Department.updateAllStatuses();
+
       const duration = Date.now() - startTime;
-      
+
       // Send notifications for status changes
       if (result.results.length > 0) {
         await this.sendStatusChangeNotifications(result.results);
       }
-      
+
       return result;
-      
+
     } catch (error) {
-      logger.error('Batch status update error:', error);
+      logger.error('Department status update error:', error);
       return { totalProcessed: 0, updatedCount: 0, results: [], error: error.message };
     }
   }
 
-  // Send notifications for batch status changes
+  // Send notifications for department status changes
   async sendStatusChangeNotifications(statusChanges) {
     try {
       for (const change of statusChanges) {
-        // Get batch with populated students and instructor
-        const batch = await Batch.findById(change.batchId)
+        // Get department with populated students and instructor
+        const department = await Department.findById(change.departmentId)
           .populate('students', 'fullName email')
           .populate('instructor', 'fullName email')
           .populate('course', 'title');
 
-        if (!batch) continue;
+        if (!department) continue;
 
         // Prepare notification message based on new status
         let notificationMessage = '';
@@ -92,129 +92,129 @@ class BatchStatusScheduler {
 
         switch (change.newStatus) {
           case 'ONGOING':
-            notificationMessage = `Your batch "${batch.name}" has started today! You can now access the course materials.`;
+            notificationMessage = `Your department "${department.name}" has started today! You can now access the course materials.`;
             notificationType = 'SUCCESS';
             break;
           case 'COMPLETED':
-            notificationMessage = `Your batch "${batch.name}" has been completed. Thank you for your participation!`;
+            notificationMessage = `Your department "${department.name}" has been completed. Thank you for your participation!`;
             notificationType = 'INFO';
             break;
           case 'CANCELLED':
-            notificationMessage = `Important: Your batch "${batch.name}" has been cancelled. Please contact support for more information.`;
+            notificationMessage = `Important: Your department "${department.name}" has been cancelled. Please contact support for more information.`;
             notificationType = 'ERROR';
             break;
           default:
             continue; // Skip other status changes
         }
 
-        // Create notifications array for all users in the batch
+        // Create notifications array for all users in the department
         const notifications = [];
-        
+
         // Add students to notifications
-        batch.students.forEach(student => {
+        department.students.forEach(student => {
           notifications.push({
             recipient: student._id,
             type: notificationType,
-            title: `Batch Status Update: ${batch.name}`,
+            title: `Department Status Update: ${department.name}`,
             message: notificationMessage,
             metadata: {
-              batchId: batch._id,
-              batchName: batch.name,
+              departmentId: department._id,
+              departmentName: department.name,
               oldStatus: change.oldStatus,
               newStatus: change.newStatus,
-              courseTitle: batch.course?.title || 'N/A'
+              courseTitle: department.course?.title || 'N/A'
             }
           });
         });
 
         // Add instructor to notifications if exists
-        if (batch.instructor) {
+        if (department.instructor) {
           notifications.push({
-            recipient: batch.instructor._id,
+            recipient: department.instructor._id,
             type: notificationType,
-            title: `Batch Status Update: ${batch.name}`,
-            message: notificationMessage.replace('Your batch', 'Your assigned batch'),
+            title: `Department Status Update: ${department.name}`,
+            message: notificationMessage.replace('Your department', 'Your assigned department'),
             metadata: {
-              batchId: batch._id,
-              batchName: batch.name,
+              departmentId: department._id,
+              departmentName: department.name,
               oldStatus: change.oldStatus,
               newStatus: change.newStatus,
-              courseTitle: batch.course?.title || 'N/A'
+              courseTitle: department.course?.title || 'N/A'
             }
           });
         }
 
         // Here you would typically save these notifications to a notifications collection
         // or send them via email/push notifications
-        
+
         // Log the notification for tracking
-        logger.info(`Batch status change notification sent`, {
-          batchId: batch._id,
-          batchName: batch.name,
+        logger.info(`Department status change notification sent`, {
+          departmentId: department._id,
+          departmentName: department.name,
           statusChange: `${change.oldStatus} → ${change.newStatus}`,
           recipientCount: notifications.length
         });
       }
     } catch (error) {
-      logger.error('Batch status notification error:', error);
+      logger.error('Department status notification error:', error);
     }
   }
 
-  // Get specific batch status notifications for a user
-  async getBatchNotificationsForUser(userId, batchId = null) {
+  // Get specific department status notifications for a user
+  async getDepartmentNotificationsForUser(userId, departmentId = null) {
     try {
-      const user = await User.findById(userId).populate('batch');
+      const user = await User.findById(userId).populate('department');
       if (!user) {
         return [];
       }
 
-      // Get user's batch or use provided batchId
-      const targetBatchId = batchId || user.batch?._id;
-      if (!targetBatchId) {
+      // Get user's department or use provided departmentId
+      const targetDepartmentId = departmentId || user.department?._id;
+      if (!targetDepartmentId) {
         return [];
       }
 
-      const batch = await Batch.findById(targetBatchId).populate('course', 'title');
-      if (!batch) {
+      const department = await Department.findById(targetDepartmentId).populate('course', 'title');
+      if (!department) {
         return [];
       }
 
       const notifications = [];
 
-      // Check if batch is cancelled and user should be notified
-      if (batch.status === 'CANCELLED') {
+      // Check if department is cancelled and user should be notified
+      if (department.status === 'CANCELLED') {
         notifications.push({
           type: 'ERROR',
-          title: `Batch Cancelled: ${batch.name}`,
-          message: `Your batch "${batch.name}" has been cancelled. Please contact support for further assistance.`,
+          title: `Department Cancelled: ${department.name}`,
+          message: `Your department "${department.name}" has been cancelled. Please contact support for further assistance.`,
           metadata: {
-            batchId: batch._id,
-            batchName: batch.name,
-            status: batch.status,
-            courseTitle: batch.course?.title || 'N/A'
+            departmentId: department._id,
+            departmentName: department.name,
+            status: department.status,
+            courseTitle: department.course?.title || 'N/A'
           },
           urgent: true
         });
       }
 
-      // Check if batch just started (ongoing status)
-      if (batch.status === 'ONGOING' && batch.startDate) {
+      // Check if department just started (ongoing status)
+      if (department.status === 'ONGOING' && department.startDate) {
         const today = new Date();
-        const startDate = new Date(batch.startDate);
+        const startDate = new Date(department.startDate);
         const daysDiff = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
-        
-        // Show notification if batch started within the last 3 days
+
+        // Show notification if department started within the last 3 days
         if (daysDiff <= 3) {
           notifications.push({
             type: 'SUCCESS',
-            title: `Batch Started: ${batch.name}`,
-            message: `Your batch "${batch.name}" has started! You can now access the course materials and begin learning.`,
+            title: `Department Started: ${department.name}`,
+            message: `Your department "${department.name}" has started! You can now access the course materials and begin learning.`,
             metadata: {
-              batchId: batch._id,
-              batchName: batch.name,
-              status: batch.status,
-              courseTitle: batch.course?.title || 'N/A',
-              startDate: batch.startDate
+              departmentId: department._id,
+              departmentName: department.name,
+              status: department.status,
+              courseTitle: department.course?.title || 'N/A',
+              startDate: department.startDate
             },
             urgent: false
           });
@@ -247,6 +247,6 @@ class BatchStatusScheduler {
 }
 
 // Create singleton instance
-const batchStatusScheduler = new BatchStatusScheduler();
+const departmentStatusScheduler = new DepartmentStatusScheduler();
 
-export default batchStatusScheduler;
+export default departmentStatusScheduler;

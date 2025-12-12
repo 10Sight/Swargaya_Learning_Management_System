@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { 
+import {
   useGetCertificateTemplatesQuery,
   useDeleteCertificateTemplateMutation,
   useSetDefaultCertificateTemplateMutation,
@@ -16,35 +16,35 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table'
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
-import { 
-  Award, 
-  Plus, 
-  MoreHorizontal, 
-  Eye, 
-  Edit, 
-  Trash2, 
-  Star, 
+import {
+  Award,
+  Plus,
+  MoreHorizontal,
+  Eye,
+  Edit,
+  Trash2,
+  Star,
   Copy,
-  FileText 
+  FileText
 } from 'lucide-react'
 import { toast } from 'sonner'
 
 const CertificateTemplates = () => {
-  
+
   const navigate = useNavigate()
   const [selectedTemplate, setSelectedTemplate] = useState(null)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -59,13 +59,13 @@ const CertificateTemplates = () => {
   })
 
   // API calls with proper error handling
-  const { 
-    data: response, 
-    isLoading, 
-    error, 
-    refetch 
+  const {
+    data: response,
+    isLoading,
+    error,
+    refetch
   } = useGetCertificateTemplatesQuery()
-  
+
   const [deleteTemplate, { isLoading: isDeleting }] = useDeleteCertificateTemplateMutation()
   const [setDefaultTemplate, { isLoading: isSettingDefault }] = useSetDefaultCertificateTemplateMutation()
   const [createTemplate, { isLoading: isCreating }] = useCreateCertificateTemplateMutation()
@@ -93,7 +93,7 @@ const CertificateTemplates = () => {
             <h2 class="student-name">{{studentName}}</h2>
             <p class="completion-text">has successfully completed the course</p>
             <h3 class="course-name">{{courseName}}</h3>
-            <p class="batch-info">in batch <strong>{{batchName}}</strong></p>
+            <p class="department-info">in department <strong>{{departmentName}}</strong></p>
             <p class="level-info">achieving level <strong>{{level}}</strong></p>
             <p class="grade-info">with grade <strong>{{grade}}</strong></p>
         </div>
@@ -166,7 +166,7 @@ const CertificateTemplates = () => {
     text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
 }
 
-.batch-info, .level-info, .grade-info {
+.department-info, .level-info, .grade-info {
     font-size: 18px;
     margin: 15px 0;
 }
@@ -213,7 +213,7 @@ const CertificateTemplates = () => {
     right: 0;
 }
 
-@media print {
+.media print {
     .certificate {
         border: 8px solid #2c3e50;
         box-shadow: none;
@@ -238,12 +238,12 @@ const CertificateTemplates = () => {
       if (result.success) {
         toast.success('Template created successfully')
         setShowCreateDialog(false)
-        setFormData({ 
-          name: '', 
-          description: '', 
-          template: '', 
-          styles: '', 
-          isDefault: false 
+        setFormData({
+          name: '',
+          description: '',
+          template: '',
+          styles: '',
+          isDefault: false
         })
         refetch() // Refresh the list
       } else {
@@ -296,8 +296,8 @@ const CertificateTemplates = () => {
 
       const sampleData = {
         studentName: 'John Doe',
-        courseName: 'Advanced Web Development', 
-        batchName: 'Spring 2024',
+        courseName: 'Advanced Web Development',
+        departmentName: 'Spring 2024',
         instructorName: 'Dr. Sarah Johnson',
         level: 'L3',
         grade: 'A+',
@@ -418,9 +418,9 @@ const CertificateTemplates = () => {
             <span className="text-sm">
               Error: {error?.data?.message || error?.message || 'Unknown error occurred'}
             </span>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={refetch}
               className="mt-2 w-fit"
             >
@@ -445,7 +445,7 @@ const CertificateTemplates = () => {
             Manage certificate templates for course completion certificates
           </p>
         </div>
-        
+
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
             <Button onClick={resetForm}>
@@ -486,7 +486,7 @@ const CertificateTemplates = () => {
                   className="h-64 font-mono text-sm"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Use placeholders: {'{{studentName}}'}, {'{{courseName}}'}, {'{{batchName}}'}, {'{{instructorName}}'}, {'{{level}}'}, {'{{grade}}'}, {'{{issueDate}}'}
+                  Use placeholders: {'{{studentName}}'}, {'{{courseName}}'}, {'{{departmentName}}'}, {'{{instructorName}}'}, {'{{level}}'}, {'{{grade}}'}, {'{{issueDate}}'}
                 </p>
               </div>
               <div>
@@ -512,15 +512,15 @@ const CertificateTemplates = () => {
                 </Label>
               </div>
               <div className="flex justify-end space-x-2 pt-4">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => setShowCreateDialog(false)}
                   disabled={isCreating}
                 >
                   Cancel
                 </Button>
-                <Button 
-                  onClick={handleCreateTemplate} 
+                <Button
+                  onClick={handleCreateTemplate}
                   disabled={isCreating || !formData.name.trim() || !formData.template.trim()}
                 >
                   {isCreating ? 'Creating...' : 'Create Template'}
@@ -594,7 +594,7 @@ const CertificateTemplates = () => {
                             Duplicate
                           </DropdownMenuItem>
                           {!template.isDefault && (
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={() => handleSetDefault(template._id)}
                               disabled={isSettingDefault}
                             >
@@ -602,7 +602,7 @@ const CertificateTemplates = () => {
                               {isSettingDefault ? 'Setting...' : 'Set as Default'}
                             </DropdownMenuItem>
                           )}
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={() => handleDeleteTemplate(template._id, template.name)}
                             className="text-destructive focus:text-destructive"
                             disabled={template.isDefault || isDeleting}
@@ -640,7 +640,7 @@ const CertificateTemplates = () => {
             <DialogTitle>Certificate Preview</DialogTitle>
           </DialogHeader>
           <div className="flex-1 border rounded-lg bg-white overflow-hidden" style={{ minHeight: '500px', height: '70vh' }}>
-            <iframe 
+            <iframe
               srcDoc={previewHtml}
               className="w-full h-full border-0"
               sandbox="allow-same-origin allow-scripts"

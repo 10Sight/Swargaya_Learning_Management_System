@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
-import { useGetInstructorAssignedBatchesQuery } from '@/Redux/AllApi/InstructorApi'
-import { 
+import { useGetInstructorAssignedDepartmentsQuery } from '@/Redux/AllApi/InstructorApi'
+import {
   useCheckCertificateEligibilityQuery,
   useIssueCertificateWithTemplateMutation,
   useGenerateCertificatePreviewMutation
@@ -17,20 +17,20 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table'
-import { 
-  Award, 
-  Users, 
-  CheckCircle, 
-  XCircle, 
-  Eye, 
+import {
+  Award,
+  Users,
+  CheckCircle,
+  XCircle,
+  Eye,
   FileText,
   AlertTriangle,
   GraduationCap
@@ -38,7 +38,7 @@ import {
 import { toast } from 'sonner'
 
 const CertificateIssuance = () => {
-  const [selectedBatchId, setSelectedBatchId] = useState('')
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState('')
   const [selectedStudent, setSelectedStudent] = useState(null)
   const [showEligibilityDialog, setShowEligibilityDialog] = useState(false)
   const [showPreviewDialog, setShowPreviewDialog] = useState(false)
@@ -47,26 +47,26 @@ const CertificateIssuance = () => {
   const [grade, setGrade] = useState('')
   const [previewHtml, setPreviewHtml] = useState('')
 
-  const { data: batchesData } = useGetInstructorAssignedBatchesQuery({ limit: 100 })
+  const { data: departmentsData } = useGetInstructorAssignedDepartmentsQuery({ limit: 100 })
   const { data: templatesData } = useGetCertificateTemplatesQuery()
-  
-  const batches = batchesData?.data?.batches || []
-  const templates = templatesData?.data || []
-  
-  const selectedBatch = batches.find(b => b._id === selectedBatchId)
-  const students = selectedBatch?.students || []
 
-  const { 
-    data: eligibilityData, 
+  const departments = departmentsData?.data?.departments || []
+  const templates = templatesData?.data || []
+
+  const selectedDepartment = departments.find(b => b._id === selectedDepartmentId)
+  const students = selectedDepartment?.students || []
+
+  const {
+    data: eligibilityData,
     isLoading: checkingEligibility,
-    refetch: recheckEligibility 
+    refetch: recheckEligibility
   } = useCheckCertificateEligibilityQuery(
-    { 
-      studentId: selectedStudent?._id, 
-      courseId: selectedBatch?.course?._id 
+    {
+      studentId: selectedStudent?._id,
+      courseId: selectedDepartment?.course?._id
     },
-    { 
-      skip: !selectedStudent?._id || !selectedBatch?.course?._id 
+    {
+      skip: !selectedStudent?._id || !selectedDepartment?.course?._id
     }
   )
 
@@ -80,12 +80,12 @@ const CertificateIssuance = () => {
   }
 
   const handleGeneratePreview = async () => {
-    if (!selectedStudent || !selectedBatch) return
+    if (!selectedStudent || !selectedDepartment) return
 
     try {
       const response = await generatePreview({
         studentId: selectedStudent._id,
-        courseId: selectedBatch.course._id,
+        courseId: selectedDepartment.course._id,
         templateId: selectedTemplateId || undefined
       }).unwrap()
 
@@ -132,16 +132,16 @@ const CertificateIssuance = () => {
   }
 
   const handleIssueCertificate = async () => {
-    if (!selectedStudent || !selectedBatch) return
+    if (!selectedStudent || !selectedDepartment) return
 
     try {
       await issueCertificate({
         studentId: selectedStudent._id,
-        courseId: selectedBatch.course._id,
+        courseId: selectedDepartment.course._id,
         grade: grade || 'PASS',
         templateId: selectedTemplateId || undefined
       }).unwrap()
-      
+
       toast.success('Certificate issued successfully!')
       setShowIssueDialog(false)
       setSelectedStudent(null)
@@ -191,21 +191,21 @@ const CertificateIssuance = () => {
         </AlertDescription>
       </Alert>
 
-      {/* Batch Selection */}
+      {/* Department Selection */}
       <Card>
         <CardHeader>
-          <CardTitle>Select Batch</CardTitle>
+          <CardTitle>Select Department</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="w-full max-w-md">
-            <Select value={selectedBatchId} onValueChange={setSelectedBatchId}>
+            <Select value={selectedDepartmentId} onValueChange={setSelectedDepartmentId}>
               <SelectTrigger>
-                <SelectValue placeholder="Choose a batch to view students" />
+                <SelectValue placeholder="Choose a department to view students" />
               </SelectTrigger>
               <SelectContent>
-                {batches.map((batch) => (
-                  <SelectItem key={batch._id} value={batch._id}>
-                    {batch.name} - {batch.course?.title}
+                {departments.map((department) => (
+                  <SelectItem key={department._id} value={department._id}>
+                    {department.name} - {department.course?.title}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -214,10 +214,10 @@ const CertificateIssuance = () => {
         </CardContent>
       </Card>
 
-      {selectedBatchId && (
+      {selectedDepartmentId && (
         <Card>
           <CardHeader>
-            <CardTitle>Students - {selectedBatch?.name}</CardTitle>
+            <CardTitle>Students - {selectedDepartment?.name}</CardTitle>
           </CardHeader>
           <CardContent>
             {students.length > 0 ? (
@@ -244,8 +244,8 @@ const CertificateIssuance = () => {
                       <TableCell>
                         <div className="flex items-center space-x-2">
                           <div className="w-full bg-muted rounded-full h-2">
-                            <div 
-                              className="bg-primary h-2 rounded-full" 
+                            <div
+                              className="bg-primary h-2 rounded-full"
                               style={{ width: `${student.progress || 0}%` }}
                             />
                           </div>
@@ -278,7 +278,7 @@ const CertificateIssuance = () => {
                 <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-medium mb-2">No Students Found</h3>
                 <p className="text-muted-foreground">
-                  This batch doesn't have any enrolled students yet.
+                  This department doesn't have any enrolled students yet.
                 </p>
               </div>
             )}
@@ -294,7 +294,7 @@ const CertificateIssuance = () => {
               Certificate Eligibility - {selectedStudent?.fullName}
             </DialogTitle>
           </DialogHeader>
-          
+
           {checkingEligibility ? (
             <div className="space-y-4">
               <Skeleton className="h-20 w-full" />
@@ -408,15 +408,15 @@ const CertificateIssuance = () => {
 
               {/* Actions */}
               <div className="flex justify-end space-x-2">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => setShowEligibilityDialog(false)}
                 >
                   Close
                 </Button>
                 {eligibilityData?.data?.eligible && (
                   <>
-                    <Button 
+                    <Button
                       variant="outline"
                       onClick={handleGeneratePreview}
                       disabled={generatingPreview}
@@ -424,7 +424,7 @@ const CertificateIssuance = () => {
                       <Eye className="h-4 w-4 mr-2" />
                       {generatingPreview ? 'Generating...' : 'Preview'}
                     </Button>
-                    <Button 
+                    <Button
                       onClick={() => setShowIssueDialog(true)}
                       className="bg-green-600 hover:bg-green-700"
                     >
@@ -468,7 +468,7 @@ const CertificateIssuance = () => {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div>
               <Label htmlFor="grade">Grade (Optional)</Label>
               <Input
@@ -499,7 +499,7 @@ const CertificateIssuance = () => {
             <DialogTitle>Certificate Preview</DialogTitle>
           </DialogHeader>
           <div className="flex-1 border rounded-lg bg-white overflow-hidden" style={{ minHeight: '500px', height: '70vh' }}>
-            <iframe 
+            <iframe
               srcDoc={previewHtml}
               className="w-full h-full border-0"
               sandbox="allow-same-origin allow-scripts"

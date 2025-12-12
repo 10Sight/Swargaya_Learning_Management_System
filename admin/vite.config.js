@@ -32,7 +32,7 @@ export default defineConfig({
             './src/pages/Admin/Course.jsx',
             './src/pages/Admin/Instructor.jsx',
             './src/pages/Admin/Students.jsx',
-            './src/pages/Admin/Batches.jsx',
+            './src/pages/Admin/Departments.jsx',
             './src/pages/Admin/Analytics.jsx'
           ],
           instructor: [
@@ -42,8 +42,8 @@ export default defineConfig({
           ],
           student: [
             './src/pages/Student/Dashboard.jsx',
-            './src/pages/Student/Batch.jsx',
-            './src/pages/Student/BatchCourse.jsx'
+            './src/pages/Student/Department.jsx',
+            './src/pages/Student/DepartmentCourse.jsx'
           ]
         },
         // Optimize chunk naming
@@ -94,4 +94,3 @@ export default defineConfig({
     ]
   }
 });
-  

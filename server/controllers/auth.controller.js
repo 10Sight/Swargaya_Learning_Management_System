@@ -9,7 +9,7 @@ import { accessTokenOptions, refreshTokenOptions } from "../utils/constant.js";
 import sendMail from "../utils/mail.util.js";
 import ENV from "../configs/env.config.js";
 import logAudit from "../utils/auditLogger.js";
-import { AvailableUserRoles } from "../constants.js";
+import { AvailableUserRoles, AvailableUnits } from "../constants.js";
 import validator from "validator";
 import { generateWelcomeEmail } from "../utils/emailTemplates.js";
 
@@ -29,9 +29,9 @@ export const generateAuthTokens = async (userId) => {
 
 // Register
 export const register = asyncHandler(async (req, res) => {
-  let { fullName, userName, email, phoneNumber, role = "STUDENT", password } = req.body;
+  let { fullName, userName, email, phoneNumber, role = "STUDENT", password, unit } = req.body;
 
-  if (!fullName || !userName || !email || !phoneNumber || !password) {
+  if (!fullName || !userName || !email || !phoneNumber || !password || !unit) {
     throw new ApiError("All fields are required", 400);
   }
 
@@ -61,7 +61,12 @@ export const register = asyncHandler(async (req, res) => {
     throw new ApiError("Invalid role provided", 400);
   }
 
-  const user = await User.create({ fullName, userName, email, phoneNumber, password, role });
+  // Validate unit
+  if (!AvailableUnits.includes(unit)) {
+    throw new ApiError("Invalid unit provided", 400);
+  }
+
+  const user = await User.create({ fullName, userName, email, phoneNumber, password, role, unit });
 
   const createdUser = await User.findById(user._id).select(
     "-password -refreshToken -resetPasswordToken -resetPasswordExpiry"

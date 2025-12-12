@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { IconSearch, IconX } from "@tabler/icons-react";
+import useTranslate from "@/hooks/useTranslate";
 
 const SearchInput = ({
-  placeholder = "Search...",
+  placeholder,
   value,
   onChange,
   debounceTime = 500,
   className = "",
   ...props
 }) => {
+  const { t } = useTranslate();
+  const effectivePlaceholder = placeholder || t("ui.searchPlaceholder");
   const [searchTerm, setSearchTerm] = useState(value || "");
 
   // Debounce the search term
@@ -35,7 +38,7 @@ const SearchInput = ({
     <div className={`relative ${className}`}>
       <IconSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
       <Input
-        placeholder={placeholder}
+        placeholder={effectivePlaceholder}
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
         className="pl-10 pr-10"

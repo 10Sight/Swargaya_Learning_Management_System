@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Trash2, RotateCcw } from "lucide-react";
+import useTranslate from "@/hooks/useTranslate";
 
 const ConfirmationModal = ({
   isOpen,
@@ -16,11 +17,12 @@ const ConfirmationModal = ({
   onConfirm,
   title,
   description,
-  confirmText = "Confirm",
-  cancelText = "Cancel",
+  confirmText,
+  cancelText,
   type = "warning", // warning, danger, info
   isLoading = false,
 }) => {
+  const { t } = useTranslate();
   const getIcon = () => {
     switch (type) {
       case "danger":
@@ -50,11 +52,11 @@ const ConfirmationModal = ({
           <div className="flex items-center gap-3 mb-2">
             {getIcon()}
             <DialogTitle className="text-lg font-semibold">
-              {title}
+            {title || t('dialog.confirmTitle')}
             </DialogTitle>
           </div>
           <DialogDescription className="text-gray-600">
-            {description}
+            {description || t('dialog.confirmMessage')}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="flex gap-2 pt-4">
@@ -64,7 +66,7 @@ const ConfirmationModal = ({
             disabled={isLoading}
             className="min-w-[80px]"
           >
-            {cancelText}
+            {cancelText || t('dialog.cancel')}
           </Button>
           <Button
             onClick={onConfirm}
@@ -74,10 +76,10 @@ const ConfirmationModal = ({
             {isLoading ? (
               <div className="flex items-center gap-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                <span>Loading...</span>
+                <span>{t('ui.loading')}</span>
               </div>
             ) : (
-              confirmText
+              confirmText || t('dialog.confirm')
             )}
           </Button>
         </DialogFooter>

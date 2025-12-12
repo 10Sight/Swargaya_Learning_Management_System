@@ -10,44 +10,44 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 export const createSubmission = asyncHandler(async (req, res) => {
     const { assignmentId, fileUrl } = req.body;
 
-    if(!mongoose.Types.ObjectId.isValid(assignmentId)) {
+    if (!mongoose.Types.ObjectId.isValid(assignmentId)) {
         throw new ApiError("Invalid assignment ID", 400);
     }
 
     const assignment = await Assignment.findById(assignmentId).populate('course').populate('module');
-    if(!assignment) throw new ApiError("Assignment not found", 404);
-    
+    if (!assignment) throw new ApiError("Assignment not found", 404);
+
     // Validate access permissions for assignments
-    if(assignment.module && assignment.type === "MODULE") {
+    if (assignment.module && assignment.type === "MODULE") {
         // Module assignment - check module completion
         const { checkModuleAccessForAssessments } = await import("../utils/moduleCompletion.js");
         const accessCheck = await checkModuleAccessForAssessments(req.user._id, assignment.course._id, assignment.module._id);
-        if(!accessCheck.hasAccess) {
+        if (!accessCheck.hasAccess) {
             throw new ApiError(accessCheck.reason || "Access denied. Complete all lessons in the module first.", 403);
         }
-    } else if(assignment.type === "COURSE") {
+    } else if (assignment.type === "COURSE") {
         // Course assignment - check if all modules are completed
         const Progress = (await import("../models/progress.model.js")).default;
         const Course = (await import("../models/course.model.js")).default;
-        
+
         const course = await Course.findById(assignment.course._id).populate('modules');
-        if(!course) {
+        if (!course) {
             throw new ApiError("Course not found", 404);
         }
 
-        const progress = await Progress.findOne({ 
-            student: req.user._id, 
-            course: assignment.course._id 
+        const progress = await Progress.findOne({
+            student: req.user._id,
+            course: assignment.course._id
         });
 
-        if(!progress) {
+        if (!progress) {
             throw new ApiError("No progress found. Complete all modules first.", 403);
         }
 
         const totalModules = course.modules?.length || 0;
         const completedModules = progress.completedModules?.length || 0;
-        
-        if(completedModules < totalModules) {
+
+        if (completedModules < totalModules) {
             throw new ApiError(`Complete all ${totalModules} modules to access this course assignment. Currently completed: ${completedModules}`, 403);
         }
     }
@@ -57,7 +57,7 @@ export const createSubmission = asyncHandler(async (req, res) => {
         student: req.user._id,
     });
 
-    if(existing) {
+    if (existing) {
         throw new ApiError("Submission already exists. Please resubmit", 400);
     }
 
@@ -77,14 +77,14 @@ export const createSubmission = asyncHandler(async (req, res) => {
 export const resubmitAssignment = asyncHandler(async (req, res) => {
     const { submissionId, fileUrl } = req.body;
 
-    if(!mongoose.Types.ObjectId.isValid(submissionId)) {
+    if (!mongoose.Types.ObjectId.isValid(submissionId)) {
         throw new ApiError("Invalid submission ID", 400);
     }
 
     const submission = await Submission.findById(submissionId);
-    if(!submission) throw new ApiError("Submission not found", 404);
+    if (!submission) throw new ApiError("Submission not found", 404);
 
-    if(submission.student.toString() !== req.user._id.toString()) {
+    if (submission.student.toString() !== req.user._id.toString()) {
         throw new ApiError("Not authorized to resubmit this assignment", 403);
     }
 
@@ -100,7 +100,7 @@ export const resubmitAssignment = asyncHandler(async (req, res) => {
 export const getSubmissionByAssignment = asyncHandler(async (req, res) => {
     const { assignmentId } = req.params;
 
-    if(!mongoose.Types.ObjectId.isValid(assignmentId)) {
+    if (!mongoose.Types.ObjectId.isValid(assignmentId)) {
         throw new ApiError("Invalid assignment ID", 400);
     }
 
@@ -123,7 +123,7 @@ export const gradeSubmission = asyncHandler(async (req, res) => {
     const { submissionId } = req.params;
     const { grade, feedback } = req.body;
 
-    if(!mongoose.Types.ObjectId.isValid(submissionId)) {
+    if (!mongoose.Types.ObjectId.isValid(submissionId)) {
         throw new ApiError("Invalid submission ID", 400);
     }
 
@@ -135,17 +135,17 @@ export const gradeSubmission = asyncHandler(async (req, res) => {
                 select: 'title'
             }
         })
-        .populate('student', 'fullName email batch');
-    if(!submission) throw new ApiError("Submission not found", 404);
+        .populate('student', 'fullName email department');
+    if (!submission) throw new ApiError("Submission not found", 404);
 
     // Verify instructor authorization - check if instructor teaches this course
     if (req.user.role === 'INSTRUCTOR') {
-        const Batch = (await import("../models/batch.model.js")).default;
-        const batch = await Batch.findById(submission.student.batch);
-        
-        if (!batch || 
-            batch.instructor.toString() !== req.user._id.toString() || 
-            batch.course.toString() !== submission.assignment.course._id.toString()) {
+        const Department = (await import("../models/department.model.js")).default;
+        const department = await Department.findById(submission.student.department);
+
+        if (!department ||
+            department.instructor.toString() !== req.user._id.toString() ||
+            department.course.toString() !== submission.assignment.course._id.toString()) {
             throw new ApiError("You are not authorized to grade this submission", 403);
         }
     }
@@ -163,7 +163,7 @@ export const gradeSubmission = asyncHandler(async (req, res) => {
     submission.status = grade !== null && grade !== undefined ? 'GRADED' : submission.status;
     submission.gradedAt = grade !== null && grade !== undefined ? new Date() : submission.gradedAt;
     submission.gradedBy = grade !== null && grade !== undefined ? req.user._id : submission.gradedBy;
-    
+
     await submission.save();
 
     const populatedSubmission = await Submission.findById(submission._id)
@@ -179,7 +179,7 @@ export const getStudentSubmissions = asyncHandler(async (req, res) => {
     const { studentId } = req.params;
 
     let resolvedStudentId = studentId;
-    if(!mongoose.Types.ObjectId.isValid(studentId)) {
+    if (!mongoose.Types.ObjectId.isValid(studentId)) {
         const User = (await import("../models/auth.model.js")).default;
         const handle = String(studentId).toLowerCase();
         const u = await User.findOne({ $or: [{ slug: handle }, { userName: handle }] }).select('_id');

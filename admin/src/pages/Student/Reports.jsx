@@ -5,9 +5,9 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { 
-  FileText, 
-  GraduationCap, 
+import {
+  FileText,
+  GraduationCap,
   Calendar,
   CheckCircle,
   Award,
@@ -25,7 +25,7 @@ const Reports = () => {
 
   // Filter courses with accessible reports (server computes reportAvailable based on modules + quizzes)
   const accessibleReports = progressData.filter(progress => progress.reportAvailable);
-  
+
   // Separate other completed courses that are not yet report-ready
   const otherCompletedCourses = progressData.filter(progress => {
     const isComplete = progress.progressPercent === 100;
@@ -110,7 +110,7 @@ const Reports = () => {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="flex items-center flex-wrap gap-3 sm:gap-4 p-4 sm:p-6">
             <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg mr-4">
@@ -143,7 +143,7 @@ const Reports = () => {
             <Award className="h-5 w-5 text-yellow-500" />
             <h2 className="text-xl sm:text-2xl font-semibold text-gray-900">Available Course Reports</h2>
           </div>
-          
+
           <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {accessibleReports.map((progress) => (
               <Card key={progress._id} className="hover:shadow-lg transition-shadow border border-green-200">
@@ -155,7 +155,7 @@ const Reports = () => {
                       </CardTitle>
                       <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground mb-2">
                         <Users className="h-4 w-4" />
-                        <span>Batch: {progress.batch?.name || 'N/A'}</span>
+                        <span>Department: {progress.department?.name || 'N/A'}</span>
                       </div>
                     </div>
                     <Badge variant="secondary" className="bg-green-100 text-green-800">
@@ -164,21 +164,21 @@ const Reports = () => {
                     </Badge>
                   </div>
                 </CardHeader>
-                
+
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <div className="flex justify-between text-xs sm:text-sm gap-2">
                       <span className="text-muted-foreground">Progress:</span>
                       <span className="font-medium text-green-600">{progress.progressPercent}%</span>
                     </div>
-                    
+
                     <div className="flex justify-between text-xs sm:text-sm gap-2">
                       <span className="text-muted-foreground">Level:</span>
                       <Badge variant="outline" className="text-xs">
                         {progress.currentLevel}
                       </Badge>
                     </div>
-                    
+
                     <div className="flex justify-between text-xs sm:text-sm gap-2">
                       <span className="text-muted-foreground">Completed:</span>
                       <span className="font-medium">
@@ -186,8 +186,8 @@ const Reports = () => {
                       </span>
                     </div>
                   </div>
-                  
-                  <Button 
+
+                  <Button
                     onClick={() => handleViewReport(progress.course._id)}
                     className="w-full"
                     variant="outline"
@@ -212,7 +212,7 @@ const Reports = () => {
             <p className="text-muted-foreground mb-4">
               Complete a course, finish all modules, and pass all required quizzes to generate your first report and certificate!
             </p>
-            <Button 
+            <Button
               onClick={() => navigate('/student/course')}
               variant="outline"
             >
@@ -230,7 +230,7 @@ const Reports = () => {
             <TrendingUp className="h-5 w-5 text-blue-500" />
             <h2 className="text-2xl font-semibold text-gray-900">Courses In Progress</h2>
           </div>
-          
+
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {progressData
               .filter(progress => !progress.isCompleted || progress.progressPercent < 100)
@@ -242,10 +242,10 @@ const Reports = () => {
                     </CardTitle>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
                       <Users className="h-4 w-4" />
-                      <span>Batch: {progress.batch?.name || 'N/A'}</span>
+                      <span>Department: {progress.department?.name || 'N/A'}</span>
                     </div>
                   </CardHeader>
-                  
+
                   <CardContent>
                     <div className="space-y-2">
                       <div className="flex justify-between text-xs sm:text-sm gap-2">
@@ -253,7 +253,7 @@ const Reports = () => {
                         <span className="font-medium">{progress.progressPercent}%</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
+                        <div
                           className="bg-blue-600 h-2 rounded-full transition-all"
                           style={{ width: `${progress.progressPercent}%` }}
                         />

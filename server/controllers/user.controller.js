@@ -7,9 +7,9 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import cloudinary from "../configs/cloudinary.config.js";
-import { AvailableUserRoles } from "../constants.js";
+import { AvailableUserRoles, AvailableUnits } from "../constants.js";
 import logAudit from "../utils/auditLogger.js";
-import Batch from "../models/batch.model.js";
+import Department from "../models/department.model.js";
 import sendMail from "../utils/mail.util.js";
 import { generateWelcomeEmail } from "../utils/emailTemplates.js";
 import ENV from "../configs/env.config.js";
@@ -35,11 +35,11 @@ export const getAllUsers = asyncHandler(async (req, res) => {
   const search = req.query.search ? escapeRegex(req.query.search) : "";
   const searchQuery = search
     ? {
-        $or: [
-          { fullName: { $regex: search, $options: "i" } },
-          { email: { $regex: search, $options: "i" } },
-        ],
-      }
+      $or: [
+        { fullName: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+      ],
+    }
     : {};
 
   // Role filter
@@ -48,14 +48,20 @@ export const getAllUsers = asyncHandler(async (req, res) => {
     searchQuery.role = role;
   }
 
+  // Unit filter
+  const unit = req.query.unit;
+  if (unit && AvailableUnits.includes(unit)) {
+    searchQuery.unit = unit;
+  }
+
   // Safe fields only
-  const safeFields = "fullName userName slug email phoneNumber role status batch createdAt avatar";
+  const safeFields = "fullName userName slug email phoneNumber role status department unit createdAt avatar";
 
   const totalUsers = await User.countDocuments(searchQuery);
 
   const users = await User.find(searchQuery)
     .select(safeFields)
-    .populate("batch", "name")
+    .populate("department", "name")
     .skip(skip)
     .limit(limit)
     .sort(sortOptions)
@@ -84,7 +90,7 @@ export const getUserById = asyncHandler(async (req, res) => {
   if (mongoose.Types.ObjectId.isValid(rawId)) {
     user = await User.findById(rawId)
       .select("-password -refreshToken")
-      .populate("batch", "name")
+      .populate("department", "name")
       .lean();
   }
 
@@ -93,7 +99,7 @@ export const getUserById = asyncHandler(async (req, res) => {
     const handle = rawId.toLowerCase();
     user = await User.findOne({ $or: [{ slug: handle }, { userName: handle }] })
       .select("-password -refreshToken")
-      .populate("batch", "name")
+      .populate("department", "name")
       .lean();
   }
 
@@ -135,7 +141,7 @@ export const updateProfile = asyncHandler(async (req, res) => {
     email: user.email,
     phoneNumber: user.phoneNumber,
     role: user.role,
-    batch: user.batch,
+    department: user.department,
     createdAt: user.createdAt,
   };
 
@@ -184,9 +190,9 @@ export const updateAvatar = asyncHandler(async (req, res) => {
 
 // Create User (Admin/Super Admin only)
 export const createUser = asyncHandler(async (req, res) => {
-  const { fullName, userName, email, phoneNumber, role = "STUDENT", password } = req.body;
+  const { fullName, userName, email, phoneNumber, role = "STUDENT", password, unit } = req.body;
 
-  if (!fullName || !userName || !email || !phoneNumber || !password) {
+  if (!fullName || !userName || !email || !phoneNumber || !password || !unit) {
     throw new ApiError("All fields are required", 400);
   }
 
@@ -210,6 +216,11 @@ export const createUser = asyncHandler(async (req, res) => {
     throw new ApiError("Invalid role", 400);
   }
 
+  // Unit validation
+  if (!AvailableUnits.includes(unit)) {
+    throw new ApiError("Invalid unit", 400);
+  }
+
   // Store plain text password for email before hashing
   const plainTextPassword = password;
 
@@ -220,12 +231,13 @@ export const createUser = asyncHandler(async (req, res) => {
     phoneNumber,
     role,
     password,
+    unit,
     status: "PRESENT"
   });
 
   const safeUser = await User.findById(user._id)
     .select("-password -refreshToken")
-    .populate("batch", "name");
+    .populate("department", "name");
 
   await logAudit(req.user._id, "CREATE_USER", { userId: user._id, role });
 
@@ -269,7 +281,7 @@ export const updateUser = asyncHandler(async (req, res) => {
     throw new ApiError("Invalid User ID!", 400);
   }
 
-  const { fullName, userName, email, phoneNumber, role, status } = req.body;
+  const { fullName, userName, email, phoneNumber, role, status, unit } = req.body;
   const user = await User.findById(req.params.id);
 
   if (!user) throw new ApiError("User not found", 404);
@@ -277,9 +289,9 @@ export const updateUser = asyncHandler(async (req, res) => {
   // Update fields if provided
   if (fullName) user.fullName = fullName;
   if (userName) {
-    const existingUser = await User.findOne({ 
-      userName: userName.toLowerCase(), 
-      _id: { $ne: user._id } 
+    const existingUser = await User.findOne({
+      userName: userName.toLowerCase(),
+      _id: { $ne: user._id }
     });
     if (existingUser) throw new ApiError("Username already in use", 400);
     user.userName = userName.toLowerCase();
@@ -288,9 +300,9 @@ export const updateUser = asyncHandler(async (req, res) => {
     if (!validator.isEmail(email)) {
       throw new ApiError("Invalid email address", 400);
     }
-    const existingUser = await User.findOne({ 
-      email: email.toLowerCase(), 
-      _id: { $ne: user._id } 
+    const existingUser = await User.findOne({
+      email: email.toLowerCase(),
+      _id: { $ne: user._id }
     });
     if (existingUser) throw new ApiError("Email already in use", 400);
     user.email = email.toLowerCase();
@@ -307,12 +319,18 @@ export const updateUser = asyncHandler(async (req, res) => {
   if (status && ["PRESENT", "ON_LEAVE", "ABSENT"].includes(status)) {
     user.status = status;
   }
+  if (unit) {
+    if (!AvailableUnits.includes(unit)) {
+      throw new ApiError("Invalid unit", 400);
+    }
+    user.unit = unit;
+  }
 
   await user.save();
 
   const safeUser = await User.findById(user._id)
     .select("-password -refreshToken")
-    .populate("batch", "name");
+    .populate("department", "name");
 
   await logAudit(req.user._id, "UPDATE_USER", { userId: user._id });
 
@@ -338,13 +356,13 @@ export const getAllInstructors = asyncHandler(async (req, res) => {
   const escapeRegex = (str) =>
     str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const search = req.query.search ? escapeRegex(req.query.search) : "";
-  
+
   // Base query - only instructors and not deleted
   const searchQuery = {
     role: "INSTRUCTOR",
     isDeleted: { $ne: true }
   };
-  
+
   // Add search conditions
   if (search) {
     searchQuery.$or = [
@@ -360,13 +378,13 @@ export const getAllInstructors = asyncHandler(async (req, res) => {
   }
 
   // Safe fields only
-  const safeFields = "fullName userName slug email phoneNumber role status batch createdAt avatar lastLogin";
+  const safeFields = "fullName userName slug email phoneNumber role status department unit createdAt avatar lastLogin";
 
   const totalInstructors = await User.countDocuments(searchQuery);
 
   const instructors = await User.find(searchQuery)
     .select(safeFields)
-    .populate("batch", "name instructor createdAt") 
+    .populate("department", "name instructor createdAt")
     .skip(skip)
     .limit(limit)
     .sort(sortOptions);
@@ -408,13 +426,13 @@ export const getAllStudents = asyncHandler(async (req, res) => {
   const escapeRegex = (str) =>
     str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const search = req.query.search ? escapeRegex(req.query.search) : "";
-  
+
   // Base query - only students and not deleted
   const searchQuery = {
     role: "STUDENT",
     isDeleted: { $ne: true }
   };
-  
+
   // Add search conditions
   if (search) {
     searchQuery.$or = [
@@ -429,31 +447,36 @@ export const getAllStudents = asyncHandler(async (req, res) => {
     searchQuery.status = req.query.status;
   }
 
-  // Batch filter (for instructors to see their students)
-  if (req.query.batchId && mongoose.Types.ObjectId.isValid(req.query.batchId)) {
-    searchQuery.batch = req.query.batchId;
+  // Unit filter
+  if (req.query.unit && AvailableUnits.includes(req.query.unit)) {
+    searchQuery.unit = req.query.unit;
   }
 
-  // If the requesting user is an instructor, limit to their batches
+  // Department filter (for instructors to see their students)
+  if (req.query.departmentId && mongoose.Types.ObjectId.isValid(req.query.departmentId)) {
+    searchQuery.department = req.query.departmentId;
+  }
+
+  // If the requesting user is an instructor, limit to their departments
   if (req.user.role === "INSTRUCTOR") {
-    const instructor = await User.findById(req.user._id).select("batches");
-    if (instructor && instructor.batches && instructor.batches.length > 0) {
-      searchQuery.batch = { $in: instructor.batches };
+    const instructor = await User.findById(req.user._id).select("departments");
+    if (instructor && instructor.departments && instructor.departments.length > 0) {
+      searchQuery.department = { $in: instructor.departments };
     } else {
-      // If instructor has no batches assigned, return empty result
-      searchQuery.batch = null;
+      // If instructor has no departments assigned, return empty result
+      searchQuery.department = null;
     }
   }
 
   // Safe fields only
-  const safeFields = "fullName userName slug email phoneNumber role status batch createdAt avatar lastLogin enrolledCourses";
+  const safeFields = "fullName userName slug email phoneNumber role status department unit createdAt avatar lastLogin enrolledCourses";
 
   const totalStudents = await User.countDocuments(searchQuery);
 
   const students = await User.find(searchQuery)
     .select(safeFields)
-    .populate("batch", "name instructor createdAt")
-    .populate("enrolledCourses", "title status createdAt") 
+    .populate("department", "name instructor createdAt")
+    .populate("enrolledCourses", "title status createdAt")
     .skip(skip)
     .limit(limit)
     .sort(sortOptions);
@@ -498,97 +521,97 @@ export const deleteUser = asyncHandler(async (req, res) => {
     await logAudit(req.user._id, "DELETE_USER_SOFT", { userId: user._id });
   }
 
-    res.json(new ApiResponse(200, null, "User deleted successfully"));
+  res.json(new ApiResponse(200, null, "User deleted successfully"));
 });
 
 // Super admin functions for managing soft-deleted users
 export const getSoftDeletedUsers = asyncHandler(async (req, res) => {
-    // Pagination
-    const page = Math.max(parseInt(req.query.page) || 1, 1);
-    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
-    const skip = (page - 1) * limit;
+  // Pagination
+  const page = Math.max(parseInt(req.query.page) || 1, 1);
+  const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+  const skip = (page - 1) * limit;
 
-    // Sorting
-    const allowedSortFields = ["updatedAt", "fullName", "email", "role"];
-    const sortBy = allowedSortFields.includes(req.query.sortBy)
-        ? req.query.sortBy
-        : "updatedAt";
-    const order = req.query.order === "asc" ? 1 : -1;
-    const sortOptions = { [sortBy]: order };
+  // Sorting
+  const allowedSortFields = ["updatedAt", "fullName", "email", "role"];
+  const sortBy = allowedSortFields.includes(req.query.sortBy)
+    ? req.query.sortBy
+    : "updatedAt";
+  const order = req.query.order === "asc" ? 1 : -1;
+  const sortOptions = { [sortBy]: order };
 
-    // Search by name/email
-    const escapeRegex = (str) =>
-        str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const search = req.query.search ? escapeRegex(req.query.search) : "";
-    
-    // Base query - only soft-deleted users
-    const searchQuery = {
-        isDeleted: true
-    };
-    
-    // Add search conditions
-    if (search) {
-        searchQuery.$or = [
-            { fullName: { $regex: search, $options: "i" } },
-            { email: { $regex: search, $options: "i" } },
-            { userName: { $regex: search, $options: "i" } },
-        ];
-    }
+  // Search by name/email
+  const escapeRegex = (str) =>
+    str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const search = req.query.search ? escapeRegex(req.query.search) : "";
 
-    // Role filter
-    const role = req.query.role;
-    if (role && Object.values(AvailableUserRoles).includes(role)) {
-        searchQuery.role = role;
-    }
+  // Base query - only soft-deleted users
+  const searchQuery = {
+    isDeleted: true
+  };
 
-    // Safe fields only
-    const safeFields = "fullName userName email phoneNumber role status batch createdAt updatedAt avatar";
+  // Add search conditions
+  if (search) {
+    searchQuery.$or = [
+      { fullName: { $regex: search, $options: "i" } },
+      { email: { $regex: search, $options: "i" } },
+      { userName: { $regex: search, $options: "i" } },
+    ];
+  }
 
-    const totalUsers = await User.countDocuments(searchQuery);
+  // Role filter
+  const role = req.query.role;
+  if (role && Object.values(AvailableUserRoles).includes(role)) {
+    searchQuery.role = role;
+  }
 
-    const users = await User.find(searchQuery)
-        .select(safeFields)
-        .populate("batch", "name")
-        .skip(skip)
-        .limit(limit)
-        .sort(sortOptions)
-        .lean(); // Use lean for better performance
+  // Safe fields only
+  const safeFields = "fullName userName email phoneNumber role status department unit createdAt updatedAt avatar";
 
-    res.json(
-        new ApiResponse(
-            200,
-            {
-                users,
-                totalUsers,
-                totalPages: Math.ceil(totalUsers / limit),
-                currentPage: page,
-                limit,
-            },
-            "Soft-deleted users fetched successfully"
-        )
-    );
+  const totalUsers = await User.countDocuments(searchQuery);
+
+  const users = await User.find(searchQuery)
+    .select(safeFields)
+    .populate("department", "name")
+    .skip(skip)
+    .limit(limit)
+    .sort(sortOptions)
+    .lean(); // Use lean for better performance
+
+  res.json(
+    new ApiResponse(
+      200,
+      {
+        users,
+        totalUsers,
+        totalPages: Math.ceil(totalUsers / limit),
+        currentPage: page,
+        limit,
+      },
+      "Soft-deleted users fetched successfully"
+    )
+  );
 });
 
 export const restoreUser = asyncHandler(async (req, res) => {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-        throw new ApiError("Invalid User ID!", 400);
-    }
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    throw new ApiError("Invalid User ID!", 400);
+  }
 
-    const user = await User.findById(req.params.id);
-    if (!user) throw new ApiError("User not found", 404);
-    
-    if (!user.isDeleted) {
-        throw new ApiError("User is not deleted", 400);
-    }
+  const user = await User.findById(req.params.id);
+  if (!user) throw new ApiError("User not found", 404);
 
-    user.isDeleted = false;
-    await user.save();
+  if (!user.isDeleted) {
+    throw new ApiError("User is not deleted", 400);
+  }
 
-    const safeUser = await User.findById(user._id)
-        .select("-password -refreshToken")
-        .populate("batch", "name");
+  user.isDeleted = false;
+  await user.save();
 
-    await logAudit(req.user._id, "RESTORE_USER", { userId: user._id });
+  const safeUser = await User.findById(user._id)
+    .select("-password -refreshToken")
+    .populate("department", "name");
 
-    res.json(new ApiResponse(200, safeUser, "User restored successfully"));
+  await logAudit(req.user._id, "RESTORE_USER", { userId: user._id });
+
+  res.json(new ApiResponse(200, safeUser, "User restored successfully"));
 });

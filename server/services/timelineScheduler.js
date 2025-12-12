@@ -55,7 +55,7 @@ class TimelineScheduler {
         job.stop();
         job.destroy();
       });
-      
+
       this.jobs.clear();
       this.isInitialized = false;
     } catch (error) {
@@ -84,7 +84,7 @@ class TimelineScheduler {
           errors.push({
             timelineId: timeline._id,
             moduleName: timeline.module?.title,
-            batchName: timeline.batch?.name,
+            departmentName: timeline.department?.name,
             error: error.message
           });
         }
@@ -106,16 +106,16 @@ class TimelineScheduler {
     const now = new Date();
     let demotions = 0;
 
-    // Get students in this batch
-    const batchStudents = await User.find({
-      _id: { $in: timeline.batch.students },
+    // Get students in this department
+    const departmentStudents = await User.find({
+      _id: { $in: timeline.department.students },
       role: 'STUDENT'
     }).select('_id');
 
     // Get progress records for these students
     const progressRecords = await Progress.find({
       course: timeline.course._id,
-      student: { $in: batchStudents.map(s => s._id) }
+      student: { $in: departmentStudents.map(s => s._id) }
     });
 
     for (const progress of progressRecords) {
@@ -140,10 +140,10 @@ class TimelineScheduler {
 
           if (currentModuleIndex > 0) {
             const previousModule = sortedModules[currentModuleIndex - 1];
-            
+
             // Demote student
             const demoted = await progress.demoteToModule(previousModule._id);
-            
+
             if (demoted) {
               // Record timeline violation
               progress.addTimelineViolation(
@@ -199,7 +199,7 @@ class TimelineScheduler {
           errors.push({
             timelineId: timeline._id,
             moduleName: timeline.module?.title,
-            batchName: timeline.batch?.name,
+            departmentName: timeline.department?.name,
             error: error.message
           });
         }
@@ -227,18 +227,18 @@ class TimelineScheduler {
     for (const warningHours of timeline.warningPeriods) {
       if (hoursUntilDeadline <= warningHours && hoursUntilDeadline > (warningHours - 1)) {
         const warningType = warningHours === 168 ? '7_DAYS' :
-                          warningHours === 72 ? '3_DAYS' :
-                          warningHours === 24 ? '1_DAY' : 'CUSTOM';
+          warningHours === 72 ? '3_DAYS' :
+            warningHours === 24 ? '1_DAY' : 'CUSTOM';
 
         // Get students who need this warning
-        const batchStudents = await User.find({
-          _id: { $in: timeline.batch.students },
+        const departmentStudents = await User.find({
+          _id: { $in: timeline.department.students },
           role: 'STUDENT'
         }).select('_id');
 
         const progressRecords = await Progress.find({
           course: timeline.course._id,
-          student: { $in: batchStudents.map(s => s._id) }
+          student: { $in: departmentStudents.map(s => s._id) }
         });
 
         for (const progress of progressRecords) {
@@ -250,13 +250,13 @@ class TimelineScheduler {
           if (!hasCompleted && timeline.shouldSendWarning(progress.student, warningType)) {
             // Send warning
             const warningMessage = `Reminder: You have ${Math.ceil(hoursUntilDeadline)} hours left to complete "${timeline.module.title}" before the deadline.`;
-            
+
             progress.addTimelineNotification(
               'WARNING',
               timeline.module._id,
               warningMessage
             );
-            
+
             await progress.save();
 
             // Record warning sent

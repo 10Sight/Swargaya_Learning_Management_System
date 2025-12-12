@@ -11,6 +11,7 @@ import {
   CircularProgress,
   Alert
 } from '@mui/material';
+import useTranslate from "@/hooks/useTranslate";
 import {
   AlertTriangle,
   Info,
@@ -56,10 +57,10 @@ const ConfirmDialog = ({
   open,
   onClose,
   onConfirm,
-  title = 'Confirm Action',
-  message = 'Are you sure you want to proceed?',
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
+  title,
+  message,
+  confirmText,
+  cancelText,
   severity = 'warning',
   loading = false,
   disabled = false,
@@ -67,6 +68,7 @@ const ConfirmDialog = ({
   fullWidth = true
 }) => {
   const theme = useTheme();
+  const { t } = useTranslate();
   const severityConfig = getSeverityConfig(severity);
 
   const handleConfirm = () => {
@@ -105,14 +107,14 @@ const ConfirmDialog = ({
             {severityConfig.icon}
           </Avatar>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            {title}
+            {title || t('dialog.confirmTitle')}
           </Typography>
         </Box>
       </DialogTitle>
 
       <DialogContent>
         <Typography variant="body1" sx={{ color: theme.palette.text.primary }}>
-          {typeof message === 'string' ? message : <Box>{message}</Box>}
+          {typeof message === 'string' ? (message || t('dialog.confirmMessage')) : <Box>{message}</Box>}
         </Typography>
       </DialogContent>
 
@@ -122,7 +124,7 @@ const ConfirmDialog = ({
           disabled={loading}
           sx={{ textTransform: 'none' }}
         >
-          {cancelText}
+          {cancelText || t('dialog.cancel')}
         </Button>
         <Button
           variant="contained"
@@ -138,7 +140,7 @@ const ConfirmDialog = ({
           }}
           startIcon={loading && <CircularProgress size={16} />}
         >
-          {loading ? 'Processing...' : confirmText}
+          {loading ? t('dialog.processing') : (confirmText || t('dialog.confirm'))}
         </Button>
       </DialogActions>
     </Dialog>

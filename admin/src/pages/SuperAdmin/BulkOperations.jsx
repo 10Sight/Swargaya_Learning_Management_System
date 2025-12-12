@@ -35,6 +35,7 @@ import {
   useBulkGenerateCertificatesMutation,
   useGetAllUsersQuery
 } from "@/Redux/AllApi/SuperAdminApi";
+import { useGetAllDepartmentsQuery } from "@/Redux/AllApi/DepartmentApi";
 
 // shadcn/ui components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,14 +57,14 @@ const BulkOperations = () => {
   const [activeTab, setActiveTab] = useState("enrollment");
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [selectedCourses, setSelectedCourses] = useState([]);
-  const [selectedBatch, setSelectedBatch] = useState("");
+  const [selectedDepartment, setSelectedDepartment] = useState("");
   const [operationInProgress, setOperationInProgress] = useState(false);
-  
+
   // Form states
   const [enrollmentForm, setEnrollmentForm] = useState({
     userIds: [],
     courseIds: [],
-    batchId: "",
+    departmentId: "",
     enrollmentType: "course",
     notify: true
   });
@@ -72,7 +73,7 @@ const BulkOperations = () => {
     recipientType: "users",
     userIds: [],
     roles: [],
-    batchIds: [],
+    departmentIds: [],
     subject: "",
     content: "",
     template: null,
@@ -83,7 +84,7 @@ const BulkOperations = () => {
     userIds: [],
     courseId: "",
     templateId: "",
-    batchId: "",
+    departmentId: "",
     criteria: "completion"
   });
 
@@ -98,11 +99,12 @@ const BulkOperations = () => {
   });
 
   // API hooks
-  const { data: operationHistory, isLoading: historyLoading, refetch: refetchHistory } = 
+  const { data: operationHistory, isLoading: historyLoading, refetch: refetchHistory } =
     useGetBulkOperationHistoryQuery(historyFilters);
-  
+
   const { data: usersData } = useGetAllUsersQuery({ limit: 1000 });
-  
+  const { data: departmentsData } = useGetAllDepartmentsQuery({ limit: 1000 });
+
   const [bulkEnrollUsers, { isLoading: enrollLoading }] = useBulkEnrollUsersMutation();
   const [bulkSendEmails, { isLoading: emailLoading }] = useBulkSendEmailsMutation();
   const [bulkGenerateCertificates, { isLoading: certificateLoading }] = useBulkGenerateCertificatesMutation();
@@ -114,30 +116,30 @@ const BulkOperations = () => {
       return;
     }
 
-    if (!enrollmentForm.courseIds.length && !enrollmentForm.batchId) {
-      toast.error("Please select courses or a batch");
+    if (!enrollmentForm.courseIds.length && !enrollmentForm.departmentId) {
+      toast.error("Please select courses or a department");
       return;
     }
 
     try {
       setOperationInProgress(true);
       const result = await bulkEnrollUsers(enrollmentForm).unwrap();
-      
+
       toast.success(
         `Enrollment completed! ${result.summary.successful} successful, ${result.summary.failed} failed, ${result.summary.skipped} skipped`
       );
-      
+
       // Reset form
       setEnrollmentForm({
         userIds: [],
         courseIds: [],
-        batchId: "",
+        departmentId: "",
         enrollmentType: "course",
         notify: true
       });
-      
+
       refetchHistory();
-      
+
     } catch (error) {
       toast.error(error?.data?.message || "Failed to perform bulk enrollment");
     } finally {
@@ -160,25 +162,25 @@ const BulkOperations = () => {
     try {
       setOperationInProgress(true);
       const result = await bulkSendEmails(emailForm).unwrap();
-      
+
       toast.success(
         `Emails sent! ${result.summary.successful} successful, ${result.summary.failed} failed. Success rate: ${result.summary.successRate}%`
       );
-      
+
       // Reset form
       setEmailForm({
         recipientType: "users",
         userIds: [],
         roles: [],
-        batchIds: [],
+        departmentIds: [],
         subject: "",
         content: "",
         template: null,
         templateData: {}
       });
-      
+
       refetchHistory();
-      
+
     } catch (error) {
       toast.error(error?.data?.message || "Failed to send bulk emails");
     } finally {
@@ -196,22 +198,22 @@ const BulkOperations = () => {
     try {
       setOperationInProgress(true);
       const result = await bulkGenerateCertificates(certificateForm).unwrap();
-      
+
       toast.success(
         `Certificates generated! ${result.summary.successful} successful, ${result.summary.failed} failed, ${result.summary.skipped} skipped`
       );
-      
+
       // Reset form
       setCertificateForm({
         userIds: [],
         courseId: "",
         templateId: "",
-        batchId: "",
+        departmentId: "",
         criteria: "completion"
       });
-      
+
       refetchHistory();
-      
+
     } catch (error) {
       toast.error(error?.data?.message || "Failed to generate certificates");
     } finally {
@@ -291,15 +293,14 @@ const BulkOperations = () => {
               filteredUsers.map(user => (
                 <div
                   key={user._id}
-                  className={`px-3 py-2 cursor-pointer hover:bg-gray-100 flex items-center gap-2 ${
-                    selectedUserIds.includes(user._id) ? 'bg-blue-50 text-blue-700' : ''
-                  }`}
+                  className={`px-3 py-2 cursor-pointer hover:bg-gray-100 flex items-center gap-2 ${selectedUserIds.includes(user._id) ? 'bg-blue-50 text-blue-700' : ''
+                    }`}
                   onClick={() => handleUserToggle(user._id)}
                 >
                   <input
                     type="checkbox"
                     checked={selectedUserIds.includes(user._id)}
-                    onChange={() => {}}
+                    onChange={() => { }}
                     className="rounded"
                   />
                   <div className="flex-1">
@@ -328,7 +329,7 @@ const BulkOperations = () => {
             Bulk User Enrollment
           </CardTitle>
           <CardDescription>
-            Enroll multiple users into courses or batches simultaneously
+            Enroll multiple users into courses or departments simultaneously
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -356,7 +357,7 @@ const BulkOperations = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="course">Individual Courses</SelectItem>
-                  <SelectItem value="batch">Batch Enrollment</SelectItem>
+                  <SelectItem value="department">Department Enrollment</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -395,22 +396,27 @@ const BulkOperations = () => {
             </div>
           )}
 
-          {enrollmentForm.enrollmentType === 'batch' && (
+          {enrollmentForm.enrollmentType === 'department' && (
             <div>
               <Label className="text-sm font-medium mb-2">
-                Select Batch *
+                Select Department *
               </Label>
               <Select
-                value={enrollmentForm.batchId}
-                onValueChange={(value) => setEnrollmentForm(prev => ({ ...prev, batchId: value }))}
+                value={enrollmentForm.departmentId}
+                onValueChange={(value) => setEnrollmentForm(prev => ({ ...prev, departmentId: value }))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a batch" />
+                  <SelectValue placeholder="Select a department" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="batch1">Web Development Batch 2024-1</SelectItem>
-                  <SelectItem value="batch2">Full Stack Batch 2024-2</SelectItem>
-                  <SelectItem value="batch3">Backend Specialist Batch 2024-1</SelectItem>
+                  {departmentsData?.data?.departments?.map((dept) => (
+                    <SelectItem key={dept._id} value={dept._id}>
+                      {dept.name}
+                    </SelectItem>
+                  ))}
+                  {!departmentsData?.data?.departments?.length && (
+                    <SelectItem value="no-dept" disabled>No departments found</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -444,7 +450,7 @@ const BulkOperations = () => {
             Bulk Email Campaign
           </CardTitle>
           <CardDescription>
-            Send personalized emails to multiple users, roles, or batches
+            Send personalized emails to multiple users, roles, or departments
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -462,7 +468,7 @@ const BulkOperations = () => {
               <SelectContent>
                 <SelectItem value="users">Specific Users</SelectItem>
                 <SelectItem value="roles">By Role</SelectItem>
-                <SelectItem value="batches">By Batch</SelectItem>
+                <SelectItem value="departments">By Department</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -625,19 +631,24 @@ const BulkOperations = () => {
 
             <div>
               <Label className="text-sm font-medium mb-2">
-                Batch (Optional)
+                Department (Optional)
               </Label>
               <Select
-                value={certificateForm.batchId}
-                onValueChange={(value) => setCertificateForm(prev => ({ ...prev, batchId: value }))}
+                value={certificateForm.departmentId}
+                onValueChange={(value) => setCertificateForm(prev => ({ ...prev, departmentId: value }))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="All batches" />
+                  <SelectValue placeholder="All departments" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="batch1">Web Development Batch 2024-1</SelectItem>
-                  <SelectItem value="batch2">Full Stack Batch 2024-2</SelectItem>
-                  <SelectItem value="batch3">Backend Specialist Batch 2024-1</SelectItem>
+                  {departmentsData?.data?.departments?.map((dept) => (
+                    <SelectItem key={dept._id} value={dept._id}>
+                      {dept.name}
+                    </SelectItem>
+                  ))}
+                  {!departmentsData?.data?.departments?.length && (
+                    <SelectItem value="no-dept" disabled>No departments found</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -889,7 +900,7 @@ const BulkOperations = () => {
             Perform bulk operations on users, send mass emails, and generate certificates
           </p>
         </div>
-        
+
         <div className="flex items-center gap-2">
           {operationInProgress && (
             <Alert className="bg-blue-50 border-blue-200">
@@ -926,15 +937,15 @@ const BulkOperations = () => {
         <TabsContent value="enrollment" className="mt-6">
           <EnrollmentTab />
         </TabsContent>
-        
+
         <TabsContent value="email" className="mt-6">
           <EmailTab />
         </TabsContent>
-        
+
         <TabsContent value="certificates" className="mt-6">
           <CertificateTab />
         </TabsContent>
-        
+
         <TabsContent value="history" className="mt-6">
           <HistoryTab />
         </TabsContent>

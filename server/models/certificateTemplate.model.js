@@ -26,7 +26,7 @@ const certificateTemplateSchema = new Schema(
             key: {
                 type: String,
                 required: true,
-                // e.g., "studentName", "courseName", "batchName", "instructorName", "level", "issueDate"
+                // e.g., "studentName", "courseName", "departmentName", "instructorName", "level", "issueDate"
             },
             description: {
                 type: String,
@@ -63,7 +63,7 @@ const certificateTemplateSchema = new Schema(
 );
 
 // Ensure only one default template exists
-certificateTemplateSchema.pre('save', async function(next) {
+certificateTemplateSchema.pre('save', async function (next) {
     if (this.isDefault && this.isModified('isDefault')) {
         // Remove default flag from other templates
         await this.constructor.updateMany(

@@ -41,6 +41,7 @@ import {
   IconSearch,
   IconMoon,
   IconSun,
+  IconStars,
 } from "@tabler/icons-react";
 import { HomeIcon, Command } from "lucide-react";
 import NotificationCenter from "../components/common/NotificationCenter";
@@ -53,8 +54,8 @@ const baseTabs = [
   { link: "/admin", labelKey: "nav.dashboard", icon: IconLayoutDashboardFilled },
   { link: "/admin/instructor", labelKey: "nav.instructors", icon: IconUser },
   { link: "/admin/courses", labelKey: "nav.courses", icon: IconCertificate },
-  { link: "/admin/batches", labelKey: "nav.batches", icon: IconFolder },
-  { link: "/admin/students", labelKey: "nav.students", icon: IconUsers },
+  { link: "/admin/departments", labelKey: "nav.departments", icon: IconFolder },
+  { link: "/admin/trainee", labelKey: "nav.trainees", icon: IconUsers },
   { link: "/admin/quiz-monitoring", labelKey: "nav.quizMonitoring", icon: IconClock },
   { link: "/admin/attempt-requests", labelKey: "nav.attemptRequests", icon: IconBell },
   { link: "/admin/module-timelines", labelKey: "nav.moduleTimelines", icon: IconClock },
@@ -62,6 +63,7 @@ const baseTabs = [
   { link: "/admin/student-levels", labelKey: "nav.studentLevels", icon: IconSettings },
   { link: "/admin/certificate-templates", labelKey: "nav.certificateTemplates", icon: IconTemplate },
   { link: "/admin/analytics", labelKey: "nav.analytics", icon: IconChartPie },
+  { link: "/admin/skill-matrix", labelKey: "nav.skillMatrix", icon: IconStars },
 ];
 
 export function HomeLayout() {
@@ -84,20 +86,20 @@ export function HomeLayout() {
   const onAvatarChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) { alert('Please select an image'); e.target.value=''; return; }
+    if (!file.type.startsWith('image/')) { alert('Please select an image'); e.target.value = ''; return; }
     const form = new FormData(); form.append('avatar', file);
     try { await updateAvatar(form).unwrap(); await dispatch(fetchProfile()).unwrap(); }
     catch (err) { alert(err?.data?.message || 'Failed to update avatar'); }
-    finally { e.target.value=''; }
+    finally { e.target.value = ''; }
   };
 
   // Update page name based on current route and language
   useEffect(() => {
-    const currentTab = tabs.find(tab => 
-      pathname === tab.link || 
+    const currentTab = tabs.find(tab =>
+      pathname === tab.link ||
       (tab.link !== "/admin" && pathname.startsWith(tab.link))
     );
-    
+
     if (currentTab) {
       setPageName(currentTab.label);
     } else if (pathname === "/admin") {
@@ -114,7 +116,7 @@ export function HomeLayout() {
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
-      
+
       // Auto-collapse on mobile, auto-expand on desktop
       if (mobile) {
         setCollapsed(true);
@@ -145,9 +147,8 @@ export function HomeLayout() {
   const ToggleButton = ({ opened, onClick, ariaLabel }) => {
     return (
       <IconLayoutSidebarRightCollapse
-        className={`${
-          opened ? "rotate-180" : "mx-auto"
-        } min-w-5 min-h-5 duration-500 transition-all cursor-pointer text-gray-600 hover:text-gray-800`}
+        className={`${opened ? "rotate-180" : "mx-auto"
+          } min-w-5 min-h-5 duration-500 transition-all cursor-pointer text-gray-600 hover:text-gray-800`}
         onClick={onClick}
         aria-label={ariaLabel}
       />
@@ -158,12 +159,12 @@ export function HomeLayout() {
     <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
       {/* Mobile overlay */}
       {!collapsed && isMobile && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-10 md:hidden animate-in fade-in duration-300"
           onClick={toggleSidebar}
         />
       )}
-      
+
       {/* Sidebar */}
       <nav
         className={`fixed top-0 left-0 h-screen bg-white/95 backdrop-blur-xl border-r border-gray-200/50 text-black shadow-2xl transition-all duration-300 z-20
@@ -179,9 +180,11 @@ export function HomeLayout() {
             ariaLabel="Toggle sidebar"
           />
           {!collapsed && (
-            <span className="ml-4 py-1 text-sm font-bold uppercase tracking-wider text-gradient bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              {t("header.instituteName")}
-            </span>
+            <img
+              src="/motherson+marelli.png"
+              alt="Marelli Motherson"
+              className="ml-4 h-8 w-auto object-contain"
+            />
           )}
         </div>
 
@@ -196,11 +199,10 @@ export function HomeLayout() {
             return (
               <div
                 className={`group relative flex items-center cursor-pointer w-full overflow-hidden h-12 rounded-xl transition-all duration-300 hover:scale-[1.02]
-                ${
-                  isActive
+                ${isActive
                     ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-200"
                     : "text-gray-600 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 hover:text-blue-700 hover:shadow-md"
-                }
+                  }
                 ${collapsed ? "justify-center mx-1" : "items-center px-4"}`}
                 key={item.label}
                 onClick={() => {
@@ -212,9 +214,8 @@ export function HomeLayout() {
                   <div className="absolute left-0 top-0 h-full w-1 bg-white rounded-r-full" />
                 )}
                 <item.icon
-                  className={`${
-                    collapsed ? "w-5 h-5" : "min-w-5 min-h-5"
-                  } transition-transform group-hover:scale-110`}
+                  className={`${collapsed ? "w-5 h-5" : "min-w-5 min-h-5"
+                    } transition-transform group-hover:scale-110`}
                   strokeWidth={isActive ? 2.5 : 1.5}
                 />
                 {!collapsed && (
@@ -223,9 +224,8 @@ export function HomeLayout() {
                   </span>
                 )}
                 {!collapsed && (
-                  <div className={`ml-auto opacity-0 group-hover:opacity-100 transition-opacity ${
-                    isActive ? 'text-blue-200' : 'text-gray-400'
-                  }`}>
+                  <div className={`ml-auto opacity-0 group-hover:opacity-100 transition-opacity ${isActive ? 'text-blue-200' : 'text-gray-400'
+                    }`}>
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
@@ -239,13 +239,11 @@ export function HomeLayout() {
         {/* Logout */}
         <div className="absolute bottom-6 w-full px-3">
           <div
-            className={`group p-3 flex items-center rounded-xl w-full transition-all duration-300 ${
-              isLoading 
-                ? "opacity-50 cursor-not-allowed bg-gray-100" 
-                : "hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 hover:text-red-600 cursor-pointer hover:shadow-md"
-            } ${
-              collapsed ? "justify-center mx-1" : "px-4"
-            }`}
+            className={`group p-3 flex items-center rounded-xl w-full transition-all duration-300 ${isLoading
+              ? "opacity-50 cursor-not-allowed bg-gray-100"
+              : "hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 hover:text-red-600 cursor-pointer hover:shadow-md"
+              } ${collapsed ? "justify-center mx-1" : "px-4"
+              }`}
             onClick={isLoading ? undefined : handleLogout}
           >
             {isLoading ? (
@@ -264,15 +262,13 @@ export function HomeLayout() {
 
       {/* Main Content Area */}
       <div
-        className={`flex-1 transition-all duration-300 ${
-          collapsed ? "ml-16" : "ml-64"
-        }`}
+        className={`flex-1 transition-all duration-300 ${collapsed ? "ml-16" : "ml-64"
+          }`}
       >
         {/* Header */}
         <header
-          className={`px-4 sm:px-6 bg-white/95 backdrop-blur-lg shadow-sm border-b border-gray-200/80 flex h-16 items-center justify-between gap-2 sm:gap-4 fixed right-0 top-0 z-30 transition-all duration-300 ${
-            collapsed ? "w-[calc(100%-4rem)]" : "w-[calc(100%-16rem)]"
-          }`}
+          className={`px-4 sm:px-6 bg-white/95 backdrop-blur-lg shadow-sm border-b border-gray-200/80 flex h-16 items-center justify-between gap-2 sm:gap-4 fixed right-0 top-0 z-30 transition-all duration-300 ${collapsed ? "w-[calc(100%-4rem)]" : "w-[calc(100%-16rem)]"
+            }`}
         >
           {/* Mobile menu button */}
           <div className="flex items-center gap-3">
@@ -287,7 +283,7 @@ export function HomeLayout() {
                 </svg>
               </button>
             )}
-            
+
             {/* Breadcrumb */}
             <Breadcrumb className="hidden sm:block">
               <BreadcrumbList>
@@ -308,7 +304,7 @@ export function HomeLayout() {
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
-            
+
             {/* Mobile page title */}
             <h1 className="font-semibold text-gray-800 text-lg sm:hidden">
               {pageName}
@@ -332,9 +328,9 @@ export function HomeLayout() {
             >
               <IconSearch className="h-4 w-4" />
             </Button>
-            
+
             <NotificationCenter />
-            
+
             {/* User Dropdown Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -386,7 +382,7 @@ export function HomeLayout() {
                   {t("ui.keyboardShortcuts")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   className="cursor-pointer hover:bg-red-50 text-red-600 focus:text-red-600"
                   onClick={handleLogout}
                   disabled={isLoading}

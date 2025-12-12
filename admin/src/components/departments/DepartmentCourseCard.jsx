@@ -1,4 +1,4 @@
-// src/components/batches/BatchCourseCard.jsx
+// src/components/departments/DepartmentCourseCard.jsx
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { IconBook, IconExternalLink, IconClock } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 
-const BatchCourseCard = ({ course, batchId }) => {
+const DepartmentCourseCard = ({ course, departmentId }) => {
   const navigate = useNavigate();
 
   if (!course) {
@@ -21,10 +21,10 @@ const BatchCourseCard = ({ course, batchId }) => {
         <CardContent>
           <div className="text-center py-8">
             <div className="text-muted-foreground mb-4">
-              No course assigned to this batch
+              No course assigned to this department
             </div>
             <Button
-              onClick={() => navigate(`/batches?editBatch=${batchId}`)}
+              onClick={() => navigate(`/departments?editDepartment=${departmentId}`)}
             >
               Assign Course
             </Button>
@@ -66,24 +66,24 @@ const BatchCourseCard = ({ course, batchId }) => {
             <h3 className="text-xl font-semibold">{course.title}</h3>
             <p className="text-muted-foreground mt-1">{course.description}</p>
           </div>
-          
+
           <div className="flex flex-wrap gap-2">
             <Badge variant={getDifficultyBadge(course.difficulty).variant}>
               {getDifficultyBadge(course.difficulty).label}
             </Badge>
-            
+
             {course.duration && (
               <Badge variant="outline" className="flex items-center gap-1">
                 <IconClock className="h-3 w-3" />
                 {course.duration}
               </Badge>
             )}
-            
+
             {course.category && (
               <Badge variant="secondary">{course.category}</Badge>
             )}
           </div>
-          
+
           {course.learningObjectives && course.learningObjectives.length > 0 && (
             <div>
               <h4 className="font-medium text-sm mb-2">Learning Objectives</h4>
@@ -107,4 +107,4 @@ const BatchCourseCard = ({ course, batchId }) => {
   );
 };
 
-export default BatchCourseCard;
+export default DepartmentCourseCard;

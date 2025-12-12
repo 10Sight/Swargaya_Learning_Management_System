@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -69,7 +69,7 @@ const STATUS_CONFIG = {
 // Hook for managing course data
 const useCourseData = () => {
   const [state, setState] = useState({
-    batch: null,
+    department: null,
     modules: [],
     currentLevel: "L1",
     completedModuleIds: [],
@@ -87,35 +87,35 @@ const useCourseData = () => {
         setState(prev => ({ ...prev, loading: true }));
       }
 
-      // Get batch course content
-      const response = await axiosInstance.get("/api/batches/me/course-content");
+      // Get department course content
+      const response = await axiosInstance.get("/api/departments/me/course-content");
       const data = response?.data?.data;
 
       if (!data) {
         throw new Error("No course data available");
       }
 
-      const batch = {
-        ...data.batch,
+      const department = {
+        ...data.department,
         course: data.course,
-        status: data.batch?.status || 'ACTIVE'
+        status: data.department?.status || 'ACTIVE'
       };
 
       const modules = data.course?.modules || [];
       const progress = data.progress || {};
 
       // Extract completed IDs from the nested structure
-      const completedModuleIds = progress.completedModules 
+      const completedModuleIds = progress.completedModules
         ? progress.completedModules.map(module => String(module.moduleId || module._id || module))
         : [];
-      
-      const completedLessonIds = progress.completedLessons 
+
+      const completedLessonIds = progress.completedLessons
         ? progress.completedLessons.map(lesson => String(lesson.lessonId || lesson._id || lesson))
         : [];
 
 
       setState({
-        batch,
+        department,
         modules: modules.sort((a, b) => (a.order || 0) - (b.order || 0)),
         currentLevel: progress.currentLevel || "L1",
         levelLockEnabled: progress.levelLockEnabled || false,
@@ -174,7 +174,7 @@ const useCourseContent = (courseId, allModulesCompleted) => {
     courseAssignments,
     loading,
     loaded,
-    loadCourseContent: () => {}, // No longer needed with RTK Query
+    loadCourseContent: () => { }, // No longer needed with RTK Query
   };
 };
 
@@ -199,7 +199,7 @@ const useModuleContent = () => {
   const loadModuleContent = useCallback(async (moduleId, courseId) => {
     // Guard against undefined/invalid moduleId
     if (!moduleId) {
-      console.warn("BatchCourse - Skipping loadModuleContent: missing moduleId", { moduleId, courseId });
+      console.warn("DepartmentCourse - Skipping loadModuleContent: missing moduleId", { moduleId, courseId });
       return;
     }
 
@@ -220,14 +220,14 @@ const useModuleContent = () => {
 
     try {
       // Load lessons and resources (still using direct API calls as no RTK Query hooks exist for these)
-      console.log(`BatchCourse - Loading content for moduleId: ${moduleId}`);
-      
+      console.log(`DepartmentCourse - Loading content for moduleId: ${moduleId}`);
+
       const [lessonsRes, resourcesRes] = await Promise.allSettled([
         axiosInstance.get(`/api/modules/${moduleId}/lessons`),
         axiosInstance.get(`/api/resources/module/${moduleId}`),
       ]);
       if (resourcesRes.status === 'rejected') {
-        console.error(`BatchCourse - Resources fetch failed for moduleId ${moduleId}:`, resourcesRes.reason);
+        console.error(`DepartmentCourse - Resources fetch failed for moduleId ${moduleId}:`, resourcesRes.reason);
       }
 
       const lessons = lessonsRes.status === 'fulfilled'
@@ -257,7 +257,7 @@ const useModuleContent = () => {
     } finally {
       loadingModulesRef.current.delete(key);
     }
-  // Intentionally leave deps empty to keep a stable function identity.
+    // Intentionally leave deps empty to keep a stable function identity.
   }, []);
 
   // Function to update assessments data from RTK Query
@@ -270,8 +270,8 @@ const useModuleContent = () => {
     }));
   }, []);
 
-  return { 
-    ...state, 
+  return {
+    ...state,
     loadModuleContent,
     updateModuleAssessments,
     currentModules
@@ -310,28 +310,28 @@ const ModuleAssessmentProvider = ({ moduleId, courseId, children, onAssessmentsL
 };
 
 // Main component
-const BatchCourse = () => {
+const DepartmentCourse = () => {
   const navigate = useNavigate();
   const {
-    batch, 
-    modules, 
-    currentLevel, 
+    department,
+    modules,
+    currentLevel,
     levelLockEnabled,
     lockedLevel,
-    completedModuleIds, 
-    completedLessonIds, 
-    loading, 
-    error, 
+    completedModuleIds,
+    completedLessonIds,
+    loading,
+    error,
     refreshing,
-    refresh 
+    refresh
   } = useCourseData();
-  
+
   // Extract level lock information from course data
   const [levelLockInfo, setLevelLockInfo] = useState({
     isLocked: false,
     lockedLevel: null
   });
-  
+
   const {
     lessonsByModule,
     resourcesByModule,
@@ -350,24 +350,23 @@ const BatchCourse = () => {
   // Fetch course-level resources
   const {
     data: courseResourcesData,
-  } = useGetResourcesByCourseQuery(batch?.course?._id || batch?.course?.id, {
-    skip: !batch?.course?._id && !batch?.course?.id,
+  } = useGetResourcesByCourseQuery(department?.course?._id || department?.course?.id, {
+    skip: !department?.course?._id && !department?.course?.id,
   });
-  
+
   const courseResources = courseResourcesData?.data || [];
 
-  const allModulesCompleted = modules.length > 0 && modules.every(m => 
+  const allModulesCompleted = modules.length > 0 && modules.every(m =>
     completedModuleIds.includes(String(m?._id || m?.id))
   );
-  
+
   const {
     courseQuizzes,
     courseAssignments,
-    loading: courseContentLoading,
     loaded: courseContentLoaded,
     loadCourseContent
-  } = useCourseContent(batch?.course?._id || batch?.course?.id, allModulesCompleted);
-  
+  } = useCourseContent(department?.course?._id || department?.course?.id, allModulesCompleted);
+
   // Fetch student submissions
   const { data: submissionsData, refetch: refetchSubmissions } = useGetMySubmissionsQuery(undefined, {
     refetchOnFocus: true,
@@ -378,7 +377,7 @@ const BatchCourse = () => {
   // Create a map of submissions by assignment ID for quick lookup (from API)
   const apiSubmissionsByAssignment = submissions.reduce((acc, submission) => {
     if (submission.assignment) {
-      const key = typeof submission.assignment === 'object' 
+      const key = typeof submission.assignment === 'object'
         ? (submission.assignment._id || submission.assignment.id)
         : submission.assignment;
       if (key) acc[key] = submission;
@@ -419,7 +418,7 @@ const BatchCourse = () => {
   // Create a map of quiz attempts by quiz ID for quick lookup
   const attemptsByQuiz = attempts.reduce((acc, attempt) => {
     if (attempt.quiz) {
-      const key = typeof attempt.quiz === 'object' 
+      const key = typeof attempt.quiz === 'object'
         ? (attempt.quiz._id || attempt.quiz.id)
         : attempt.quiz;
       if (key) {
@@ -466,31 +465,31 @@ const BatchCourse = () => {
   const isModuleAccessible = useCallback((moduleIndex) => {
     // First module is always accessible
     if (moduleIndex === 0) return true;
-    
+
     // Check if all previous modules are completed
     for (let i = 0; i < moduleIndex; i++) {
       if (!isModuleCompleted(modules[i])) {
         return false;
       }
     }
-    
+
     // Check level lock restrictions if enabled
     if (levelLockEnabled && lockedLevel && modules[moduleIndex]) {
       const moduleLevel = modules[moduleIndex].level || "L1";
       const currentLevelNum = parseInt(currentLevel.replace('L', ''));
       const moduleLevelNum = parseInt(moduleLevel.replace('L', ''));
-      
+
       // Module is locked if its level is higher than current level
       if (moduleLevelNum > currentLevelNum) {
         return false;
       }
     }
-    
+
     return true;
   }, [modules, isModuleCompleted, levelLockEnabled, lockedLevel, currentLevel]);
 
   const getCompletedModulesCount = useCallback(() => {
-    return modules.reduce((count, module) => 
+    return modules.reduce((count, module) =>
       count + (isModuleCompleted(module) ? 1 : 0), 0
     );
   }, [modules, isModuleCompleted]);
@@ -509,7 +508,7 @@ const BatchCourse = () => {
 
     const raw = typeof level === "string" ? level : (level != null ? `L${level}` : "L1");
     const color = colorMap[raw] || "bg-gray-100 text-gray-800";
-    
+
     return (
       <Badge className={`${color} font-medium text-xs px-2 py-1`}>
         {raw}
@@ -530,7 +529,7 @@ const BatchCourse = () => {
   // Check stage completion status for current module
   const getStageStatus = (moduleIndex, stage) => {
     if (moduleIndex >= modules.length) return { completed: true, accessible: false };
-    
+
     const module = modules[moduleIndex];
     const moduleId = getModuleId(module);
     const moduleLessons = lessonsByModule[moduleId] || [];
@@ -538,19 +537,19 @@ const BatchCourse = () => {
     const moduleQuizzes = quizzesByModule[moduleId] || [];
     const moduleAssignments = assignmentsByModule[moduleId] || [];
 
-    const allLessonsCompleted = moduleLessons.every(lesson => 
+    const allLessonsCompleted = moduleLessons.every(lesson =>
       isLessonCompleted(lesson)
     );
-    
+
     switch (stage) {
       case 'lessons':
-        return { 
-          completed: allLessonsCompleted, 
+        return {
+          completed: allLessonsCompleted,
           accessible: true,
           hasContent: moduleLessons.length > 0
         };
       case 'resources':
-        return { 
+        return {
           completed: allLessonsCompleted, // Resources are considered "completed" when lessons are done
           accessible: allLessonsCompleted,
           hasContent: moduleResources.length > 0
@@ -560,17 +559,17 @@ const BatchCourse = () => {
           const qid = q._id || q.id;
           const quizAttempts = attemptsByQuiz[String(qid)] || [];
           if (quizAttempts.length === 0) return false;
-          
+
           // Check if passed (best score >= passing score)
           const bestAttempt = quizAttempts.reduce((best, current) => {
             return (current.score > best.score) ? current : best;
           }, quizAttempts[0]);
-          
+
           const passingScore = q.passingScore || 70;
           return bestAttempt.score >= passingScore;
         });
-        
-        return { 
+
+        return {
           completed: allQuizzesCompleted,
           accessible: allLessonsCompleted,
           hasContent: moduleQuizzes.length > 0
@@ -581,7 +580,7 @@ const BatchCourse = () => {
           const aid = getAssignmentId(a);
           return aid && submissionsByAssignment[String(aid)];
         });
-        return { 
+        return {
           completed: allAssignmentsSubmitted,
           accessible: allLessonsCompleted,
           hasContent: moduleAssignments.length > 0
@@ -595,7 +594,7 @@ const BatchCourse = () => {
   // Determine what stage should be shown for current module
   const getCurrentStage = (moduleIndex) => {
     const stages = ['lessons', 'resources', 'quiz', 'assignment'];
-    
+
     for (const stage of stages) {
       const status = getStageStatus(moduleIndex, stage);
       if (status.hasContent && !status.completed) {
@@ -607,19 +606,19 @@ const BatchCourse = () => {
 
   // Action handlers
   const handleMarkLessonComplete = async (lesson) => {
-    if (!batch?.course || uiState.processingAction) return;
-    
-    const courseId = batch.course._id || batch.course.id;
+    if (!department?.course || uiState.processingAction) return;
+
+    const courseId = department.course._id || department.course.id;
     const lessonId = getLessonId(lesson);
 
     setUiState(prev => ({ ...prev, processingAction: `lesson-${lessonId}` }));
 
     try {
-      const response = await axiosInstance.patch(`/api/progress/lesson-complete`, { 
-        courseId, 
-        lessonId 
+      const response = await axiosInstance.patch(`/api/progress/lesson-complete`, {
+        courseId,
+        lessonId
       });
-      
+
       if (response.data.success) {
         toast.success("Lesson completed!");
         refresh(); // Refresh to get updated state
@@ -706,43 +705,43 @@ const BatchCourse = () => {
 
   const handleModuleClick = (module, index) => {
     if (!isModuleAccessible(index)) return;
-    
+
     const moduleId = getModuleId(module);
-    const isCurrentlyActive = uiState.activeModule && 
+    const isCurrentlyActive = uiState.activeModule &&
       String(getModuleId(uiState.activeModule)) === String(moduleId);
-    
+
     if (isCurrentlyActive) {
       // Hide the module panel
       setUiState(prev => ({ ...prev, activeModule: null, activeTab: 'lessons' }));
     } else {
       // Show the module panel and load its content
       setUiState(prev => ({ ...prev, activeModule: module, activeTab: 'lessons' }));
-      loadModuleContent(moduleId, batch?.course?._id || batch?.course?.id);
+      loadModuleContent(moduleId, department?.course?._id || department?.course?.id);
     }
   };
 
   const handleMarkModuleComplete = useCallback(async (module) => {
-    if (!batch?.course || uiState.processingAction) return;
-    
-    const courseId = batch.course._id || batch.course.id;
+    if (!department?.course || uiState.processingAction) return;
+
+    const courseId = department.course._id || department.course.id;
     const moduleId = getModuleId(module);
 
     setUiState(prev => ({ ...prev, processingAction: `module-${moduleId}` }));
 
     try {
-      const response = await axiosInstance.patch(`/api/progress/module-complete`, { 
-        courseId, 
-        moduleId 
+      const response = await axiosInstance.patch(`/api/progress/module-complete`, {
+        courseId,
+        moduleId
       });
-      
+
       if (response.data.success) {
         toast.success("Module completed!");
         refresh(); // Refresh to get updated state
-        
+
         // Check if this unlocks a new level
         if (response.data.data?.levelUp) {
-          setUiState(prev => ({ 
-            ...prev, 
+          setUiState(prev => ({
+            ...prev,
             levelUpgradeMessage: `Congratulations! You've advanced to ${response.data.data.newLevel}!`
           }));
         }
@@ -756,7 +755,7 @@ const BatchCourse = () => {
     } finally {
       setUiState(prev => ({ ...prev, processingAction: null }));
     }
-  }, [batch?.course, uiState.processingAction, refresh]);
+  }, [department?.course, uiState.processingAction, refresh]);
 
   // Auto-complete module when all lessons and assessments are complete
   const isModuleReadyToComplete = useCallback((module) => {
@@ -829,9 +828,9 @@ const BatchCourse = () => {
 
     if (lastRequestedModuleRef.current !== String(moduleId)) {
       lastRequestedModuleRef.current = String(moduleId);
-      loadModuleContent(moduleId, batch?.course?._id || batch?.course?.id);
+      loadModuleContent(moduleId, department?.course?._id || department?.course?.id);
     }
-  }, [modules, batch?.course, getCurrentModuleIndex]);
+  }, [modules, department?.course, getCurrentModuleIndex]);
 
   // Auto-refresh when page becomes visible/focused to sync completion state and attempts/submissions
   useEffect(() => {
@@ -845,14 +844,14 @@ const BatchCourse = () => {
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     // Also refresh when window gets focus (user returns from quiz/assignment pages)
     const handleFocus = () => {
       refresh();
       if (typeof refetchSubmissions === 'function') refetchSubmissions();
       if (typeof refetchAttempts === 'function') refetchAttempts();
     };
-    
+
     window.addEventListener('focus', handleFocus);
 
     return () => {
@@ -864,11 +863,11 @@ const BatchCourse = () => {
   // Load course-level content when all modules are completed
   useEffect(() => {
     const modulesDone = modules.length > 0 && getCompletedModulesCount() >= modules.length;
-    const courseId = batch?.course?._id || batch?.course?.id;
+    const courseId = department?.course?._id || department?.course?.id;
     if (modulesDone && courseId && !courseContentLoaded && !courseContentLoading) {
       loadCourseContent(courseId);
     }
-  }, [modules, completedModuleIds, batch?.course, courseContentLoaded, courseContentLoading, loadCourseContent, getCompletedModulesCount]);
+  }, [modules, completedModuleIds, department?.course, courseContentLoaded, courseContentLoading, loadCourseContent, getCompletedModulesCount]);
 
   // Loading state with responsive design optimized for 320px
   if (loading) {
@@ -943,8 +942,8 @@ const BatchCourse = () => {
                   </AlertDescription>
                 </Alert>
               </div>
-              <Button 
-                onClick={refresh} 
+              <Button
+                onClick={refresh}
                 className="w-full"
                 disabled={refreshing}
                 size="sm"
@@ -959,8 +958,8 @@ const BatchCourse = () => {
     );
   }
 
-  // No batch state with responsive design optimized for 320px
-  if (!batch) {
+  // No department state with responsive design optimized for 320px
+  if (!department) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center px-0 py-2 xs:px-4">
         <div className="w-full max-w-[300px] sm:max-w-md">
@@ -988,8 +987,8 @@ const BatchCourse = () => {
     );
   }
 
-  // Check if batch is cancelled - prevent access to course content
-  if (batch?.status === 'CANCELLED') {
+  // Check if department is cancelled - prevent access to course content
+  if (department?.status === 'CANCELLED') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center px-0 py-2 xs:px-4">
         <div className="w-full max-w-[300px] sm:max-w-md lg:max-w-lg">
@@ -999,24 +998,24 @@ const BatchCourse = () => {
               <div className="mx-auto w-16 h-16 xs:w-20 xs:h-20 sm:w-24 sm:h-24 bg-red-100 rounded-full flex items-center justify-center">
                 <AlertCircle className="h-8 w-8 xs:h-10 xs:w-10 sm:h-12 sm:w-12 text-red-600" />
               </div>
-              
+
               {/* Cancellation Message */}
               <div className="space-y-2 xs:space-y-3">
                 <h2 className="text-lg xs:text-xl sm:text-2xl font-bold text-red-800">
-                  Batch Cancelled
+                  Department Cancelled
                 </h2>
                 <p className="text-sm xs:text-base text-red-700 leading-relaxed">
-                  Unfortunately, your batch <span className="font-semibold">"{batch.name}"</span> has been cancelled.
+                  Unfortunately, your department <span className="font-semibold">"{department.name}"</span> has been cancelled.
                 </p>
               </div>
-              
-              {/* Batch Info */}
+
+              {/* Department Info */}
               <div className="bg-white/60 backdrop-blur-sm rounded-lg p-3 xs:p-4 border border-red-200">
                 <div className="space-y-2 text-sm xs:text-base">
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600">Course:</span>
                     <span className="font-medium text-gray-800">
-                      {batch.course?.title || batch.course?.name || 'N/A'}
+                      {department.course?.title || department.course?.name || 'N/A'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
@@ -1027,17 +1026,18 @@ const BatchCourse = () => {
                   </div>
                 </div>
               </div>
-              
+
               {/* Cancellation Reason (if available) */}
-              {batch.notes && (
+              {/* Cancellation Reason (if available) */}
+              {department.notes && (
                 <Alert className="text-left bg-orange-50 border-orange-200">
                   <AlertCircle className="h-4 w-4 text-orange-600" />
                   <AlertDescription className="text-sm text-orange-800">
-                    <strong>Reason:</strong> {batch.notes}
+                    <strong>Reason:</strong> {department.notes}
                   </AlertDescription>
                 </Alert>
               )}
-              
+
               {/* Contact Information */}
               <div className="space-y-3 xs:space-y-4">
                 <div className="bg-blue-50 rounded-lg p-3 xs:p-4 border border-blue-200">
@@ -1055,22 +1055,22 @@ const BatchCourse = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Action Buttons */}
                 <div className="flex flex-col xs:flex-row gap-2 xs:gap-3">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => navigate('/student/dashboard')}
                     className="flex items-center gap-2 text-xs xs:text-sm"
                   >
                     <ArrowLeft className="h-3 w-3 xs:h-4 xs:w-4" />
                     Back to Dashboard
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => window.location.href = 'mailto:support@your-platform.com?subject=Cancelled Batch Inquiry'}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.location.href = 'mailto:support@your-platform.com?subject=Cancelled Department Inquiry'}
                     className="flex items-center gap-2 text-xs xs:text-sm"
                   >
                     <ExternalLink className="h-3 w-3 xs:h-4 xs:w-4" />
@@ -1107,9 +1107,9 @@ const BatchCourse = () => {
                 <Star className="h-3 w-3 xs:h-4 xs:w-4" />
                 <span>{uiState.levelUpgradeMessage}</span>
               </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setUiState(prev => ({ ...prev, levelUpgradeMessage: null }))}
                 className="text-green-600 hover:text-green-700 hover:bg-green-100 self-end xs:self-auto p-1 xs:p-2"
               >
@@ -1131,22 +1131,22 @@ const BatchCourse = () => {
                       <div className="p-1 xs:p-2 sm:p-3 bg-blue-100 rounded-lg shrink-0">
                         <BookOpen className="h-4 w-4 xs:h-5 xs:w-5 sm:h-6 sm:w-6 text-blue-600" />
                       </div>
-                      <span className="truncate leading-tight xs:leading-normal">{batch.course?.title || batch.course?.name || "Course"}</span>
+                      <span className="truncate leading-tight xs:leading-normal">{department.course?.title || department.course?.name || "Course"}</span>
                     </CardTitle>
                     <div className="ml-0 xs:ml-auto">
                       {getLevelBadge(currentLevel)}
                     </div>
                   </div>
                   <CardDescription className="text-xs xs:text-sm sm:text-base text-gray-700 leading-relaxed break-words">
-                    {batch.course?.description || "Complete the modules below to finish the course"}
+                    {department.course?.description || "Complete the modules below to finish the course"}
                   </CardDescription>
                 </div>
-                
+
                 {/* Action Buttons */}
                 <div className="flex flex-row gap-2 shrink-0">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={refresh}
                     disabled={refreshing}
                     className="flex items-center gap-1 xs:gap-2 bg-white/80 hover:bg-white border-blue-200 hover:border-blue-300 text-blue-700 text-xs xs:text-sm px-2 xs:px-3 min-h-[44px]"
@@ -1154,15 +1154,15 @@ const BatchCourse = () => {
                     <RefreshCw className={`h-3 w-3 xs:h-4 xs:w-4 ${refreshing ? 'animate-spin' : ''}`} />
                     <span className="hidden xs:inline">Refresh</span>
                   </Button>
-                  <Badge 
-                    variant="outline" 
-                    className={`text-xs px-2 py-1 font-medium ${STATUS_CONFIG[batch.status]?.color || 'bg-gray-100 text-gray-800'}`}
+                  <Badge
+                    variant="outline"
+                    className={`text-xs px-2 py-1 font-medium ${STATUS_CONFIG[department.status]?.color || 'bg-gray-100 text-gray-800'}`}
                   >
-                    {STATUS_CONFIG[batch.status]?.name || batch.status}
+                    {STATUS_CONFIG[department.status]?.name || department.status}
                   </Badge>
                 </div>
               </div>
-              
+
               {/* Enhanced Progress Section */}
               <div className="space-y-3 xs:space-y-4">
                 <div className="flex flex-col xs:flex-row xs:justify-between xs:items-center gap-2">
@@ -1310,7 +1310,7 @@ const BatchCourse = () => {
                               <span className="truncate">{quiz.attemptsAllowed || 1} tries</span>
                             </div>
                           </div>
-                          <Button 
+                          <Button
                             className="w-full bg-purple-600 hover:bg-purple-700 text-xs xs:text-sm min-h-[44px]"
                             onClick={() => handleStartQuiz(quiz)}
                             size="sm"
@@ -1325,7 +1325,7 @@ const BatchCourse = () => {
                   </div>
                 </div>
               )}
-              
+
               {/* Enhanced Course Assignments */}
               {courseLevelAssignments.length > 0 && (
                 <div>
@@ -1357,8 +1357,8 @@ const BatchCourse = () => {
                             <div className="flex items-center gap-1">
                               <Clock className="h-3 w-3 text-muted-foreground" />
                               <span className="truncate">
-                                Due: {assignment.dueDate 
-                                  ? new Date(assignment.dueDate).toLocaleDateString() 
+                                Due: {assignment.dueDate
+                                  ? new Date(assignment.dueDate).toLocaleDateString()
                                   : 'No deadline'
                                 }
                               </span>
@@ -1420,548 +1420,536 @@ const BatchCourse = () => {
                 <p className="text-xs xs:text-sm sm:text-base text-muted-foreground">No modules available for this course yet.</p>
               </div>
             ) : (
-            modules.map((module, index) => {
-              const moduleId = getModuleId(module);
-              const isCompleted = isModuleCompleted(module);
-              const isAccessible = isModuleAccessible(index);
-              const isCurrent = isAccessible && !isCompleted;
-              const isLocked = !isAccessible;
-              const isActive = uiState.activeModule && 
-                String(getModuleId(uiState.activeModule)) === String(moduleId);
-              
-              // Check if module is level-locked specifically
-              const isLevelLocked = levelLockEnabled && lockedLevel && module.level && 
-                parseInt(module.level.replace('L', '')) > parseInt(currentLevel.replace('L', ''));
-              
-              const moduleLessons = lessonsByModule[moduleId] || [];
-              const completedLessonsInModule = moduleLessons.filter(lesson => 
-                isLessonCompleted(lesson)
-              ).length;
+              modules.map((module, index) => {
+                const moduleId = getModuleId(module);
+                const isCompleted = isModuleCompleted(module);
+                const isAccessible = isModuleAccessible(index);
+                const isCurrent = isAccessible && !isCompleted;
+                const isLocked = !isAccessible;
+                const isActive = uiState.activeModule &&
+                  String(getModuleId(uiState.activeModule)) === String(moduleId);
 
-              return (
-                <ModuleAssessmentProvider
-                  key={moduleId || index}
-                  moduleId={moduleId}
-                  courseId={batch?.course?._id || batch?.course?.id}
-                  onAssessmentsLoaded={handleModuleAssessmentsLoaded}
-                >
-                  <div
-                    className={`group relative p-2 xs:p-4 sm:p-6 rounded-xl border-2 transition-all duration-300 hover:shadow-lg ${
-                      isCompleted
+                // Check if module is level-locked specifically
+                const isLevelLocked = levelLockEnabled && lockedLevel && module.level &&
+                  parseInt(module.level.replace('L', '')) > parseInt(currentLevel.replace('L', ''));
+
+                const moduleLessons = lessonsByModule[moduleId] || [];
+                const completedLessonsInModule = moduleLessons.filter(lesson =>
+                  isLessonCompleted(lesson)
+                ).length;
+
+                return (
+                  <ModuleAssessmentProvider
+                    key={moduleId || index}
+                    moduleId={moduleId}
+                    courseId={department?.course?._id || department?.course?.id}
+                    onAssessmentsLoaded={handleModuleAssessmentsLoaded}
+                  >
+                    <div
+                      className={`group relative p-2 xs:p-4 sm:p-6 rounded-xl border-2 transition-all duration-300 hover:shadow-lg ${isCompleted
                         ? "bg-gradient-to-br from-green-50 to-green-100 border-green-300 shadow-sm"
                         : isCurrent
-                        ? "bg-gradient-to-br from-blue-50 to-blue-100 border-blue-300 shadow-md ring-2 ring-blue-200"
-                        : isLocked
-                        ? "bg-gray-50 border-gray-200 opacity-60"
-                        : "bg-white border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-                  <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3 xs:gap-4">
-                    <div className="flex items-start gap-2 xs:gap-3 sm:gap-4 flex-1 min-w-0">
-                      {/* Module Number/Status Indicator */}
-                      <div className="flex flex-col items-center shrink-0">
-                        <div className={`w-6 h-6 xs:w-8 xs:h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs xs:text-sm font-medium ${
-                          isCompleted
-                            ? "bg-green-100 text-green-700"
-                            : isCurrent
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-gray-100 text-gray-500"
-                        }`}>
-                          {isCompleted ? (
-                            <CheckCircle2 className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5" />
-                          ) : (
-                            <span className="text-xs font-bold">{index + 1}</span>
-                          )}
-                        </div>
-                        {index < modules.length - 1 && (
-                          <div className={`w-0.5 h-4 xs:h-6 sm:h-8 mt-1 hidden xs:block ${
-                            isCompleted ? "bg-green-200" : "bg-gray-200"
-                          }`} />
-                        )}
-                      </div>
-
-                      {/* Module Content */}
-                      <div className="flex-1">
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                          <h3 className={`font-semibold line-clamp-1 text-sm sm:text-base lg:text-lg  ${
-                            isCompleted ? "text-green-800" : 
-                            isCurrent ? "text-blue-800" : 
-                            "text-gray-700"
-                          }`}>
-                            {module.title || `Module ${index + 1}`}
-                          </h3>
-                          
-                          {/* Badges Container */}
-                          <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                            {/* Module level badge */}
-                            {module.level && (
-                              <div className="flex items-center">
-                                {getLevelBadge(module.level)}
-                              </div>
-                            )}
-                            
-                            {isCurrent && (
-                              <Badge variant="default" className="text-xs px-2 py-1">
-                                Current
-                              </Badge>
-                            )}
-                            {isCompleted && (
-                              <Badge variant="outline" className="text-xs bg-green-100 text-green-800 px-2 py-1">
-                                Completed
-                              </Badge>
-                            )}
-                            {isLevelLocked && (
-                              <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800 border-yellow-300 px-2 py-1">
-                                <Lock className="h-3 w-3 mr-1" />
-                                <span className="hidden sm:inline">Level Locked</span>
-                                <span className="sm:hidden">Locked</span>
-                              </Badge>
+                          ? "bg-gradient-to-br from-blue-50 to-blue-100 border-blue-300 shadow-md ring-2 ring-blue-200"
+                          : isLocked
+                            ? "bg-gray-50 border-gray-200 opacity-60"
+                            : "bg-white border-gray-200 hover:border-gray-300"
+                        }`}
+                    >
+                      <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3 xs:gap-4">
+                        <div className="flex items-start gap-2 xs:gap-3 sm:gap-4 flex-1 min-w-0">
+                          {/* Module Number/Status Indicator */}
+                          <div className="flex flex-col items-center shrink-0">
+                            <div className={`w-6 h-6 xs:w-8 xs:h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs xs:text-sm font-medium ${isCompleted
+                              ? "bg-green-100 text-green-700"
+                              : isCurrent
+                                ? "bg-blue-100 text-blue-700"
+                                : "bg-gray-100 text-gray-500"
+                              }`}>
+                              {isCompleted ? (
+                                <CheckCircle2 className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5" />
+                              ) : (
+                                <span className="text-xs font-bold">{index + 1}</span>
+                              )}
+                            </div>
+                            {index < modules.length - 1 && (
+                              <div className={`w-0.5 h-4 xs:h-6 sm:h-8 mt-1 hidden xs:block ${isCompleted ? "bg-green-200" : "bg-gray-200"
+                                }`} />
                             )}
                           </div>
-                        </div>
-                        <p className="text-xs sm:text-sm text-muted-foreground mb-3 leading-relaxed line-clamp-2 break-words">
-                          {module.description || "No description available"}
-                        </p>
 
-                        {/* Module Meta */}
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <CheckCircle2 className="h-3 w-3 text-green-500" />
-                            <span>{completedLessonsInModule} of {moduleLessons.length} lessons</span>
-                          </span>
-                          {module.duration && (
-                            <span className="flex items-center gap-1">
-                              <Clock className="h-3 w-3 text-blue-500" />
-                              <span>{module.duration}</span>
+                          {/* Module Content */}
+                          <div className="flex-1">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                              <h3 className={`font-semibold line-clamp-1 text-sm sm:text-base lg:text-lg  ${isCompleted ? "text-green-800" :
+                                isCurrent ? "text-blue-800" :
+                                  "text-gray-700"
+                                }`}>
+                                {module.title || `Module ${index + 1}`}
+                              </h3>
+
+                              {/* Badges Container */}
+                              <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                                {/* Module level badge */}
+                                {module.level && (
+                                  <div className="flex items-center">
+                                    {getLevelBadge(module.level)}
+                                  </div>
+                                )}
+
+                                {isCurrent && (
+                                  <Badge variant="default" className="text-xs px-2 py-1">
+                                    Current
+                                  </Badge>
+                                )}
+                                {isCompleted && (
+                                  <Badge variant="outline" className="text-xs bg-green-100 text-green-800 px-2 py-1">
+                                    Completed
+                                  </Badge>
+                                )}
+                                {isLevelLocked && (
+                                  <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800 border-yellow-300 px-2 py-1">
+                                    <Lock className="h-3 w-3 mr-1" />
+                                    <span className="hidden sm:inline">Level Locked</span>
+                                    <span className="sm:hidden">Locked</span>
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                            <p className="text-xs sm:text-sm text-muted-foreground mb-3 leading-relaxed line-clamp-2 break-words">
+                              {module.description || "No description available"}
+                            </p>
+
+                            {/* Module Meta */}
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <CheckCircle2 className="h-3 w-3 text-green-500" />
+                                <span>{completedLessonsInModule} of {moduleLessons.length} lessons</span>
+                              </span>
+                              {module.duration && (
+                                <span className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3 text-blue-500" />
+                                  <span>{module.duration}</span>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Action Button */}
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                          <Button
+                            size="sm"
+                            onClick={() => handleModuleClick(module, index)}
+                            disabled={isLocked || loadingStates[moduleId]}
+                            className={`w-full sm:w-auto text-xs sm:text-sm min-h-[44px] ${isCompleted
+                              ? "bg-green-100 text-green-700 hover:bg-green-200"
+                              : isCurrent
+                                ? "shadow-md"
+                                : ""
+                              }`}
+                          >
+                            {loadingStates[moduleId] ? (
+                              <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 animate-spin" />
+                            ) : isCompleted ? (
+                              <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                            ) : isCurrent ? (
+                              <PlayCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                            ) : (
+                              <Lock className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                            )}
+                            <span>
+                              {isCompleted ? "Review" :
+                                isCurrent ? (isActive ? "Hide" : "Start") :
+                                  isLevelLocked ? (
+                                    <>
+                                      <span className="hidden sm:inline">Need {module.level}</span>
+                                      <span className="sm:hidden">Need {module.level}</span>
+                                    </>
+                                  ) :
+                                    "Locked"}
                             </span>
-                          )}
+                            <ChevronRight className={`h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2 transition-transform ${isActive ? 'rotate-90' : ''
+                              }`} />
+                          </Button>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Action Button */}
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                      <Button
-                        size="sm"
-                        onClick={() => handleModuleClick(module, index)}
-                        disabled={isLocked || loadingStates[moduleId]}
-                        className={`w-full sm:w-auto text-xs sm:text-sm min-h-[44px] ${
-                          isCompleted 
-                            ? "bg-green-100 text-green-700 hover:bg-green-200" 
-                            : isCurrent 
-                            ? "shadow-md" 
-                            : ""
-                        }`}
-                      >
-                        {loadingStates[moduleId] ? (
-                          <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 animate-spin" />
-                        ) : isCompleted ? (
-                          <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                        ) : isCurrent ? (
-                          <PlayCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                        ) : (
-                          <Lock className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                        )}
-                        <span>
-                          {isCompleted ? "Review" : 
-                           isCurrent ? (isActive ? "Hide" : "Start") : 
-                           isLevelLocked ? (
-                             <>
-                               <span className="hidden sm:inline">Need {module.level}</span>
-                               <span className="sm:hidden">Need {module.level}</span>
-                             </>
-                           ) :
-                           "Locked"}
-                        </span>
-                        <ChevronRight className={`h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2 transition-transform ${
-                          isActive ? 'rotate-90' : ''
-                        }`} />
-                      </Button>
-                    </div>
-                  </div>
+                      {/* Enhanced Module Content Panel */}
+                      {isActive && (
+                        <div className="mt-4 rounded-lg border bg-white shadow-sm">
+                          <Tabs value={uiState.activeTab} onValueChange={(tab) =>
+                            setUiState(prev => ({ ...prev, activeTab: tab }))
+                          }>
+                            <div className="border-b">
+                              <TabsList className="flex w-full overflow-x-auto bg-transparent h-auto p-0 gap-1">
+                                <TabsTrigger value="lessons" className="flex items-center rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-transparent py-2 sm:py-3 text-xs sm:text-sm min-w-[140px] sm:min-w-0">
+                                  <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                                  <span className="hidden sm:inline">Lessons ({moduleLessons.length})</span>
+                                  <span className="sm:hidden">Lessons</span>
+                                </TabsTrigger>
+                                <TabsTrigger value="assessments" className="flex items-center rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-transparent py-2 sm:py-3 text-xs sm:text-sm min-w-[140px] sm:min-w-0">
+                                  <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                                  <span className="hidden sm:inline">Assessments ({(quizzesByModule[moduleId]?.length || 0) + (assignmentsByModule[moduleId]?.length || 0)})</span>
+                                  <span className="sm:hidden">Tests</span>
+                                </TabsTrigger>
+                              </TabsList>
+                            </div>
 
-                  {/* Enhanced Module Content Panel */}
-                  {isActive && (
-                    <div className="mt-4 rounded-lg border bg-white shadow-sm">
-                      <Tabs value={uiState.activeTab} onValueChange={(tab) => 
-                        setUiState(prev => ({ ...prev, activeTab: tab }))
-                      }>
-                        <div className="border-b">
-                          <TabsList className="flex w-full overflow-x-auto bg-transparent h-auto p-0 gap-1">
-                            <TabsTrigger value="lessons" className="flex items-center rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-transparent py-2 sm:py-3 text-xs sm:text-sm min-w-[140px] sm:min-w-0">
-                              <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                              <span className="hidden sm:inline">Lessons ({moduleLessons.length})</span>
-                              <span className="sm:hidden">Lessons</span>
-                            </TabsTrigger>
-                            <TabsTrigger value="assessments" className="flex items-center rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-transparent py-2 sm:py-3 text-xs sm:text-sm min-w-[140px] sm:min-w-0">
-                              <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                              <span className="hidden sm:inline">Assessments ({(quizzesByModule[moduleId]?.length || 0) + (assignmentsByModule[moduleId]?.length || 0)})</span>
-                              <span className="sm:hidden">Tests</span>
-                            </TabsTrigger>
-                          </TabsList>
-                        </div>
+                            {/* Enhanced Lessons Tab */}
+                            <TabsContent value="lessons" className="p-3 sm:p-4 lg:p-6">
+                              <div className="space-y-3 sm:space-y-4">
+                                {moduleLessons.length === 0 ? (
+                                  <div className="text-center py-6 sm:py-8">
+                                    <BookOpen className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-2 sm:mb-4" />
+                                    <p className="text-xs sm:text-sm text-muted-foreground">
+                                      No lessons found for this module.
+                                    </p>
+                                  </div>
+                                ) : (
+                                  moduleLessons.map((lesson, lessonIndex) => {
+                                    const isLessonDone = isLessonCompleted(lesson);
+                                    const currentLessonIndex = moduleLessons.findIndex(l =>
+                                      !isLessonCompleted(l)
+                                    );
+                                    // Enforce strictly sequential lesson progression
+                                    // A lesson is locked if it is not yet completed AND
+                                    // it is not the immediate next lesson to complete.
+                                    // Completed lessons should remain accessible for review.
+                                    const isLessonLocked = !isLessonDone &&
+                                      currentLessonIndex !== -1 &&
+                                      lessonIndex !== currentLessonIndex;
 
-                        {/* Enhanced Lessons Tab */}
-                        <TabsContent value="lessons" className="p-3 sm:p-4 lg:p-6">
-                          <div className="space-y-3 sm:space-y-4">
-                            {moduleLessons.length === 0 ? (
-                              <div className="text-center py-6 sm:py-8">
-                                <BookOpen className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-2 sm:mb-4" />
-                                <p className="text-xs sm:text-sm text-muted-foreground">
-                                  No lessons found for this module.
-                                </p>
-                              </div>
-                            ) : (
-                              moduleLessons.map((lesson, lessonIndex) => {
-                                const isLessonDone = isLessonCompleted(lesson);
-                                const currentLessonIndex = moduleLessons.findIndex(l => 
-                                  !isLessonCompleted(l)
-                                );
-                                // Enforce strictly sequential lesson progression
-                                // A lesson is locked if it is not yet completed AND
-                                // it is not the immediate next lesson to complete.
-                                // Completed lessons should remain accessible for review.
-                                const isLessonLocked = !isLessonDone &&
-                                  currentLessonIndex !== -1 &&
-                                  lessonIndex !== currentLessonIndex;
-
-                                return (
-                                  <div 
-                                    key={getLessonId(lesson) || lessonIndex} 
-                                    className={`flex flex-col sm:flex-row items-start justify-between rounded-lg border p-3 sm:p-4 gap-3 sm:gap-0 ${
-                                      isLessonLocked 
-                                        ? 'opacity-60 bg-gray-50' 
-                                        : isLessonDone 
-                                        ? 'bg-green-50 border-green-200' 
-                                        : 'hover:bg-blue-50 border-blue-200 ring-2 ring-blue-100'
-                                    }`}
-                                  >
-                                    <div className="flex items-start gap-3 flex-1 min-w-0">
-                                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium shrink-0 ${
-                                        isLessonDone 
-                                          ? "bg-green-100 text-green-700" 
-                                          : isLessonLocked 
-                                          ? "bg-gray-100 text-gray-500" 
-                                          : "bg-blue-100 text-blue-600"
-                                      }`}>
-                                        {isLessonDone ? (
-                                          <CheckCircle2 className="h-4 w-4" />
-                                        ) : isLessonLocked ? (
-                                          <Lock className="h-4 w-4" />
-                                        ) : (
-                                          lessonIndex + 1
-                                        )}
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                                          <h4 className="text-sm sm:text-base font-semibold break-words max-w-full">
-                                            {lesson.title || `Lesson ${lessonIndex + 1}`}
-                                          </h4>
-                                          {isLessonDone && (
-                                            <Badge variant="outline" className="text-xs bg-green-100 text-green-700 self-start sm:self-auto">
-                                              Completed
+                                    return (
+                                      <div
+                                        key={getLessonId(lesson) || lessonIndex}
+                                        className={`flex flex-col sm:flex-row items-start justify-between rounded-lg border p-3 sm:p-4 gap-3 sm:gap-0 ${isLessonLocked
+                                          ? 'opacity-60 bg-gray-50'
+                                          : isLessonDone
+                                            ? 'bg-green-50 border-green-200'
+                                            : 'hover:bg-blue-50 border-blue-200 ring-2 ring-blue-100'
+                                          }`}
+                                      >
+                                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium shrink-0 ${isLessonDone
+                                            ? "bg-green-100 text-green-700"
+                                            : isLessonLocked
+                                              ? "bg-gray-100 text-gray-500"
+                                              : "bg-blue-100 text-blue-600"
+                                            }`}>
+                                            {isLessonDone ? (
+                                              <CheckCircle2 className="h-4 w-4" />
+                                            ) : isLessonLocked ? (
+                                              <Lock className="h-4 w-4" />
+                                            ) : (
+                                              lessonIndex + 1
+                                            )}
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                                              <h4 className="text-sm sm:text-base font-semibold break-words max-w-full">
+                                                {lesson.title || `Lesson ${lessonIndex + 1}`}
+                                              </h4>
+                                              {isLessonDone && (
+                                                <Badge variant="outline" className="text-xs bg-green-100 text-green-700 self-start sm:self-auto">
+                                                  Completed
+                                                </Badge>
+                                              )}
+                                            </div>
+                                            {lesson.description && (
+                                              <p className="text-xs sm:text-sm text-muted-foreground mb-2 leading-relaxed line-clamp-2 break-words">
+                                                {lesson.description}
+                                              </p>
+                                            )}
+                                            <div className="flex items-center gap-2">
+                                              <Badge variant="outline" className="text-xs px-2 py-1">
+                                                <Clock className="h-3 w-3 mr-1" />
+                                                {lesson.duration || "5 min"}
+                                              </Badge>
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 w-full sm:w-auto sm:shrink-0">
+                                          {!isLessonLocked && (
+                                            <Button
+                                              size="sm"
+                                              onClick={() => navigate(`/student/lesson/${getLessonId(lesson)}`)}
+                                              className={`w-full sm:w-auto text-xs sm:text-sm min-h-[44px] ${isLessonDone ?
+                                                "bg-green-100 text-green-700 hover:bg-green-200" :
+                                                "bg-blue-600 hover:bg-blue-700 text-white"
+                                                }`}
+                                            >
+                                              {isLessonDone ? (
+                                                <>
+                                                  <Eye className="h-3 w-3 mr-1 sm:mr-2" />
+                                                  <span>Review</span>
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <PlayCircle className="h-3 w-3 mr-1 sm:mr-2" />
+                                                  <span className="hidden sm:inline">Start Lesson</span>
+                                                  <span className="sm:hidden">Start</span>
+                                                </>
+                                              )}
+                                            </Button>
+                                          )}
+                                          {isLessonLocked && (
+                                            <Badge variant="outline" className="text-xs bg-gray-100 text-gray-600 px-2 py-1 w-full sm:w-auto justify-center">
+                                              <Lock className="h-3 w-3 mr-1" />
+                                              Locked
                                             </Badge>
                                           )}
                                         </div>
-                                        {lesson.description && (
-                                          <p className="text-xs sm:text-sm text-muted-foreground mb-2 leading-relaxed line-clamp-2 break-words">
-                                            {lesson.description}
-                                          </p>
+                                      </div>
+                                    );
+                                  })
+                                )}
+
+                                {/* Module Complete Button */}
+                                {(() => {
+                                  const moduleAssignments = assignmentsByModule[moduleId] || [];
+                                  const moduleQuizzes = quizzesByModule[moduleId] || [];
+                                  const allLessonsComplete = (moduleLessons.length === 0) || (completedLessonsInModule === moduleLessons.length);
+                                  const totalAssessments = moduleQuizzes.length + moduleAssignments.length;
+
+                                  // Check if all assignments in this module are submitted
+                                  const allAssignmentsComplete = moduleAssignments.length === 0 || moduleAssignments.every(a => {
+                                    const aid = getAssignmentId(a);
+                                    return aid && submissionsByAssignment[String(aid)];
+                                  });
+
+                                  // New rule: quizzes must be PASSED (at least once) to complete module, regardless of lessons presence
+                                  const allQuizzesPassed = moduleQuizzes.length === 0 || moduleQuizzes.every(q => {
+                                    const qid = q._id || q.id;
+                                    const quizAttempts = attemptsByQuiz[String(qid)] || [];
+                                    if (quizAttempts.length === 0) return false;
+                                    const bestAttempt = quizAttempts.reduce((best, current) => (current.score > best.score ? current : best), quizAttempts[0]);
+                                    const passingScore = q.passingScore || 70;
+                                    return bestAttempt.score >= passingScore;
+                                  });
+
+                                  const hasLessons = moduleLessons.length > 0;
+                                  const allAssessmentsComplete = allAssignmentsComplete && allQuizzesPassed;
+                                  const canCompleteModule = allLessonsComplete && allAssessmentsComplete;
+
+                                  if (!isCompleted && isAccessible && allLessonsComplete) {
+                                    return (
+                                      <div className="pt-4 border-t mt-4">
+                                        {totalAssessments > 0 ? (
+                                          allAssessmentsComplete ? (
+                                            <div>
+                                              <Button
+                                                onClick={() => handleMarkModuleComplete(module)}
+                                                className="w-full bg-green-600 hover:bg-green-700 min-h-[44px]"
+                                                size="lg"
+                                                disabled={uiState.processingAction === `module-${moduleId}`}
+                                              >
+                                                {uiState.processingAction === `module-${moduleId}` ? (
+                                                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                                ) : (
+                                                  <Trophy className="h-4 w-4 mr-2" />
+                                                )}
+                                                Complete Module
+                                              </Button>
+                                              <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mt-2">
+                                                <Zap className="h-3 w-3 text-green-500" />
+                                                <span>All {hasLessons ? 'lessons and ' : ''}assessments completed!</span>
+                                              </div>
+                                            </div>
+                                          ) : (
+                                            <div className="text-center">
+                                              <div className="flex items-start gap-2 text-sm text-muted-foreground mb-4">
+                                                <BookMarked className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                                                <span>{hasLessons ? 'All lessons completed! Now complete the assessments in the "Assessments" tab to finish this module.' : 'This module has no lessons. Please complete the assessments in the "Assessments" tab to finish this module.'}</span>
+                                              </div>
+                                              <Button
+                                                onClick={() => setUiState(prev => ({ ...prev, activeTab: "assessments" }))}
+                                                variant="outline"
+                                                className="w-full"
+                                                size="lg"
+                                              >
+                                                <BarChart3 className="h-4 w-4 mr-2" />
+                                                Go to Assessments
+                                              </Button>
+                                              <div className="mt-3 text-xs text-muted-foreground">
+                                                <p>Progress: {moduleAssignments.filter(a => {
+                                                  const aid = getAssignmentId(a);
+                                                  return aid && submissionsByAssignment[String(aid)];
+                                                }).length} of {moduleAssignments.length} assignments submitted</p>
+                                              </div>
+                                            </div>
+                                          )
+                                        ) : (
+                                          <div>
+                                            <Button
+                                              onClick={() => handleMarkModuleComplete(module)}
+                                              className="w-full bg-green-600 hover:bg-green-700 min-h-[44px]"
+                                              size="lg"
+                                              disabled={uiState.processingAction === `module-${moduleId}`}
+                                            >
+                                              {uiState.processingAction === `module-${moduleId}` ? (
+                                                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                              ) : (
+                                                <Trophy className="h-4 w-4 mr-2" />
+                                              )}
+                                              Complete Module
+                                            </Button>
+                                            <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mt-2">
+                                              <Zap className="h-3 w-3 text-green-500" />
+                                              <span>{hasLessons ? 'All lessons completed! ' : ''}No assessments required for this module.</span>
+                                            </div>
+                                          </div>
                                         )}
-                                        <div className="flex items-center gap-2">
-                                          <Badge variant="outline" className="text-xs px-2 py-1">
-                                            <Clock className="h-3 w-3 mr-1" />
-                                            {lesson.duration || "5 min"}
-                                          </Badge>
-                                        </div>
                                       </div>
-                                    </div>
-                                    <div className="flex items-center gap-2 w-full sm:w-auto sm:shrink-0">
-                                      {!isLessonLocked && (
-                                        <Button
-                                          size="sm"
-                                          onClick={() => navigate(`/student/lesson/${getLessonId(lesson)}`)}
-                                          className={`w-full sm:w-auto text-xs sm:text-sm min-h-[44px] ${
-                                            isLessonDone ? 
-                                              "bg-green-100 text-green-700 hover:bg-green-200" : 
-                                              "bg-blue-600 hover:bg-blue-700 text-white"
-                                          }`}
-                                        >
-                                          {isLessonDone ? (
-                                            <>
-                                              <Eye className="h-3 w-3 mr-1 sm:mr-2" />
-                                              <span>Review</span>
-                                            </>
-                                          ) : (
-                                            <>
-                                              <PlayCircle className="h-3 w-3 mr-1 sm:mr-2" />
-                                              <span className="hidden sm:inline">Start Lesson</span>
-                                              <span className="sm:hidden">Start</span>
-                                            </>
-                                          )}
-                                        </Button>
-                                      )}
-                                      {isLessonLocked && (
-                                        <Badge variant="outline" className="text-xs bg-gray-100 text-gray-600 px-2 py-1 w-full sm:w-auto justify-center">
-                                          <Lock className="h-3 w-3 mr-1" />
-                                          Locked
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })
-                            )}
-                            
-                            {/* Module Complete Button */}
-                            {(() => {
-                              const moduleAssignments = assignmentsByModule[moduleId] || [];
-                              const moduleQuizzes = quizzesByModule[moduleId] || [];
-                              const allLessonsComplete = (moduleLessons.length === 0) || (completedLessonsInModule === moduleLessons.length);
-                              const totalAssessments = moduleQuizzes.length + moduleAssignments.length;
-                              
-                              // Check if all assignments in this module are submitted
-                              const allAssignmentsComplete = moduleAssignments.length === 0 || moduleAssignments.every(a => {
-                                const aid = getAssignmentId(a);
-                                return aid && submissionsByAssignment[String(aid)];
-                              });
-                              
-                              // New rule: quizzes must be PASSED (at least once) to complete module, regardless of lessons presence
-                              const allQuizzesPassed = moduleQuizzes.length === 0 || moduleQuizzes.every(q => {
-                                const qid = q._id || q.id;
-                                const quizAttempts = attemptsByQuiz[String(qid)] || [];
-                                if (quizAttempts.length === 0) return false;
-                                const bestAttempt = quizAttempts.reduce((best, current) => (current.score > best.score ? current : best), quizAttempts[0]);
-                                const passingScore = q.passingScore || 70;
-                                return bestAttempt.score >= passingScore;
-                              });
-                              
-                              const hasLessons = moduleLessons.length > 0;
-                              const allAssessmentsComplete = allAssignmentsComplete && allQuizzesPassed;
-                              const canCompleteModule = allLessonsComplete && allAssessmentsComplete;
-                              
-                              if (!isCompleted && isAccessible && allLessonsComplete) {
-                                return (
-                                  <div className="pt-4 border-t mt-4">
-                                    {totalAssessments > 0 ? (
-                                      allAssessmentsComplete ? (
-                                        <div>
-                                          <Button 
-                                            onClick={() => handleMarkModuleComplete(module)} 
-                                            className="w-full bg-green-600 hover:bg-green-700 min-h-[44px]"
-                                            size="lg"
-                                            disabled={uiState.processingAction === `module-${moduleId}`}
-                                          >
-                                            {uiState.processingAction === `module-${moduleId}` ? (
-                                              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                                            ) : (
-                                              <Trophy className="h-4 w-4 mr-2" />
-                                            )}
-                                            Complete Module
-                                          </Button>
-                                          <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mt-2">
-                                            <Zap className="h-3 w-3 text-green-500" />
-                                            <span>All {hasLessons ? 'lessons and ' : ''}assessments completed!</span>
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <div className="text-center">
-                                          <div className="flex items-start gap-2 text-sm text-muted-foreground mb-4">
-                                            <BookMarked className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
-                                            <span>{hasLessons ? 'All lessons completed! Now complete the assessments in the "Assessments" tab to finish this module.' : 'This module has no lessons. Please complete the assessments in the "Assessments" tab to finish this module.'}</span>
-                                          </div>
-                                          <Button 
-                                            onClick={() => setUiState(prev => ({ ...prev, activeTab: "assessments" }))}
-                                            variant="outline" 
-                                            className="w-full"
-                                            size="lg"
-                                          >
-                                            <BarChart3 className="h-4 w-4 mr-2" />
-                                            Go to Assessments
-                                          </Button>
-                                          <div className="mt-3 text-xs text-muted-foreground">
-                                            <p>Progress: {moduleAssignments.filter(a => {
-                                              const aid = getAssignmentId(a);
-                                              return aid && submissionsByAssignment[String(aid)];
-                                            }).length} of {moduleAssignments.length} assignments submitted</p>
-                                          </div>
-                                        </div>
-                                      )
-                                    ) : (
-                                      <div>
-                                        <Button 
-                                          onClick={() => handleMarkModuleComplete(module)} 
-                                          className="w-full bg-green-600 hover:bg-green-700 min-h-[44px]"
-                                          size="lg"
-                                          disabled={uiState.processingAction === `module-${moduleId}`}
-                                        >
-                                          {uiState.processingAction === `module-${moduleId}` ? (
-                                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                                          ) : (
-                                            <Trophy className="h-4 w-4 mr-2" />
-                                          )}
-                                          Complete Module
-                                        </Button>
-                                        <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mt-2">
-                                          <Zap className="h-3 w-3 text-green-500" />
-                                          <span>{hasLessons ? 'All lessons completed! ' : ''}No assessments required for this module.</span>
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              }
-                              return null;
-                            })()}
-                          </div>
-                        </TabsContent>
+                                    );
+                                  }
+                                  return null;
+                                })()}
+                              </div>
+                            </TabsContent>
 
 
-        {/* Assessments Tab - 320px optimized */}
-                        <TabsContent value="assessments" className="p-2 xs:p-4">
-                          <div className="space-y-4">
-                            {/* Assessment access control */}
-                            {moduleLessons.length > 0 && (
-                              <div className={`rounded-lg p-3 xs:p-4 mb-3 xs:mb-4 ${
-                                completedLessonsInModule === moduleLessons.length
-                                  ? 'bg-green-50 border border-green-200'
-                                  : 'bg-amber-50 border border-amber-200'
-                              }`}>
-                                <div className="flex items-start gap-2 xs:gap-3">
-                                  {completedLessonsInModule === moduleLessons.length ? (
-                                    <Trophy className="h-4 w-4 xs:h-5 xs:w-5 text-green-600 mt-0.5" />
-                                  ) : (
-                                    <Lock className="h-4 w-4 xs:h-5 xs:w-5 text-amber-600 mt-0.5" />
-                                  )}
-                                  <div>
-                                    <div className={`flex items-center gap-2 font-semibold mb-1 ${
-                                      completedLessonsInModule === moduleLessons.length
-                                        ? 'text-green-800'
-                                        : 'text-amber-800'
+                            {/* Assessments Tab - 320px optimized */}
+                            <TabsContent value="assessments" className="p-2 xs:p-4">
+                              <div className="space-y-4">
+                                {/* Assessment access control */}
+                                {moduleLessons.length > 0 && (
+                                  <div className={`rounded-lg p-3 xs:p-4 mb-3 xs:mb-4 ${completedLessonsInModule === moduleLessons.length
+                                    ? 'bg-green-50 border border-green-200'
+                                    : 'bg-amber-50 border border-amber-200'
                                     }`}>
+                                    <div className="flex items-start gap-2 xs:gap-3">
                                       {completedLessonsInModule === moduleLessons.length ? (
-                                        <>
-                                          <Zap className="h-4 w-4 text-green-600" />
-                                          <span>Assessments Unlocked!</span>
-                                        </>
+                                        <Trophy className="h-4 w-4 xs:h-5 xs:w-5 text-green-600 mt-0.5" />
                                       ) : (
-                                        <>
-                                          <Lock className="h-4 w-4 text-amber-600" />
-                                          <span>Complete All Lessons First</span>
-                                        </>
+                                        <Lock className="h-4 w-4 xs:h-5 xs:w-5 text-amber-600 mt-0.5" />
                                       )}
-                                    </div>
-                                    <p className={`text-xs xs:text-sm leading-relaxed ${
-                                      completedLessonsInModule === moduleLessons.length
-                                        ? 'text-green-700'
-                                        : 'text-amber-700'
-                                    }`}>
-                                      {completedLessonsInModule === moduleLessons.length
-                                        ? 'Great job completing all lessons! You can now access the assessments below. Complete all assessments to finish this module.'
-                                        : `You need to complete all ${moduleLessons.length} lessons in this module before you can access assessments. Progress: ${completedLessonsInModule} of ${moduleLessons.length} lessons completed.`
-                                      }
-                                    </p>
-                                    {completedLessonsInModule < moduleLessons.length && (
-                                      <div className="mt-3">
-                                        <div className="w-full bg-amber-200 rounded-full h-2">
-                                          <div 
-                                            className="bg-amber-600 h-2 rounded-full transition-all duration-500" 
-                                            style={{ 
-                                              width: `${moduleLessons.length > 0 ? (completedLessonsInModule / moduleLessons.length) * 100 : 0}%` 
-                                            }}
-                                          ></div>
+                                      <div>
+                                        <div className={`flex items-center gap-2 font-semibold mb-1 ${completedLessonsInModule === moduleLessons.length
+                                          ? 'text-green-800'
+                                          : 'text-amber-800'
+                                          }`}>
+                                          {completedLessonsInModule === moduleLessons.length ? (
+                                            <>
+                                              <Zap className="h-4 w-4 text-green-600" />
+                                              <span>Assessments Unlocked!</span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Lock className="h-4 w-4 text-amber-600" />
+                                              <span>Complete All Lessons First</span>
+                                            </>
+                                          )}
                                         </div>
-                                        <p className="text-xs text-amber-600 mt-1">
-                                          {Math.round((completedLessonsInModule / moduleLessons.length) * 100)}% complete
+                                        <p className={`text-xs xs:text-sm leading-relaxed ${completedLessonsInModule === moduleLessons.length
+                                          ? 'text-green-700'
+                                          : 'text-amber-700'
+                                          }`}>
+                                          {completedLessonsInModule === moduleLessons.length
+                                            ? 'Great job completing all lessons! You can now access the assessments below. Complete all assessments to finish this module.'
+                                            : `You need to complete all ${moduleLessons.length} lessons in this module before you can access assessments. Progress: ${completedLessonsInModule} of ${moduleLessons.length} lessons completed.`
+                                          }
                                         </p>
+                                        {completedLessonsInModule < moduleLessons.length && (
+                                          <div className="mt-3">
+                                            <div className="w-full bg-amber-200 rounded-full h-2">
+                                              <div
+                                                className="bg-amber-600 h-2 rounded-full transition-all duration-500"
+                                                style={{
+                                                  width: `${moduleLessons.length > 0 ? (completedLessonsInModule / moduleLessons.length) * 100 : 0}%`
+                                                }}
+                                              ></div>
+                                            </div>
+                                            <p className="text-xs text-amber-600 mt-1">
+                                              {Math.round((completedLessonsInModule / moduleLessons.length) * 100)}% complete
+                                            </p>
+                                          </div>
+                                        )}
                                       </div>
-                                    )}
+                                    </div>
                                   </div>
-                                </div>
+                                )}
+
+                                {/* Module Quizzes Component */}
+                                <StudentModuleQuizzes
+                                  quizzes={quizzesByModule[moduleId] || []}
+                                  attempts={attemptsByQuiz}
+                                  isUnlocked={(moduleLessons.length === 0) || (completedLessonsInModule === moduleLessons.length)}
+                                  onStart={handleStartQuiz}
+                                  extraGrantedQuizIds={extraGrantedQuizIds}
+                                  rejectedQuizIds={rejectedQuizIds}
+                                />
+
+                                {/* Module Assignments Component */}
+                                <StudentModuleAssignments
+                                  assignments={assignmentsByModule[moduleId] || []}
+                                  submissions={submissionsByAssignment}
+                                  isUnlocked={(moduleLessons.length === 0) || (completedLessonsInModule === moduleLessons.length)}
+                                  onViewDetails={handleAssignmentViewDetails}
+                                  onSubmit={handleAssignmentSubmit}
+                                />
+
+                                {/* No Assessments */}
+                                {(!quizzesByModule[moduleId] || quizzesByModule[moduleId].length === 0) &&
+                                  (!assignmentsByModule[moduleId] || assignmentsByModule[moduleId].length === 0) && (
+                                    <div className="text-center py-6 xs:py-8">
+                                      <BarChart3 className="h-6 w-6 xs:h-8 xs:w-8 text-muted-foreground mx-auto mb-2" />
+                                      <p className="text-xs xs:text-sm text-muted-foreground">
+                                        No assessments available for this module.
+                                      </p>
+                                    </div>
+                                  )}
                               </div>
-                            )}
-                            
-                            {/* Module Quizzes Component */}
-                            <StudentModuleQuizzes 
-                              quizzes={quizzesByModule[moduleId] || []}
-                              attempts={attemptsByQuiz}
-                              isUnlocked={(moduleLessons.length === 0) || (completedLessonsInModule === moduleLessons.length)}
-                              onStart={handleStartQuiz}
-                              extraGrantedQuizIds={extraGrantedQuizIds}
-                              rejectedQuizIds={rejectedQuizIds}
-                            />
-                            
-                            {/* Module Assignments Component */}
-                            <StudentModuleAssignments 
-                              assignments={assignmentsByModule[moduleId] || []}
-                              submissions={submissionsByAssignment}
-                              isUnlocked={(moduleLessons.length === 0) || (completedLessonsInModule === moduleLessons.length)}
-                              onViewDetails={handleAssignmentViewDetails}
-                              onSubmit={handleAssignmentSubmit}
-                            />
+                            </TabsContent>
+                          </Tabs>
+                        </div>
+                      )}
 
-                            {/* No Assessments */}
-                            {(!quizzesByModule[moduleId] || quizzesByModule[moduleId].length === 0) &&
-                             (!assignmentsByModule[moduleId] || assignmentsByModule[moduleId].length === 0) && (
-                              <div className="text-center py-6 xs:py-8">
-                                <BarChart3 className="h-6 w-6 xs:h-8 xs:w-8 text-muted-foreground mx-auto mb-2" />
-                                <p className="text-xs xs:text-sm text-muted-foreground">
-                                  No assessments available for this module.
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        </TabsContent>
-                      </Tabs>
+                      {/* Module Resources Component - 320px optimized */}
+                      <div className="mt-3 xs:mt-4">
+                        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                          <StudentModuleResources
+                            moduleId={moduleId}
+                            resources={resourcesByModule[moduleId] || []}
+                            isModuleCompleted={isCompleted}
+                            completedLessons={completedLessonsInModule}
+                            totalLessons={moduleLessons.length}
+                            className="p-2 xs:p-4"
+                          />
+                        </div>
+                      </div>
                     </div>
-                  )}
+                  </ModuleAssessmentProvider>
+                );
+              })
+            )}
+          </CardContent>
+        </Card>
 
-                  {/* Module Resources Component - 320px optimized */}
-                  <div className="mt-3 xs:mt-4">
-                    <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-                      <StudentModuleResources 
-                        moduleId={moduleId}
-                        resources={resourcesByModule[moduleId] || []}
-                        isModuleCompleted={isCompleted}
-                        completedLessons={completedLessonsInModule}
-                        totalLessons={moduleLessons.length}
-                        className="p-2 xs:p-4"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </ModuleAssessmentProvider>
-              );
-            })
-          )}
-        </CardContent>
-      </Card>
+        {/* Course Resources Component */}
+        <StudentCourseResources
+          resources={courseResources}
+          courseTitle={department?.course?.title || department?.course?.name}
+        />
 
-      {/* Course Resources Component */}
-      <StudentCourseResources 
-        resources={courseResources}
-        courseTitle={batch?.course?.title || batch?.course?.name}
-      />
-      
-      {/* Assignment Modals */}
-      <AssignmentDetailsModal 
-        assignment={assignmentModals.detailsModal.assignment}
-        submission={assignmentModals.detailsModal.submission}
-        isOpen={assignmentModals.detailsModal.isOpen}
-        onClose={handleCloseDetailsModal}
-        onSubmit={handleShowSubmissionFromDetails}
-      />
-      
-      <AssignmentSubmissionModal 
-        assignment={assignmentModals.submissionModal.assignment}
-        submission={assignmentModals.submissionModal.submission}
-        isOpen={assignmentModals.submissionModal.isOpen}
-        onClose={handleCloseSubmissionModal}
-        onSuccess={handleSubmissionSuccess}
-      />
+        {/* Assignment Modals */}
+        <AssignmentDetailsModal
+          assignment={assignmentModals.detailsModal.assignment}
+          submission={assignmentModals.detailsModal.submission}
+          isOpen={assignmentModals.detailsModal.isOpen}
+          onClose={handleCloseDetailsModal}
+          onSubmit={handleShowSubmissionFromDetails}
+        />
+
+        <AssignmentSubmissionModal
+          assignment={assignmentModals.submissionModal.assignment}
+          submission={assignmentModals.submissionModal.submission}
+          isOpen={assignmentModals.submissionModal.isOpen}
+          onClose={handleCloseSubmissionModal}
+          onSuccess={handleSubmissionSuccess}
+        />
       </div>
     </div>
   );
 };
 
-export default BatchCourse;
+export default DepartmentCourse;

@@ -73,7 +73,7 @@ const LessonDetail = () => {
         setError(null);
 
         // 1) Get course content (for courseId and completion status)
-        const response = await axiosInstance.get('/api/batches/me/course-content');
+        const response = await axiosInstance.get('/api/departments/me/course-content');
         const data = response?.data?.data;
         if (!data?.course) throw new Error('Course not found');
         setCourseData(data);
@@ -109,7 +109,7 @@ const LessonDetail = () => {
               foundModuleId = moduleId;
               break;
             }
-          } catch (_) {}
+          } catch (_) { }
         }
         if (!foundLesson || !foundModuleId) {
           throw new Error('Lesson not found');
@@ -136,7 +136,7 @@ const LessonDetail = () => {
 
   // Slide viewer state
   const [slideIndex, setSlideIndex] = useState(0);
-  const slides = Array.isArray(lesson?.slides) ? [...lesson.slides].sort((a,b)=> (a.order||0)-(b.order||0)) : [];
+  const slides = Array.isArray(lesson?.slides) ? [...lesson.slides].sort((a, b) => (a.order || 0) - (b.order || 0)) : [];
   const slideStageRef = useRef(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -154,8 +154,8 @@ const LessonDetail = () => {
         return;
       }
       if (!slides.length) return;
-      if (e.key === 'ArrowRight') setSlideIndex((i)=> Math.min(slides.length-1, i+1));
-      if (e.key === 'ArrowLeft') setSlideIndex((i)=> Math.max(0, i-1));
+      if (e.key === 'ArrowRight') setSlideIndex((i) => Math.min(slides.length - 1, i + 1));
+      if (e.key === 'ArrowLeft') setSlideIndex((i) => Math.max(0, i - 1));
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -227,15 +227,15 @@ const LessonDetail = () => {
 
     try {
       setCompletingLesson(true);
-      
+
       const courseId = courseData.course._id || courseData.course.id;
-      
+
       // Use the progress API to mark lesson complete
       const response = await axiosInstance.patch('/api/progress/lesson-complete', {
         courseId,
         lessonId
       });
-      
+
       if (response.data.success) {
         setIsCompleted(true);
         toast.success("🎉 Lesson completed!");
@@ -244,7 +244,7 @@ const LessonDetail = () => {
       } else {
         throw new Error(response.data.message || 'Failed to complete lesson');
       }
-      
+
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message || "Failed to mark lesson as complete";
       toast.error(errorMessage);
@@ -254,7 +254,7 @@ const LessonDetail = () => {
   };
 
   const getResourceIcon = (type) => {
-    switch(type?.toLowerCase()) {
+    switch (type?.toLowerCase()) {
       case 'video':
         return <Video className="h-5 w-5" />;
       case 'pdf':
@@ -335,9 +335,9 @@ const LessonDetail = () => {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Course
               </Button>
-              <Button 
-                onClick={() => window.location.reload()} 
-                variant="outline" 
+              <Button
+                onClick={() => window.location.reload()}
+                variant="outline"
                 className="flex-1"
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
@@ -388,7 +388,7 @@ const LessonDetail = () => {
                 </div>
               </div>
             </div>
-            
+
             {/* Right Section - Progress/Status */}
             <div className="flex items-center gap-2 sm:gap-3">
               {isCompleted ? (
@@ -407,9 +407,9 @@ const LessonDetail = () => {
                   <div className="flex items-center gap-2 sm:gap-3">
                     <div className="flex flex-col items-end">
                       <div className="w-24 sm:w-32">
-                        <Progress 
-                          value={scrollProgress} 
-                          className="h-2 sm:h-2.5" 
+                        <Progress
+                          value={scrollProgress}
+                          className="h-2 sm:h-2.5"
                         />
                       </div>
                       <span className="text-xs text-muted-foreground mt-1">
@@ -424,8 +424,8 @@ const LessonDetail = () => {
                       </div>
                     )}
                   </div>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="outline"
                     onClick={handleCompleteLesson}
                     disabled={completingLesson}
@@ -446,7 +446,7 @@ const LessonDetail = () => {
       </div>
 
       {/* Enhanced Scrollable Content */}
-      <div 
+      <div
         ref={scrollContainerRef}
         className="max-w-4xl mx-auto sm:p-6 space-y-4 sm:space-y-6 h-[calc(100vh-80px)] sm:h-[calc(100vh-88px)] overflow-y-auto scroll-smooth"
         style={{ scrollbarWidth: 'thin', scrollbarColor: '#CBD5E0 #F7FAFC' }}
@@ -460,7 +460,7 @@ const LessonDetail = () => {
               </div>
               <span>Lesson Content</span>
               {slides.length > 0 && (
-                <Badge variant="outline" className="ml-2 text-xs">{slides.length} slide{slides.length>1?'s':''}</Badge>
+                <Badge variant="outline" className="ml-2 text-xs">{slides.length} slide{slides.length > 1 ? 's' : ''}</Badge>
               )}
             </CardTitle>
           </CardHeader>
@@ -478,8 +478,8 @@ const LessonDetail = () => {
                         <><Maximize2 className="h-4 w-4 mr-1" /> Full Screen</>
                       )}
                     </Button>
-                    <Button size="sm" variant="outline" disabled={slideIndex===0} onClick={() => setSlideIndex((i)=>Math.max(0,i-1))}>Prev</Button>
-                    <Button size="sm" variant="outline" disabled={slideIndex===slides.length-1} onClick={() => setSlideIndex((i)=>Math.min(slides.length-1,i+1))}>Next</Button>
+                    <Button size="sm" variant="outline" disabled={slideIndex === 0} onClick={() => setSlideIndex((i) => Math.max(0, i - 1))}>Prev</Button>
+                    <Button size="sm" variant="outline" disabled={slideIndex === slides.length - 1} onClick={() => setSlideIndex((i) => Math.min(slides.length - 1, i + 1))}>Next</Button>
                   </div>
                 </div>
                 <div
@@ -502,7 +502,7 @@ const LessonDetail = () => {
                 </div>
                 <div className="flex items-center justify-center gap-2 mt-4">
                   {slides.map((_, i) => (
-                    <button key={i} aria-label={`Go to slide ${i+1}`} onClick={() => setSlideIndex(i)} className={`h-2.5 w-2.5 rounded-full ${i===slideIndex? 'bg-blue-600':'bg-gray-300'} hover:bg-blue-500`} />
+                    <button key={i} aria-label={`Go to slide ${i + 1}`} onClick={() => setSlideIndex(i)} className={`h-2.5 w-2.5 rounded-full ${i === slideIndex ? 'bg-blue-600' : 'bg-gray-300'} hover:bg-blue-500`} />
                   ))}
                 </div>
               </div>
@@ -544,18 +544,18 @@ const LessonDetail = () => {
                     </li>
                   </ul>
                 </div>
-                
+
                 <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-orange-400 rounded-r-lg p-4 sm:p-6">
                   <h3 className="text-base sm:text-lg font-bold text-orange-900 mb-3 flex items-center gap-2">
                     <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5" />
                     Key Points
                   </h3>
                   <p className="text-orange-800 text-sm sm:text-base leading-relaxed">
-                    Make sure to review all the materials and resources provided below to get the most out of this lesson. 
+                    Make sure to review all the materials and resources provided below to get the most out of this lesson.
                     Take notes and refer back to this content as needed during your learning journey.
                   </p>
                 </div>
-                
+
                 {/* Additional Interactive Elements */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mt-6">
                   <div className="p-4 bg-green-50 rounded-lg border border-green-200">
@@ -567,7 +567,7 @@ const LessonDetail = () => {
                       Practice makes perfect. Apply these concepts in real scenarios.
                     </p>
                   </div>
-                  
+
                   <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
                     <div className="flex items-center gap-2 mb-2">
                       <Trophy className="h-4 w-4 text-purple-600" />
@@ -606,7 +606,7 @@ const LessonDetail = () => {
               <div className="space-y-3 sm:space-y-4">
                 {resources.map((resource, index) => {
                   const resourceId = resource._id || resource.id || index;
-                  
+
                   return (
                     <div
                       key={resourceId}
@@ -621,14 +621,13 @@ const LessonDetail = () => {
                             <h4 className="text-sm sm:text-base font-semibold text-gray-900 truncate">
                               {resource.title || `Resource ${index + 1}`}
                             </h4>
-                            <Badge 
-                              variant="outline" 
-                              className={`text-xs self-start sm:self-auto ${
-                                resource.type === 'video' ? 'border-red-200 text-red-700 bg-red-50' :
-                                resource.type === 'pdf' ? 'border-blue-200 text-blue-700 bg-blue-50' :
-                                resource.type === 'link' ? 'border-purple-200 text-purple-700 bg-purple-50' :
-                                'border-gray-200 text-gray-700 bg-gray-50'
-                              }`}
+                            <Badge
+                              variant="outline"
+                              className={`text-xs self-start sm:self-auto ${resource.type === 'video' ? 'border-red-200 text-red-700 bg-red-50' :
+                                  resource.type === 'pdf' ? 'border-blue-200 text-blue-700 bg-blue-50' :
+                                    resource.type === 'link' ? 'border-purple-200 text-purple-700 bg-purple-50' :
+                                      'border-gray-200 text-gray-700 bg-gray-50'
+                                }`}
                             >
                               {resource.type?.toUpperCase() || 'FILE'}
                             </Badge>
@@ -640,7 +639,7 @@ const LessonDetail = () => {
                           )}
                         </div>
                       </div>
-                      
+
                       <div className="flex flex-row sm:flex-col lg:flex-row items-center gap-2 shrink-0">
                         <Button
                           onClick={() => handleResourceView(resource.url, resource.type, resource.title)}
@@ -668,7 +667,7 @@ const LessonDetail = () => {
                             </>
                           )}
                         </Button>
-                        
+
                         {resource.type !== 'link' && (
                           <Button
                             onClick={() => handleDownload(resource.url, resource.title)}
@@ -702,7 +701,7 @@ const LessonDetail = () => {
                 )}
                 <div className="absolute inset-0 bg-blue-200 rounded-full blur-xl opacity-30 animate-pulse"></div>
               </div>
-              
+
               <h3 className="text-base sm:text-lg font-bold mb-3 text-gray-900">
                 {hasReachedBottom ? (
                   completingLesson ? (
@@ -718,7 +717,7 @@ const LessonDetail = () => {
                   <span className="text-blue-700">📖 Continue reading to complete this lesson</span>
                 )}
               </h3>
-              
+
               <p className="text-xs sm:text-sm text-gray-600 mb-4 leading-relaxed max-w-sm mx-auto">
                 {hasReachedBottom ? (
                   "You've reviewed all the content. Well done on your dedication to learning!"
@@ -726,7 +725,7 @@ const LessonDetail = () => {
                   "Read through all the content and resources to mark this lesson as complete."
                 )}
               </p>
-              
+
               <div className="max-w-xs mx-auto">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-xs font-medium text-gray-600">Progress</span>
@@ -734,16 +733,16 @@ const LessonDetail = () => {
                     {Math.round(scrollProgress)}%
                   </span>
                 </div>
-                <Progress 
-                  value={scrollProgress} 
-                  className="h-2.5 sm:h-3 bg-gray-200" 
+                <Progress
+                  value={scrollProgress}
+                  className="h-2.5 sm:h-3 bg-gray-200"
                 />
                 <div className="flex justify-between text-xs text-gray-500 mt-1">
                   <span>Start</span>
                   <span>Complete</span>
                 </div>
               </div>
-              
+
               {scrollProgress > 50 && !hasReachedBottom && (
                 <div className="mt-4 p-3 bg-blue-100 rounded-lg">
                   <p className="text-xs text-blue-700 font-medium">
@@ -762,7 +761,7 @@ const LessonDetail = () => {
               <div className="relative mb-6">
                 <Trophy className="h-16 w-16 sm:h-20 sm:w-20 text-yellow-500 mx-auto animate-bounce" />
                 <div className="absolute inset-0 bg-yellow-300 rounded-full blur-xl opacity-30 animate-pulse"></div>
-                
+
                 {/* Confetti effect */}
                 <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-4">
                   <div className="text-2xl sm:text-3xl animate-bounce">🎉</div>
@@ -774,17 +773,17 @@ const LessonDetail = () => {
                   <div className="text-xl sm:text-2xl animate-bounce delay-200">✨</div>
                 </div>
               </div>
-              
+
               <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-800 mb-3">
                 🎉 Lesson Completed!
               </h3>
-              
+
               <p className="text-sm sm:text-base text-green-700 mb-6 max-w-md mx-auto leading-relaxed">
                 Excellent work! You have successfully completed this lesson. Your dedication to learning is commendable.
               </p>
-              
+
               <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-sm mx-auto">
-                <Button 
+                <Button
                   onClick={handleBackToCourse}
                   className="flex-1 bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
                   size="lg"
@@ -793,8 +792,8 @@ const LessonDetail = () => {
                   <span className="hidden sm:inline">Continue Learning</span>
                   <span className="sm:hidden">Continue</span>
                 </Button>
-                
-                <Button 
+
+                <Button
                   onClick={() => window.location.reload()}
                   variant="outline"
                   className="flex-1 border-green-300 text-green-700 hover:bg-green-50"
@@ -805,7 +804,7 @@ const LessonDetail = () => {
                   <span className="sm:hidden">Review</span>
                 </Button>
               </div>
-              
+
               {/* Achievement badge */}
               <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-yellow-100 rounded-full border border-yellow-300">
                 <Award className="h-4 w-4 text-yellow-600" />

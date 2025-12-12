@@ -1,28 +1,28 @@
-// src/pages/BatchDetail.jsx
+// src/pages/DepartmentDetail.jsx
 import React, { useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
-import { 
-  useGetBatchByIdQuery, 
-  useGetBatchProgressQuery, 
-  useGetBatchSubmissionsQuery, 
-  useGetBatchAttemptsQuery 
-} from "@/Redux/AllApi/BatchApi";
-import BatchDetailHeader from "@/components/batches/BatchDetailHeader";
-import BatchInstructorCard from "@/components/batches/BatchInstructorCard";
-import BatchCourseCard from "@/components/batches/BatchCourseCard";
-import BatchStudentsTable from "@/components/batches/BatchStudentsTable";
-import BatchStats from "@/components/batches/BatchStats";
-import BatchSkeleton from "@/components/batches/BatchSkeleton";
-import BatchCancellationBanner from "@/components/batches/BatchCancellationBanner";
+import {
+  useGetDepartmentByIdQuery,
+  useGetDepartmentProgressQuery,
+  useGetDepartmentSubmissionsQuery,
+  useGetDepartmentAttemptsQuery
+} from "@/Redux/AllApi/DepartmentApi";
+import DepartmentDetailHeader from "@/components/departments/DepartmentDetailHeader";
+import DepartmentInstructorCard from "@/components/departments/DepartmentInstructorCard";
+import DepartmentCourseCard from "@/components/departments/DepartmentCourseCard";
+import DepartmentStudentsTable from "@/components/departments/DepartmentStudentsTable";
+import DepartmentStats from "@/components/departments/DepartmentStats";
+import DepartmentSkeleton from "@/components/departments/DepartmentSkeleton";
+import DepartmentCancellationBanner from "@/components/departments/DepartmentCancellationBanner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { 
-  IconArrowLeft, 
-  IconRefresh, 
+import {
+  IconArrowLeft,
+  IconRefresh,
   IconUsers,
   IconTrendingUp,
   IconFileText,
@@ -38,25 +38,25 @@ import {
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
-const BatchDetail = () => {
-  const { batchId } = useParams();
+const DepartmentDetail = () => {
+  const { departmentId } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
 
   // API Queries
   const {
-    data: batchData,
-    isLoading: batchLoading,
-    error: batchError,
-    refetch: refetchBatch,
-  } = useGetBatchByIdQuery(batchId);
+    data: departmentData,
+    isLoading: departmentLoading,
+    error: departmentError,
+    refetch: refetchDepartment,
+  } = useGetDepartmentByIdQuery(departmentId);
 
   const {
     data: progressData,
     isLoading: progressLoading,
     error: progressError,
     refetch: refetchProgress,
-  } = useGetBatchProgressQuery(batchId, {
+  } = useGetDepartmentProgressQuery(departmentId, {
     refetchOnMountOrArgChange: true,
   });
 
@@ -65,7 +65,7 @@ const BatchDetail = () => {
     isLoading: submissionsLoading,
     error: submissionsError,
     refetch: refetchSubmissions,
-  } = useGetBatchSubmissionsQuery(batchId, {
+  } = useGetDepartmentSubmissionsQuery(departmentId, {
     refetchOnMountOrArgChange: true,
   });
 
@@ -74,29 +74,29 @@ const BatchDetail = () => {
     isLoading: attemptsLoading,
     error: attemptsError,
     refetch: refetchAttempts,
-  } = useGetBatchAttemptsQuery(batchId, {
+  } = useGetDepartmentAttemptsQuery(departmentId, {
     refetchOnMountOrArgChange: true,
   });
 
-  const batch = batchData?.data;
-  const progressStats = progressData?.data || { batchProgress: [], overallStats: {} };
+  const department = departmentData?.data;
+  const progressStats = progressData?.data || { departmentProgress: [], overallStats: {} };
   const submissionStats = submissionsData?.data || { submissions: [], stats: {} };
   const attemptStats = attemptsData?.data || { attempts: [], stats: {} };
 
-  const isLoading = batchLoading;
-  const anyError = batchError || progressError || submissionsError || attemptsError;
+  const isLoading = departmentLoading;
+  const anyError = departmentError || progressError || submissionsError || attemptsError;
 
   const handleRefreshAll = () => {
-    refetchBatch();
+    refetchDepartment();
     refetchProgress();
     refetchSubmissions();
     refetchAttempts();
-    toast.success("Batch data refreshed successfully!");
+    toast.success("Department data refreshed successfully!");
   };
 
   const getSubmissionStatusBadge = (submission) => {
     let variant, label;
-    
+
     if (submission.grade !== undefined && submission.grade !== null) {
       variant = "default";
       label = "Graded";
@@ -107,7 +107,7 @@ const BatchDetail = () => {
       variant = "secondary";
       label = "Submitted";
     }
-    
+
     return (
       <Badge variant={variant}>
         {label}
@@ -122,7 +122,7 @@ const BatchDetail = () => {
     const { stats: attemptStatsData } = attemptStats;
 
     return {
-      totalStudents: batch?.students?.length || 0,
+      totalStudents: department?.students?.length || 0,
       studentsWithProgress: overallStats.studentsWithProgress || 0,
       averageProgress: overallStats.averageProgress || 0,
       totalModules: overallStats.totalModules || 0,
@@ -133,30 +133,30 @@ const BatchDetail = () => {
       passedAttempts: attemptStatsData.passedAttempts || 0,
       averageQuizScore: attemptStatsData.averageScore || 0,
     };
-  }, [batch, progressStats, submissionStats, attemptStats]);
+  }, [department, progressStats, submissionStats, attemptStats]);
 
   if (isLoading) {
-    return <BatchSkeleton />;
+    return <DepartmentSkeleton />;
   }
 
-  if (batchError) {
+  if (departmentError) {
     return (
       <div className="container mx-auto p-6">
         <div className="flex flex-col items-center justify-center h-96 space-y-4">
           <div className="text-red-600 text-lg font-medium">
-            {batchError.status === 404 ? "Batch not found" : "Error loading batch"}
+            {departmentError.status === 404 ? "Department not found" : "Error loading department"}
           </div>
           <p className="text-gray-600 text-center">
-            {batchError.data?.message || "Failed to fetch batch details"}
+            {departmentError.data?.message || "Failed to fetch department details"}
           </p>
           <div className="flex gap-3">
             <Button
-              onClick={() => navigate("/batches")}
+              onClick={() => navigate("/departments")}
               variant="outline"
               className="gap-2"
             >
               <IconArrowLeft className="h-4 w-4" />
-              Back to Batches
+              Back to Departments
             </Button>
             <Button onClick={handleRefreshAll} className="gap-2">
               <IconRefresh className="h-4 w-4" />
@@ -168,20 +168,20 @@ const BatchDetail = () => {
     );
   }
 
-  if (!batch) {
+  if (!department) {
     return (
       <div className="container mx-auto p-6">
         <div className="flex flex-col items-center justify-center h-96 space-y-4">
           <div className="text-gray-600 text-lg font-medium">
-            Batch not found
+            Department not found
           </div>
           <Button
-            onClick={() => navigate("/batches")}
+            onClick={() => navigate("/departments")}
             variant="outline"
             className="gap-2"
           >
             <IconArrowLeft className="h-4 w-4" />
-            Back to Batches
+            Back to Departments
           </Button>
         </div>
       </div>
@@ -195,16 +195,16 @@ const BatchDetail = () => {
         <div className="flex items-center gap-4">
           <Button
             variant="outline"
-            onClick={() => navigate("/batches")}
+            onClick={() => navigate("/departments")}
             className="gap-2"
           >
             <IconArrowLeft className="h-4 w-4" />
-            Back to Batches
+            Back to Departments
           </Button>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">{batch.name}</h1>
+            <h1 className="text-2xl font-bold tracking-tight">{department.name}</h1>
             <p className="text-muted-foreground mt-1">
-              {batch.course?.title || "No course assigned"} • {batch.students?.length || 0} students
+              {department.course?.title || "No course assigned"} • {department.students?.length || 0} trainees
             </p>
           </div>
         </div>
@@ -215,8 +215,8 @@ const BatchDetail = () => {
         </Button>
       </div>
 
-      {/* Batch Cancellation Banner */}
-      <BatchCancellationBanner batch={batch} />
+      {/* Department Cancellation Banner */}
+      <DepartmentCancellationBanner department={department} />
 
       {/* Enhanced Statistics Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -224,7 +224,7 @@ const BatchDetail = () => {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <IconUsers className="h-4 w-4 text-blue-600" />
-              Students
+              Trainees
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -285,24 +285,24 @@ const BatchDetail = () => {
         <TabsContent value="overview" className="space-y-6">
           {/* Original components */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <BatchInstructorCard instructor={batch.instructor} batchId={batchId} />
-            <BatchCourseCard course={batch.course} />
+            <DepartmentInstructorCard instructor={department.instructor} departmentId={departmentId} />
+            <DepartmentCourseCard course={department.course} />
           </div>
-          
-          <BatchStudentsTable 
-            students={batch.students} 
-            batchId={batchId}
-            batchName={batch.name}
-            onRefetch={refetchBatch}
+
+          <DepartmentStudentsTable
+            students={department.students}
+            departmentId={departmentId}
+            departmentName={department.name}
+            onRefetch={refetchDepartment}
           />
         </TabsContent>
 
         <TabsContent value="progress">
           <Card>
             <CardHeader>
-              <CardTitle>Student Progress Tracking</CardTitle>
+              <CardTitle>Trainee Progress Tracking</CardTitle>
               <CardDescription>
-                Progress overview for all students in the batch
+                Progress overview for all trainees in the department
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -313,11 +313,11 @@ const BatchDetail = () => {
                     Failed to load progress data. Please try refreshing.
                   </AlertDescription>
                 </Alert>
-              ) : progressStats.batchProgress.length > 0 ? (
+              ) : progressStats.departmentProgress.length > 0 ? (
                 <div className="space-y-4">
-                  {progressStats.batchProgress.map((studentProgress, index) => {
+                  {progressStats.departmentProgress.map((studentProgress, index) => {
                     const { student, completedModules, totalModules, progressPercentage, lastActivity } = studentProgress;
-                    
+
                     return (
                       <div key={student._id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
                         <div className="flex items-center gap-4 flex-1">
@@ -345,7 +345,7 @@ const BatchDetail = () => {
                           <Button
                             variant="outline"
                             size="sm"
-onClick={() => navigate(`/students/${student.slug || student._id}`)}
+                            onClick={() => navigate(`/students/${student.slug || student._id}`)}
                           >
                             <IconEye className="h-4 w-4" />
                           </Button>
@@ -359,7 +359,7 @@ onClick={() => navigate(`/students/${student.slug || student._id}`)}
                   <IconBook2 className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-medium mb-2">No Progress Data</h3>
                   <p className="text-muted-foreground">
-                    No students have started the course yet.
+                    No trainees have started the course yet.
                   </p>
                 </div>
               )}
@@ -372,7 +372,7 @@ onClick={() => navigate(`/students/${student.slug || student._id}`)}
             <CardHeader>
               <CardTitle>Assignment Submissions</CardTitle>
               <CardDescription>
-                All assignment submissions from batch students
+                All assignment submissions from department trainees
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -410,14 +410,14 @@ onClick={() => navigate(`/students/${student.slug || student._id}`)}
                         <Button
                           variant="outline"
                           size="sm"
-onClick={() => navigate(`/students/${submission.student.slug || submission.student._id}`)}
+                          onClick={() => navigate(`/students/${submission.student.slug || submission.student._id}`)}
                         >
                           <IconEye className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
                   ))}
-                  
+
                   {/* Show stats summary */}
                   <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
                     <div className="text-center">
@@ -456,7 +456,7 @@ onClick={() => navigate(`/students/${submission.student.slug || submission.stude
             <CardHeader>
               <CardTitle>Quiz Attempts</CardTitle>
               <CardDescription>
-                All quiz attempts from batch students
+                All quiz attempts from department trainees
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -492,14 +492,14 @@ onClick={() => navigate(`/students/${submission.student.slug || submission.stude
                         <Button
                           variant="outline"
                           size="sm"
-onClick={() => navigate(`/students/${attempt.student.slug || attempt.student._id}`)}
+                          onClick={() => navigate(`/students/${attempt.student.slug || attempt.student._id}`)}
                         >
                           <IconEye className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
                   ))}
-                  
+
                   {/* Show stats summary */}
                   <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
                     <div className="text-center">
@@ -537,4 +537,4 @@ onClick={() => navigate(`/students/${attempt.student.slug || attempt.student._id
   );
 };
 
-export default BatchDetail;
+export default DepartmentDetail;

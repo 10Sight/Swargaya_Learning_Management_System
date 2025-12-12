@@ -1,4 +1,4 @@
-// src/components/batches/BatchStudentsTable.jsx
+// src/components/departments/DepartmentStudentsTable.jsx
 import React, { useState } from "react";
 import {
   Table,
@@ -72,11 +72,11 @@ import {
   IconUserMinus,
 } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
-import { useGetBatchProgressQuery, useAddStudentToBatchMutation, useRemoveStudentFromBatchMutation } from "@/Redux/AllApi/BatchApi";
+import { useGetDepartmentProgressQuery, useAddStudentToDepartmentMutation, useRemoveStudentFromDepartmentMutation } from "@/Redux/AllApi/DepartmentApi";
 import { useGetAllUsersQuery } from "@/Redux/AllApi/UserApi";
 import { toast } from "sonner";
 
-const BatchStudentsTable = ({ students, batchId, batchName, onRefetch }) => {
+const DepartmentStudentsTable = ({ students, departmentId, departmentName, onRefetch }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [progressFilter, setProgressFilter] = useState("all");
@@ -86,16 +86,16 @@ const BatchStudentsTable = ({ students, batchId, batchName, onRefetch }) => {
   const navigate = useNavigate();
 
   // Mutation hooks
-  const [addStudentToBatch, { isLoading: isAddingStudent }] = useAddStudentToBatchMutation();
-  const [removeStudentFromBatch, { isLoading: isRemovingStudent }] = useRemoveStudentFromBatchMutation();
+  const [addStudentToDepartment, { isLoading: isAddingStudent }] = useAddStudentToDepartmentMutation();
+  const [removeStudentFromDepartment, { isLoading: isRemovingStudent }] = useRemoveStudentFromDepartmentMutation();
 
-  // Fetch batch progress data
+  // Fetch department progress data
   const {
     data: progressData,
     isLoading: progressLoading,
     error: progressError,
     refetch: refetchProgress,
-  } = useGetBatchProgressQuery(batchId, {
+  } = useGetDepartmentProgressQuery(departmentId, {
     refetchOnMountOrArgChange: true,
   });
 
@@ -105,41 +105,41 @@ const BatchStudentsTable = ({ students, batchId, batchName, onRefetch }) => {
     isLoading: usersLoading,
     error: usersError,
   } = useGetAllUsersQuery(
-    { 
-      role: "STUDENT", 
-      limit: 100, 
-      search: studentSearchTerm 
-    }, 
+    {
+      role: "STUDENT",
+      limit: 100,
+      search: studentSearchTerm
+    },
     { skip: !addStudentDialogOpen }
   );
 
-  const batchProgress = progressData?.data?.batchProgress || [];
+  const departmentProgress = progressData?.data?.departmentProgress || [];
   const availableStudents = usersData?.data?.users || [];
   const currentStudentIds = students.map(s => s._id);
-  const studentsNotInBatch = availableStudents.filter(
+  const studentsNotInDepartment = availableStudents.filter(
     student => !currentStudentIds.includes(student._id)
   );
 
   // Enhanced filtering
   const filteredStudents = students.filter((student) => {
     // Text search filter
-    const matchesSearch = 
+    const matchesSearch =
       student.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.email.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     // Status filter
     const matchesStatus = statusFilter === "all" || student.status === statusFilter;
-    
+
     // Progress filter
     if (progressFilter !== "all") {
-      const studentProgress = batchProgress.find(p => p.student._id === student._id);
+      const studentProgress = departmentProgress.find(p => p.student._id === student._id);
       const progressPercentage = studentProgress?.progressPercentage || 0;
-      
+
       if (progressFilter === "not-started" && progressPercentage > 0) return false;
       if (progressFilter === "in-progress" && (progressPercentage === 0 || progressPercentage >= 100)) return false;
       if (progressFilter === "completed" && progressPercentage < 100) return false;
     }
-    
+
     return matchesSearch && matchesStatus;
   });
 
@@ -151,9 +151,9 @@ const BatchStudentsTable = ({ students, batchId, batchName, onRefetch }) => {
       PENDING: { variant: "secondary", color: "text-amber-700" },
       BANNED: { variant: "destructive", color: "text-red-700" },
     };
-    
+
     const config = statusConfig[status] || { variant: "secondary", color: "text-gray-700" };
-    
+
     return (
       <Badge variant={config.variant} className={config.color}>
         {status}
@@ -161,54 +161,54 @@ const BatchStudentsTable = ({ students, batchId, batchName, onRefetch }) => {
     );
   };
 
-  // Handle adding students to batch
+  // Handle adding students to department
   const handleAddStudents = async () => {
     if (selectedStudents.length === 0) {
-      toast.error("Please select at least one student");
+      toast.error("Please select at least one trainee");
       return;
     }
 
     try {
       const promises = selectedStudents.map(studentId =>
-        addStudentToBatch({ batchId, studentId }).unwrap()
+        addStudentToDepartment({ departmentId, studentId }).unwrap()
       );
-      
+
       await Promise.all(promises);
-      
-      toast.success(`${selectedStudents.length} student(s) added to batch successfully`);
+
+      toast.success(`${selectedStudents.length} trainee(s) added to department successfully`);
       setAddStudentDialogOpen(false);
       setSelectedStudents([]);
       setStudentSearchTerm("");
-      
-      // Refetch batch data
+
+      // Refetch department data
       if (onRefetch) {
         onRefetch();
       }
     } catch (error) {
-      toast.error(error?.data?.message || "Failed to add students to batch");
-      console.error("Error adding students:", error);
+      toast.error(error?.data?.message || "Failed to add trainees to department");
+      console.error("Error adding trainees:", error);
     }
   };
 
-  // Handle removing student from batch
+  // Handle removing student from department
   const handleRemoveStudent = async (studentId, studentName) => {
     try {
-      await removeStudentFromBatch({ batchId, studentId }).unwrap();
-      toast.success(`${studentName} removed from batch successfully`);
-      
-      // Refetch batch data
+      await removeStudentFromDepartment({ departmentId, studentId }).unwrap();
+      toast.success(`${studentName} removed from department successfully`);
+
+      // Refetch department data
       if (onRefetch) {
         onRefetch();
       }
     } catch (error) {
-      toast.error(error?.data?.message || "Failed to remove student from batch");
-      console.error("Error removing student:", error);
+      toast.error(error?.data?.message || "Failed to remove trainee from department");
+      console.error("Error removing trainee:", error);
     }
   };
 
   // Toggle student selection for adding
   const toggleStudentSelection = (studentId) => {
-    setSelectedStudents(prev => 
+    setSelectedStudents(prev =>
       prev.includes(studentId)
         ? prev.filter(id => id !== studentId)
         : [...prev, studentId]
@@ -221,121 +221,119 @@ const BatchStudentsTable = ({ students, batchId, batchName, onRefetch }) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <IconUser className="h-5 w-5" />
-            Students
+            Trainees
           </CardTitle>
           <CardDescription>
-            No students enrolled in this batch yet
+            No trainees enrolled in this department yet
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-              <Dialog open={addStudentDialogOpen} onOpenChange={setAddStudentDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="gap-2">
-                    <IconUserPlus className="h-4 w-4" />
-                    Add Students
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Add Students to Batch</DialogTitle>
-                    <DialogDescription>
-                      Select students to add to {batchName}
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div className="relative">
-                      <IconSearch className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        type="search"
-                        placeholder="Search students..."
-                        className="pl-8"
-                        value={studentSearchTerm}
-                        onChange={(e) => setStudentSearchTerm(e.target.value)}
-                      />
-                    </div>
-                    
-                    <div className="max-h-60 overflow-y-auto border rounded-lg">
-                      {usersLoading ? (
-                        <div className="p-4 space-y-3">
-                          {[1, 2, 3].map(i => (
-                            <div key={i} className="flex items-center space-x-3">
-                              <Skeleton className="h-10 w-10 rounded-full" />
-                              <div className="space-y-1 flex-1">
-                                <Skeleton className="h-4 w-32" />
-                                <Skeleton className="h-3 w-48" />
-                              </div>
+            <Dialog open={addStudentDialogOpen} onOpenChange={setAddStudentDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2">
+                  <IconUserPlus className="h-4 w-4" />
+                  Add Trainees
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Add Trainees to Department</DialogTitle>
+                  <DialogDescription>
+                    Select trainees to add to {departmentName}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="relative">
+                    <IconSearch className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="search"
+                      placeholder="Search trainees..."
+                      className="pl-8"
+                      value={studentSearchTerm}
+                      onChange={(e) => setStudentSearchTerm(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="max-h-60 overflow-y-auto border rounded-lg">
+                    {usersLoading ? (
+                      <div className="p-4 space-y-3">
+                        {[1, 2, 3].map(i => (
+                          <div key={i} className="flex items-center space-x-3">
+                            <Skeleton className="h-10 w-10 rounded-full" />
+                            <div className="space-y-1 flex-1">
+                              <Skeleton className="h-4 w-32" />
+                              <Skeleton className="h-3 w-48" />
                             </div>
-                          ))}
-                        </div>
-                      ) : studentsNotInBatch.length > 0 ? (
-                        <div className="p-2 space-y-1">
-                          {studentsNotInBatch.map(student => (
-                            <div
-                              key={student._id}
-                              className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 ${
-                                selectedStudents.includes(student._id) ? 'bg-blue-50 border border-blue-200' : ''
+                          </div>
+                        ))}
+                      </div>
+                    ) : studentsNotInDepartment.length > 0 ? (
+                      <div className="p-2 space-y-1">
+                        {studentsNotInDepartment.map(student => (
+                          <div
+                            key={student._id}
+                            className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 ${selectedStudents.includes(student._id) ? 'bg-blue-50 border border-blue-200' : ''
                               }`}
-                              onClick={() => toggleStudentSelection(student._id)}
-                            >
-                              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                                selectedStudents.includes(student._id) 
-                                  ? 'bg-blue-600 border-blue-600 text-white' 
-                                  : 'border-gray-300'
+                            onClick={() => toggleStudentSelection(student._id)}
+                          >
+                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${selectedStudents.includes(student._id)
+                              ? 'bg-blue-600 border-blue-600 text-white'
+                              : 'border-gray-300'
                               }`}>
-                                {selectedStudents.includes(student._id) && (
-                                  <IconCheck className="h-3 w-3" />
-                                )}
-                              </div>
-                              <Avatar className="h-10 w-10">
-                                <AvatarImage src={student.avatar?.url} />
-                                <AvatarFallback>
-                                  {student.fullName?.split(' ').map(n => n[0]).join('').toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="flex-1">
-                                <p className="font-medium">{student.fullName}</p>
-                                <p className="text-sm text-muted-foreground">{student.email}</p>
-                              </div>
-                              <Badge variant="outline">{student.status}</Badge>
+                              {selectedStudents.includes(student._id) && (
+                                <IconCheck className="h-3 w-3" />
+                              )}
                             </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="p-8 text-center text-muted-foreground">
-                          <IconUser className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                          <p>No available students found</p>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {selectedStudents.length > 0 && (
-                      <div className="text-sm text-muted-foreground">
-                        {selectedStudents.length} student(s) selected
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={student.avatar?.url} />
+                              <AvatarFallback>
+                                {student.fullName?.split(' ').map(n => n[0]).join('').toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                              <p className="font-medium">{student.fullName}</p>
+                              <p className="text-sm text-muted-foreground">{student.email}</p>
+                            </div>
+                            <Badge variant="outline">{student.status}</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-8 text-center text-muted-foreground">
+                        <IconUser className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                        <p>No available trainees found</p>
                       </div>
                     )}
                   </div>
-                  <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setAddStudentDialogOpen(false);
-                        setSelectedStudents([]);
-                        setStudentSearchTerm("");
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={handleAddStudents}
-                      disabled={selectedStudents.length === 0 || isAddingStudent}
-                    >
-                      {isAddingStudent && <IconLoader className="h-4 w-4 mr-2 animate-spin" />}
-                      Add {selectedStudents.length > 0 ? `${selectedStudents.length} ` : ''}Student(s)
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+
+                  {selectedStudents.length > 0 && (
+                    <div className="text-sm text-muted-foreground">
+                      {selectedStudents.length} trainee(s) selected
+                    </div>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setAddStudentDialogOpen(false);
+                      setSelectedStudents([]);
+                      setStudentSearchTerm("");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleAddStudents}
+                    disabled={selectedStudents.length === 0 || isAddingStudent}
+                  >
+                    {isAddingStudent && <IconLoader className="h-4 w-4 mr-2 animate-spin" />}
+                    Add {selectedStudents.length > 0 ? `${selectedStudents.length} ` : ''}Trainee(s)
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </CardContent>
       </Card>
@@ -350,10 +348,10 @@ const BatchStudentsTable = ({ students, batchId, batchName, onRefetch }) => {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <IconUser className="h-5 w-5" />
-                Students ({students.length})
+                Trainees ({students.length})
               </CardTitle>
               <CardDescription>
-                Students enrolled in {batchName} with progress tracking
+                Trainees enrolled in {departmentName} with progress tracking
               </CardDescription>
             </div>
             <div className="flex gap-2">
@@ -371,14 +369,14 @@ const BatchStudentsTable = ({ students, batchId, batchName, onRefetch }) => {
                 <DialogTrigger asChild>
                   <Button className="gap-2">
                     <IconUserPlus className="h-4 w-4" />
-                    Add Students
+                    Add Trainees
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl">
                   <DialogHeader>
-                    <DialogTitle>Add Students to Batch</DialogTitle>
+                    <DialogTitle>Add Trainees to Department</DialogTitle>
                     <DialogDescription>
-                      Select students to add to {batchName}
+                      Select trainees to add to {departmentName}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
@@ -386,13 +384,13 @@ const BatchStudentsTable = ({ students, batchId, batchName, onRefetch }) => {
                       <IconSearch className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
                         type="search"
-                        placeholder="Search students..."
+                        placeholder="Search trainees..."
                         className="pl-8"
                         value={studentSearchTerm}
                         onChange={(e) => setStudentSearchTerm(e.target.value)}
                       />
                     </div>
-                    
+
                     <div className="max-h-60 overflow-y-auto border rounded-lg">
                       {usersLoading ? (
                         <div className="p-4 space-y-3">
@@ -406,21 +404,19 @@ const BatchStudentsTable = ({ students, batchId, batchName, onRefetch }) => {
                             </div>
                           ))}
                         </div>
-                      ) : studentsNotInBatch.length > 0 ? (
+                      ) : studentsNotInDepartment.length > 0 ? (
                         <div className="p-2 space-y-1">
-                          {studentsNotInBatch.map(student => (
+                          {studentsNotInDepartment.map(student => (
                             <div
                               key={student._id}
-                              className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 ${
-                                selectedStudents.includes(student._id) ? 'bg-blue-50 border border-blue-200' : ''
-                              }`}
+                              className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 ${selectedStudents.includes(student._id) ? 'bg-blue-50 border border-blue-200' : ''
+                                }`}
                               onClick={() => toggleStudentSelection(student._id)}
                             >
-                              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                                selectedStudents.includes(student._id) 
-                                  ? 'bg-blue-600 border-blue-600 text-white' 
-                                  : 'border-gray-300'
-                              }`}>
+                              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${selectedStudents.includes(student._id)
+                                ? 'bg-blue-600 border-blue-600 text-white'
+                                : 'border-gray-300'
+                                }`}>
                                 {selectedStudents.includes(student._id) && (
                                   <IconCheck className="h-3 w-3" />
                                 )}
@@ -442,14 +438,14 @@ const BatchStudentsTable = ({ students, batchId, batchName, onRefetch }) => {
                       ) : (
                         <div className="p-8 text-center text-muted-foreground">
                           <IconUser className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                          <p>No available students found</p>
+                          <p>No available trainees found</p>
                         </div>
                       )}
                     </div>
-                    
+
                     {selectedStudents.length > 0 && (
                       <div className="text-sm text-muted-foreground">
-                        {selectedStudents.length} student(s) selected
+                        {selectedStudents.length} trainee(s) selected
                       </div>
                     )}
                   </div>
@@ -469,7 +465,7 @@ const BatchStudentsTable = ({ students, batchId, batchName, onRefetch }) => {
                       disabled={selectedStudents.length === 0 || isAddingStudent}
                     >
                       {isAddingStudent && <IconLoader className="h-4 w-4 mr-2 animate-spin" />}
-                      Add {selectedStudents.length > 0 ? `${selectedStudents.length} ` : ''}Student(s)
+                      Add {selectedStudents.length > 0 ? `${selectedStudents.length} ` : ''}Trainee(s)
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -483,7 +479,7 @@ const BatchStudentsTable = ({ students, batchId, batchName, onRefetch }) => {
               <IconSearch className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Search students by name or email..."
+                placeholder="Search trainees by name or email..."
                 className="pl-8"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -523,11 +519,11 @@ const BatchStudentsTable = ({ students, batchId, batchName, onRefetch }) => {
             </AlertDescription>
           </Alert>
         ) : null}
-        
+
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Student</TableHead>
+              <TableHead>Trainee</TableHead>
               <TableHead>Contact</TableHead>
               <TableHead>Progress</TableHead>
               <TableHead>Status</TableHead>
@@ -537,7 +533,7 @@ const BatchStudentsTable = ({ students, batchId, batchName, onRefetch }) => {
           </TableHeader>
           <TableBody>
             {filteredStudents.map((student) => {
-              const studentProgress = batchProgress.find(p => p.student._id === student._id);
+              const studentProgress = departmentProgress.find(p => p.student._id === student._id);
               const progressPercentage = studentProgress?.progressPercentage || 0;
               const completedModules = studentProgress?.completedModules || 0;
               const totalModules = studentProgress?.totalModules || 0;
@@ -654,15 +650,15 @@ const BatchStudentsTable = ({ students, batchId, batchName, onRefetch }) => {
                                 className="text-red-600"
                               >
                                 <IconUserMinus className="h-4 w-4 mr-2" />
-                                Remove from Batch
+                                Remove from Department
                               </DropdownMenuItem>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Remove Student</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Are you sure you want to remove {student.fullName} from this batch?
-                                  This will remove their access to the batch course content and progress.
+                                  Are you sure you want to remove {student.fullName} from this department?
+                                  This will remove their access to the department course content and progress.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -673,7 +669,7 @@ const BatchStudentsTable = ({ students, batchId, batchName, onRefetch }) => {
                                   disabled={isRemovingStudent}
                                 >
                                   {isRemovingStudent && <IconLoader className="h-4 w-4 mr-2 animate-spin" />}
-                                  Remove Student
+                                  Remove Trainee
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
@@ -692,9 +688,9 @@ const BatchStudentsTable = ({ students, batchId, batchName, onRefetch }) => {
           <div className="text-center py-8 space-y-2">
             <IconUser className="h-12 w-12 text-muted-foreground mx-auto" />
             <div className="text-muted-foreground">
-              {searchTerm || statusFilter !== "all" || progressFilter !== "all" 
-                ? "No students match your current filters" 
-                : "No students found"
+              {searchTerm || statusFilter !== "all" || progressFilter !== "all"
+                ? "No trainees match your current filters"
+                : "No trainees found"
               }
             </div>
             {(searchTerm || statusFilter !== "all" || progressFilter !== "all") && (
@@ -716,28 +712,28 @@ const BatchStudentsTable = ({ students, batchId, batchName, onRefetch }) => {
         )}
 
         {/* Summary Stats */}
-        {!progressLoading && batchProgress.length > 0 && (
+        {!progressLoading && departmentProgress.length > 0 && (
           <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
             <div className="text-center">
               <div className="text-lg font-bold text-blue-600">{students.length}</div>
-              <div className="text-xs text-muted-foreground">Total Students</div>
+              <div className="text-xs text-muted-foreground">Total Trainees</div>
             </div>
             <div className="text-center">
               <div className="text-lg font-bold text-green-600">
-                {batchProgress.filter(p => p.progressPercentage > 0).length}
+                {departmentProgress.filter(p => p.progressPercentage > 0).length}
               </div>
               <div className="text-xs text-muted-foreground">Active Learners</div>
             </div>
             <div className="text-center">
               <div className="text-lg font-bold text-orange-600">
-                {batchProgress.filter(p => p.progressPercentage >= 100).length}
+                {departmentProgress.filter(p => p.progressPercentage >= 100).length}
               </div>
               <div className="text-xs text-muted-foreground">Completed</div>
             </div>
             <div className="text-center">
               <div className="text-lg font-bold text-purple-600">
                 {Math.round(
-                  batchProgress.reduce((sum, p) => sum + p.progressPercentage, 0) / batchProgress.length
+                  departmentProgress.reduce((sum, p) => sum + p.progressPercentage, 0) / departmentProgress.length
                 )}%
               </div>
               <div className="text-xs text-muted-foreground">Avg Progress</div>
@@ -749,4 +745,4 @@ const BatchStudentsTable = ({ students, batchId, batchName, onRefetch }) => {
   );
 };
 
-export default BatchStudentsTable;
+export default DepartmentStudentsTable;

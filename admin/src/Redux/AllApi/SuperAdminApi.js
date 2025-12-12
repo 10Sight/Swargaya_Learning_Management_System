@@ -23,7 +23,8 @@ export const superAdminApi = createApi({
           status: params.status || "",
           dateFrom: params.dateFrom || "",
           dateTo: params.dateTo || "",
-          batchId: params.batchId || "",
+          departmentId: params.departmentId || "",
+          unit: params.unit || "",
         },
       }),
       providesTags: ["User"],
@@ -360,7 +361,7 @@ export const superAdminApi = createApi({
       }),
       refetchOnMountOrArgChange: 30, // Refetch every 30 seconds
     }),
-    
+
     // Get server metrics
     getServerMetrics: builder.query({
       query: (params = {}) => ({
@@ -371,7 +372,7 @@ export const superAdminApi = createApi({
         },
       }),
     }),
-    
+
     // Get database metrics
     getDatabaseMetrics: builder.query({
       query: () => ({
@@ -379,7 +380,7 @@ export const superAdminApi = createApi({
         method: "GET",
       }),
     }),
-    
+
     // Get system alerts
     getSystemAlerts: builder.query({
       query: () => ({
@@ -387,7 +388,7 @@ export const superAdminApi = createApi({
         method: "GET",
       }),
     }),
-    
+
     // Get system performance history
     getSystemPerformanceHistory: builder.query({
       query: (params = {}) => ({
@@ -422,39 +423,39 @@ export const superAdminApi = createApi({
 
     // Bulk enroll users
     bulkEnrollUsers: builder.mutation({
-      query: ({ userIds, courseIds = [], batchId, enrollmentType = 'course', notify = true }) => ({
+      query: ({ userIds, courseIds = [], departmentId, enrollmentType = 'course', notify = true }) => ({
         url: "/api/bulk-operations/enroll",
         method: "POST",
-        data: { userIds, courseIds, batchId, enrollmentType, notify },
+        data: { userIds, courseIds, departmentId, enrollmentType, notify },
       }),
       invalidatesTags: ["BulkOperation", "User"],
     }),
 
     // Bulk send emails
     bulkSendEmails: builder.mutation({
-      query: ({ 
-        recipients = [], 
+      query: ({
+        recipients = [],
         recipientType = 'users',
         userIds = [],
         roles = [],
-        batchIds = [],
-        subject, 
-        content, 
+        departmentIds = [],
+        subject,
+        content,
         template = null,
         templateData = {}
       }) => ({
         url: "/api/bulk-operations/email",
         method: "POST",
-        data: { 
-          recipients, 
-          recipientType, 
-          userIds, 
-          roles, 
-          batchIds, 
-          subject, 
-          content, 
-          template, 
-          templateData 
+        data: {
+          recipients,
+          recipientType,
+          userIds,
+          roles,
+          departmentIds,
+          subject,
+          content,
+          template,
+          templateData
         },
       }),
       invalidatesTags: ["BulkOperation"],
@@ -462,16 +463,16 @@ export const superAdminApi = createApi({
 
     // Bulk certificate generation
     bulkGenerateCertificates: builder.mutation({
-      query: ({ 
-        userIds = [], 
-        courseId, 
-        templateId, 
-        batchId = null,
+      query: ({
+        userIds = [],
+        courseId,
+        templateId,
+        departmentId = null,
         criteria = 'completion'
       }) => ({
         url: "/api/bulk-operations/certificates",
         method: "POST",
-        data: { userIds, courseId, templateId, batchId, criteria },
+        data: { userIds, courseId, templateId, departmentId, criteria },
       }),
       invalidatesTags: ["BulkOperation"],
     }),
@@ -656,15 +657,15 @@ export const {
   useGenerateCustomReportMutation,
   useExportAnalyticsMutation,
 
-    // Data Management
-    useCreateDatabaseBackupMutation,
-    useGetBackupHistoryQuery,
-    useRestoreFromBackupMutation,
-    useDeleteBackupMutation,
-    useGetDataStatisticsQuery,
-    useGetDataOperationHistoryQuery,
-    useCleanupOldDataMutation,
-  
+  // Data Management
+  useCreateDatabaseBackupMutation,
+  useGetBackupHistoryQuery,
+  useRestoreFromBackupMutation,
+  useDeleteBackupMutation,
+  useGetDataStatisticsQuery,
+  useGetDataOperationHistoryQuery,
+  useCleanupOldDataMutation,
+
   // System Health Monitoring
   useGetSystemHealthQuery,
   useGetServerMetricsQuery,
