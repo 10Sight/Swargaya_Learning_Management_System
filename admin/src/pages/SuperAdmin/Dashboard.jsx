@@ -343,21 +343,21 @@ const SuperAdminDashboard = () => {
               <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                 <div className="flex items-center space-x-3">
                   <IconUserCheck className="w-5 h-5 text-green-600" />
-                  <span className="text-sm font-medium">Active Students</span>
+                  <span className="text-sm font-medium">Active Employees</span>
                 </div>
                 <Badge variant="outline">{systemStats.active.students}</Badge>
               </div>
               <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                 <div className="flex items-center space-x-3">
                   <IconUsers className="w-5 h-5 text-blue-600" />
-                  <span className="text-sm font-medium">Total Instructors</span>
+                  <span className="text-sm font-medium">Total Trainers</span>
                 </div>
                 <Badge variant="outline">{systemStats.totals.instructors}</Badge>
               </div>
               <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                 <div className="flex items-center space-x-3">
                   <IconBookmark className="w-5 h-5 text-purple-600" />
-                  <span className="text-sm font-medium">Total Students</span>
+                  <span className="text-sm font-medium">Total Employees</span>
                 </div>
                 <Badge variant="outline">{systemStats.totals.students}</Badge>
               </div>

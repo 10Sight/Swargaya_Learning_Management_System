@@ -27,6 +27,7 @@ import { lessonApi } from "./AllApi/LessonApi";
 import { analyticsApi } from "./AllApi/AnalyticsApi";
 import { superAdminApi } from "./AllApi/SuperAdminApi";
 import courseLevelConfigApi from "./AllApi/CourseLevelConfigApi";
+import { onJobTrainingApi } from "./AllApi/OnJobTrainingApi";
 
 const store = configureStore({
     reducer: {
@@ -57,6 +58,7 @@ const store = configureStore({
         [analyticsApi.reducerPath]: analyticsApi.reducer,
         [superAdminApi.reducerPath]: superAdminApi.reducer,
         [courseLevelConfigApi.reducerPath]: courseLevelConfigApi.reducer,
+        [onJobTrainingApi.reducerPath]: onJobTrainingApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware().concat(
@@ -80,6 +82,7 @@ const store = configureStore({
             analyticsApi.middleware,
             superAdminApi.middleware,
             courseLevelConfigApi.middleware,
+            onJobTrainingApi.middleware,
         ),
 });
 

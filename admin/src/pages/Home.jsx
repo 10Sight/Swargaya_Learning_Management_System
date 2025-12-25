@@ -156,26 +156,26 @@ const Home = () => {
       {/* Main Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
-          title="Total Students"
+          title="Total Employees"
           value={totalStudents}
-          description="All registered students"
+          description="All registered employees"
           icon={IconUsers}
           iconBgColor="bg-blue-100"
           iconColor="text-blue-600"
           isLoading={studentsLoading}
-          linkTo="/admin/students"
+          linkTo="/admin/employees"
           trend={{ type: 'positive', value: `${activeStudents} active` }}
         />
 
         <StatCard
-          title="Total Instructors"
+          title="Total Trainers"
           value={totalInstructors}
           description="Teaching staff members"
           icon={IconSchool}
           iconBgColor="bg-green-100"
           iconColor="text-green-600"
           isLoading={instructorsLoading}
-          linkTo="/admin/instructor"
+          linkTo="/admin/trainers"
         />
 
         <StatCard
@@ -207,7 +207,7 @@ const Home = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Student Engagement</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Employee Engagement</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between mb-2">
@@ -215,7 +215,7 @@ const Home = () => {
               <IconUserCheck className="h-5 w-5 text-blue-600" />
             </div>
             <Progress value={studentEngagement} className="mb-2" />
-            <p className="text-xs text-gray-500">Active students participating</p>
+            <p className="text-xs text-gray-500">Active employees participating</p>
           </CardContent>
         </Card>
 
@@ -341,10 +341,10 @@ const Home = () => {
               />
 
               <QuickActionCard
-                title="Student Management"
-                description="Manage student accounts"
+                title="Employee Management"
+                description="Manage employee accounts"
                 icon={IconUsers}
-                linkTo="/admin/students"
+                linkTo="/admin/employees"
                 color="orange"
               />
             </div>
@@ -365,7 +365,7 @@ const Home = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="text-center">
               <div className="text-lg font-bold text-green-600">{activeStudents}</div>
-              <div className="text-sm text-gray-500">Active Students</div>
+              <div className="text-sm text-gray-500">Active Employees</div>
             </div>
             <div className="text-center">
               <div className="text-lg font-bold text-blue-600">{activeDepartments}</div>

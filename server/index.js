@@ -37,6 +37,7 @@ import moduleTimelineRoutes from "./routes/moduleTimeline.routes.js";
 import exportRoutes from "./routes/export.routes.js";
 import courseLevelConfigRoutes from "./routes/courseLevelConfig.routes.js";
 import languageRoutes from "./routes/language.routes.js";
+import onJobTrainingRoutes from "./routes/onJobTraining.routes.js";
 import timelineScheduler from "./services/timelineScheduler.js";
 import departmentStatusScheduler from "./services/departmentStatusScheduler.js";
 // import cleanupOldFiles from './scripts/cleanup.js';
@@ -148,6 +149,8 @@ app.use("/api/module-timelines", moduleTimelineRoutes);
 app.use("/api/exports", exportRoutes);
 app.use("/api/course-level-config", courseLevelConfigRoutes);
 app.use("/api/languages", languageRoutes);
+console.log("[DEBUG] Mounting /api/on-job-training route...");
+app.use("/api/on-job-training", onJobTrainingRoutes);
 
 // Initialize Socket.IO service
 socketIOService.initialize(io);

@@ -644,7 +644,7 @@ const Students = () => {
             Authentication Required
           </div>
           <p className="text-gray-600 text-center">
-            Please log in as an admin to view trainee
+            Please log in as an admin to view employees
           </p>
           <Button
             onClick={() => (window.location.href = "/login")}
@@ -659,10 +659,10 @@ const Students = () => {
     return (
       <div className="flex flex-col justify-center items-center h-64 space-y-4 p-4">
         <div className="text-red-600 text-lg font-medium">
-          Error loading trainee
+          Error loading employees
         </div>
         <p className="text-gray-600 text-center">
-          {studentsError?.message || "Failed to fetch trainee"}
+          {studentsError?.message || "Failed to fetch employees"}
         </p>
         <Button onClick={() => refetch()} variant="outline" className="gap-2">
           <IconRefresh className="h-4 w-4" />
@@ -677,9 +677,9 @@ const Students = () => {
       {/* Header with Stats using reusable StatCard */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
-          title="Total Trainee"
+          title="Total Employees"
           value={studentsData?.data?.totalUsers || 0}
-          description="All registered trainee"
+          description="All registered employees"
           icon={IconUsers}
           iconBgColor="bg-blue-100"
           iconColor="text-blue-600"
@@ -691,7 +691,7 @@ const Students = () => {
         />
 
         <StatCard
-          title="Present Trainee"
+          title="Present Employees"
           value={students.filter((s) => normalizeStatus(s.status) === "PRESENT").length}
           description="Currently present"
           icon={IconUser}
@@ -751,7 +751,7 @@ const Students = () => {
             className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
           >
             <IconPlus className="h-4 w-4 mr-2" />
-            Add Trainee
+            Add Employee
           </Button>
         </div>
       </Tabs>
@@ -761,7 +761,7 @@ const Students = () => {
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <SearchInput
-              placeholder="Search trainee by name, email, or username..."
+              placeholder="Search employees by name, email, or username..."
               value={searchTerm}
               onChange={setSearchTerm}
               className="w-full sm:w-96"
@@ -825,7 +825,7 @@ const Students = () => {
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `trainee_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                    a.download = `employees_${new Date().toISOString().slice(0, 10)}.xlsx`;
                     document.body.appendChild(a);
                     a.click();
                     a.remove();
@@ -850,7 +850,7 @@ const Students = () => {
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `students_${new Date().toISOString().slice(0, 10)}.pdf`;
+                    a.download = `employees_${new Date().toISOString().slice(0, 10)}.pdf`;
                     document.body.appendChild(a);
                     a.click();
                     a.remove();
@@ -875,7 +875,7 @@ const Students = () => {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
-                <TableHead className="w-[220px]">Student</TableHead>
+                <TableHead className="w-[220px]">Employee</TableHead>
                 <TableHead>Contact</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Unit</TableHead>
@@ -1008,7 +1008,7 @@ const Students = () => {
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Edit student</p>
+                              <p>Edit employee</p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
@@ -1029,7 +1029,7 @@ const Students = () => {
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Delete student</p>
+                              <p>Delete employee</p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
@@ -1050,7 +1050,7 @@ const Students = () => {
                           statusFilter !== "ALL" ||
                           departmentFilter !== "ALL"
                           ? "Try adjusting your search or filters"
-                          : "Add your first student to get started"}
+                          : "Add your first employee to get started"}
                       </p>
                       {(searchTerm ||
                         statusFilter !== "ALL" ||
@@ -1077,7 +1077,7 @@ const Students = () => {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
             Showing {filteredStudents.length} of{" "}
-            {studentsData?.data?.totalUsers || 0} trainee
+            {studentsData?.data?.totalUsers || 0} employees
           </p>
           <div className="flex space-x-2">
             <Button
@@ -1109,10 +1109,10 @@ const Students = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <IconUserPlus className="h-5 w-5" />
-              Add New Student
+              Add New Employee
             </DialogTitle>
             <DialogDescription>
-              Add a new student to the system. All fields are required.
+              Add a new employee to the system. All fields are required.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -1285,7 +1285,7 @@ const Students = () => {
               className="gap-2"
             >
               {isSubmitting && <IconLoader className="h-4 w-4 animate-spin" />}
-              {isSubmitting ? "Registering..." : "Register Student"}
+              {isSubmitting ? "Registering..." : "Register Employee"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1297,10 +1297,10 @@ const Students = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <IconPencil className="h-5 w-5" />
-              Edit Student
+              Edit Employee
             </DialogTitle>
             <DialogDescription>
-              Update student information. All fields are required.
+              Update employee information. All fields are required.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -1383,7 +1383,7 @@ const Students = () => {
               className="gap-2"
             >
               {isSubmitting && <IconLoader className="h-4 w-4 animate-spin" />}
-              {isSubmitting ? "Updating..." : "Update Student"}
+              {isSubmitting ? "Updating..." : "Update Employee"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1395,7 +1395,7 @@ const Students = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
               <IconTrash className="h-5 w-5" />
-              Delete Student
+              Delete Employee
             </DialogTitle>
             <DialogDescription>
               This action cannot be undone. This will permanently delete the
@@ -1427,7 +1427,7 @@ const Students = () => {
               className="gap-2"
             >
               <IconTrash className="h-4 w-4" />
-              Delete Student
+              Delete Employee
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1508,7 +1508,7 @@ const Students = () => {
                         <div>
                           <p className="font-medium">{department.name}</p>
                           <p className="text-sm text-muted-foreground">
-                            {department.students?.length || 0} trainee
+                            {department.students?.length || 0} employees
                             {department.capacity && ` / ${department.capacity} capacity`}
                           </p>
                         </div>
@@ -1538,7 +1538,7 @@ const Students = () => {
                   <IconSchool className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
                   <p className="text-muted-foreground">No departments available</p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Create a department first to assign trainee
+                    Create a department first to assign employees
                   </p>
                 </div>
               )}

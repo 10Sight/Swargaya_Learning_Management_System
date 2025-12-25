@@ -50,11 +50,13 @@ const AuditLogs = lazy(() => import("./pages/Admin/AuditLogs"));
 const CourseLevelSettings = lazy(() => import("./pages/Admin/CourseLevelSettings"));
 const SkillMatrix = lazy(() => import("./pages/Admin/SkillMatrix"));
 
+
 // Instructor Pages
 const InstructorDashboard = lazy(() => import("./pages/Instructor/Dashboard"));
 const InstructorCourses = lazy(() => import("./pages/Instructor/Courses"));
 const InstructorDepartments = lazy(() => import("./pages/Instructor/Departments"));
 const InstructorStudents = lazy(() => import("./pages/Instructor/Students"));
+const InstructorStudentDetail = lazy(() => import("./pages/Instructor/StudentDetail"));
 const InstructorCourseDetailPage = lazy(() => import("./pages/Instructor/InstructorCourseDetailPage"));
 const QuizMonitoring = lazy(() => import("./pages/Instructor/QuizMonitoring"));
 const AssignmentMonitoring = lazy(() => import("./pages/Instructor/AssignmentMonitoring"));
@@ -85,6 +87,7 @@ const CourseReport = lazy(() => import("./pages/Student/CourseReport"));
 const Reports = lazy(() => import("./pages/Student/Reports"));
 const StudentCertificates = lazy(() => import("./pages/Student/Certificates"));
 const ResourcePreview = lazy(() => import("./pages/Student/ResourcePreview"));
+const StudentOnJobTraining = lazy(() => import("./pages/Student/OnJobTraining"));
 
 const RoleRedirect = () => {
   const { user } = useSelector((state) => state.auth);
@@ -92,7 +95,7 @@ const RoleRedirect = () => {
 
   if (role === "SUPERADMIN") return <Navigate to="/superadmin" replace />;
   if (role === "ADMIN") return <Navigate to="/admin" replace />;
-  if (role === "INSTRUCTOR") return <Navigate to="/instructor" replace />;
+  if (role === "INSTRUCTOR") return <Navigate to="/trainer" replace />;
   // default to student
   return <Navigate to="/student" replace />;
 };
@@ -132,14 +135,14 @@ const App = () => {
             }
           >
             <Route index element={<Home />} />
-            <Route path="instructor" element={<Instructor pageName="Instructor" />} />
-            <Route path="instructor/:id" element={<InstructorDetail />} />
+            <Route path="trainers" element={<Instructor pageName="Instructor" />} />
+            <Route path="trainers/:id" element={<InstructorDetail />} />
             <Route path="courses" element={<Course pageName="Courses" />} />
             <Route path="courses/:courseId" element={<CourseDetailPage pageName="Add Modules" />} />
             <Route path="add-course" element={<AddCourse />} />
             <Route path="departments" element={<Departments pageName="Departments" />} />
-            <Route path="trainee" element={<Students pageName="Trainee" />} />
-            <Route path="students/:studentId" element={<StudentDetail />} />
+            <Route path="employees" element={<Students pageName="Employees" />} />
+            <Route path="employees/:studentId" element={<StudentDetail />} />
             <Route path="departments/:departmentId" element={<DepartmentDetail pageName="Department Detail" />} />
             <Route path="add-quiz/:courseId" element={<AddQuizPage />} />
             <Route path="edit-quiz/:quizId" element={<EditQuizPage />} />
@@ -163,7 +166,7 @@ const App = () => {
 
           {/* Instructor routes */}
           <Route
-            path="/instructor"
+            path="/trainer"
             element={
               <ProtectedRoute>
                 <InstructorLayout />
@@ -182,7 +185,8 @@ const App = () => {
             <Route path="add-assignment/:courseId" element={<AddAssignmentPage />} />
             <Route path="add-resource/:courseId" element={<AddResourcePage />} />
             <Route path="departments" element={<InstructorDepartments />} />
-            <Route path="students" element={<InstructorStudents />} />
+            <Route path="employees" element={<InstructorStudents />} />
+            <Route path="employees/:studentId" element={<InstructorStudentDetail />} />
             <Route path="quiz-monitoring" element={<QuizMonitoring />} />
             <Route path="assignment-monitoring" element={<AssignmentMonitoring />} />
             <Route path="certificate-issuance" element={<CertificateIssuance />} />
@@ -202,10 +206,10 @@ const App = () => {
 
             {/* User Management Routes */}
             <Route path="all-users" element={<AllUsersManagement />} />
-            <Route path="instructors" element={<Instructor pageName="Instructors" />} />
-            <Route path="instructors/:id" element={<InstructorDetail />} />
-            <Route path="students" element={<Students pageName="Students" />} />
-            <Route path="students/:studentId" element={<StudentDetail />} />
+            <Route path="trainers" element={<Instructor pageName="Instructors" />} />
+            <Route path="trainers/:id" element={<InstructorDetail />} />
+            <Route path="employees" element={<Students pageName="Employees" />} />
+            <Route path="employees/:studentId" element={<StudentDetail />} />
             <Route path="soft-deleted-users" element={<SoftDeletedUsersManagement />} />
             <Route path="roles-permissions" element={<RolesPermissions />} />
 
@@ -258,7 +262,8 @@ const App = () => {
             <Route path="reports" element={<Reports />} />
             <Route path="report/:courseId" element={<CourseReport />} />
             <Route path="certificates" element={<StudentCertificates />} />
-            <Route path="resource-preview" element={<ResourcePreview />} />
+            <Route path="on-job-training" element={<StudentOnJobTraining />} />
+            <Route path="resource-preview/:resourceId" element={<ResourcePreview />} />
           </Route>
         </Routes>
       </Suspense>

@@ -13,11 +13,11 @@ export const translations = {
 
     // Navigation
     "nav.dashboard": "Dashboard",
-    "nav.instructors": "Instructors",
+    "nav.instructors": "Trainers",
     "nav.courses": "Courses",
     "nav.departments": "Departments",
-    "nav.students": "Students",
-    "nav.trainees": "Trainee",
+    "nav.students": "Employees",
+    "nav.trainees": "Employees",
     "nav.quizMonitoring": "Quiz Monitoring",
     "nav.attemptRequests": "Attempt Requests",
     "nav.moduleTimelines": "Module Timelines",
@@ -72,8 +72,8 @@ export const translations = {
 
     // Headers
     "header.instituteName": "SARVAGAYA INSTITUTE",
-    "header.studentPortal": "STUDENT PORTAL",
-    "header.instructorPortal": "INSTRUCTOR PORTAL",
+    "header.studentPortal": "EMPLOYEE PORTAL",
+    "header.instructorPortal": "TRAINER PORTAL",
     "header.superAdmin": "SUPER ADMIN",
 
     // Auth / profile actions

@@ -702,7 +702,7 @@ const Instructor = () => {
             Authentication Required
           </div>
           <p className="text-gray-600 text-center">
-            Please log in as an admin to view instructors
+            Please log in as an admin to view trainers
           </p>
           <Button
             onClick={() => (window.location.href = "/login")}
@@ -720,7 +720,7 @@ const Instructor = () => {
           Error loading instructors
         </div>
         <p className="text-gray-600 text-center">
-          {instructorsError?.message || "Failed to fetch instructors"}
+          {instructorsError?.message || "Failed to fetch trainers"}
         </p>
         <Button onClick={() => refetch()} variant="outline" className="gap-2">
           <IconRefresh className="h-4 w-4" />
@@ -735,9 +735,9 @@ const Instructor = () => {
       {/* Header with Stats using reusable StatCard */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
-          title="Total Instructors"
+          title="Total Trainers"
           value={instructorsData?.data?.totalUsers || 0}
-          description="All registered instructors"
+          description="All registered trainers"
           icon={IconUsers}
           iconBgColor="bg-blue-100"
           iconColor="text-blue-600"
@@ -749,7 +749,7 @@ const Instructor = () => {
         />
 
         <StatCard
-          title="Active Instructors"
+          title="Active Trainers"
           value={instructors.filter((i) => i.status === "ACTIVE").length}
           description="Currently active"
           icon={IconUserPlus}
@@ -809,7 +809,7 @@ const Instructor = () => {
             className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
           >
             <IconPlus className="h-4 w-4 mr-2" />
-            Add Instructor
+            Add Trainer
           </Button>
         </div>
       </Tabs>
@@ -819,7 +819,7 @@ const Instructor = () => {
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <SearchInput
-              placeholder="Search instructors by name, email, or username..."
+              placeholder="Search trainers by name, email, or username..."
               value={searchTerm}
               onChange={setSearchTerm}
               className="w-full sm:w-96"
@@ -880,7 +880,7 @@ const Instructor = () => {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
-                <TableHead className="w-[220px]">Instructor</TableHead>
+                <TableHead className="w-[220px]">Trainer</TableHead>
                 <TableHead>Contact</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Unit</TableHead>
@@ -1022,7 +1022,7 @@ const Instructor = () => {
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Edit instructor</p>
+                              <p>Edit trainer</p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
@@ -1043,7 +1043,7 @@ const Instructor = () => {
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Delete instructor</p>
+                              <p>Delete trainer</p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
@@ -1057,14 +1057,14 @@ const Instructor = () => {
                     <div className="flex flex-col items-center space-y-3">
                       <IconUsers className="h-12 w-12 text-muted-foreground/60" />
                       <p className="text-muted-foreground font-medium">
-                        No instructors found
+                        No trainers found
                       </p>
                       <p className="text-sm text-muted-foreground">
                         {searchTerm ||
                           statusFilter !== "ALL" ||
                           departmentFilter !== "ALL"
                           ? "Try adjusting your search or filters"
-                          : "Add your first instructor to get started"}
+                          : "Add your first trainer to get started"}
                       </p>
                       {(searchTerm ||
                         statusFilter !== "ALL" ||
@@ -1091,7 +1091,7 @@ const Instructor = () => {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
             Showing {filteredInstructors.length} of{" "}
-            {instructorsData?.data?.totalUsers || 0} instructors
+            {instructorsData?.data?.totalUsers || 0} trainers
           </p>
           <div className="flex space-x-2">
             <Button
@@ -1123,10 +1123,10 @@ const Instructor = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <IconUserPlus className="h-5 w-5" />
-              Add New Instructor
+              Add New Trainer
             </DialogTitle>
             <DialogDescription>
-              Add a new instructor to the system. All fields are required.
+              Add a new trainer to the system. All fields are required.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -1280,7 +1280,7 @@ const Instructor = () => {
               className="gap-2"
             >
               {isSubmitting && <IconLoader className="h-4 w-4 animate-spin" />}
-              {isSubmitting ? "Registering..." : "Register Instructor"}
+              {isSubmitting ? "Registering..." : "Register Trainer"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1292,10 +1292,10 @@ const Instructor = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <IconPencil className="h-5 w-5" />
-              Edit Instructor
+              Edit Trainer
             </DialogTitle>
             <DialogDescription>
-              Update instructor information. All fields are required.
+              Update trainer information. All fields are required.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -1358,7 +1358,7 @@ const Instructor = () => {
               className="gap-2"
             >
               {isSubmitting && <IconLoader className="h-4 w-4 animate-spin" />}
-              {isSubmitting ? "Updating..." : "Update Instructor"}
+              {isSubmitting ? "Updating..." : "Update Trainer"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1370,11 +1370,11 @@ const Instructor = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
               <IconTrash className="h-5 w-5" />
-              Delete Instructor
+              Delete Trainer
             </DialogTitle>
             <DialogDescription>
               This action cannot be undone. This will permanently delete the
-              instructor account.
+              trainer account.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -1402,7 +1402,7 @@ const Instructor = () => {
               className="gap-2"
             >
               <IconTrash className="h-4 w-4" />
-              Delete Instructor
+              Delete Trainer
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1456,10 +1456,10 @@ const Instructor = () => {
                     <div
                       key={department._id}
                       className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${isCurrentlyAssigned
-                          ? "bg-green-50 border-green-200 cursor-default"
-                          : hasInstructor
-                            ? "bg-red-50 border-red-200 cursor-not-allowed opacity-60"
-                            : "hover:bg-muted/50 cursor-pointer"
+                        ? "bg-green-50 border-green-200 cursor-default"
+                        : hasInstructor
+                          ? "bg-red-50 border-red-200 cursor-not-allowed opacity-60"
+                          : "hover:bg-muted/50 cursor-pointer"
                         }`}
                       onClick={() => {
                         if (!isCurrentlyAssigned && !hasInstructor) {
@@ -1469,16 +1469,16 @@ const Instructor = () => {
                     >
                       <div className="flex items-center gap-3">
                         <div className={`p-2 rounded-full ${isCurrentlyAssigned
-                            ? "bg-green-100"
-                            : hasInstructor
-                              ? "bg-red-100"
-                              : "bg-blue-100"
+                          ? "bg-green-100"
+                          : hasInstructor
+                            ? "bg-red-100"
+                            : "bg-blue-100"
                           }`}>
                           <IconSchool className={`h-4 w-4 ${isCurrentlyAssigned
-                              ? "text-green-600"
-                              : hasInstructor
-                                ? "text-red-600"
-                                : "text-blue-600"
+                            ? "text-green-600"
+                            : hasInstructor
+                              ? "text-red-600"
+                              : "text-blue-600"
                             }`} />
                         </div>
                         <div>
@@ -1513,7 +1513,7 @@ const Instructor = () => {
                   <IconSchool className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
                   <p className="text-muted-foreground">No departments available</p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Create a department first to assign instructors
+                    Create a department first to assign trainers
                   </p>
                 </div>
               )}

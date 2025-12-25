@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import AttemptReviewModal from "@/components/common/AttemptReviewModal";
+import OnJobTrainingTable from "@/components/admin/OnJobTrainingTable";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -149,7 +150,7 @@ const StudentDetail = () => {
     refetchProgress();
     refetchSubmissions();
     refetchAttempts();
-    toast.success("Student data refreshed successfully!");
+    toast.success("Employee data refreshed successfully!");
   };
 
   const getStatusBadge = (status) => {
@@ -258,10 +259,10 @@ const StudentDetail = () => {
     return (
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
         <div className="text-red-600 text-lg font-medium">
-          Error loading student details
+          Error loading employee details
         </div>
         <p className="text-gray-600 text-center">
-          {studentError?.message || "Failed to fetch student information"}
+          {studentError?.message || "Failed to fetch employee information"}
         </p>
         <div className="flex gap-2">
           <Button onClick={() => navigate(-1)} variant="outline">
@@ -281,13 +282,13 @@ const StudentDetail = () => {
     return (
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
         <IconUser className="h-12 w-12 text-muted-foreground" />
-        <div className="text-lg font-medium">Student not found</div>
+        <div className="text-lg font-medium">Employee not found</div>
         <p className="text-muted-foreground">
-          The student you're looking for doesn't exist or has been deleted.
+          The employee you're looking for doesn't exist or has been deleted.
         </p>
         <Button onClick={() => navigate(-1)} variant="outline">
           <IconArrowLeft className="h-4 w-4 mr-2" />
-          Back to Students
+          Back to Employees
         </Button>
       </div>
     );
@@ -300,7 +301,7 @@ const StudentDetail = () => {
         <div className="flex items-center gap-4">
           <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
             <IconArrowLeft className="h-4 w-4 mr-2" />
-            Back to Students
+            Back to Employees
           </Button>
           <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16 border-2">
@@ -367,7 +368,7 @@ const StudentDetail = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-blue-800">
             <IconUser className="h-5 w-5" />
-            Student Information
+            Employee Information
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -467,11 +468,12 @@ const StudentDetail = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid grid-cols-2 md:grid-cols-4 mb-6">
+        <TabsList className="grid grid-cols-2 md:grid-cols-5 mb-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="progress">Progress ({stats.totalCourses})</TabsTrigger>
           <TabsTrigger value="submissions">Submissions ({stats.totalSubmissions})</TabsTrigger>
           <TabsTrigger value="quizzes">Quiz Attempts ({stats.totalAttempts})</TabsTrigger>
+          <TabsTrigger value="ojt">On Job Training</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -483,7 +485,7 @@ const StudentDetail = () => {
                 Course Progress Overview
               </CardTitle>
               <CardDescription>
-                Student's progress across all enrolled courses
+                Employee's progress across all enrolled courses
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -880,6 +882,13 @@ const StudentDetail = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="ojt">
+          <OnJobTrainingTable
+            studentName={student?.fullName}
+            model={student?.department?.name || "N/A"}
+          />
         </TabsContent>
       </Tabs>
       {/* Attempt Review Modal (admin editable) */}

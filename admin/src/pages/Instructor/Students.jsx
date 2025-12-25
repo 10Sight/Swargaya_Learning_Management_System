@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useGetInstructorDepartmentStudentsQuery, useGetInstructorAssignedDepartmentsQuery } from '@/Redux/AllApi/InstructorApi'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -26,6 +26,7 @@ import {
 } from '@tabler/icons-react'
 
 const InstructorStudents = () => {
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedDepartmentId, setSelectedDepartmentId] = useState(searchParams.get('department') || '')
 
@@ -89,10 +90,10 @@ const InstructorStudents = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold">
-            {department?.name ? `${department.name} - Students` : 'Student Management'}
+            {department?.name ? `${department.name} - Employees` : 'Employee Management'}
           </h1>
           <p className="text-muted-foreground">
-            View and monitor student progress and performance
+            View and monitor employee progress and performance
           </p>
         </div>
 
@@ -122,7 +123,7 @@ const InstructorStudents = () => {
                 const url = window.URL.createObjectURL(blob)
                 const a = document.createElement('a')
                 a.href = url
-                a.download = `department_${selectedDepartmentId}_students_${new Date().toISOString().slice(0, 10)}.xlsx`
+                a.download = `department_${selectedDepartmentId}_employees_${new Date().toISOString().slice(0, 10)}.xlsx`
                 document.body.appendChild(a)
                 a.click()
                 a.remove()
@@ -142,7 +143,7 @@ const InstructorStudents = () => {
                 const url = window.URL.createObjectURL(blob)
                 const a = document.createElement('a')
                 a.href = url
-                a.download = `department_${selectedDepartmentId}_students_${new Date().toISOString().slice(0, 10)}.pdf`
+                a.download = `department_${selectedDepartmentId}_employees_${new Date().toISOString().slice(0, 10)}.pdf`
                 document.body.appendChild(a)
                 a.click()
                 a.remove()
@@ -161,13 +162,13 @@ const InstructorStudents = () => {
             <IconUsers className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium mb-2">Select a Department</h3>
             <p className="text-muted-foreground">
-              Choose a department from your assigned departments to view student data.
+              Choose a department from your assigned departments to view employee data.
             </p>
           </div>
         </Card>
       ) : error ? (
         <div className="text-center py-8">
-          <p className="text-muted-foreground">Failed to load students</p>
+          <p className="text-muted-foreground">Failed to load employees</p>
         </div>
       ) : (
         <>
@@ -175,7 +176,7 @@ const InstructorStudents = () => {
           <Card>
             <CardHeader>
               <div className="flex justify-between items-center">
-                <CardTitle>Students ({students.length})</CardTitle>
+                <CardTitle>Employees ({students.length})</CardTitle>
                 <Badge variant="outline">
                   <IconEye className="h-3 w-3 mr-1" />
                   Read-only View
@@ -187,7 +188,7 @@ const InstructorStudents = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Student</TableHead>
+                      <TableHead>Employee</TableHead>
                       <TableHead>Contact</TableHead>
                       <TableHead>Progress</TableHead>
                       <TableHead>Quiz Scores</TableHead>
@@ -199,7 +200,10 @@ const InstructorStudents = () => {
                     {students.map((student) => (
                       <TableRow key={student._id}>
                         <TableCell>
-                          <div>
+                          <div
+                            className="cursor-pointer hover:underline text-blue-600"
+                            onClick={() => navigate(`/trainer/employees/${student._id}`)}
+                          >
                             <p className="font-medium">{student.fullName}</p>
                             <p className="text-sm text-muted-foreground">
                               @{student.userName}
@@ -264,9 +268,9 @@ const InstructorStudents = () => {
               ) : (
                 <div className="text-center py-8">
                   <IconUsers className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No Students Found</h3>
+                  <h3 className="text-lg font-medium mb-2">No Employees Found</h3>
                   <p className="text-muted-foreground">
-                    This department doesn't have any enrolled students yet.
+                    This department doesn't have any enrolled employees yet.
                   </p>
                 </div>
               )}
@@ -283,7 +287,7 @@ const InstructorStudents = () => {
                 <div>
                   <h3 className="font-medium text-blue-900">Read-Only Access</h3>
                   <p className="text-sm text-blue-700 mt-1">
-                    You can view student information, progress, quiz attempts, and assignment submissions
+                    You can view employee information, progress, quiz attempts, and assignment submissions
                     but cannot make any modifications or grade assignments.
                   </p>
                 </div>

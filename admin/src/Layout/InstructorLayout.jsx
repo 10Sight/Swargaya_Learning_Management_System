@@ -45,14 +45,14 @@ import useTranslate from "@/hooks/useTranslate";
 import LanguageSelector from "../components/common/LanguageSelector";
 
 const baseTabs = [
-  { link: "/instructor", labelKey: "nav.dashboard", icon: IconLayoutDashboardFilled },
-  { link: "/instructor/courses", labelKey: "nav.myCourses", icon: IconCertificate },
-  { link: "/instructor/departments", labelKey: "nav.myDepartments", icon: IconFolder },
-  { link: "/instructor/students", labelKey: "nav.students", icon: IconUsers },
-  { link: "/instructor/quiz-monitoring", labelKey: "nav.quizManagement", icon: IconClipboardList },
-  { link: "/instructor/attempt-requests", labelKey: "nav.attemptRequests", icon: IconClipboardList },
-  { link: "/instructor/assignment-monitoring", labelKey: "nav.assignmentManagement", icon: IconClipboard },
-  { link: "/instructor/certificate-issuance", labelKey: "nav.certificateIssuance", icon: IconAward },
+  { link: "/trainer", labelKey: "nav.dashboard", icon: IconLayoutDashboardFilled },
+  { link: "/trainer/courses", labelKey: "nav.myCourses", icon: IconCertificate },
+  { link: "/trainer/departments", labelKey: "nav.myDepartments", icon: IconFolder },
+  { link: "/trainer/employees", labelKey: "nav.students", icon: IconUsers },
+  { link: "/trainer/quiz-monitoring", labelKey: "nav.quizManagement", icon: IconClipboardList },
+  { link: "/trainer/attempt-requests", labelKey: "nav.attemptRequests", icon: IconClipboardList },
+  { link: "/trainer/assignment-monitoring", labelKey: "nav.assignmentManagement", icon: IconClipboard },
+  { link: "/trainer/certificate-issuance", labelKey: "nav.certificateIssuance", icon: IconAward },
 ];
 
 export function InstructorLayout() {
@@ -86,12 +86,12 @@ export function InstructorLayout() {
   useEffect(() => {
     const currentTab = tabs.find(tab =>
       pathname === tab.link ||
-      (tab.link !== "/instructor" && pathname.startsWith(tab.link))
+      (tab.link !== "/trainer" && pathname.startsWith(tab.link))
     );
 
     if (currentTab) {
       setPageName(currentTab.label);
-    } else if (pathname === "/instructor") {
+    } else if (pathname === "/trainer") {
       setPageName(t("nav.dashboard"));
     } else {
       // For nested routes, you might want to extract from pathname
@@ -182,8 +182,8 @@ export function InstructorLayout() {
           {tabs.map((item) => {
             const isActive =
               pathname === item.link ||
-              (item.link === "/instructor" && pathname === "/instructor") ||
-              (item.link !== "/instructor" && pathname.startsWith(item.link));
+              (item.link === "/trainer" && pathname === "/trainer") ||
+              (item.link !== "/trainer" && pathname.startsWith(item.link));
 
             return (
               <div
@@ -276,7 +276,7 @@ export function InstructorLayout() {
               <BreadcrumbList>
                 <BreadcrumbItem>
                   <Link
-                    to="/instructor"
+                    to="/trainer"
                     className="flex items-center text-green-600 hover:text-green-800 transition-colors"
                   >
                     <HomeIcon size={18} aria-hidden="true" />

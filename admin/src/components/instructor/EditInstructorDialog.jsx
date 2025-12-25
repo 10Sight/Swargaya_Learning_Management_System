@@ -58,7 +58,7 @@ const EditInstructorDialog = ({ open, onOpenChange, instructor, onSave, isLoadin
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <IconPencil className="h-5 w-5" />
-            Edit Instructor
+            Edit Trainer
           </DialogTitle>
         </DialogHeader>
 
@@ -134,7 +134,7 @@ const EditInstructorDialog = ({ open, onOpenChange, instructor, onSave, isLoadin
                 name="bio"
                 value={formData.bio}
                 onChange={handleInputChange}
-                placeholder="Tell us about the instructor..."
+                placeholder="Tell us about the trainer..."
                 rows={3}
               />
             </div>

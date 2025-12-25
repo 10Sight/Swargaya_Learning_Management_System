@@ -259,3 +259,10 @@ export {
     useClearSystemCacheMutation,
     useRunSystemCleanupMutation,
 } from './SuperAdminApi';
+
+// OnJobTraining API exports
+export {
+    onJobTrainingApi,
+    useGetOnJobTrainingQuery,
+    useSaveOnJobTrainingMutation,
+} from './OnJobTrainingApi';

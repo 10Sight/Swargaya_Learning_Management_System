@@ -20,6 +20,8 @@ import {
   IconUser,
   IconMenu2,
   IconX,
+  IconFileCertificate,
+  IconClipboardList,
 } from "@tabler/icons-react";
 import { HomeIcon } from "lucide-react";
 import clsx from "clsx";
@@ -33,7 +35,8 @@ const baseTabs = [
   { link: "/student/department", labelKey: "nav.department", icon: IconFolder },
   { link: "/student/course", labelKey: "nav.course", icon: IconBooks },
   { link: "/student/reports", labelKey: "nav.reports", icon: IconFileText },
-  { link: "/student/certificates", labelKey: "nav.certificates", icon: IconAward },
+  { link: "/student/certificates", labelKey: "nav.certificates", icon: IconFileCertificate }, // Modified icon for Certificates
+  { link: "/student/on-job-training", labelKey: "nav.onJobTraining", icon: IconClipboardList }, // Added On Job Training
 ];
 
 export function StudentLayout() {

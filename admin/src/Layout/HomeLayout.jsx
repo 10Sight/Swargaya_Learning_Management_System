@@ -42,6 +42,7 @@ import {
   IconMoon,
   IconSun,
   IconStars,
+  IconClipboardList,
 } from "@tabler/icons-react";
 import { HomeIcon, Command } from "lucide-react";
 import NotificationCenter from "../components/common/NotificationCenter";
@@ -52,10 +53,10 @@ import useTranslate from "@/hooks/useTranslate";
 
 const baseTabs = [
   { link: "/admin", labelKey: "nav.dashboard", icon: IconLayoutDashboardFilled },
-  { link: "/admin/instructor", labelKey: "nav.instructors", icon: IconUser },
+  { link: "/admin/trainers", labelKey: "nav.instructors", icon: IconUser },
   { link: "/admin/courses", labelKey: "nav.courses", icon: IconCertificate },
   { link: "/admin/departments", labelKey: "nav.departments", icon: IconFolder },
-  { link: "/admin/trainee", labelKey: "nav.trainees", icon: IconUsers },
+  { link: "/admin/employees", labelKey: "nav.trainees", icon: IconUsers },
   { link: "/admin/quiz-monitoring", labelKey: "nav.quizMonitoring", icon: IconClock },
   { link: "/admin/attempt-requests", labelKey: "nav.attemptRequests", icon: IconBell },
   { link: "/admin/module-timelines", labelKey: "nav.moduleTimelines", icon: IconClock },
@@ -356,7 +357,7 @@ export function HomeLayout() {
                         {user?.fullName || user?.userName || 'Admin User'}
                       </p>
                       <Badge variant="secondary" className="text-xs">
-                        {user?.role?.toLowerCase().replace('_', ' ') || 'Admin'}
+                        {(user?.role === 'INSTRUCTOR' ? 'Trainer' : user?.role === 'STUDENT' ? 'Employee' : user?.role?.toLowerCase().replace('_', ' ')) || 'Admin'}
                       </Badge>
                     </div>
                     <p className="text-xs text-gray-500">
