@@ -7,10 +7,10 @@ export const departmentApi = createApi({
     tagTypes: ['Department'],
     endpoints: (builder) => ({
         createDepartment: builder.mutation({
-            query: ({ name, instructorId, courseId, startDate, endDate, capacity }) => ({
+            query: ({ name, instructorId, courseId, courseIds, startDate, endDate, capacity }) => ({
                 url: "/api/departments",
                 method: "POST",
-                data: { name, instructorId, courseId, startDate, endDate, capacity }
+                data: { name, instructorId, courseId, courseIds, startDate, endDate, capacity }
             }),
             invalidatesTags: ['Department'],
         }),
@@ -69,10 +69,10 @@ export const departmentApi = createApi({
         }),
 
         updateDepartment: builder.mutation({
-            query: ({ id, name, courseId, status, startDate, endDate, capacity }) => ({
+            query: ({ id, data }) => ({
                 url: `/api/departments/${id}`,
                 method: "PUT",
-                data: { name, courseId, status, startDate, endDate, capacity }
+                data: data
             }),
             invalidatesTags: ['Department'],
         }),

@@ -81,7 +81,7 @@ import SearchInput from "@/components/common/SearchInput";
 import FilterSelect from "@/components/common/FilterSelect";
 import StatCard from "@/components/common/StatCard";
 import FilterBar from "@/components/common/FilterBar";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useSelector } from 'react-redux';
 import DepartmentStatusNotifications from "@/components/departments/DepartmentStatusNotifications";
 import { useLazyExportDepartmentsQuery } from "@/Redux/AllApi/DepartmentApi";
@@ -152,6 +152,11 @@ const Departments = () => {
     }
   );
 
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Handle auto-open edit dialog from URL params causing navigation from details page
+
+
   const {
     data: instructorsData,
     isLoading: instructorsLoading,
@@ -202,6 +207,19 @@ const Departments = () => {
   const [triggerExportDepartments, { isFetching: isExportingDepartments }] = useLazyExportDepartmentsQuery();
 
   const departments = departmentsData?.data?.departments || [];
+
+  // Handle auto-open edit dialog from URL params causing navigation from details page
+  useEffect(() => {
+    const editValues = searchParams.get("editDepartment");
+    if (editValues && departments && departments.length > 0) {
+      const deptToEdit = departments.find(d => d._id === editValues);
+      if (deptToEdit) {
+        openEditDialog(deptToEdit);
+        // Clear param so it doesn't reopen on refresh or blocking other actions
+        setSearchParams({});
+      }
+    }
+  }, [searchParams, departments]);
   const totalPages = departmentsData?.data?.totalPages || 1;
   const totalCount = departmentsData?.data?.totalDepartments || 0;
   const instructors = instructorsData?.data?.users || [];

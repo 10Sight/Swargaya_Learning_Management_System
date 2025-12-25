@@ -79,6 +79,7 @@ const useCourseData = () => {
     refreshing: false,
   });
 
+
   const fetchCourseData = useCallback(async (showRefreshing = false) => {
     try {
       if (showRefreshing) {
@@ -860,14 +861,8 @@ const DepartmentCourse = () => {
     };
   }, [refresh, refetchSubmissions, refetchAttempts]);
 
-  // Load course-level content when all modules are completed
-  useEffect(() => {
-    const modulesDone = modules.length > 0 && getCompletedModulesCount() >= modules.length;
-    const courseId = department?.course?._id || department?.course?.id;
-    if (modulesDone && courseId && !courseContentLoaded && !courseContentLoading) {
-      loadCourseContent(courseId);
-    }
-  }, [modules, completedModuleIds, department?.course, courseContentLoaded, courseContentLoading, loadCourseContent, getCompletedModulesCount]);
+  // Load course-level content is handled automatically by RTK Query in useCourseContent hook
+  // when allModulesCompleted becomes true. No manual effect needed.
 
   // Loading state with responsive design optimized for 320px
   if (loading) {

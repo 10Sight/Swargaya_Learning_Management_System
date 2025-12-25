@@ -24,7 +24,7 @@ const DepartmentCourseCard = ({ course, departmentId }) => {
               No course assigned to this department
             </div>
             <Button
-              onClick={() => navigate(`/departments?editDepartment=${departmentId}`)}
+              onClick={() => navigate(`../?editDepartment=${departmentId}`, { relative: "path" })}
             >
               Assign Course
             </Button>

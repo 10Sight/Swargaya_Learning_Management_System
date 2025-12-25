@@ -798,32 +798,53 @@ export const getDepartmentCourseContent = asyncHandler(async (req, res) => {
         throw new ApiError("No department assigned to user", 404);
     }
 
+    const coursePopulateOptions = {
+        path: 'modules',
+        select: 'title description order lessons',
+        populate: {
+            path: 'lessons',
+            select: 'title content duration order'
+        },
+        options: { sort: { order: 1 } }
+    };
+
     // Get department with course details
     const department = await Department.findById(user.department._id)
         .populate({
             path: 'course',
             select: 'title description modules',
-            populate: {
-                path: 'modules',
-                select: 'title description order lessons',
-                populate: {
-                    path: 'lessons',
-                    select: 'title content duration order'
-                },
-                options: { sort: { order: 1 } }
-            }
+            populate: coursePopulateOptions
         })
-        .select('name course');
+        .populate({
+            path: 'courses',
+            select: 'title description modules',
+            populate: coursePopulateOptions
+        })
+        .select('name course courses');
 
-    if (!department || !department.course) {
-        throw new ApiError("Department or course not found", 404);
+    const activeCourse = department?.course || (department?.courses && department.courses.length > 0 ? department.courses[0] : null);
+
+    console.log("DEBUG: getDepartmentCourseContent fetching...", {
+        userDepartmentId: user.department?._id,
+        departmentName: department?.name,
+        hasCourse: !!department?.course,
+        hasCourses: !!department?.courses,
+        coursesLength: department?.courses?.length,
+        activeCourseId: activeCourse?._id
+    });
+
+    if (!department) {
+        throw new ApiError("Department not found", 404);
     }
 
-    // Get user's progress for this course
-    const progress = await Progress.findOne({
+    // Note: It is valid for a department to exist but have no active course.
+    // In this case, we return the department info with empty course data so the frontend can display "No Course Assigned".
+
+    // Get user's progress for this course (only if course exists)
+    const progress = activeCourse ? await Progress.findOne({
         student: userId,
-        course: department.course._id
-    });
+        course: activeCourse._id
+    }) : null;
 
     // Format the response with progress information
     const courseContent = {
@@ -831,12 +852,12 @@ export const getDepartmentCourseContent = asyncHandler(async (req, res) => {
             _id: department._id,
             name: department.name
         },
-        course: {
-            _id: department.course._id,
-            title: department.course.title,
-            description: department.course.description,
-            modules: department.course.modules || []
-        },
+        course: activeCourse ? {
+            _id: activeCourse._id,
+            title: activeCourse.title,
+            description: activeCourse.description,
+            modules: activeCourse.modules || []
+        } : null,
         progress: {
             completedModules: progress?.completedModules || [],
             completedLessons: progress?.completedLessons || [],

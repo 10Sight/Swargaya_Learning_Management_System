@@ -286,7 +286,7 @@ const DepartmentDetail = () => {
           {/* Original components */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <DepartmentInstructorCard instructor={department.instructor} departmentId={departmentId} />
-            <DepartmentCourseCard course={department.course} />
+            <DepartmentCourseCard course={department.course} departmentId={departmentId} />
           </div>
 
           <DepartmentStudentsTable
