@@ -43,6 +43,7 @@ import {
   IconSun,
   IconStars,
   IconClipboardList,
+  IconDownload,
 } from "@tabler/icons-react";
 import { HomeIcon, Command } from "lucide-react";
 import NotificationCenter from "../components/common/NotificationCenter";
@@ -112,6 +113,21 @@ export function HomeLayout() {
     }
   }, [pathname, language, tabs, t]);
 
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
   // Handle window resize for responsive behavior
   useEffect(() => {
     const handleResize = () => {
@@ -129,6 +145,20 @@ export function HomeLayout() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) {
+      alert("To install the app:\n1. Desktop: Click the install icon in the address bar (if available) or look in the browser menu.\n2. Mobile: Tap 'Share' -> 'Add to Home Screen'.\n\n(Note: This functionality requires PWA configuration which might not be fully active in development mode)");
+      return;
+    }
+
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
 
   const toggleSidebar = () => {
     setCollapsed((prev) => !prev);
@@ -317,17 +347,15 @@ export function HomeLayout() {
             {/* Language Selector */}
             <LanguageSelector />
 
-            {/* Search Button - Desktop */}
+            {/* Install App Button - Desktop & Mobile */}
             <Button
               variant="ghost"
               size="icon"
               className="hidden sm:flex hover:bg-gray-100 text-gray-600 hover:text-gray-800 transition-colors"
-              onClick={() => {
-                // Add search functionality here
-                console.log('Search clicked');
-              }}
+              onClick={handleInstallClick}
+              title="Install App"
             >
-              <IconSearch className="h-4 w-4" />
+              <IconDownload className="h-4 w-4" />
             </Button>
 
             <NotificationCenter />

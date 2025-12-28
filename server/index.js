@@ -46,7 +46,7 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: ["https://swargaya-learning-management-system.onrender.com","https://learning-management-system-avwu.onrender.com", "http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176", "http://localhost:5177"],
+        origin: ["https://swargaya-learning-management-system.onrender.com", "https://learning-management-system-avwu.onrender.com", "http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176", "http://localhost:5177"],
         credentials: true,
         methods: ["GET", "POST"]
     }
@@ -62,7 +62,7 @@ app.use(cookieParser()); // Add cookie parser middleware
 
 // CORS with caching for preflight
 const corsOptions = {
-    origin: ["https://swargaya-learning-management-system.onrender.com","https://learning-management-system-avwu.onrender.com", "http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176", "http://localhost:5177"],
+    origin: ["https://swargaya-learning-management-system.onrender.com", "https://learning-management-system-avwu.onrender.com", "http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176", "http://localhost:5177"],
     credentials: true,
     optionsSuccessStatus: 200, // For legacy browser support
     maxAge: 86400, // Cache preflight for 24 hours
@@ -152,8 +152,14 @@ app.use("/api/languages", languageRoutes);
 console.log("[DEBUG] Mounting /api/on-job-training route...");
 app.use("/api/on-job-training", onJobTrainingRoutes);
 
+import machineRoutes from "./routes/machine.routes.js";
+app.use("/api/machines", machineRoutes);
+
 import lineRoutes from "./routes/line.routes.js";
 app.use("/api/lines", lineRoutes);
+
+import skillMatrixRoutes from "./routes/skillMatrix.route.js";
+app.use("/api/skill-matrix", skillMatrixRoutes);
 
 // Initialize Socket.IO service
 socketIOService.initialize(io);

@@ -1,4 +1,14 @@
 // import { StrictMode } from 'react'
+import { registerSW } from 'virtual:pwa-register'
+
+const updateSW = registerSW({
+  onNeedRefresh() {
+    if (confirm('New content available. Reload?')) {
+      updateSW(true);
+    }
+  },
+})
+
 import { createRoot } from 'react-dom/client'
 import { Toaster } from 'sonner';
 import './index.css'
@@ -13,10 +23,10 @@ createRoot(document.getElementById('root')).render(
     <AuthProvider>
       <SocketProvider>
         <App />
-        <Toaster 
-          position="bottom-right" 
-          richColors 
-          closeButton 
+        <Toaster
+          position="bottom-right"
+          richColors
+          closeButton
           expand={true}
           duration={4000}
           toastOptions={{

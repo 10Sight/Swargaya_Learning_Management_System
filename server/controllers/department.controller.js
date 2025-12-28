@@ -322,8 +322,8 @@ export const getAllDepartments = asyncHandler(async (req, res) => {
     const total = await Department.countDocuments(searchQuery);
 
     const departments = await Department.find(searchQuery)
-        .populate("instructor", "fullName email slug")
-        .populate("students", "fullName email slug")
+        .populate("instructor", "fullName email slug createdAt")
+        .populate("students", "fullName email slug createdAt")
         .populate("courses", "title name slug")
         .populate("course", "title name slug")
         .skip(skip)
