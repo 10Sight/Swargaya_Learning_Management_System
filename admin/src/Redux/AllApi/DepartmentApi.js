@@ -34,6 +34,7 @@ export const departmentApi = createApi({
         }),
 
         addStudentToDepartment: builder.mutation({
+            // Add student to department
             query: ({ departmentId, studentId }) => ({
                 url: "/api/departments/add-student",
                 method: "POST",

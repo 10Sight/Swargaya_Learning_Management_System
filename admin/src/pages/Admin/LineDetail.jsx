@@ -1,10 +1,11 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { IconPrinter } from "@tabler/icons-react";
 import { useGetAllInstructorsQuery, useGetAllStudentsQuery } from '@/Redux/AllApi/InstructorApi';
-import { useGetAllDepartmentsProgressQuery } from '@/Redux/AllApi/DepartmentApi';
+import { useGetAllDepartmentsProgressQuery, useGetDepartmentByIdQuery } from '@/Redux/AllApi/DepartmentApi';
+import { useGetLinesByDepartmentQuery } from '@/Redux/AllApi/LineApi';
 import { useGetActiveConfigQuery } from '@/Redux/AllApi/CourseLevelConfigApi';
-import { Input } from "@/components/ui/input";
 import {
     Select,
     SelectContent,
@@ -12,14 +13,24 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { IconLoader } from "@tabler/icons-react";
 
-const SkillMatrix = () => {
+const LineDetail = () => {
+    const { departmentId, lineId } = useParams();
     const componentRef = useRef();
 
-    // Fetch real data
-    const { data: instructorsData, isLoading: isLoadingInstructors } = useGetAllInstructorsQuery({ limit: 100 });
-    const { data: studentsData, isLoading: isLoadingStudents } = useGetAllStudentsQuery({ limit: 100 });
+    // Fetch real data with department filter
+    const { data: instructorsData, isLoading: isLoadingInstructors } = useGetAllInstructorsQuery({ limit: 1000, departmentId });
+    const { data: studentsData, isLoading: isLoadingStudents } = useGetAllStudentsQuery({ limit: 1000, departmentId });
     const { data: allProgressData, isLoading: isLoadingProgress } = useGetAllDepartmentsProgressQuery();
+
+    // Fetch Department and Line Details for Header
+    const { data: departmentData } = useGetDepartmentByIdQuery(departmentId);
+    const { data: linesData } = useGetLinesByDepartmentQuery(departmentId);
+
+    const departmentName = departmentData?.data?.name || departmentId;
+    const currentLine = linesData?.data?.find(l => l._id === lineId);
+    const lineName = currentLine?.name || lineId;
 
     // Fetch active level configuration
     const { data: levelConfigData } = useGetActiveConfigQuery();
@@ -29,20 +40,18 @@ const SkillMatrix = () => {
         { name: "L2", color: "#F97316" },
         { name: "L3", color: "#10B981" },
         { name: "L4", color: "#8B5CF6" },
-        { name: "L5", color: "#EC4899" }, // Default fallback if config fails
+        { name: "L5", color: "#EC4899" }, // Default fallback
     ];
 
     const [matrixEntries, setMatrixEntries] = useState([]);
 
-    // Mock stations data to mix with real users for display purposes
+    // Mock stations data...
     const mockStations = [
         { name: "Team Leader", critical: "-", min: "L-4", curr: "L-4" },
-        { name: "Ice Cube Lens - collimator lens snap locking ( Fog, Booster, cornering)", critical: "Non Critical", min: "L-1", curr: "L-1" },
-        { name: "Thermal Guling Operation on Heat sink, PCB 1 & PCB 2 aseembly into heat sink", critical: "Critical", min: "L-2", curr: "L-1" },
-        { name: "Ice Cube+ Heat sink Screwing + LED Counting", critical: "Critical", min: "L-2", curr: "L-1" },
-        { name: "Aiming frame aseembly + EOL checking", critical: "Non Critical", min: "L-1", curr: "L-1" },
+        { name: "Station 1", critical: "Non Critical", min: "L-1", curr: "L-1" },
+        { name: "Station 2", critical: "Critical", min: "L-2", curr: "L-1" },
+        { name: "Station 3", critical: "Critical", min: "L-2", curr: "L-1" },
         { name: "Final Inspection", critical: "Critical", min: "L-2", curr: "L-1" },
-        { name: "Air dust assembly", critical: "Non Critical", min: "L-1", curr: "L-1" }
     ];
 
     useEffect(() => {
@@ -50,19 +59,32 @@ const SkillMatrix = () => {
             const instructors = instructorsData?.data?.users || [];
             const students = studentsData?.data?.users || [];
 
-            // Create a map of Student ID -> Level
-            const studentLevelMap = {};
-            if (allProgressData?.data) {
-                allProgressData?.data?.forEach(progress => {
-                    studentLevelMap[progress.student] = progress.currentLevel;
-                });
-            }
-
             // Combine: Instructors first, then Students
-            const combinedUsers = [
-                ...instructors.map(i => ({ ...i, type: 'TNR', level: 'L-5' })), // Trainer
-                ...students.map(s => ({ ...s, type: 'EMP', level: 'L-1' }))     // Employee
+            // Backend already filters by departmentId, so we just check lightly or trust it.
+            // But strict filtering client-side acts as double-safety if cached data is used.
+            // Using the robust check from before or just trusting data:
+
+            const allUsers = [
+                ...instructors.map(i => ({ ...i, type: 'TNR', level: 'L-5' })),
+                ...students.map(s => ({ ...s, type: 'EMP', level: 'L-1' }))
             ];
+
+            // Filter users belonging to the current department
+            // We apply strict client-side filtering to ensure accuracy even if backend filtering is broad
+            const combinedUsers = allUsers.filter(user => {
+                const getIds = (field) => {
+                    if (!field) return [];
+                    if (Array.isArray(field)) return field.map(item => (item?._id || item)?.toString());
+                    return [(field?._id || field)?.toString()];
+                };
+
+                const userDeptIds = [
+                    ...getIds(user.departments), // Handle array 
+                    ...getIds(user.department)   // Handle single 
+                ];
+
+                return userDeptIds.includes(departmentId);
+            });
 
             // Map to matrix format
             const mappedData = combinedUsers.length > 0 ? combinedUsers.map((user, index) => {
@@ -74,8 +96,6 @@ const SkillMatrix = () => {
                 if (user.type === 'TNR') {
                     initialStationName = "Team Leader";
                     initialCritical = "Not Applicable";
-                } else {
-                    initialStationName = "";
                 }
 
                 const stationWithLevel = {
@@ -85,9 +105,7 @@ const SkillMatrix = () => {
                     curr: user.level,
                 };
 
-                // Determine Department Display
                 let displayDepartment = "-";
-                // If user has multiple departments (e.g. Instructors), join them
                 if (user.departments && user.departments.length > 0) {
                     displayDepartment = user.departments.map(d => d.name).join(" + ");
                 } else if (user.department?.name) {
@@ -99,25 +117,13 @@ const SkillMatrix = () => {
                     name: user.fullName || "Unknown",
                     department: displayDepartment,
                     type: user.type,
-                    detCas: "", // Placeholder for DET/CAS manual entry
+                    detCas: "",
                     doj: user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-GB') : "-",
                     stations: [stationWithLevel]
                 };
-            }) : [
-                ...mockStations.map((s, i) => ({
-                    srNo: i + 1,
-                    name: `Sample User ${i + 1}`,
-                    department: "Sample Dept",
-                    type: 'EMP',
-                    detCas: "Sample",
-                    doj: '01-01-2024',
-                    stations: [s]
-                }))
-            ];
+            }) : [];
 
             if (combinedUsers.length > 0) {
-                setMatrixEntries(mappedData);
-            } else if (!isLoadingInstructors && !isLoadingStudents) {
                 setMatrixEntries(mappedData);
             }
         }
@@ -173,24 +179,19 @@ const SkillMatrix = () => {
         return isNaN(num) ? 0 : num;
     };
 
-    // SVG Icon Component - 5 Slice Pie Chart
+    // SVG Icon Component - 5 Slice Pie Chart (Same as SkillMatrix)
     const SkillIcon = ({ level, size = 24 }) => {
         const center = size / 2;
         const radius = size / 2.2;
-
-        // Helper to create a pie slice path
         const createSlicePath = (startAngle, endAngle) => {
             const startRad = (startAngle - 90) * Math.PI / 180;
             const endRad = (endAngle - 90) * Math.PI / 180;
-
             const x1 = center + radius * Math.cos(startRad);
             const y1 = center + radius * Math.sin(startRad);
             const x2 = center + radius * Math.cos(endRad);
             const y2 = center + radius * Math.sin(endRad);
-
             return `M ${center} ${center} L ${x1} ${y1} A ${radius} ${radius} 0 0 1 ${x2} ${y2} Z`;
         };
-
         const slices = [
             createSlicePath(0, 72),
             createSlicePath(72, 144),
@@ -198,27 +199,25 @@ const SkillMatrix = () => {
             createSlicePath(216, 288),
             createSlicePath(288, 360)
         ];
-
         return (
             <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-                {/* Draw all 5 empty slices (outlines) */}
                 {slices.map((d, i) => (
                     <path key={`bg-${i}`} d={d} fill="none" stroke="black" strokeWidth="0.5" />
                 ))}
-
-                {/* Draw filled slices based on level */}
                 {slices.map((d, i) => {
                     if (i < level) {
                         return <path key={`fill-${i}`} d={d} fill="black" stroke="black" strokeWidth="0.5" />;
                     }
                     return null;
                 })}
-
-                {/* Outer Circle Outline for clean finish */}
                 <circle cx={center} cy={center} r={radius} fill="none" stroke="black" strokeWidth="1" />
             </svg>
         );
     };
+
+    if (isLoadingInstructors || isLoadingStudents) {
+        return <div className="flex justify-center items-center h-screen"><IconLoader className="animate-spin" /></div>;
+    }
 
     return (
         <div className="space-y-6">
@@ -232,7 +231,6 @@ const SkillMatrix = () => {
             .no-print { display: none !important; }
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             input { border: none !important; background: transparent !important; }
-            /* Hide select arrow in print if possible, or just accept standard appearance */
             .select-trigger { border: none !important; padding: 0 !important; height: auto !important; }
           }
         `}
@@ -240,9 +238,8 @@ const SkillMatrix = () => {
 
             <div className="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm no-print border">
                 <div>
-                    <h1 className="text-xl font-bold text-gray-800">Skill Matrix</h1>
-                    <p className="text-sm text-gray-500">Department Skill Tracking and Evaluation</p>
-                    {(isLoadingInstructors || isLoadingStudents) && <span className="text-xs text-blue-500 ml-2">Loading data...</span>}
+                    <h1 className="text-xl font-bold text-gray-800">Line Detail Matrix</h1>
+                    <p className="text-sm text-gray-500">Department: {departmentName} | Line: {lineName}</p>
                 </div>
                 <Button variant="outline" className="gap-2" onClick={handlePrint}>
                     <IconPrinter className="w-4 h-4" />
@@ -251,7 +248,7 @@ const SkillMatrix = () => {
             </div>
 
             <div id="printable-matrix" className="bg-white text-xs text-black border-2 border-black">
-                {/* Header Section */}
+                {/* Header Section - Same as Skill Matrix */}
                 <div className="flex border-b border-black">
                     <div className="w-[150px] border-r border-black p-2 flex items-center justify-center">
                         <img src="/motherson+marelli.png" alt="Logo" className="h-10" />
@@ -261,73 +258,22 @@ const SkillMatrix = () => {
                         </div>
                     </div>
                     <div className="flex-1 border-r border-black flex items-center justify-center">
-                        <h1 className="text-2xl font-bold">Skill Matrix</h1>
+                        <h1 className="text-2xl font-bold">Skill Matrix - {lineName}</h1>
                     </div>
                     <div className="w-[200px] text-[10px]">
-                        <div className="flex border-b border-black">
-                            <div className="w-20 border-r border-black p-1 font-semibold">Format no.</div>
-                            <div className="flex-1 p-0 text-center">
-                                <input
-                                    type="text"
-                                    className="w-full h-full text-center bg-transparent border-none focus:ring-0 p-1 font-medium"
-                                    value={headerInfo.formatNo}
-                                    onChange={(e) => handleHeaderInfoChange('formatNo', e.target.value)}
-                                />
+                        {['Format no.', 'Rev.No.', 'Rev. Date', 'Page No.'].map((label, idx) => (
+                            <div key={idx} className="flex border-b border-black last:border-b-0">
+                                <div className="w-20 border-r border-black p-1 font-semibold">{label}</div>
+                                <div className="flex-1 p-0 text-center">
+                                    <input
+                                        type="text"
+                                        className="w-full h-full text-center bg-transparent border-none focus:ring-0 p-1 font-medium"
+                                        value={Object.values(headerInfo)[idx]}
+                                        onChange={(e) => handleHeaderInfoChange(Object.keys(headerInfo)[idx], e.target.value)}
+                                    />
+                                </div>
                             </div>
-                        </div>
-                        <div className="flex border-b border-black">
-                            <div className="w-20 border-r border-black p-1 font-semibold">Rev.No.</div>
-                            <div className="flex-1 p-0 text-center">
-                                <input
-                                    type="text"
-                                    className="w-full h-full text-center bg-transparent border-none focus:ring-0 p-1 font-medium"
-                                    value={headerInfo.revNo}
-                                    onChange={(e) => handleHeaderInfoChange('revNo', e.target.value)}
-                                />
-                            </div>
-                        </div>
-                        <div className="flex border-b border-black">
-                            <div className="w-20 border-r border-black p-1 font-semibold">Rev. Date</div>
-                            <div className="flex-1 p-0 text-center">
-                                <input
-                                    type="text"
-                                    className="w-full h-full text-center bg-transparent border-none focus:ring-0 p-1 font-medium"
-                                    value={headerInfo.revDate}
-                                    onChange={(e) => handleHeaderInfoChange('revDate', e.target.value)}
-                                />
-                            </div>
-                        </div>
-                        <div className="flex">
-                            <div className="w-20 border-r border-black p-1 font-semibold">Page No.</div>
-                            <div className="flex-1 p-0 text-center">
-                                <input
-                                    type="text"
-                                    className="w-full h-full text-center bg-transparent border-none focus:ring-0 p-1 font-medium"
-                                    value={headerInfo.pageNo}
-                                    onChange={(e) => handleHeaderInfoChange('pageNo', e.target.value)}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex border-b border-black text-xs font-semibold bg-gray-50">
-                    <div className="w-[30%] border-r border-black p-1">Plant : MMLI,Pune</div>
-                    <div className="flex-1 p-1 text-right pr-10">Area : <span className="ml-4">Assembly ( Ice Cube Assy )</span></div>
-                </div>
-
-                <div className="flex border-b border-black text-xs bg-yellow-300">
-                    <div className="flex-1 border-r border-black flex">
-                        <div className="flex-1 p-1 text-right font-bold pr-2">Updated on</div>
-                    </div>
-                    <div className="flex-1 border-r border-black flex">
-                        <div className="flex-1 p-1 text-center font-bold">04-09-2025</div>
-                    </div>
-                    <div className="flex-1 border-r border-black flex">
-                        <div className="flex-1 p-1 text-right font-bold pr-2">Review due on :</div>
-                    </div>
-                    <div className="flex-1 flex">
-                        <div className="flex-1 p-1 text-center font-bold">03-12-2025</div>
+                        ))}
                     </div>
                 </div>
 
@@ -351,14 +297,11 @@ const SkillMatrix = () => {
                         <div className="w-12 border-r border-black p-1 flex items-center justify-center">Minimum Skill Level Required</div>
                         <div className="w-12 border-r border-black p-1 flex items-center justify-center">Current Skill Level</div>
 
-                        {/* Dynamic Station Columns */}
                         {uniqueStations.map((stationName, idx) => (
                             <div key={idx} className="w-16 border-r border-black p-1 flex items-center justify-center break-words text-[9px] leading-tight">
                                 {stationName}
                             </div>
                         ))}
-
-                        {/* EOSH & EnMS Fixed Column */}
                         <div className="w-16 p-1 flex items-center justify-center">EOSH & EnMS</div>
                     </div>
                 </div>
@@ -376,7 +319,6 @@ const SkillMatrix = () => {
                                 className="w-full h-full text-center bg-transparent border-none focus:ring-0 p-0 text-[10px] font-bold"
                                 value={row.detCas}
                                 onChange={(e) => handleDetCasChange(idx, e.target.value)}
-                                placeholder=""
                             />
                         </div>
                         <div className="w-20 border-r border-black p-2 flex items-center justify-center font-bold">{row.doj}</div>
@@ -419,7 +361,6 @@ const SkillMatrix = () => {
                             <div className="w-12 border-r border-black p-2 flex items-center justify-center font-bold">{row.stations[0].min}</div>
                             <div className="w-12 border-r border-black p-2 flex items-center justify-center font-bold">{row.stations[0].curr}</div>
 
-                            {/* Dynamic Skill Cells */}
                             {uniqueStations.map((stationName, sIdx) => {
                                 const isAssignedStation = row.stations[0].name === stationName;
                                 const currentLevelStr = row.stations[0].curr || "L-0";
@@ -454,69 +395,15 @@ const SkillMatrix = () => {
                                     </div>
                                 );
                             })}
-
                             <div className="w-16 p-2 flex items-center justify-center">
                                 <SkillIcon level={1} />
                             </div>
                         </div>
                     </div>
                 ))}
-
-                {/* Footer Sections */}
-                <div className="flex border-t border-black min-h-[200px]">
-                    <div className="w-[350px] border-r border-black p-2 text-[10px]">
-                        {availableLevels.map((lvl, idx) => (
-                            <div key={idx} className="grid grid-cols-[80px_30px_1fr] gap-2 items-center mb-2">
-                                <div className="font-bold">LEVEL-{parseLevel(lvl.name)}</div>
-                                <div className="flex justify-center"><SkillIcon level={parseLevel(lvl.name)} /></div>
-                                {/* Map descriptions. */}
-                                <div>
-                                    {parseLevel(lvl.name) === 1 ? "Understand process performance and functions ; operates process correctly." :
-                                        parseLevel(lvl.name) === 2 ? "Understand properties of materials being handled; performs correct adjustment—and setting." :
-                                            parseLevel(lvl.name) === 3 ? "(Defects process abnormalities promptly ; takes emergency action against them.)" :
-                                                parseLevel(lvl.name) === 4 ? "Achieving zero breakdowns and zero defects with the help of PM and QC people.Responsible for daily production." :
-                                                    parseLevel(lvl.name) === 5 ? "Expert / Trainer" : ""}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                    <div className="flex-1 border-r border-black p-2 text-[10px]">
-                        <div className="font-bold underline mb-1">Note/ Guideline :-</div>
-                        <ol className="list-decimal pl-4 space-y-0.5">
-                            <li>This Skill Matrix Format applicable for All department.</li>
-                            <li>Minimum Skill Level Required for Working on Line/ Machine as per Guidline of Critical & Non critical operation.(GL/MF01/Training/03)</li>
-                            <li>Critical & Non Critical Define as per Guideline of Critical & Non Critical operation.(GL/MF01/Training/03)</li>
-                            <li>Level-4 is Minimum skill required for Team leader .</li>
-                            <li>Level-1 is Minimum Skill requirement for Machine / Non Critical Station operator.</li>
-                            <li>Level-2 is minimum Skill requirement for Inspector , Final Inspector & Rework Station Operator.</li>
-                            <li>Level -3 is minimum skill requirement for CTQ station operator & mold changer operator.</li>
-                            <li>Skill Matrix updated frequency after 3 month.</li>
-                            <li>Skill matrix Checked by Line Supervisor or Shift Incharge.</li>
-                            <li>After certify a new commerce operator , the skill matrix has to be updated within the 7 Days.</li>
-                            <li>EOSH AND EnMS MINIMUM SKILL REQUIRED IS- L1</li>
-                        </ol>
-                    </div>
-                    <div className="w-[300px] text-[9px]">
-                        <div className="grid grid-cols-[60px_30px_1fr_60px] bg-yellow-300 font-bold border-b border-black text-center h-8 items-center">
-                            <div className="border-r border-black h-full flex items-center justify-center">Rev Date</div><div className="border-r border-black h-full flex items-center justify-center">Rev no</div><div className="border-r border-black h-full flex items-center justify-center">What Change</div><div className="h-full flex items-center justify-center">Why Change</div>
-                        </div>
-                        <div className="grid grid-cols-[60px_30px_1fr_60px] border-b border-black text-center bg-yellow-100"><div className="border-r border-black p-1">05-03-2021</div><div className="border-r border-black p-1">4</div><div className="border-r border-black p-1">New comers Skill matrix frequency Added</div><div className="p-1">customer requirement</div></div>
-                        <div className="grid grid-cols-[60px_30px_1fr_60px] border-b border-black text-center bg-yellow-200"><div className="border-r border-black p-1">26-07-2022</div><div className="border-r border-black p-1">5</div><div className="border-r border-black p-1">Skill Matrix review By Supervisor</div><div className="p-1">customer requirement</div></div>
-                        <div className="grid grid-cols-[60px_30px_1fr_60px] border-b border-black text-center bg-yellow-100"><div className="border-r border-black p-1">02-02-2024</div><div className="border-r border-black p-1">6</div><div className="border-r border-black p-1">Minimum Skill Level define</div><div className="p-1">VSA Audit NC</div></div>
-                        <div className="grid grid-cols-[60px_30px_1fr_60px] border-b border-black text-center bg-yellow-200"><div className="border-r border-black p-1">24-05-2025</div><div className="border-r border-black p-1">7</div><div className="border-r border-black p-1">Qualification define</div><div className="p-1">TRL audit point</div></div>
-                        <div className="grid grid-cols-[60px_30px_1fr_60px] text-center bg-yellow-300"><div className="border-r border-black p-1">03-06-2025</div><div className="border-r border-black p-1">8</div><div className="border-r border-black p-1">EnMS, EOHS content added</div><div className="p-1">EnMS & EOHS audit required and skill level symbols change</div></div>
-                    </div>
-                </div>
-
-                <div className="border-t border-black p-1 font-bold text-xs bg-gray-50">Rev. History - Rev-06- Operation wise Minimum Skill define</div>
-                <div className="grid grid-cols-3 border-t border-black text-[10px] bg-gray-50">
-                    <div className="p-1 border-r border-black">Prepared by ( DOJO ) :-</div>
-                    <div className="p-1 border-r border-black">Checked by ( Supervisor ) :-</div>
-                    <div className="p-1">Approved By (HOD) :-</div>
-                </div>
             </div>
         </div>
     );
 };
 
-export default SkillMatrix;
+export default LineDetail;

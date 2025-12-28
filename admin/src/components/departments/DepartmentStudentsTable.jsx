@@ -107,17 +107,21 @@ const DepartmentStudentsTable = ({ students, departmentId, departmentName, onRef
   } = useGetAllUsersQuery(
     {
       role: "STUDENT",
-      limit: 100,
+      limit: 1000,
       search: studentSearchTerm
     },
-    { skip: !addStudentDialogOpen }
+    { skip: !addStudentDialogOpen, refetchOnMountOrArgChange: true }
   );
 
   const departmentProgress = progressData?.data?.departmentProgress || [];
   const availableStudents = usersData?.data?.users || [];
-  const currentStudentIds = students.map(s => s._id);
+  const currentStudentIds = students.map(s => String(s._id || s.id));
   const studentsNotInDepartment = availableStudents.filter(
-    student => !currentStudentIds.includes(student._id)
+    student => {
+      const sId = student._id || student.id;
+      if (!sId) return false; // Skip users without IDs
+      return !currentStudentIds.includes(sId);
+    }
   );
 
   // Enhanced filtering
@@ -163,32 +167,38 @@ const DepartmentStudentsTable = ({ students, departmentId, departmentName, onRef
 
   // Handle adding students to department
   const handleAddStudents = async () => {
-    if (selectedStudents.length === 0) {
-      toast.error("Please select at least one trainee");
+    // Remove falsy + duplicate IDs
+    const validStudentIds = [...new Set(selectedStudents)].filter(Boolean);
+
+    if (validStudentIds.length === 0) {
+      toast.error("Please select at least one valid trainee");
       return;
     }
 
     try {
-      const promises = selectedStudents.map(studentId =>
-        addStudentToDepartment({ departmentId, studentId }).unwrap()
+      await Promise.all(
+        validStudentIds.map(studentId => {
+          if (!studentId || studentId === "undefined") {
+            alert("CRITICAL ERROR: Attempting to send undefined ID!");
+            throw new Error("Invalid ID in loop");
+          }
+          return addStudentToDepartment({ departmentId, studentId }).unwrap();
+        })
       );
 
-      await Promise.all(promises);
+      toast.success(`${validStudentIds.length} trainee(s) added successfully`);
 
-      toast.success(`${selectedStudents.length} trainee(s) added to department successfully`);
       setAddStudentDialogOpen(false);
       setSelectedStudents([]);
       setStudentSearchTerm("");
 
-      // Refetch department data
-      if (onRefetch) {
-        onRefetch();
-      }
+      onRefetch?.(); // cleaner optional call
     } catch (error) {
-      toast.error(error?.data?.message || "Failed to add trainees to department");
       console.error("Error adding trainees:", error);
+      toast.error(error?.data?.message || "Failed to add trainees to department");
     }
   };
+
 
   // Handle removing student from department
   const handleRemoveStudent = async (studentId, studentName) => {
@@ -208,6 +218,10 @@ const DepartmentStudentsTable = ({ students, departmentId, departmentName, onRef
 
   // Toggle student selection for adding
   const toggleStudentSelection = (studentId) => {
+    if (!studentId) {
+      console.error("Attempted to toggle undefined student ID");
+      return;
+    }
     setSelectedStudents(prev =>
       prev.includes(studentId)
         ? prev.filter(id => id !== studentId)
@@ -233,7 +247,7 @@ const DepartmentStudentsTable = ({ students, departmentId, departmentName, onRef
               <DialogTrigger asChild>
                 <Button className="gap-2">
                   <IconUserPlus className="h-4 w-4" />
-                  Add Trainees
+                  Add Trainees (v2)
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl">
@@ -270,34 +284,41 @@ const DepartmentStudentsTable = ({ students, departmentId, departmentName, onRef
                       </div>
                     ) : studentsNotInDepartment.length > 0 ? (
                       <div className="p-2 space-y-1">
-                        {studentsNotInDepartment.map(student => (
-                          <div
-                            key={student._id}
-                            className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 ${selectedStudents.includes(student._id) ? 'bg-blue-50 border border-blue-200' : ''
-                              }`}
-                            onClick={() => toggleStudentSelection(student._id)}
-                          >
-                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${selectedStudents.includes(student._id)
-                              ? 'bg-blue-600 border-blue-600 text-white'
-                              : 'border-gray-300'
-                              }`}>
-                              {selectedStudents.includes(student._id) && (
-                                <IconCheck className="h-3 w-3" />
-                              )}
+                        {studentsNotInDepartment.map(student => {
+                          // Prioritize _id and ensure it's a string
+                          const rawId = student._id || student.id;
+                          if (!rawId) return null;
+                          const sId = String(rawId);
+
+                          return (
+                            <div
+                              key={sId}
+                              className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 ${selectedStudents.includes(sId) ? 'bg-blue-50 border border-blue-200' : ''
+                                }`}
+                              onClick={() => toggleStudentSelection(sId)}
+                            >
+                              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${selectedStudents.includes(sId)
+                                ? 'bg-blue-600 border-blue-600 text-white'
+                                : 'border-gray-300'
+                                }`}>
+                                {selectedStudents.includes(sId) && (
+                                  <IconCheck className="h-3 w-3" />
+                                )}
+                              </div>
+                              <Avatar className="h-10 w-10">
+                                <AvatarImage src={student.avatar?.url} />
+                                <AvatarFallback>
+                                  {student.fullName?.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1">
+                                <p className="font-medium">{student.fullName}</p>
+                                <p className="text-sm text-muted-foreground">{student.email}</p>
+                              </div>
+                              <Badge variant="outline">{student.status}</Badge>
                             </div>
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage src={student.avatar?.url} />
-                              <AvatarFallback>
-                                {student.fullName?.split(' ').map(n => n[0]).join('').toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1">
-                              <p className="font-medium">{student.fullName}</p>
-                              <p className="text-sm text-muted-foreground">{student.email}</p>
-                            </div>
-                            <Badge variant="outline">{student.status}</Badge>
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     ) : (
                       <div className="p-8 text-center text-muted-foreground">

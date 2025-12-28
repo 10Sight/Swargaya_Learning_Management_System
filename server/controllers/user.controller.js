@@ -55,7 +55,7 @@ export const getAllUsers = asyncHandler(async (req, res) => {
   }
 
   // Safe fields only
-  const safeFields = "fullName userName slug email phoneNumber role status department unit createdAt avatar";
+  const safeFields = "_id fullName userName slug email phoneNumber role status department unit createdAt avatar";
 
   const totalUsers = await User.countDocuments(searchQuery);
 
@@ -65,7 +65,8 @@ export const getAllUsers = asyncHandler(async (req, res) => {
     .skip(skip)
     .limit(limit)
     .sort(sortOptions)
-    .lean(); // Use lean for better performance
+    .sort(sortOptions)
+    .lean();
 
   res.json(
     new ApiResponse(
@@ -377,14 +378,23 @@ export const getAllInstructors = asyncHandler(async (req, res) => {
     searchQuery.status = req.query.status;
   }
 
+  // Department filter
+  if (req.query.departmentId && mongoose.Types.ObjectId.isValid(req.query.departmentId)) {
+    searchQuery.$or = [
+      { department: req.query.departmentId },
+      { departments: req.query.departmentId }
+    ];
+  }
+
   // Safe fields only
-  const safeFields = "fullName userName slug email phoneNumber role status department unit createdAt avatar lastLogin";
+  const safeFields = "fullName userName slug email phoneNumber role status department departments unit createdAt avatar lastLogin";
 
   const totalInstructors = await User.countDocuments(searchQuery);
 
   const instructors = await User.find(searchQuery)
     .select(safeFields)
     .populate("department", "name instructor createdAt")
+    .populate("departments", "name")
     .skip(skip)
     .limit(limit)
     .sort(sortOptions);
@@ -454,7 +464,10 @@ export const getAllStudents = asyncHandler(async (req, res) => {
 
   // Department filter (for instructors to see their students)
   if (req.query.departmentId && mongoose.Types.ObjectId.isValid(req.query.departmentId)) {
-    searchQuery.department = req.query.departmentId;
+    searchQuery.$or = [
+      { department: req.query.departmentId },
+      { departments: req.query.departmentId }
+    ];
   }
 
   // If the requesting user is an instructor, limit to their departments

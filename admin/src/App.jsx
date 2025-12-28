@@ -30,6 +30,7 @@ const AddCourse = lazy(() => import("./pages/Admin/AddCourse"));
 const Departments = lazy(() => import("./pages/Admin/Departments"));
 const Students = lazy(() => import("./pages/Admin/Students"));
 const DepartmentDetail = lazy(() => import("./pages/Admin/DepartmentDetail"));
+const LineDetail = lazy(() => import("./pages/Admin/LineDetail"));
 const CourseDetailPage = lazy(() => import("./pages/Admin/CourseDetailPage"));
 const AddQuizPage = lazy(() => import("./pages/Admin/AddQuizPage"));
 const EditQuizPage = lazy(() => import("./pages/Admin/EditQuizPage"));
@@ -144,6 +145,7 @@ const App = () => {
             <Route path="employees" element={<Students pageName="Employees" />} />
             <Route path="employees/:studentId" element={<StudentDetail />} />
             <Route path="departments/:departmentId" element={<DepartmentDetail pageName="Department Detail" />} />
+            <Route path="departments/:departmentId/lines/:lineId" element={<LineDetail />} />
             <Route path="add-quiz/:courseId" element={<AddQuizPage />} />
             <Route path="edit-quiz/:quizId" element={<EditQuizPage />} />
             <Route path="add-module/:courseId" element={<AddModulePage />} />
@@ -225,6 +227,7 @@ const App = () => {
             <Route path="edit-lesson/:moduleId/:lessonId" element={<EditLessonPage />} />
             <Route path="departments" element={<Departments pageName="Departments" />} />
             <Route path="departments/:departmentId" element={<DepartmentDetail pageName="Department Detail" />} />
+            <Route path="departments/:departmentId/lines/:lineId" element={<LineDetail />} />
             <Route path="certificates" element={<CertificateManagement />} />
             <Route path="module-timelines" element={<ModuleTimelines pageName="Module Timelines" />} />
 

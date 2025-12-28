@@ -8,19 +8,19 @@ export const instructorApi = createApi({
     endpoints: (builder) => ({
         // Get all instructors with pagination, search and filters
         getAllInstructors: builder.query({
-            query: ({ page = 1, limit = 10, search = "", status = "", unit = "", sortBy = "createdAt", order = "desc" } = {}) => ({
+            query: ({ page = 1, limit = 10, search = "", status = "", unit = "", sortBy = "createdAt", order = "desc", departmentId = "" } = {}) => ({
                 url: "/api/users/instructors",
                 method: "GET",
-                params: { page, limit, search, status, unit, sortBy, order }
+                params: { page, limit, search, status, unit, sortBy, order, departmentId }
             }),
             providesTags: ['Instructor'],
         }),
 
         getAllStudents: builder.query({
-            query: ({ page = 1, limit = 10, search = "", status = "", unit = "", sortBy = "createdAt", order = "desc" } = {}) => ({
+            query: ({ page = 1, limit = 10, search = "", status = "", unit = "", sortBy = "createdAt", order = "desc", departmentId = "" } = {}) => ({
                 url: `/api/users/students`,
                 method: "GET",
-                params: { page, limit, search, status, unit, sortBy, order }
+                params: { page, limit, search, status, unit, sortBy, order, departmentId }
             }),
             providesTags: ['Instructor'],
         }),

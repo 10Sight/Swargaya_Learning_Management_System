@@ -203,13 +203,14 @@ export const removeInstructor = asyncHandler(async (req, res) => {
 
 export const addStudentToDepartment = asyncHandler(async (req, res) => {
     const { departmentId, studentId } = req.body;
+    console.log("addStudentToDepartment payload:", req.body);
 
     if (!mongoose.Types.ObjectId.isValid(departmentId)) {
         throw new ApiError("Invalid department ID", 400);
     }
 
     if (!mongoose.Types.ObjectId.isValid(studentId)) {
-        throw new ApiError("Invalid Student ID", 400);
+        throw new ApiError(`Invalid Student ID: ${studentId} (Type: ${typeof studentId})`, 400);
     }
 
     const department = await Department.findById(departmentId);
@@ -239,8 +240,17 @@ export const addStudentToDepartment = asyncHandler(async (req, res) => {
     department.students.push(studentId);
     await department.save();
 
-    // Update student with department
+    // Update student with department (support multiple)
+    if (!student.departments) {
+        student.departments = [];
+    }
+    // Add to departments array if not already present
+    if (!student.departments.includes(departmentId)) {
+        student.departments.push(departmentId);
+    }
+    // Also update single department field as "primary" or "most recent" for backward compatibility
     student.department = departmentId;
+
     await student.save();
 
     res.json(new ApiResponse(200, department, "Student added to department successfully"));
@@ -269,8 +279,18 @@ export const removeStudentFromDepartment = asyncHandler(async (req, res) => {
     );
     await department.save();
 
-    // Remove department from student
-    student.department = null;
+    // Remove department from student's departments array
+    if (student.departments && student.departments.length > 0) {
+        student.departments = student.departments.filter(
+            (id) => id.toString() !== departmentId.toString()
+        );
+    }
+
+    // If the removed department was the "primary" one, set primary to another one or null
+    if (student.department && student.department.toString() === departmentId.toString()) {
+        student.department = student.departments.length > 0 ? student.departments[0] : null;
+    }
+
     await student.save();
 
     res.json(new ApiResponse(200, department, "Student removed from department successfully"));
@@ -585,7 +605,7 @@ export const getDepartmentProgress = asyncHandler(async (req, res) => {
         totalStudents: department.students.length,
         studentsWithProgress,
         averageProgress,
-        totalModules
+        totalModules: allModulesCount
     };
 
     res.json(new ApiResponse(200, {

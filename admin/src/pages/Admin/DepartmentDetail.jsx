@@ -14,6 +14,7 @@ import DepartmentStudentsTable from "@/components/departments/DepartmentStudents
 import DepartmentStats from "@/components/departments/DepartmentStats";
 import DepartmentSkeleton from "@/components/departments/DepartmentSkeleton";
 import DepartmentCancellationBanner from "@/components/departments/DepartmentCancellationBanner";
+import DepartmentLineManager from "@/components/departments/DepartmentLineManager";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -275,11 +276,12 @@ const DepartmentDetail = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid grid-cols-2 md:grid-cols-4 mb-6">
+        <TabsList className="grid grid-cols-2 md:grid-cols-5 mb-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="progress">Progress ({enhancedStats.studentsWithProgress})</TabsTrigger>
           <TabsTrigger value="submissions">Submissions ({enhancedStats.totalSubmissions})</TabsTrigger>
           <TabsTrigger value="quizzes">Quizzes ({enhancedStats.totalQuizAttempts})</TabsTrigger>
+          <TabsTrigger value="lines">Lines</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -531,6 +533,10 @@ const DepartmentDetail = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="lines">
+          <DepartmentLineManager departmentId={departmentId} />
         </TabsContent>
       </Tabs>
     </div>

@@ -154,11 +154,11 @@ const StudentLevelManager = () => {
             : student
         ));
       } else {
-        throw new Error(response.data.message || "Failed to update student level");
+        throw new Error(response.data.message || "Failed to update employee level");
       }
     } catch (error) {
-      console.error("Error setting student level:", error);
-      const errorMessage = error.response?.data?.message || error.message || "Failed to update student level";
+      console.error("Error setting employee level:", error);
+      const errorMessage = error.response?.data?.message || error.message || "Failed to update employee level";
       toast.error(errorMessage);
     } finally {
       setUpdating(prev => ({ ...prev, [updateKey]: false }));
