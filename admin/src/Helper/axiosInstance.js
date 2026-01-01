@@ -1,20 +1,14 @@
 import axios from "axios";
 
 const ENV_BASE = import.meta?.env?.VITE_BASE_URL;
-export const BASE_URL = ENV_BASE || "http://localhost:3000";
-// const BASE_URL = "https://swargaya-learning-management-system-3vcz.onrender.com";
+// export const BASE_URL = ENV_BASE || "http://localhost:3000";
+const BASE_URL = "https://swargaya-learning-management-system-3vcz.onrender.com";
 
 const axiosInstance = axios.create({ baseURL: BASE_URL, withCredentials: true });
 
 // Request interceptor - for authentication token handling
 axiosInstance.interceptors.request.use(
     (config) => {
-        // Since we're using HTTP-only cookies for authentication,
-        // we don't need to manually set Authorization headers.
-        // The cookies will be sent automatically with each request.
-
-        // However, if there's a token in localStorage (for fallback),
-        // we can still use it
         const token = localStorage.getItem('token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
