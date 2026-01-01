@@ -139,7 +139,6 @@ export const DynamicFormExample = () => {
 
   const handleFormSubmit = (formData) => {
     setIsLoading(true);
-    console.log("Dynamic form submitted:", formData);
     
     // Simulate API call
     setTimeout(() => {
@@ -150,7 +149,6 @@ export const DynamicFormExample = () => {
 
   const handleFieldsChange = (newFields) => {
     setFormFields(newFields);
-    console.log("Form fields updated:", newFields);
   };
 
   // Pre-configured form fields example

@@ -240,30 +240,6 @@ export const markModuleComplete = asyncHandler(async (req, res) => {
                 if (progress.lockedLevel && progress.currentLevel !== progress.lockedLevel) {
                     progress.currentLevel = progress.lockedLevel;
                 }
-            } else {
-                // Automatic level progression logic using dynamic level configuration
-                const levelConfig = await CourseLevelConfig.getActiveConfig();
-                if (levelConfig) {
-                    const nextLevel = levelConfig.getNextLevel(progress.currentLevel);
-
-                    // Check if student should be promoted based on progress
-                    if (nextLevel) {
-                        // Simple progression: advance to next level after completing a certain percentage
-                        const levelsCount = levelConfig.levels.length;
-                        const progressThreshold = 100 / levelsCount;
-                        const currentLevelIndex = levelConfig.levels.findIndex(
-                            l => l.name.toUpperCase() === progress.currentLevel.toUpperCase()
-                        );
-
-                        if (currentLevelIndex !== -1 && currentLevelIndex < levelsCount - 1) {
-                            const requiredProgress = (currentLevelIndex + 1) * progressThreshold;
-                            if (progress.progressPercent >= requiredProgress) {
-                                progress.currentLevel = nextLevel.name;
-                                levelUpgraded = true;
-                            }
-                        }
-                    }
-                }
             }
 
             // Log level upgrade for debugging

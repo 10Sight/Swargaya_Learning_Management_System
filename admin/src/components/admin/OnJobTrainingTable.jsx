@@ -3,24 +3,41 @@ import { useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { IconPrinter, IconDownload, IconDeviceFloppy } from "@tabler/icons-react";
+import { IconPrinter, IconDownload, IconDeviceFloppy, IconArrowLeft } from "@tabler/icons-react";
 import { toast } from "sonner";
-import { useGetOnJobTrainingQuery, useSaveOnJobTrainingMutation } from "@/Redux/AllApi/OnJobTrainingApi";
+import { useGetOnJobTrainingByIdQuery, useUpdateOnJobTrainingMutation } from "@/Redux/AllApi/OnJobTrainingApi";
 
-const OnJobTrainingTable = ({ studentName = "Associate Name", model = "Model Name", readOnly = false }) => {
+const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model = "Model Name", readOnly = false, onBack }) => {
     const { studentId } = useParams();
     const componentRef = useRef();
 
     // API Hooks
-    const { data: ojtData, isLoading, refetch } = useGetOnJobTrainingQuery(studentId);
-    const [saveOnJobTraining, { isLoading: isSaving }] = useSaveOnJobTrainingMutation();
+    // If ojtId is passed, use it. Otherwise fall back to studentId (legacy/fallback support if needed, but we are moving to ID based)
+    const { data: ojtData, isLoading, refetch } = useGetOnJobTrainingByIdQuery(ojtId, { skip: !ojtId });
+    const [updateOnJobTraining, { isLoading: isSaving }] = useUpdateOnJobTrainingMutation();
 
     // Local State
     const [entries, setEntries] = useState(Array(15).fill({}));
     const [remarks, setRemarks] = useState("");
 
+    // Doc Details State
+    const [docDetails, setDocDetails] = useState({
+        docNo: "",
+        revNo: "06",
+        revDate: "15-06-2024"
+    });
+
+    // Header Info
+    const [headerInfo, setHeaderInfo] = useState({
+        name: "",
+        line: "",
+        machine: "",
+        doj: ""
+    });
+
     // Summary State
     const [summary, setSummary] = useState({
+        totalMarks: "36",
         totalMarksObtained: "",
         totalPercentage: "",
         result: "",
@@ -29,19 +46,64 @@ const OnJobTrainingTable = ({ studentName = "Associate Name", model = "Model Nam
     // Initialize state when data is fetched
     useEffect(() => {
         if (ojtData?.data) {
-            const fetchedEntries = ojtData.data.entries || [];
+            const data = ojtData.data;
+            const fetchedEntries = data.entries || [];
             // Merge fetched entries with empty rows to ensure 15 rows always
             const mergedEntries = Array(15).fill({}).map((_, i) => fetchedEntries[i] || {});
             setEntries(mergedEntries);
 
-            setRemarks(ojtData.data.remarks || "");
+            setRemarks(data.remarks || "");
             setSummary({
-                totalMarksObtained: ojtData.data.totalMarksObtained || "",
-                totalPercentage: ojtData.data.totalPercentage || "",
-                result: ojtData.data.result || "",
+                totalMarks: data.totalMarks || "36",
+                totalMarksObtained: data.totalMarksObtained || "",
+                totalPercentage: data.totalPercentage || "",
+                result: data.result || "",
+            });
+
+            // Set Doc Details
+            setDocDetails({
+                docNo: data.docNo || "",
+                revNo: data.revNo || "06",
+                revDate: data.revDate || "15-06-2024"
+            });
+
+            // Populate Header Info from relation
+            setHeaderInfo({
+                name: data.name || "Level-1 Practical Evaluation of On the Job Training",
+                line: data.line?.name || "",
+                machine: data.machine?.name + (data.machine?.machineName ? ` (${data.machine.machineName})` : "") || "",
+                // defaulting DOJ to createdAt if not stored explicitly, or empty
+                doj: data.student?.createdAt ? new Date(data.student.createdAt).toLocaleDateString() : ""
             });
         }
     }, [ojtData]);
+
+    // Auto-calculate Percentage
+    useEffect(() => {
+        const total = parseFloat(summary.totalMarks);
+        const obtained = parseFloat(summary.totalMarksObtained);
+
+        if (!isNaN(total) && !isNaN(obtained) && total > 0) {
+            const percentage = ((obtained / total) * 100).toFixed(2);
+            setSummary(prev => {
+                if (prev.totalPercentage !== percentage) {
+                    return { ...prev, totalPercentage: percentage };
+                }
+                return prev;
+            });
+        } else if ((isNaN(obtained) || obtained === 0) && summary.totalPercentage !== "") {
+            // Optional: iterate to clear percentage if input is cleared? 
+            // Better to keep it simple. If fields are empty, maybe clear percentage?
+            // "have to automatic percentage" - implies if I delete marks, percentage should probably go away or be 0.
+            // Let's set it to "" if values are invalid to keep UI clean.
+            setSummary(prev => {
+                if (prev.totalPercentage !== "") {
+                    return { ...prev, totalPercentage: "" };
+                }
+                return prev;
+            });
+        }
+    }, [summary.totalMarks, summary.totalMarksObtained]);
 
     const handlePrint = () => {
         window.print();
@@ -59,20 +121,31 @@ const OnJobTrainingTable = ({ studentName = "Associate Name", model = "Model Nam
         setSummary(prev => ({ ...prev, [field]: value }));
     };
 
+    const handleDocDetailChange = (field, value) => {
+        if (readOnly) return;
+        setDocDetails(prev => ({ ...prev, [field]: value }));
+    };
+
     const handleSave = async () => {
+        if (!ojtId) {
+            toast.error("OJT ID is missing");
+            return;
+        }
         try {
             const payload = {
-                studentId,
+                id: ojtId,
                 data: {
                     entries,
                     remarks,
+                    totalMarks: summary.totalMarks,
                     totalMarksObtained: summary.totalMarksObtained,
                     totalPercentage: summary.totalPercentage,
                     result: summary.result,
+                    ...docDetails
                 }
             };
 
-            await saveOnJobTraining(payload).unwrap();
+            await updateOnJobTraining(payload).unwrap();
             toast.success("Evaluation saved successfully!");
             refetch();
         } catch (error) {
@@ -116,11 +189,17 @@ const OnJobTrainingTable = ({ studentName = "Associate Name", model = "Model Nam
         `}
             </style>
             <div className="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm no-print border">
-                <div>
-                    <h1 className="text-xl font-bold text-gray-800">On Job Training Evaluation</h1>
-                    <p className="text-sm text-gray-500">
-                        Level-1 Practical Evaluation of On the Job Training
-                    </p>
+                <div className="flex items-center gap-4">
+                    <Button variant="outline" size="sm" onClick={onBack}>
+                        <IconArrowLeft className="w-4 h-4 mr-2" />
+                        Back
+                    </Button>
+                    <div>
+                        <h1 className="text-xl font-bold text-gray-800">{headerInfo.name || "On Job Training Evaluation"}</h1>
+                        <p className="text-sm text-gray-500">
+                            Level-1 Practical Evaluation of On the Job Training
+                        </p>
+                    </div>
                 </div>
                 <div className="flex gap-2">
                     {!readOnly && (
@@ -143,20 +222,38 @@ const OnJobTrainingTable = ({ studentName = "Associate Name", model = "Model Nam
                         <div className="flex justify-between items-start mb-2 border-b-2 border-black pb-2">
                             <div className="flex items-center gap-4">
                                 <img src="/motherson+marelli.png" alt="Logo" className="h-8 md:h-10" />
-                                <h2 className="font-bold text-lg border-b border-black">Level-1 Practical Evaluation of On the Job Training</h2>
+                                <h2 className="font-bold text-lg border-b border-black">{headerInfo.name || "Level-1 Practical Evaluation of On the Job Training"}</h2>
                             </div>
                             <div className="grid grid-cols-1 border border-black text-xs">
                                 <div className="flex border-b border-black">
                                     <span className="p-1 border-r border-black font-semibold bg-gray-100 w-20">Doc. No.</span>
-                                    <span className="p-1 w-32"></span>
+                                    <span className="p-1 w-32 p-0">
+                                        <Input disabled={readOnly}
+                                            className="h-full w-full border-none p-1 focus-visible:ring-0"
+                                            value={docDetails.docNo}
+                                            onChange={e => handleDocDetailChange('docNo', e.target.value)}
+                                        />
+                                    </span>
                                 </div>
                                 <div className="flex border-b border-black">
                                     <span className="p-1 border-r border-black font-semibold bg-gray-100 w-20">Rev. No.</span>
-                                    <span className="p-1 w-32">06</span>
+                                    <span className="p-1 w-32 p-0">
+                                        <Input disabled={readOnly}
+                                            className="h-full w-full border-none p-1 focus-visible:ring-0"
+                                            value={docDetails.revNo}
+                                            onChange={e => handleDocDetailChange('revNo', e.target.value)}
+                                        />
+                                    </span>
                                 </div>
                                 <div className="flex">
                                     <span className="p-1 border-r border-black font-semibold bg-gray-100 w-20">Rev. Date</span>
-                                    <span className="p-1 w-32">15-06-2024</span>
+                                    <span className="p-1 w-32 p-0">
+                                        <Input disabled={readOnly}
+                                            className="h-full w-full border-none p-1 focus-visible:ring-0"
+                                            value={docDetails.revDate}
+                                            onChange={e => handleDocDetailChange('revDate', e.target.value)}
+                                        />
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -170,9 +267,9 @@ const OnJobTrainingTable = ({ studentName = "Associate Name", model = "Model Nam
                             </div>
                             <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
                                 <span className="font-bold">Line/Machine:</span>
-                                <Input disabled={readOnly} className="border-none border-b border-black h-5 px-2 rounded-none focus-visible:ring-0" placeholder="Enter Line/Machine" />
+                                <div className="border-b border-black h-5 px-2 font-medium">{headerInfo.line} / {headerInfo.machine}</div>
                                 <span className="font-bold">Date of Joining:</span>
-                                <Input disabled={readOnly} className="border-none border-b border-black h-5 px-2 rounded-none focus-visible:ring-0" placeholder="DD-MM-YYYY" />
+                                <div className="border-b border-black h-5 px-2 font-medium">{headerInfo.doj}</div>
                             </div>
                         </div>
 
@@ -233,13 +330,13 @@ const OnJobTrainingTable = ({ studentName = "Associate Name", model = "Model Nam
                                     {/* Summary Rows */}
                                     <tr>
                                         <td className="border border-black p-1 font-bold">Total</td>
-                                        <td className="border border-black p-1"></td>
-                                        <td className="border border-black p-1"></td>
-                                        <td className="border border-black p-1"></td>
-                                        <td className="border border-black p-1"></td>
-                                        <td className="border border-black p-1"></td>
-                                        <td className="border border-black p-1 bg-gray-200"></td>
-                                        <td className="border border-black p-1"></td>
+                                        <td className="border border-black p-1 font-bold">{entries.reduce((sum, row) => sum + (Number(row.hours) || 0), 0)}</td>
+                                        <td className="border border-black p-1 font-bold">{entries.reduce((sum, row) => sum + (Number(row.productionTarget) || 0), 0)}</td>
+                                        <td className="border border-black p-1 font-bold">{entries.reduce((sum, row) => sum + (Number(row.totalPartProduction) || 0), 0)}</td>
+                                        <td className="border border-black p-1 font-bold">{entries.reduce((sum, row) => sum + (Number(row.okParts) || 0), 0)}</td>
+                                        <td className="border border-black p-1 font-bold">{entries.reduce((sum, row) => sum + (Number(row.rejection) || 0), 0)}</td>
+                                        <td className="border border-black p-1 font-bold">{entries.reduce((sum, row) => sum + (Number(row.cycleTimeTarget) || 0), 0)}</td>
+                                        <td className="border border-black p-1 font-bold">{entries.reduce((sum, row) => sum + (Number(row.cycleTimeActual) || 0), 0)}</td>
                                         <td colSpan={5} rowSpan={3} className="border border-black p-0 align-top">
                                             <div className="flex h-full">
                                                 <div className="flex-1 flex flex-col border-r border-black">
@@ -248,7 +345,13 @@ const OnJobTrainingTable = ({ studentName = "Associate Name", model = "Model Nam
                                                 </div>
                                                 <div className="w-20 border-r border-black flex flex-col">
                                                     <div className="border-b border-black p-1 font-bold text-center text-[10px] h-10 flex items-center justify-center">TOTAL MARKS</div>
-                                                    <div className="flex-1 flex items-center justify-center font-bold text-lg">36</div>
+                                                    <div className="flex-1 p-0">
+                                                        <Input disabled={readOnly}
+                                                            className="h-full w-full border-none text-center text-lg font-bold p-0 focus-visible:ring-0"
+                                                            value={summary.totalMarks}
+                                                            onChange={e => handleSummaryChange('totalMarks', e.target.value)}
+                                                        />
+                                                    </div>
                                                 </div>
                                                 <div className="w-20 border-r border-black flex flex-col">
                                                     <div className="border-b border-black p-1 font-bold text-center text-[10px] h-10 flex items-center justify-center">TOTAL MARKS OBTAINED</div>
@@ -272,13 +375,17 @@ const OnJobTrainingTable = ({ studentName = "Associate Name", model = "Model Nam
                                                 </div>
                                                 <div className="w-16 flex flex-col">
                                                     <div className="border-b border-black p-1 font-bold text-center text-[10px] h-10 flex items-center justify-center" >Result</div>
-                                                    <div className="flex-1 p-0">
-                                                        <Input disabled={readOnly}
-                                                            className={`h-full w-full border-none text-center text-lg font-bold p-0 focus-visible:ring-0 ${summary.result === 'Pass' ? 'text-green-600' : 'text-red-600'}`}
+                                                    <div className="flex-1 p-0 h-full">
+                                                        <select
+                                                            disabled={readOnly}
+                                                            className={`h-full w-full border-none text-center text-lg font-bold p-0 focus:outline-none bg-transparent ${summary.result === 'Pass' ? 'text-green-600' : summary.result === 'Fail' ? 'text-red-600' : ''}`}
                                                             value={summary.result}
-                                                            placeholder="Pass/Fail"
                                                             onChange={e => handleSummaryChange('result', e.target.value)}
-                                                        />
+                                                        >
+                                                            <option value="">Select</option>
+                                                            <option value="Pass" className="text-green-600">Pass</option>
+                                                            <option value="Fail" className="text-red-600">Fail</option>
+                                                        </select>
                                                     </div>
                                                 </div>
                                             </div>

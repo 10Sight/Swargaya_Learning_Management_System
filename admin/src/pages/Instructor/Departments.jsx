@@ -28,8 +28,8 @@ const InstructorDepartments = () => {
         if (!search) return allDepartments
         return allDepartments.filter(department =>
             department.name.toLowerCase().includes(search.toLowerCase()) ||
-            department.course?.title?.toLowerCase().includes(search.toLowerCase()) ||
-            department.description?.toLowerCase().includes(search.toLowerCase())
+            (department.course?.title || department.courses?.[0]?.title)?.toLowerCase().includes(search.toLowerCase()) ||
+            department.notes?.toLowerCase().includes(search.toLowerCase())
         )
     }, [allDepartments, search])
 
@@ -138,7 +138,7 @@ const InstructorDepartments = () => {
                                     <div>
                                         <CardTitle className="text-lg">{department.name}</CardTitle>
                                         <p className="text-sm text-muted-foreground mt-1">
-                                            {department.description || 'No description available'}
+                                            {department.notes || 'No notes available'}
                                         </p>
                                     </div>
                                     {getStatusBadge(department.status)}
@@ -152,7 +152,7 @@ const InstructorDepartments = () => {
                                         <div>
                                             <p className="text-xs text-muted-foreground">Course</p>
                                             <p className="font-medium text-sm">
-                                                {department.course?.title || 'No course assigned'}
+                                                {department.course?.title || department.courses?.[0]?.title || 'No course assigned'}
                                             </p>
                                         </div>
                                     </div>
@@ -194,7 +194,7 @@ const InstructorDepartments = () => {
                                     </div>
 
                                     <div className="flex space-x-2">
-                                        <Link to={`/instructor/students?department=${department._id}`}>
+                                        <Link to={`/trainer/employees?department=${department._id}`}>
                                             <Button variant="outline" size="sm">
                                                 <IconUsers className="h-4 w-4 mr-2" />
                                                 View Students

@@ -63,6 +63,7 @@ const QuizMonitoring = lazy(() => import("./pages/Instructor/QuizMonitoring"));
 const AssignmentMonitoring = lazy(() => import("./pages/Instructor/AssignmentMonitoring"));
 const CertificateIssuance = lazy(() => import("./pages/Instructor/CertificateIssuance"));
 const InstructorAttemptRequests = lazy(() => import("./pages/Instructor/AttemptRequests"));
+const InstructorSkillMatrix = lazy(() => import("./pages/Instructor/SkillMatrix"));
 
 // SuperAdmin Pages
 const SuperAdminDashboard = lazy(() => import("./pages/SuperAdmin/Dashboard"));
@@ -193,6 +194,7 @@ const App = () => {
             <Route path="assignment-monitoring" element={<AssignmentMonitoring />} />
             <Route path="certificate-issuance" element={<CertificateIssuance />} />
             <Route path="attempt-requests" element={<InstructorAttemptRequests />} />
+            <Route path="skill-matrix" element={<InstructorSkillMatrix />} />
           </Route>
 
           {/* SuperAdmin routes */}

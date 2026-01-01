@@ -22,7 +22,7 @@ export const translations = {
     "nav.attemptRequests": "Attempt Requests",
     "nav.moduleTimelines": "Module Timelines",
     "nav.courseLevelSettings": "Course Level Settings",
-    "nav.studentLevels": "Student Levels",
+    "nav.studentLevels": "Employee Levels",
     "nav.certificateTemplates": "Certificate Templates",
     "nav.analytics": "Analytics",
 
@@ -31,6 +31,7 @@ export const translations = {
     "nav.course": "Course",
     "nav.reports": "Reports",
     "nav.certificates": "Certificates",
+    "nav.onJobTraining": "On Job Training",
 
     "nav.myCourses": "My Courses",
     "nav.myDepartments": "My Departments",
@@ -131,6 +132,7 @@ export const translations = {
     "nav.course": "कोर्स",
     "nav.reports": "रिपोर्ट",
     "nav.certificates": "प्रमाणपत्र",
+    "nav.onJobTraining": "ऑन जॉब ट्रेनिंग",
 
     "nav.myCourses": "मेरे कोर्स",
     "nav.myDepartments": "मेरे विभाग",
@@ -217,6 +219,7 @@ export const translations = {
     "nav.course": "コース",
     "nav.reports": "レポート",
     "nav.certificates": "証明書",
+    "nav.onJobTraining": "実地訓練",
 
     "nav.myCourses": "担当コース",
     "nav.myDepartments": "担当部門",
@@ -303,6 +306,7 @@ export const translations = {
     "nav.course": "课程",
     "nav.reports": "报告",
     "nav.certificates": "证书",
+    "nav.onJobTraining": "在职培训",
 
     "nav.myCourses": "我的课程",
     "nav.myDepartments": "我的部门",
@@ -389,6 +393,7 @@ export const translations = {
     "nav.course": "Курс",
     "nav.reports": "Отчёты",
     "nav.certificates": "Сертификаты",
+    "nav.onJobTraining": "Обучение на работе",
 
     "nav.myCourses": "Мои курсы",
     "nav.myDepartments": "Мои отделы",

@@ -421,17 +421,31 @@ const Departments = () => {
   };
 
   const handleAddStudents = async () => {
+    // Safely extract valid IDs and filter out any undefined/nulls
+    const validStudentIds = [...new Set(selectedStudents)].filter(Boolean);
+
+    if (validStudentIds.length === 0) {
+      toast.error("Please select at least one valid trainee");
+      return;
+    }
+
     try {
-      await addStudentToDepartment({
-        departmentId: selectedDepartment._id,
-        studentIds: selectedStudents,
-      }).unwrap();
+      await Promise.all(
+        validStudentIds.map(studentId => {
+          if (!studentId || studentId === 'undefined') throw new Error("Invalid Student ID");
+          return addStudentToDepartment({
+            departmentId: selectedDepartment._id,
+            studentId: studentId,
+          }).unwrap();
+        })
+      );
       showToast("success", "Students added successfully");
       setIsManageStudentsDialogOpen(false);
       setSelectedStudents([]);
       refetch();
     } catch (err) {
-      showToast("error", err?.data?.message || "Failed to add students");
+      console.error(err);
+      showToast("error", err?.data?.message || err.message || "Failed to add students");
     }
   };
 
@@ -997,6 +1011,7 @@ const Departments = () => {
                                     <DropdownMenuItem
                                       key={student._id}
                                       onClick={(e) => {
+                                        e.preventDefault();
                                         e.stopPropagation();
                                         handleRemoveStudent({ departmentId: department._id, studentId: student._id, studentName: student.fullName });
                                       }}
@@ -1702,18 +1717,19 @@ const Departments = () => {
                           )
                       )
                       .map((student) => {
-                        const isSelected = selectedStudents.includes(
-                          student._id
-                        );
+                        const rawId = student._id || student.id;
+                        if (!rawId) return null;
+                        const sId = String(rawId);
+                        const isSelected = selectedStudents.includes(sId);
 
                         return (
                           <div
-                            key={student._id}
+                            key={sId}
                             className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${isSelected
                               ? "bg-blue-50 border-blue-200"
                               : "hover:bg-muted"
                               }`}
-                            onClick={() => toggleStudentSelection(student._id)}
+                            onClick={() => toggleStudentSelection(sId)}
                           >
                             <div className="flex items-center gap-3">
                               <Avatar className="h-8 w-8">

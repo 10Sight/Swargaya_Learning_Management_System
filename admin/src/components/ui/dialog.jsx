@@ -1,21 +1,21 @@
 import * as React from "react"
+import { createPortal } from "react-dom"
 import { cn } from "@/lib/utils"
 
-const Dialog = ({ children, open, onOpenChange }) => {
-  return (
-    <>
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div 
-            className="fixed inset-0 bg-black/70 backdrop-blur-md backdrop-saturate-200" 
-            onClick={() => onOpenChange(false)}
-          />
-          <div className="relative bg-white rounded-lg shadow-lg max-w-md w-full mx-4 max-h-[90vh] overflow-auto">
-            {children}
-          </div>
-        </div>
-      )}
-    </>
+const Dialog = ({ children, open, onOpenChange, className }) => {
+  if (!open) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm backdrop-saturate-150 transition-all duration-300"
+        onClick={() => onOpenChange(false)}
+      />
+      <div className={cn("relative bg-white rounded-lg shadow-xl w-full max-h-[90vh] overflow-y-auto transform transition-all", className || "max-w-md")}>
+        {children}
+      </div>
+    </div>,
+    document.body
   )
 }
 

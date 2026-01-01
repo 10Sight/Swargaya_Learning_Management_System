@@ -317,7 +317,7 @@ export const updateUser = asyncHandler(async (req, res) => {
   if (role && AvailableUserRoles[role]) {
     user.role = role;
   }
-  if (status && ["PRESENT", "ON_LEAVE", "ABSENT"].includes(status)) {
+  if (status && ["PRESENT", "ON_LEAVE", "LEFT"].includes(status)) {
     user.status = status;
   }
   if (unit) {
@@ -374,7 +374,7 @@ export const getAllInstructors = asyncHandler(async (req, res) => {
   }
 
   // Status filter
-  if (req.query.status && ["PRESENT", "ON_LEAVE", "ABSENT"].includes(req.query.status)) {
+  if (req.query.status && ["PRESENT", "ON_LEAVE", "LEFT"].includes(req.query.status)) {
     searchQuery.status = req.query.status;
   }
 
@@ -453,7 +453,7 @@ export const getAllStudents = asyncHandler(async (req, res) => {
   }
 
   // Status filter
-  if (req.query.status && ["PRESENT", "ON_LEAVE", "ABSENT"].includes(req.query.status)) {
+  if (req.query.status && ["PRESENT", "ON_LEAVE", "LEFT"].includes(req.query.status)) {
     searchQuery.status = req.query.status;
   }
 

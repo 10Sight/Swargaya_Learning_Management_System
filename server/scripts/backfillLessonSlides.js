@@ -21,10 +21,7 @@ import Lesson from '../models/lesson.model.js';
       doc.slides = slides;
       await doc.save();
       updated += 1;
-      console.log(`Backfilled slides for lesson ${doc._id}`);
     }
-
-    console.log(`Backfill complete. Lessons updated: ${updated}`);
     await mongoose.disconnect();
     process.exit(0);
   } catch (err) {

@@ -1,7 +1,9 @@
 import express from "express";
 import {
-    getOnJobTraining,
-    saveOnJobTraining,
+    createOnJobTraining,
+    getStudentOnJobTrainings,
+    getOnJobTrainingById,
+    updateOnJobTraining
 } from "../controllers/onJobTraining.controller.js";
 import verifyJWT from "../middlewares/auth.middleware.js";
 import authorizeRoles from "../middlewares/authrization.middleware.js";
@@ -9,8 +11,9 @@ import authorizeRoles from "../middlewares/authrization.middleware.js";
 const router = express.Router();
 
 // Routes
-router.route("/:studentId")
-    .get(verifyJWT, getOnJobTraining)
-    .post(verifyJWT, authorizeRoles("ADMIN", "SUPERADMIN", "INSTRUCTOR"), saveOnJobTraining);
+router.post("/create", verifyJWT, authorizeRoles("SUPERADMIN", "ADMIN", "INSTRUCTOR"), createOnJobTraining);
+router.get("/student/:studentId", verifyJWT, getStudentOnJobTrainings);
+router.get("/:id", verifyJWT, getOnJobTrainingById);
+router.patch("/:id", verifyJWT, authorizeRoles("SUPERADMIN", "ADMIN", "INSTRUCTOR"), updateOnJobTraining);
 
 export default router;

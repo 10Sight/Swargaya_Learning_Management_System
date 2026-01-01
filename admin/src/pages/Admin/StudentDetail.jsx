@@ -13,7 +13,9 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import AttemptReviewModal from "@/components/common/AttemptReviewModal";
-import OnJobTrainingTable from "@/components/admin/OnJobTrainingTable";
+import OnJobTrainingTable from "@/components/admin/OnJobTrainingTable"; // Keep this for detail view
+import OJTList from "@/components/admin/OJTList";
+import CreateOJTDialog from "@/components/admin/CreateOJTDialog";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -55,6 +57,10 @@ const StudentDetail = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [viewAttemptId, setViewAttemptId] = useState(null);
   const [attemptModalOpen, setAttemptModalOpen] = useState(false);
+
+  // OJT State
+  const [selectedOjtId, setSelectedOjtId] = useState(null);
+  const [createOjtOpen, setCreateOjtOpen] = useState(false);
 
   // API Queries
   const {
@@ -885,9 +891,35 @@ const StudentDetail = () => {
         </TabsContent>
 
         <TabsContent value="ojt">
-          <OnJobTrainingTable
-            studentName={student?.fullName}
-            model={student?.department?.name || "N/A"}
+          {selectedOjtId ? (
+            <OnJobTrainingTable
+              ojtId={selectedOjtId}
+              studentName={student.fullName}
+              model="-"
+              readOnly={false}
+              onBack={() => setSelectedOjtId(null)}
+            />
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>On Job Training</CardTitle>
+                <CardDescription>Manage Level-1 Practical Evaluations</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <OJTList
+                  studentId={studentId}
+                  onViewDetails={(ojt) => setSelectedOjtId(ojt._id)}
+                  onAddTraining={() => setCreateOjtOpen(true)}
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          <CreateOJTDialog
+            open={createOjtOpen}
+            onOpenChange={setCreateOjtOpen}
+            studentId={studentId}
+            onSuccess={() => {/* Maybe refetch list automatically via tag invalidation */ }}
           />
         </TabsContent>
       </Tabs>

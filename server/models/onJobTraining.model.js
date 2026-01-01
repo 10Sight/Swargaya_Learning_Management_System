@@ -7,6 +7,26 @@ const onJobTrainingSchema = new mongoose.Schema(
             ref: "User",
             required: true,
         },
+        name: {
+            type: String,
+            required: true,
+            default: "Level-1 Practical Evaluation of On the Job Training"
+        },
+        department: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Department",
+            required: true
+        },
+        line: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Line",
+            required: true
+        },
+        machine: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Machine",
+            required: true
+        },
         // The main table entries (typically 15 rows)
         entries: [
             {

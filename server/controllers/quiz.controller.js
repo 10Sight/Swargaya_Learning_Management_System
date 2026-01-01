@@ -8,7 +8,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { checkModuleAccessForAssessments } from "../utils/moduleCompletion.js";
 
 export const createQuiz = asyncHandler(async (req, res) => {
-    const { courseId, moduleId, lessonId, scope, title, questions, passingScore, description, timeLimit, attemptsAllowed } = req.body;
+    const { courseId, moduleId, lessonId, scope, title, questions, passingScore, description, timeLimit, attemptsAllowed, skillUpgradation } = req.body;
 
     // Validate required fields
     if (!title || !questions || questions.length === 0) {
@@ -22,12 +22,12 @@ export const createQuiz = asyncHandler(async (req, res) => {
 
     // Determine scope from provided parameters if not explicitly set
     const actualScope = scope || (lessonId ? 'lesson' : moduleId ? 'module' : 'course');
-    
+
     // Validate course ID
     if (!courseId || !mongoose.Types.ObjectId.isValid(courseId)) {
         throw new ApiError("Valid Course ID is required", 400);
     }
-    
+
     const course = await Course.findById(courseId);
     if (!course) {
         throw new ApiError("Course not found", 404);
@@ -73,6 +73,7 @@ export const createQuiz = asyncHandler(async (req, res) => {
         passingScore,
         timeLimit,
         attemptsAllowed,
+        skillUpgradation,
         createdBy: req.user._id,
         // Legacy fields for backward compatibility
         course: courseId
@@ -112,7 +113,7 @@ export const getAllQuizzes = asyncHandler(async (req, res) => {
         ? { title: { $regex: search, $options: "i" } }
         : {};
 
-    if(req.query.courseId) {
+    if (req.query.courseId) {
         searchQuery.course = req.query.courseId;
     }
 
@@ -154,7 +155,7 @@ export const getQuizById = asyncHandler(async (req, res) => {
             .populate("createdBy", "fullName email");
     }
 
-    if(!quiz) {
+    if (!quiz) {
         throw new ApiError("Quiz not found", 404);
     }
 
@@ -162,23 +163,24 @@ export const getQuizById = asyncHandler(async (req, res) => {
 });
 
 export const updateQuiz = asyncHandler(async (req, res) => {
-    if(!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
         throw new ApiError("Invalid quiz ID", 400);
     }
 
-    const { title, questions, description, passingScore, timeLimit, attemptsAllowed } = req.body;
+    const { title, questions, description, passingScore, timeLimit, attemptsAllowed, skillUpgradation } = req.body;
 
     const quiz = await Quiz.findById(req.params.id);
-    if(!quiz) {
+    if (!quiz) {
         throw new ApiError("Quiz not found", 404);
     }
 
-    if(title) quiz.title = title;
-    if(questions && questions.length > 0) quiz.questions = questions;
-    if(description !== undefined) quiz.description = description;
-    if(passingScore !== undefined) quiz.passingScore = Number(passingScore);
-    if(timeLimit !== undefined) quiz.timeLimit = timeLimit;
-    if(attemptsAllowed !== undefined) quiz.attemptsAllowed = attemptsAllowed;
+    if (title) quiz.title = title;
+    if (questions && questions.length > 0) quiz.questions = questions;
+    if (description !== undefined) quiz.description = description;
+    if (passingScore !== undefined) quiz.passingScore = Number(passingScore);
+    if (timeLimit !== undefined) quiz.timeLimit = timeLimit;
+    if (attemptsAllowed !== undefined) quiz.attemptsAllowed = attemptsAllowed;
+    if (skillUpgradation !== undefined) quiz.skillUpgradation = skillUpgradation;
 
     await quiz.save();
 
@@ -186,12 +188,12 @@ export const updateQuiz = asyncHandler(async (req, res) => {
 });
 
 export const deleteQuiz = asyncHandler(async (req, res) => {
-    if(!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
         throw new ApiError("Invalid quiz ID", 400);
     }
 
     const quiz = await Quiz.findById(req.params.id);
-    if(!quiz) {
+    if (!quiz) {
         throw new ApiError("Quiz not found", 404);
     }
 
@@ -227,7 +229,7 @@ export const getAccessibleQuizzes = asyncHandler(async (req, res) => {
 
     // Check if user has access to assessments for this module (effective completion)
     const accessCheck = await checkModuleAccessForAssessments(userId, courseId, moduleId);
-    
+
     if (!accessCheck.hasAccess) {
         // Return empty array with access information
         return res.json(new ApiResponse(200, {
@@ -242,7 +244,7 @@ export const getAccessibleQuizzes = asyncHandler(async (req, res) => {
     // User has access, fetch quizzes based on onlyModule parameter
     const onlyModule = String(req.query.onlyModule || '').toLowerCase() === 'true';
     let filter;
-    
+
     if (onlyModule) {
         // First try to find quizzes specifically assigned to this module
         filter = { course: courseId, module: moduleId };
@@ -264,7 +266,7 @@ export const getAccessibleQuizzes = asyncHandler(async (req, res) => {
         }
 
         // Fallback: if no module-specific content, return course-wide items
-        filter = { 
+        filter = {
             course: courseId,
             $or: [
                 { module: null },
@@ -285,13 +287,13 @@ export const getAccessibleQuizzes = asyncHandler(async (req, res) => {
         }, "Accessible quizzes (course-wide fallback) fetched successfully"));
     } else {
         // Return both module-specific and course-wide quizzes
-        filter = { 
-            course: courseId, 
-            $or: [ 
-                { module: moduleId }, 
-                { module: null }, 
+        filter = {
+            course: courseId,
+            $or: [
+                { module: moduleId },
+                { module: null },
                 { module: { $exists: false } }
-            ] 
+            ]
         };
 
         const quizzes = await Quiz.find(filter)
@@ -315,7 +317,7 @@ export const getCourseQuizzes = asyncHandler(async (req, res) => {
     const userId = req.user._id;
 
     let courseId = rawCourseId;
-    if(!mongoose.Types.ObjectId.isValid(rawCourseId)) {
+    if (!mongoose.Types.ObjectId.isValid(rawCourseId)) {
         const c = await Course.findOne({ slug: String(rawCourseId).toLowerCase() }).select('_id');
         if (!c) {
             throw new ApiError("Invalid course ID", 400);
@@ -326,18 +328,18 @@ export const getCourseQuizzes = asyncHandler(async (req, res) => {
     // Check if user has completed all modules in the course
     const Progress = (await import("../models/progress.model.js")).default;
     const Course = (await import("../models/course.model.js")).default;
-    
+
     const course = await Course.findById(courseId).populate('modules');
-    if(!course) {
+    if (!course) {
         throw new ApiError("Course not found", 404);
     }
 
-    const progress = await Progress.findOne({ 
-        student: userId, 
-        course: courseId 
+    const progress = await Progress.findOne({
+        student: userId,
+        course: courseId
     });
 
-    if(!progress) {
+    if (!progress) {
         return res.json(new ApiResponse(200, {
             quizzes: [],
             accessInfo: {
@@ -350,8 +352,8 @@ export const getCourseQuizzes = asyncHandler(async (req, res) => {
     // Check if all modules are completed
     const totalModules = course.modules?.length || 0;
     const completedModules = progress.completedModules?.length || 0;
-    
-    if(totalModules === 0) {
+
+    if (totalModules === 0) {
         return res.json(new ApiResponse(200, {
             quizzes: [],
             accessInfo: {
@@ -361,7 +363,7 @@ export const getCourseQuizzes = asyncHandler(async (req, res) => {
         }, "Course quizzes locked - no modules found"));
     }
 
-    if(completedModules < totalModules) {
+    if (completedModules < totalModules) {
         return res.json(new ApiResponse(200, {
             quizzes: [],
             accessInfo: {
@@ -372,8 +374,8 @@ export const getCourseQuizzes = asyncHandler(async (req, res) => {
     }
 
     // User has access, fetch course-level quizzes
-    const quizzes = await Quiz.find({ 
-        course: courseId, 
+    const quizzes = await Quiz.find({
+        course: courseId,
         type: "COURSE",
         $or: [
             { module: null },
@@ -412,7 +414,7 @@ export const getQuizzesByCourse = asyncHandler(async (req, res) => {
 
     try {
         // Return all quizzes attached to this course (legacy and new fields), regardless of scope/type
-        const quizzes = await Quiz.find({ $or: [ { courseId }, { course: courseId } ] })
+        const quizzes = await Quiz.find({ $or: [{ courseId }, { course: courseId }] })
             .populate('createdBy', 'fullName email role')
             .populate('course', 'title slug')
             .populate('module', 'title slug')

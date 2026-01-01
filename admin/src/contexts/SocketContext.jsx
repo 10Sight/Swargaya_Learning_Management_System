@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import { toast } from 'sonner';
 import axiosInstance from '@/Helper/axiosInstance';
 
-const SocketContext = createContext();
+export const SocketContext = createContext();
 
 export const useSocket = () => {
     const context = useContext(SocketContext);
@@ -78,7 +78,6 @@ export const SocketProvider = ({ children }) => {
 
                 // Real-time notification handlers
                 newSocket.on('notification', (data) => {
-                    console.log('New notification:', data);
                     setNotifications(prev => [data, ...prev.slice(0, 49)]); // Keep last 50 notifications
 
                     // Show toast notification
@@ -93,7 +92,6 @@ export const SocketProvider = ({ children }) => {
 
                 // Quiz notifications
                 newSocket.on('quiz-started', (data) => {
-                    console.log('Quiz started:', data);
                     setNotifications(prev => [data, ...prev.slice(0, 49)]);
                     toast.info(data.message, {
                         description: `Quiz: ${data.quiz?.title}`,
@@ -102,7 +100,6 @@ export const SocketProvider = ({ children }) => {
                 });
 
                 newSocket.on('quiz-submitted', (data) => {
-                    console.log('Quiz submitted:', data);
                     setNotifications(prev => [data, ...prev.slice(0, 49)]);
                     toast.success(data.message, {
                         description: 'Quiz submission received',
@@ -111,7 +108,6 @@ export const SocketProvider = ({ children }) => {
 
                 // Assignment notifications
                 newSocket.on('assignment-created', (data) => {
-                    console.log('New assignment:', data);
                     setNotifications(prev => [data, ...prev.slice(0, 49)]);
                     toast.info(data.message, {
                         description: `Due: ${data.assignment?.dueDate ? new Date(data.assignment.dueDate).toLocaleDateString() : 'No due date'}`,
@@ -120,14 +116,12 @@ export const SocketProvider = ({ children }) => {
                 });
 
                 newSocket.on('assignment-submitted', (data) => {
-                    console.log('Assignment submitted:', data);
                     setNotifications(prev => [data, ...prev.slice(0, 49)]);
                     toast.success(data.message);
                 });
 
                 // Grade notifications
                 newSocket.on('grade-updated', (data) => {
-                    console.log('Grade updated:', data);
                     setNotifications(prev => [data, ...prev.slice(0, 49)]);
                     toast.success(data.message, {
                         description: `Score: ${data.grade?.score || 'N/A'}`,
@@ -137,7 +131,6 @@ export const SocketProvider = ({ children }) => {
 
                 // Announcement notifications
                 newSocket.on('new-announcement', (data) => {
-                    console.log('New announcement:', data);
                     setNotifications(prev => [data, ...prev.slice(0, 49)]);
                     toast.info('📢 New Announcement', {
                         description: data.message,
@@ -166,7 +159,6 @@ export const SocketProvider = ({ children }) => {
 
                 // User activity notifications
                 newSocket.on('user-joined', (data) => {
-                    console.log('User joined room:', data);
                     if (data.userName) {
                         toast(`${data.userName} joined`, {
                             description: `Room: ${data.roomId}`,
@@ -176,7 +168,6 @@ export const SocketProvider = ({ children }) => {
                 });
 
                 newSocket.on('user-left', (data) => {
-                    console.log('User left room:', data);
                     if (data.userName) {
                         toast(`${data.userName} left`, {
                             description: `Room: ${data.roomId}`,
@@ -316,4 +307,4 @@ export const SocketProvider = ({ children }) => {
     );
 };
 
-export default SocketContext;
+export default SocketProvider;

@@ -22,8 +22,16 @@ const questionSchema = new Schema(
     {
         questionText: {
             type: String,
-            required: [ true, "Question text is required" ],
+            required: [true, "Question text is required"],
             trim: true,
+        },
+        image: {
+            public_id: {
+                type: String,
+            },
+            url: {
+                type: String,
+            }
         },
         options: {
             type: [optionSchema],
@@ -61,7 +69,7 @@ const quizSchema = new Schema(
         type: {
             type: String,
             enum: ["MODULE", "COURSE", "LESSON"],
-            default: function() {
+            default: function () {
                 // Determine type based on scope or legacy logic
                 if (this.scope) {
                     return this.scope.toUpperCase();
@@ -74,14 +82,14 @@ const quizSchema = new Schema(
         courseId: {
             type: Schema.Types.ObjectId,
             ref: "Course",
-            default: function() {
+            default: function () {
                 return this.course; // Use legacy course field as fallback
             }
         },
         moduleId: {
             type: Schema.Types.ObjectId,
             ref: "Module",
-            default: function() {
+            default: function () {
                 return this.module; // Use legacy module field as fallback
             }
         },
@@ -94,7 +102,7 @@ const quizSchema = new Schema(
         scope: {
             type: String,
             enum: ["course", "module", "lesson"],
-            default: function() {
+            default: function () {
                 // Determine scope based on what IDs are provided
                 if (this.lessonId || (this.type && this.type === "LESSON")) {
                     return "lesson";
@@ -163,6 +171,10 @@ const quizSchema = new Schema(
                 message: "Attempts must be 0 (unlimited) or at least 1",
             },
         },
+        skillUpgradation: {
+            type: Boolean,
+            default: false
+        }
     },
     {
         timestamps: true
@@ -172,9 +184,9 @@ const quizSchema = new Schema(
 quizSchema.index({ course: 1, createdBy: 1 });
 
 // Pre-save hook to ensure data consistency between new and legacy fields
-quizSchema.pre('save', function(next) {
+quizSchema.pre('save', function (next) {
     const quiz = this;
-    
+
     // Sync new fields with legacy fields for backward compatibility
     if (quiz.courseId && !quiz.course) {
         quiz.course = quiz.courseId;
@@ -182,14 +194,14 @@ quizSchema.pre('save', function(next) {
     if (quiz.course && !quiz.courseId) {
         quiz.courseId = quiz.course;
     }
-    
+
     if (quiz.moduleId && !quiz.module) {
         quiz.module = quiz.moduleId;
     }
     if (quiz.module && !quiz.moduleId) {
         quiz.moduleId = quiz.module;
     }
-    
+
     // Validate scope matches provided IDs
     if (quiz.scope === 'course' && (quiz.moduleId || quiz.lessonId)) {
         return next(new Error('Course-scoped quiz cannot have module or lesson IDs'));
@@ -200,13 +212,13 @@ quizSchema.pre('save', function(next) {
     if (quiz.scope === 'lesson' && (!quiz.lessonId || !quiz.moduleId)) {
         return next(new Error('Lesson-scoped quiz must have both moduleId and lessonId'));
     }
-    
+
     next();
 });
 
 import { slugify, ensureUniqueSlug } from "../utils/slugify.js";
 
-quizSchema.pre('save', async function(next) {
+quizSchema.pre('save', async function (next) {
     if (!this.isModified('title') && this.slug) return next();
     const base = slugify(this.title);
     this.slug = await ensureUniqueSlug(this.constructor, base, {}, this._id);

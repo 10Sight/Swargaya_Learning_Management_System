@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useGetStudentCertificatesQuery } from '@/Redux/AllApi/CertificateApi'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -6,10 +7,10 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { 
-  Award, 
-  Download, 
-  Eye, 
+import {
+  Award,
+  Download,
+  Eye,
   Calendar,
   GraduationCap,
   FileText,
@@ -20,9 +21,9 @@ import { toast } from 'sonner'
 const Certificates = () => {
   const [selectedCertificate, setSelectedCertificate] = useState(null)
   const [showPreviewDialog, setShowPreviewDialog] = useState(false)
-  
+
   const { data, isLoading, error } = useGetStudentCertificatesQuery()
-  
+
   const certificates = data?.data || []
 
   const formatDate = (dateString) => {
@@ -36,9 +37,9 @@ const Certificates = () => {
 
   const getGradeBadgeColor = (grade) => {
     if (!grade) return 'bg-gray-100 text-gray-800';
-    
-    switch(grade.toString().toUpperCase()) {
-      case 'A+': 
+
+    switch (grade.toString().toUpperCase()) {
+      case 'A+':
       case 'A': return 'bg-green-100 text-green-800'
       case 'B+':
       case 'B': return 'bg-blue-100 text-blue-800'
@@ -77,7 +78,7 @@ const Certificates = () => {
       </body>
       </html>
     `
-    
+
     // Create a blob and download
     const blob = new Blob([htmlContent], { type: 'text/html' })
     const url = URL.createObjectURL(blob)
@@ -88,7 +89,7 @@ const Certificates = () => {
     link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
-    
+
     toast.success('Certificate downloaded successfully!')
   }
 
@@ -104,7 +105,7 @@ const Certificates = () => {
       </style>
       ${certificateData.generatedHTML || '<p>Certificate content not available</p>'}
     `
-    
+
     const printWindow = window.open('', '_blank')
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -184,7 +185,7 @@ const Certificates = () => {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="flex items-center p-6">
             <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg mr-4">
@@ -206,7 +207,7 @@ const Certificates = () => {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">
-                {certificates.length > 0 
+                {certificates.length > 0
                   ? new Date(Math.max(...certificates.map(c => new Date(c.issueDate)))).getFullYear()
                   : 'N/A'
                 }
@@ -227,6 +228,8 @@ const Certificates = () => {
                   <div className="flex-1">
                     <CardTitle className="text-lg leading-6 mb-2">
                       {certificate.course?.title || 'Course Certificate'}
+                      {certificate.level && <span className="block text-sm font-medium text-blue-600 mt-1">({certificate.level})</span>}
+                      {certificate.type === 'SKILL_UPGRADATION' && !certificate.level && <span className="block text-sm font-medium text-blue-600 mt-1">(Skill Upgradation)</span>}
                     </CardTitle>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                       <Calendar className="h-4 w-4" />
@@ -238,7 +241,7 @@ const Certificates = () => {
                   </Badge>
                 </div>
               </CardHeader>
-              
+
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
@@ -247,14 +250,14 @@ const Certificates = () => {
                       {certificate.issuedBy?.fullName || 'N/A'}
                     </span>
                   </div>
-                  
+
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Status:</span>
                     <Badge variant={certificate.status === 'ACTIVE' ? 'success' : 'secondary'}>
                       {certificate.status}
                     </Badge>
                   </div>
-                  
+
                   {certificate.expiryDate && (
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Expires:</span>
@@ -264,10 +267,10 @@ const Certificates = () => {
                     </div>
                   )}
                 </div>
-                
+
                 <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => handleViewCertificate(certificate)}
                     className="flex-1"
@@ -275,15 +278,15 @@ const Certificates = () => {
                     <Eye className="h-4 w-4 mr-2" />
                     View
                   </Button>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => handlePrintCertificate(certificate)}
                   >
                     <Printer className="h-4 w-4" />
                   </Button>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => handleDownloadCertificate(certificate)}
                   >
@@ -306,7 +309,7 @@ const Certificates = () => {
             <p className="text-muted-foreground mb-4">
               Complete your courses to earn certificates that showcase your achievements!
             </p>
-            <Button 
+            <Button
               onClick={() => window.location.href = '/student/course'}
               variant="outline"
             >
@@ -317,44 +320,132 @@ const Certificates = () => {
         </Card>
       )}
 
-      {/* Certificate Preview Dialog */}
-      <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              Certificate - {selectedCertificate?.course?.title}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="border rounded-lg p-4 bg-white">
-            {selectedCertificate?.metadata?.generatedHTML ? (
-              <div dangerouslySetInnerHTML={{ 
-                __html: `
-                  <style>${selectedCertificate.metadata.styles || ''}</style>
-                  ${selectedCertificate.metadata.generatedHTML}
-                `
-              }} />
-            ) : (
-              <div className="text-center py-8">
-                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">Certificate preview not available</p>
+      {/* Custom Full Screen Preview Dialog - Rendered via Portal to be top-level */}
+      {showPreviewDialog && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6">
+          {/* Backdrop with "half glass blurred" effect (strong blur) */}
+          <div
+            className="fixed inset-0 bg-black/30 backdrop-blur-xl transition-all duration-200"
+            onClick={() => setShowPreviewDialog(false)}
+          />
+
+          {/* Modal Content */}
+          <div className="relative w-full h-full max-w-[95vw] max-h-[95vh] bg-white/95 shadow-2xl rounded-xl overflow-hidden flex flex-col border border-white/20 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white/50 backdrop-blur-sm sticky top-0 z-10">
+              <h2 className="text-xl font-semibold text-gray-800">
+                Certificate - {selectedCertificate?.course?.title}
+              </h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowPreviewDialog(false)}
+                className="hover:bg-gray-100 rounded-full h-8 w-8"
+              >
+                <span className="sr-only">Close</span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-5 w-5 opacity-70"
+                >
+                  <path d="M18 6 6 18" />
+                  <path d="M6 6 18 18" />
+                </svg>
+              </Button>
+            </div>
+
+            <div className="flex-1 overflow-auto bg-gray-50/50 p-4 sm:p-8 flex items-center justify-center">
+              <div
+                className="w-full h-full bg-white shadow-sm border rounded-lg overflow-hidden flex items-center justify-center"
+                style={{ minHeight: '100%' }}
+              >
+                {selectedCertificate?.metadata?.generatedHTML ? (
+                  <iframe
+                    srcDoc={`<!DOCTYPE html>
+                   <html>
+                   <head>
+                     <meta charset="utf-8">
+                     <title>Certificate Preview</title>
+                     <style>
+                       body { 
+                         margin: 0; 
+                         padding: 20px; 
+                         font-family: Arial, sans-serif; 
+                         background: #f5f5f5;
+                         display: flex;
+                         justify-content: center;
+                         align-items: flex-start;
+                         min-height: 100vh;
+                         overflow: auto;
+                       }
+                       .preview-container {
+                         background: white;
+                         padding: 0;
+                         border-radius: 8px;
+                         box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+                         /* Transform to fit */
+                         zoom: 0.65;
+                         margin-top: 20px;
+                       }
+                       @media (min-width: 768px) {
+                         .preview-container { zoom: 0.8; }
+                       }
+                       @media (min-width: 1024px) {
+                         .preview-container { zoom: 1.0; }
+                       }
+                       @media (min-width: 1536px) {
+                         .preview-container { zoom: 1.15; }
+                       }
+                       /* Ensure certificate class doesn't override container behavior unless specific */
+                       ${selectedCertificate.metadata.styles || ''}
+                     </style>
+                   </head>
+                   <body>
+                     <div class="preview-container">
+                       ${selectedCertificate.metadata.generatedHTML}
+                     </div>
+                   </body>
+                   </html>`}
+                    className="w-full h-full border-0"
+                    sandbox="allow-same-origin allow-scripts"
+                    title="Certificate Preview"
+                    loading="eager"
+                  />
+                ) : (
+                  <div className="text-center py-8">
+                    <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">Certificate preview not available</p>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-100 bg-white/50 flex justify-end gap-3 backdrop-blur-sm">
+              <Button onClick={() => handlePrintCertificate(selectedCertificate)}>
+                <Printer className="h-4 w-4 mr-2" />
+                Print
+              </Button>
+              <Button onClick={() => handleDownloadCertificate(selectedCertificate)}>
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowPreviewDialog(false)}
+              >
+                Close Preview
+              </Button>
+            </div>
           </div>
-          <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={() => setShowPreviewDialog(false)}>
-              Close
-            </Button>
-            <Button onClick={() => handlePrintCertificate(selectedCertificate)}>
-              <Printer className="h-4 w-4 mr-2" />
-              Print
-            </Button>
-            <Button onClick={() => handleDownloadCertificate(selectedCertificate)}>
-              <Download className="h-4 w-4 mr-2" />
-              Download
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+        </div>,
+        document.body
+      )}
     </div>
   )
 }

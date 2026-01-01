@@ -6,25 +6,45 @@ export const onJobTrainingApi = createApi({
     baseQuery: axiosBaseQuery,
     tagTypes: ["OnJobTraining"],
     endpoints: (builder) => ({
-        getOnJobTraining: builder.query({
+        getStudentOJTs: builder.query({
             query: (studentId) => ({
-                url: `/api/on-job-training/${studentId}`,
+                url: `/api/on-job-training/student/${studentId}`,
                 method: "GET",
             }),
-            providesTags: (result, error, studentId) => [{ type: "OnJobTraining", id: studentId }],
+            providesTags: (result, error, studentId) => [{ type: "OnJobTraining", id: `LIST_${studentId}` }],
         }),
-        saveOnJobTraining: builder.mutation({
-            query: ({ studentId, data }) => ({
-                url: `/api/on-job-training/${studentId}`,
-                method: "POST",
-                data: data,
+        getOnJobTrainingById: builder.query({
+            query: (id) => ({
+                url: `/api/on-job-training/${id}`,
+                method: "GET",
             }),
-            invalidatesTags: (result, error, { studentId }) => [{ type: "OnJobTraining", id: studentId }],
+            providesTags: (result, error, id) => [{ type: "OnJobTraining", id }],
+        }),
+        createOnJobTraining: builder.mutation({
+            query: (data) => ({
+                url: "/api/on-job-training/create",
+                method: "POST",
+                data,
+            }),
+            invalidatesTags: (result, error, { studentId }) => [{ type: "OnJobTraining", id: `LIST_${studentId}` }],
+        }),
+        updateOnJobTraining: builder.mutation({
+            query: ({ id, data }) => ({
+                url: `/api/on-job-training/${id}`,
+                method: "PATCH",
+                data,
+            }),
+            invalidatesTags: (result, error, { id, studentId }) => [
+                { type: "OnJobTraining", id },
+                { type: "OnJobTraining", id: `LIST_${studentId}` }
+            ],
         }),
     }),
 });
 
 export const {
-    useGetOnJobTrainingQuery,
-    useSaveOnJobTrainingMutation,
+    useGetStudentOJTsQuery,
+    useGetOnJobTrainingByIdQuery,
+    useCreateOnJobTrainingMutation,
+    useUpdateOnJobTrainingMutation,
 } = onJobTrainingApi;

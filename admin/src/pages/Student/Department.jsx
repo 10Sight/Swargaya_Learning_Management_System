@@ -233,7 +233,7 @@ const StudentDepartment = () => {
                       <div className="flex-1 min-w-0">
                         <p className="text-xs sm:text-sm font-medium text-blue-700 uppercase tracking-wide">Course</p>
                         <p className="font-bold text-sm sm:text-base text-gray-900 break-words leading-tight mt-1">
-                          {department.course?.title || department.course?.name || "N/A"}
+                          {department.course?.title || department.course?.name || department.courses?.[0]?.title || department.courses?.[0]?.name || "N/A"}
                         </p>
                       </div>
                     </div>
@@ -325,16 +325,7 @@ const StudentDepartment = () => {
                     <ArrowRight className="h-4 w-4 ml-2" />
                   </Button>
 
-                  <Button
-                    onClick={() => navigate('/student/reports')}
-                    variant="outline"
-                    className="flex-1 bg-white/80 backdrop-blur-sm border-blue-200 hover:bg-blue-50 text-blue-700"
-                    size="lg"
-                  >
-                    <BarChart3 className="h-4 w-4 mr-2" />
-                    <span className="hidden sm:inline">View Progress</span>
-                    <span className="sm:hidden">Progress</span>
-                  </Button>
+
                 </div>
               </CardContent>
             </Card>

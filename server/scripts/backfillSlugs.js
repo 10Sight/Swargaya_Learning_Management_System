@@ -66,7 +66,6 @@ async function backfill() {
     const MONGO_URL = process.env.MONGO_URL || 'mongodb://localhost:27017/lms';
     await mongoose.connect(MONGO_URL);
     const res = await backfill();
-    console.log('Backfill complete', res);
     await mongoose.disconnect();
     process.exit(0);
   } catch (e) {

@@ -39,6 +39,14 @@ const certificateSchema = new Schema(
             enum: ["ACTIVE", "REVOKED", "EXPIRED"],
             default: "ACTIVE",
         },
+        type: {
+            type: String,
+            enum: ["COURSE_COMPLETION", "SKILL_UPGRADATION"],
+            default: "COURSE_COMPLETION"
+        },
+        level: {
+            type: String,
+        },
         metadata: {
             type: Schema.Types.Mixed,
         },

@@ -182,10 +182,10 @@ const InstructorCourseDetailPage = () => {
   // Calculate course statistics
   const enrolledStudents = course.enrolledStudents || 0;
   const gradedSubmissions = submissions.filter(sub => sub.grade !== undefined && sub.grade !== null);
-  const averageGrade = gradedSubmissions.length > 0 
+  const averageGrade = gradedSubmissions.length > 0
     ? (gradedSubmissions.reduce((sum, sub) => sum + (sub.grade || 0), 0) / gradedSubmissions.length).toFixed(1)
     : 0;
-  const completionRate = enrolledStudents > 0 
+  const completionRate = enrolledStudents > 0
     ? ((submissions.filter(sub => sub.status === "GRADED").length / enrolledStudents) * 100).toFixed(0)
     : 0;
 
@@ -268,7 +268,7 @@ const InstructorCourseDetailPage = () => {
 
         <div className="flex gap-2">
           <Button
-            onClick={() => navigate('/instructor/courses')}
+            onClick={() => navigate('/trainer/courses')}
             variant="outline"
             className="gap-2"
           >
@@ -276,7 +276,7 @@ const InstructorCourseDetailPage = () => {
             Manage Course
           </Button>
           <Button
-            onClick={() => navigate(`/instructor/add-module/${courseId}`)}
+            onClick={() => navigate(`/trainer/add-module/${courseId}`)}
             className="gap-2"
           >
             <IconPlus className="h-4 w-4" />
@@ -298,7 +298,7 @@ const InstructorCourseDetailPage = () => {
             </p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Average Grade</CardTitle>
@@ -310,7 +310,7 @@ const InstructorCourseDetailPage = () => {
             </p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
@@ -322,7 +322,7 @@ const InstructorCourseDetailPage = () => {
             </p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Pending Grading</CardTitle>
@@ -452,7 +452,7 @@ const InstructorCourseDetailPage = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => navigate(`/instructor/submissions/${submission._id}`)}
+                              onClick={() => navigate(`/trainer/submissions/${submission._id}`)}
                             >
                               Grade
                             </Button>
@@ -469,8 +469,8 @@ const InstructorCourseDetailPage = () => {
             </CardContent>
             {submissions.filter(sub => sub.status === "SUBMITTED").length > 0 && (
               <CardFooter>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full"
                   onClick={() => setActiveTab("submissions")}
                 >
@@ -552,7 +552,7 @@ const InstructorCourseDetailPage = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => navigate(`/instructor/submissions/${submission._id}`)}
+                            onClick={() => navigate(`/trainer/submissions/${submission._id}`)}
                           >
                             {submission.status === "SUBMITTED" ? "Grade" : "View"}
                           </Button>

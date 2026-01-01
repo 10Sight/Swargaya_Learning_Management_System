@@ -119,19 +119,12 @@ const AssignmentSubmissionModal = ({
     }
 
     try {
-      console.log('Starting submission process...');
-      console.log('Assignment object:', assignment);
-      console.log('Submission object:', submission);
-      
-      // Upload file to Cloudinary
-      console.log('Uploading file:', selectedFile.name);
+      // Upload file
       const uploadResult = await uploadFile(selectedFile, {
         folder: 'assignment-submissions',
         allowedTypes: allowedExtensions,
         maxSizeBytes
       });
-      console.log('File upload successful:', uploadResult);
-
       // Get assignment ID - handle both _id and id fields
       const assignmentId = assignment._id || assignment.id;
       if (!assignmentId) {
@@ -143,7 +136,6 @@ const AssignmentSubmissionModal = ({
         assignmentId: assignmentId,
         fileUrl: uploadResult.url
       };
-      console.log('Submission data:', submissionData);
 
       let result;
       if (isResubmission) {
@@ -151,24 +143,20 @@ const AssignmentSubmissionModal = ({
         if (!submissionId) {
           throw new Error('Submission ID not found for resubmission');
         }
-        console.log('Resubmitting with ID:', submissionId);
         result = await resubmitAssignment({
           submissionId: submissionId,
           fileUrl: uploadResult.url
         });
       } else {
-        console.log('Creating new submission');
         result = await createSubmission(submissionData);
       }
       
-      console.log('Submission API result:', result);
       if (result.error) {
         console.error('Submission API error:', result.error);
         throw new Error(result.error.data?.message || result.error.message || 'Submission failed');
       }
 
       // Success
-      console.log('Submission successful');
       if (onSuccess) {
         onSuccess(result.data);
       }

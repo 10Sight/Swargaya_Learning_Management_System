@@ -7,19 +7,20 @@ export const quizApi = createApi({
     tagTypes: ['Quiz', 'Course', 'Module', 'Lesson'], // Add Module and Lesson to tagTypes
     endpoints: (builder) => ({
         createQuiz: builder.mutation({
-            query: ({ courseId, moduleId, lessonId, scope, title, questions, passingScore = 70, timeLimit, attemptsAllowed }) => ({
+            query: ({ courseId, moduleId, lessonId, scope, title, questions, passingScore = 70, timeLimit, attemptsAllowed, skillUpgradation }) => ({
                 url: "/api/quizzes",
                 method: "POST",
-                data: { 
-                    courseId, 
-                    moduleId, 
-                    lessonId, 
-                    scope, 
-                    title, 
-                    questions, 
+                data: {
+                    courseId,
+                    moduleId,
+                    lessonId,
+                    scope,
+                    title,
+                    questions,
                     passingScore,
                     ...(timeLimit !== undefined ? { timeLimit } : {}),
-                    ...(attemptsAllowed !== undefined ? { attemptsAllowed } : {})
+                    ...(attemptsAllowed !== undefined ? { attemptsAllowed } : {}),
+                    ...(skillUpgradation !== undefined ? { skillUpgradation } : {})
                 }
             }),
             invalidatesTags: ['Quiz', 'Course', 'Module', 'Lesson'], // Invalidate all relevant caches
@@ -50,12 +51,24 @@ export const quizApi = createApi({
         }),
 
         updateQuiz: builder.mutation({
-            query: ({ id, title, questions, passingScore }) => ({
+            query: ({ id, title, questions, description, passingScore, timeLimit, attemptsAllowed, skillUpgradation }) => ({
                 url: `/api/quizzes/${id}`,
                 method: "PUT",
-                data: { title, questions, passingScore }
+                data: {
+                    title,
+                    questions,
+                    passingScore,
+                    ...(description !== undefined ? { description } : {}),
+                    ...(timeLimit !== undefined ? { timeLimit } : {}),
+                    ...(attemptsAllowed !== undefined ? { attemptsAllowed } : {}),
+                    ...(skillUpgradation !== undefined ? { skillUpgradation } : {})
+                }
             }),
-            invalidatesTags: ['Quiz', 'Course'],
+            invalidatesTags: (result, error, arg) => [
+                { type: 'Quiz', id: arg.id },
+                'Quiz',
+                'Course'
+            ],
         }),
 
         deleteQuiz: builder.mutation({

@@ -1,58 +1,73 @@
 import OnJobTraining from "../models/onJobTraining.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import User from "../models/auth.model.js";
+import Department from "../models/department.model.js"; // Import if needed for validation
+import Line from "../models/line.model.js";             // Import if needed for validation
+import Machine from "../models/machine.model.js";       // Import if needed for validation
 import mongoose from "mongoose";
 
 /**
- * @desc    Get or Create On Job Training for a Student
- * @route   GET /api/v1/on-job-training/:studentId
- * @access  Private (Admin, Instructor, Student)
+ * @desc    Create a new On Job Training record
+ * @route   POST /api/v1/on-job-training/create
+ * @access  Private (Admin, Instructor)
  */
-export const getOnJobTraining = async (req, res, next) => {
+export const createOnJobTraining = async (req, res, next) => {
     try {
-        const { studentId } = req.params;
+        const { studentId, departmentId, lineId, machineId, name } = req.body;
 
-        // Resolve student ID (handle 'ft5190' username vs ObjectId)
+        if (!studentId || !departmentId || !lineId || !machineId) {
+            return next(new ApiError("All fields (Student, Department, Line, Machine) are required", 400));
+        }
+
+        // Validate Student
         let user;
         if (mongoose.Types.ObjectId.isValid(studentId)) {
             user = await User.findById(studentId);
         } else {
             user = await User.findOne({ userName: studentId });
         }
+        if (!user) return next(new ApiError("Student not found", 404));
 
-        if (!user) {
-            return next(new ApiError(`Student not found with ID/Username: ${studentId}`, 404));
-        }
-
-        let ojt = await OnJobTraining.findOne({ student: user._id });
-
-        if (!ojt) {
-            return res.status(200).json({
-                success: true,
-                message: "No OJT record found",
-                data: null
-            });
-        }
-
-        res.status(200).json({
-            success: true,
-            message: "OJT record fetched successfully",
-            data: ojt,
+        // Create new OJT record
+        // We initialize with empty entries or default values if needed
+        const newOJT = await OnJobTraining.create({
+            student: user._id,
+            name: name || "Level-1 Practical Evaluation of On the Job Training",
+            department: departmentId,
+            line: lineId,
+            machine: machineId,
+            createdBy: req.user.id,
+            updatedBy: req.user.id,
+            entries: [], // Initialize empty
+            result: "Pending"
         });
+
+        // We should ideally populate to return useful info immediately
+        await newOJT.populate([
+            { path: 'department', select: 'name' },
+            { path: 'line', select: 'name' },
+            { path: 'machine', select: 'name' }
+        ]);
+
+        res.status(201).json({
+            success: true,
+            message: "On Job Training created successfully",
+            data: newOJT
+        });
+
     } catch (error) {
         return next(new ApiError(error.message, 500));
     }
 };
 
 /**
- * @desc    Create or Update On Job Training
- * @route   POST /api/v1/on-job-training/:studentId
- * @access  Private (Admin, Instructor)
+ * @desc    Get All On Job Trainings for a Student
+ * @route   GET /api/v1/on-job-training/student/:studentId
+ * @access  Private
  */
-export const saveOnJobTraining = async (req, res, next) => {
+export const getStudentOnJobTrainings = async (req, res, next) => {
     try {
         const { studentId } = req.params;
-        const { entries, scoring, totalMarks, totalMarksObtained, totalPercentage, result, remarks } = req.body;
 
         // Resolve student ID
         let user;
@@ -61,48 +76,91 @@ export const saveOnJobTraining = async (req, res, next) => {
         } else {
             user = await User.findOne({ userName: studentId });
         }
+        if (!user) return next(new ApiError("Student not found", 404));
 
-        if (!user) {
-            return next(new ApiError(`Student not found with ID/Username: ${studentId}`, 404));
-        }
+        const ojts = await OnJobTraining.find({ student: user._id })
+            .populate("department", "name")
+            .populate("line", "name")
+            .populate("machine", "name _id machineName") // machineName might be the field
+            .sort({ createdAt: -1 });
 
-        let ojt = await OnJobTraining.findOne({ student: user._id });
+        res.status(200).json({
+            success: true,
+            count: ojts.length,
+            data: ojts
+        });
 
-        if (ojt) {
-            // Update
-            ojt.entries = entries || ojt.entries;
-            ojt.scoring = scoring || ojt.scoring;
-            ojt.totalMarks = totalMarks;
-            ojt.totalMarksObtained = totalMarksObtained;
-            ojt.totalPercentage = totalPercentage;
-            ojt.result = result;
-            ojt.remarks = remarks;
-            ojt.updatedBy = req.user.id;
+    } catch (error) {
+        return next(new ApiError(error.message, 500));
+    }
+};
 
-            await ojt.save();
-        } else {
-            // Create
-            ojt = await OnJobTraining.create({
-                student: user._id,
-                entries,
-                scoring,
-                totalMarks,
-                totalMarksObtained,
-                totalPercentage,
-                result,
-                remarks,
-                createdBy: req.user.id,
-                updatedBy: req.user.id,
-            });
+/**
+ * @desc    Get Single OJT by ID
+ * @route   GET /api/v1/on-job-training/:id
+ * @access  Private
+ */
+export const getOnJobTrainingById = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        const ojt = await OnJobTraining.findById(id)
+            .populate("department", "name")
+            .populate("line", "name")
+            .populate("machine", "name machineName")
+            .populate("student", "fullName email avatar");
+
+        if (!ojt) {
+            return next(new ApiError("OJT record not found", 404));
         }
 
         res.status(200).json({
             success: true,
-            message: "OJT record saved successfully",
-            data: ojt,
+            data: ojt
         });
     } catch (error) {
-        console.error("OJT Save Error Details:", error);
         return next(new ApiError(error.message, 500));
     }
 };
+
+/**
+ * @desc    Update OJT Record
+ * @route   PATCH /api/v1/on-job-training/:id
+ * @access  Private
+ */
+export const updateOnJobTraining = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { entries, scoring, totalMarks, totalMarksObtained, totalPercentage, result, remarks } = req.body;
+
+        const ojt = await OnJobTraining.findById(id);
+        if (!ojt) {
+            return next(new ApiError("OJT record not found", 404));
+        }
+
+        // Update fields if provided
+        if (entries) ojt.entries = entries;
+        if (scoring) ojt.scoring = scoring; // Ensure frontend sends full object or handle partial deep merge if needed. Usually full object replace is safer for simple structures.
+        if (totalMarks !== undefined) ojt.totalMarks = totalMarks;
+        if (totalMarksObtained !== undefined) ojt.totalMarksObtained = totalMarksObtained;
+        if (totalPercentage !== undefined) ojt.totalPercentage = totalPercentage;
+        if (result) ojt.result = result;
+        if (remarks !== undefined) ojt.remarks = remarks;
+
+        ojt.updatedBy = req.user.id;
+
+        await ojt.save();
+
+        res.status(200).json({
+            success: true,
+            message: "OJT updated successfully",
+            data: ojt
+        });
+
+    } catch (error) {
+        return next(new ApiError(error.message, 500));
+    }
+};
+
+// Delete if necessary?
+// export const deleteOnJobTraining = ...

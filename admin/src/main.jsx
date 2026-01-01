@@ -2,6 +2,7 @@
 import { registerSW } from 'virtual:pwa-register'
 
 const updateSW = registerSW({
+  immediate: true,
   onNeedRefresh() {
     if (confirm('New content available. Reload?')) {
       updateSW(true);

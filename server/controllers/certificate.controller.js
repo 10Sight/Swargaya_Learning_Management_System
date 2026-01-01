@@ -12,6 +12,7 @@ import Department from "../models/department.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import ensureCertificateIfEligible from "../utils/autoCertificate.js";
 
 export const issueCertificate = asyncHandler(async (req, res) => {
     const { courseId, studentId } = req.body;
@@ -26,7 +27,7 @@ export const issueCertificate = asyncHandler(async (req, res) => {
     const student = await User.findById(studentId);
     if (!student) throw new ApiError("Student not found", 404);
 
-    const existing = await Certificate.findOne({ student: studentId, course: courseId });
+    const existing = await Certificate.findOne({ student: studentId, course: courseId, type: { $ne: 'SKILL_UPGRADATION' } });
     if (existing) {
         throw new ApiError("Certificate already issued for this student & course", 400);
     }
@@ -35,6 +36,7 @@ export const issueCertificate = asyncHandler(async (req, res) => {
         student: studentId,
         course: courseId,
         issuedBy: req.user._id,
+        type: 'COURSE_COMPLETION'
     });
 
     res.status(201)
@@ -49,8 +51,37 @@ export const issueCertificateWithTemplate = asyncHandler(async (req, res) => {
         throw new ApiError("Invalid student or course ID", 400);
     }
 
+    // Student Self-Service Logic
+    if (req.user.role === 'STUDENT') {
+        if (req.user._id.toString() !== studentId) {
+            throw new ApiError("You can only issue certificates for yourself", 403);
+        }
+        // Run strict eligibility check and auto-issue
+        const result = await ensureCertificateIfEligible(studentId, courseId, { issuedByUserId: req.user._id });
+
+        if (!result.created && !result.certificate) {
+            throw new ApiError(result.reason || "You are not eligible for this certificate yet. Please complete all modules and quizzes.", 400);
+        }
+
+        const cert = result.certificate;
+        const populatedCertificate = await Certificate.findById(cert._id)
+            .populate('student', 'fullName email')
+            .populate('course', 'title description')
+            .populate('issuedBy', 'fullName email');
+
+        return res.status(200).json(new ApiResponse(200, {
+            certificate: populatedCertificate,
+            template: {
+                _id: cert.metadata?.templateId,
+                name: cert.metadata?.templateName,
+                html: cert.metadata?.generatedHTML,
+                styles: cert.metadata?.styles
+            }
+        }, "Certificate issued successfully"));
+    }
+
     // Check if certificate already exists
-    const existingCertificate = await Certificate.findOne({ student: studentId, course: courseId });
+    const existingCertificate = await Certificate.findOne({ student: studentId, course: courseId, type: { $ne: 'SKILL_UPGRADATION' } });
     if (existingCertificate) {
         throw new ApiError("Certificate already exists for this student and course", 400);
     }
@@ -112,6 +143,7 @@ export const issueCertificateWithTemplate = asyncHandler(async (req, res) => {
         course: courseId,
         issuedBy: req.user._id,
         grade: grade,
+        type: 'COURSE_COMPLETION',
         metadata: {
             ...certificateData,
             templateId: template._id.toString(),
@@ -293,9 +325,13 @@ export const checkCertificateEligibility = asyncHandler(async (req, res) => {
         throw new ApiError("Student not assigned to any department", 400);
     }
 
-    const department = await Department.findById(student.department._id);
-    if (department.course.toString() !== courseId || department.instructor.toString() !== req.user._id.toString()) {
-        throw new ApiError("You are not authorized to issue certificates for this student", 403);
+    // Check authorization: Student checking self, or Instructor/Admin checking student
+    const isStudentSelf = req.user._id.toString() === studentId;
+    const isInstructor = department.instructor.toString() === req.user._id.toString();
+    const isAdmin = ['ADMIN', 'SUPERADMIN'].includes(req.user.role);
+
+    if (!isStudentSelf && !isInstructor && !isAdmin) {
+        throw new ApiError("You are not authorized to check certificate eligibility for this student", 403);
     }
 
     // Check if certificate already exists

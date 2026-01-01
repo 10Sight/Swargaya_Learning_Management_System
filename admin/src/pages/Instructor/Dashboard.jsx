@@ -157,7 +157,7 @@ const InstructorDashboard = () => {
             <CardTitle>Quick Access</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Link to="/instructor/courses">
+            <Link to="/trainer/courses">
               <Button variant="outline" className="w-full justify-start">
                 <IconBook className="h-4 w-4 mr-2" />
                 View My Courses
@@ -165,7 +165,7 @@ const InstructorDashboard = () => {
               </Button>
             </Link>
 
-            <Link to="/instructor/departments">
+            <Link to="/trainer/departments">
               <Button variant="outline" className="w-full justify-start">
                 <IconUsers className="h-4 w-4 mr-2" />
                 View My Departments
@@ -173,7 +173,7 @@ const InstructorDashboard = () => {
               </Button>
             </Link>
 
-            <Link to="/instructor/students">
+            <Link to="/trainer/employees">
               <Button variant="outline" className="w-full justify-start">
                 <IconUsers className="h-4 w-4 mr-2" />
                 Monitor Students
@@ -181,7 +181,7 @@ const InstructorDashboard = () => {
               </Button>
             </Link>
 
-            <Link to="/instructor/quiz-monitoring">
+            <Link to="/trainer/quiz-monitoring">
               <Button variant="outline" className="w-full justify-start">
                 <IconClipboardList className="h-4 w-4 mr-2" />
                 Quiz Monitoring
@@ -189,7 +189,7 @@ const InstructorDashboard = () => {
               </Button>
             </Link>
 
-            <Link to="/instructor/assignment-monitoring">
+            <Link to="/trainer/assignment-monitoring">
               <Button variant="outline" className="w-full justify-start">
                 <IconClipboard className="h-4 w-4 mr-2" />
                 Assignment Monitoring

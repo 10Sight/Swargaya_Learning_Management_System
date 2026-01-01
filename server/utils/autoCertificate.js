@@ -18,7 +18,13 @@ export async function ensureCertificateIfEligible(studentId, courseId, opts = {}
   }
 
   // Already has a certificate?
-  const existing = await Certificate.findOne({ student: studentId, course: courseId });
+  // Check for COURSE_COMPLETION or legacy (missing type) certificates
+  // We assume anything NOT 'SKILL_UPGRADATION' is a completion certificate
+  const existing = await Certificate.findOne({
+    student: studentId,
+    course: courseId,
+    type: { $ne: 'SKILL_UPGRADATION' }
+  });
   if (existing) return { created: false, certificate: existing, reason: "Exists" };
 
   const course = await Course.findById(courseId).populate('modules');
@@ -105,6 +111,7 @@ export async function ensureCertificateIfEligible(studentId, courseId, opts = {}
     course: courseId,
     issuedBy,
     grade: 'PASS',
+    type: 'COURSE_COMPLETION',
     metadata,
   });
 

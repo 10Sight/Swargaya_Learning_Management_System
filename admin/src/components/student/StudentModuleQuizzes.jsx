@@ -39,7 +39,7 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
           }
         });
         setStatusByQuiz(map);
-      } catch (_) {}
+      } catch (_) { }
     };
     fetchStatuses();
 
@@ -64,7 +64,9 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
 
   const getQuizStatus = (quiz) => {
     const quizId = getQuizId(quiz);
-    const quizAttempts = attempts[String(quizId)] || [];
+    const allAttempts = attempts[String(quizId)] || [];
+    // Defensive filter to ensure we only look at valid attempt objects with scores
+    const quizAttempts = allAttempts.filter(a => a && typeof a === 'object' && a.score !== undefined && a.score !== null);
     const attemptsUsed = quizAttempts.length;
 
     // Prefer server status (includes approved extra attempts)
@@ -92,9 +94,30 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
     }
 
     // Get the best attempt (highest score)
-    const bestAttempt = quizAttempts.reduce((best, current) => {
-      return (current.score > best.score) ? current : best;
-    }, quizAttempts[0]);
+    // Safe reduce because we filtered for non-empty objects above, but still need to be careful if array is empty (handled by attemptsUsed check)
+    if (attemptsUsed === 0) {
+      // Should technically be covered by above, but if we fall through (e.g. no attempts left but 0 used? impossible as logic implies attemptsUsed > 0 to get here if attemptsLeft <= 0)
+      // If attemptsUsed is 0 here, it means attemptsLeft <= 0 (and !canAttempt). So "no attempts left" without ever trying? (e.g. 0 attempts allowed).
+      // We need a dummy bestAttempt or handle it.
+      // Actually if attemptsUsed is 0, we shouldn't be calculating 'isPassed'.
+    }
+
+    const bestAttempt = quizAttempts.length > 0 ? quizAttempts.reduce((best, current) => {
+      return (current?.score > best?.score) ? current : best;
+    }, quizAttempts[0]) : null;
+
+    if (!bestAttempt) {
+      // Fallback if something weird happened (attemptsUsed > 0 but no bestAttempt?)
+      return {
+        status: 'not_attempted',
+        message: 'Error loading status',
+        color: 'destructive',
+        icon: AlertCircle,
+        buttonText: 'Refresh',
+        buttonDisabled: false,
+        canStart: false
+      };
+    }
 
     const passingScore = quiz.passingScore || 70;
     const isPassed = bestAttempt.score >= passingScore;
@@ -137,46 +160,46 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
           score: bestAttempt.score
         };
       } else {
-          // If server now allows attempt (approved extra), treat as retake available
-          if (serverStatus?.canAttempt) {
-            const leftSrv = serverStatus?.attemptsRemaining ?? 1;
-            return {
-              status: 'failed_can_retake',
-              message: `Score: ${bestAttempt.score}% (${leftSrv} attempts left)`,
-              color: 'destructive',
-              icon: AlertCircle,
-              buttonText: `Retake Quiz (${leftSrv} left)`,
-              buttonDisabled: false,
-              canStart: true,
-              score: bestAttempt.score,
-              showRequest: false
-            };
-          }
-          // If rejected, lock completely with no buttons
-          if (rejectedQuizIds && rejectedQuizIds.has(String(quizId))) {
-            return {
-              status: 'rejected',
-              message: `Failed: ${bestAttempt.score}% (Request rejected)`,
-              color: 'destructive',
-              icon: XCircle,
-              buttonText: '',
-              buttonDisabled: true,
-              canStart: false,
-              score: bestAttempt.score,
-              showRequest: false
-            };
-          }
+        // If server now allows attempt (approved extra), treat as retake available
+        if (serverStatus?.canAttempt) {
+          const leftSrv = serverStatus?.attemptsRemaining ?? 1;
           return {
-            status: 'no_attempts_left',
-            message: `Failed: ${bestAttempt.score}% (No attempts left)`,
+            status: 'failed_can_retake',
+            message: `Score: ${bestAttempt.score}% (${leftSrv} attempts left)`,
+            color: 'destructive',
+            icon: AlertCircle,
+            buttonText: `Retake Quiz (${leftSrv} left)`,
+            buttonDisabled: false,
+            canStart: true,
+            score: bestAttempt.score,
+            showRequest: false
+          };
+        }
+        // If rejected, lock completely with no buttons
+        if (rejectedQuizIds && rejectedQuizIds.has(String(quizId))) {
+          return {
+            status: 'rejected',
+            message: `Failed: ${bestAttempt.score}% (Request rejected)`,
             color: 'destructive',
             icon: XCircle,
-            buttonText: pendingRequested.has(String(quizId)) ? 'Request Pending' : 'Request One More Attempt',
-            buttonDisabled: !!pendingRequested.has(String(quizId)),
+            buttonText: '',
+            buttonDisabled: true,
             canStart: false,
             score: bestAttempt.score,
-            showRequest: !pendingRequested.has(String(quizId))
+            showRequest: false
           };
+        }
+        return {
+          status: 'no_attempts_left',
+          message: `Failed: ${bestAttempt.score}% (No attempts left)`,
+          color: 'destructive',
+          icon: XCircle,
+          buttonText: pendingRequested.has(String(quizId)) ? 'Request Pending' : 'Request One More Attempt',
+          buttonDisabled: !!pendingRequested.has(String(quizId)),
+          canStart: false,
+          score: bestAttempt.score,
+          showRequest: !pendingRequested.has(String(quizId))
+        };
       }
     }
   };
@@ -195,16 +218,17 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
           const quizStatus = getQuizStatus(quiz);
           const StatusIcon = quizStatus.icon;
           const quizId = getQuizId(quiz);
-          const quizAttempts = attempts[String(quizId)] || [];
+          const rawAttempts = attempts[String(quizId)] || [];
+          const quizAttempts = rawAttempts.filter(a => a && typeof a === 'object' && a.score !== undefined && a.score !== null);
           const attemptsUsed = quizAttempts.length;
           const server = statusByQuiz[String(quizId)];
           const rawAttemptsAllowed = server?.attemptsAllowed ?? quiz.attemptsAllowed;
           const isUnlimited = rawAttemptsAllowed === 0;
           const attemptsAllowed = isUnlimited ? 0 : (rawAttemptsAllowed || 1);
-          
+
           return (
-            <Card 
-              key={quiz._id || quiz.id || idx} 
+            <Card
+              key={quiz._id || quiz.id || idx}
               className={`${!isUnlocked ? "opacity-50" : ""}`}
             >
               <CardHeader className="pb-3">
@@ -213,13 +237,13 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
                   <Award className="h-4 w-4" />
                   <span className="truncate break-words min-w-0">{quiz.title || "Module Quiz"}</span>
                 </CardTitle>
-                
+
                 {/* Status Badges */}
                 <div className="flex flex-wrap gap-2 mt-2 items-center">
                   <Badge className="bg-orange-100 text-orange-800 text-xs border-orange-200">
                     MODULE LEVEL
                   </Badge>
-                  
+
                   {isUnlocked && (
                     <Badge variant={quizStatus.color} className="text-xs">
                       <StatusIcon className="h-3 w-3 mr-1" />
@@ -242,7 +266,7 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
                     );
                   })()}
                 </div>
-                
+
                 {quiz.description && (
                   <CardDescription className="mt-2 break-words overflow-hidden">{quiz.description}</CardDescription>
                 )}
@@ -272,7 +296,7 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
                     Attempts: {server?.attemptsUsed ?? attemptsUsed}/{server?.attemptsAllowed ?? attemptsAllowed}
                   </div>
                 </div>
-                
+
                 {/* Show attempt history if there are attempts */}
                 {isUnlocked && quizAttempts.length > 0 && (
                   <div className="mb-4 p-3 bg-muted rounded-lg">
@@ -281,11 +305,10 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
                       {quizAttempts.map((attempt, idx) => (
                         <div key={idx} className="flex justify-between text-xs">
                           <span>Attempt {idx + 1}:</span>
-                          <span className={`${
-                            attempt.score >= (quiz.passingScore || 70) 
-                              ? 'text-green-600' 
-                              : 'text-red-600'
-                          } font-medium`}>
+                          <span className={`${attempt.score >= (quiz.passingScore || 70)
+                            ? 'text-green-600'
+                            : 'text-red-600'
+                            } font-medium`}>
                             {attempt.score}%
                           </span>
                         </div>
@@ -294,12 +317,11 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
                     {quizStatus.score !== undefined && (
                       <div className="pt-2 mt-2 border-t text-xs">
                         <span className="font-medium">
-                          Best Score: 
-                          <span className={`ml-1 ${
-                            quizStatus.score >= (quiz.passingScore || 70) 
-                              ? 'text-green-600' 
-                              : 'text-red-600'
-                          }`}>
+                          Best Score:
+                          <span className={`ml-1 ${quizStatus.score >= (quiz.passingScore || 70)
+                            ? 'text-green-600'
+                            : 'text-red-600'
+                            }`}>
                             {quizStatus.score}%
                           </span>
                         </span>
@@ -307,7 +329,7 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
                     )}
                   </div>
                 )}
-                
+
                 {/* If passed, show only View Results button */}
                 {isUnlocked && (quizStatus.status === 'passed_no_attempts') ? (
                   <Button
@@ -326,7 +348,7 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
                   </Button>
                 ) : (
                   (quizStatus.showRequest && !(rejectedQuizIds && rejectedQuizIds.has(String(quizId)))) ? (
-                    <Button 
+                    <Button
                       className="w-full"
                       variant="outline"
                       disabled={requesting || !isUnlocked}
@@ -345,30 +367,29 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
                     </Button>
                   ) : (
                     quizStatus.status === 'rejected' ? null : (
-                    <Button 
-                      className={`w-full ${
-                        quizStatus.status === 'no_attempts_left' 
+                      <Button
+                        className={`w-full ${quizStatus.status === 'no_attempts_left'
                           ? 'bg-gray-400 hover:bg-gray-400 cursor-not-allowed'
                           : ''
-                      }`}
-                      disabled={!isUnlocked || quizStatus.buttonDisabled} 
-                      onClick={() => handleStart(quiz)}
-                    >
-                      {!isUnlocked ? (
-                        <>
-                          <Lock className="h-4 w-4 mr-2" />
-                          Complete Lessons First
-                        </>
-                      ) : (
-                        <>
-                          <StatusIcon className="h-4 w-4 mr-2" />
-                          {quizStatus.buttonText}
-                        </>
-                      )}
-                    </Button>
-                  ))
+                          }`}
+                        disabled={!isUnlocked || quizStatus.buttonDisabled}
+                        onClick={() => handleStart(quiz)}
+                      >
+                        {!isUnlocked ? (
+                          <>
+                            <Lock className="h-4 w-4 mr-2" />
+                            Complete Lessons First
+                          </>
+                        ) : (
+                          <>
+                            <StatusIcon className="h-4 w-4 mr-2" />
+                            {quizStatus.buttonText}
+                          </>
+                        )}
+                      </Button>
+                    ))
                 )}
-                
+
                 {/* Attempt review modal */}
                 <AttemptReviewModal
                   attemptId={reviewAttemptId}

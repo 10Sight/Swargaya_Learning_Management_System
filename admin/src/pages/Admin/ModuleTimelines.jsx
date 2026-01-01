@@ -70,13 +70,6 @@ const ModuleTimelines = () => {
         axiosInstance.get('/api/courses'),
         axiosInstance.get('/api/departments')
       ]);
-
-      console.log('API Responses:', {
-        timelines: timelinesRes.data,
-        courses: coursesRes.data,
-        departments: departmentsRes.data
-      });
-
       // Handle timeline response structure
       const timelineData = timelinesRes.data?.data?.timelines || timelinesRes.data?.data || [];
       setTimelines(Array.isArray(timelineData) ? timelineData : []);
@@ -114,25 +107,19 @@ const ModuleTimelines = () => {
     if (courseId) {
       try {
         const course = courses.find(c => c._id === courseId);
-        console.log('Selected course:', course);
 
         if (course && course.modules && Array.isArray(course.modules)) {
-          console.log('Course modules:', course.modules);
 
           // Check if modules are already populated with full data
           if (course.modules.length > 0 && typeof course.modules[0] === 'object' && course.modules[0]._id) {
-            console.log('Modules already populated in course data');
             setModules(course.modules.sort((a, b) => (a.order || 0) - (b.order || 0)));
             return;
           }
 
           // Try to fetch detailed module information
-          console.log('Attempting to fetch individual modules...');
           const modulePromises = course.modules.map(async (moduleId) => {
             try {
-              console.log('Fetching module with ID:', moduleId);
               const response = await axiosInstance.get(`/api/modules/${moduleId}`);
-              console.log('Module response for', moduleId, ':', response.data);
               return response.data.data || response.data;
             } catch (moduleError) {
               console.error(`Error fetching module ${moduleId}:`, moduleError);
@@ -148,7 +135,6 @@ const ModuleTimelines = () => {
           const moduleData = await Promise.all(modulePromises);
           const validModules = moduleData.filter(module => module && module._id);
 
-          console.log('Processed module data:', validModules);
           setModules(validModules.sort((a, b) => (a.order || 0) - (b.order || 0)));
 
           if (validModules.length === 0) {
@@ -158,12 +144,10 @@ const ModuleTimelines = () => {
           }
 
         } else if (course && course.modules) {
-          console.log('Course modules exist but not as expected array:', course.modules);
           // Try to use course.modules directly if it's a different structure
           if (typeof course.modules === 'object') {
             const moduleArray = Object.values(course.modules).filter(m => m && m._id);
             if (moduleArray.length > 0) {
-              console.log('Using modules from course object values:', moduleArray);
               setModules(moduleArray.sort((a, b) => (a.order || 0) - (b.order || 0)));
             } else {
               setModules([]);
@@ -172,7 +156,6 @@ const ModuleTimelines = () => {
             setModules([]);
           }
         } else {
-          console.log('No modules found for course');
           setModules([]);
         }
       } catch (error) {
@@ -188,10 +171,6 @@ const ModuleTimelines = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    console.log('Form submission started');
-    console.log('Form data:', formData);
-    console.log('Selected module from modules array:', modules.find(m => m._id === formData.moduleId));
 
     if (!formData.courseId || !formData.moduleId || !formData.departmentId || !formData.deadline) {
       toast.error('Please fill in all required fields');
@@ -213,15 +192,11 @@ const ModuleTimelines = () => {
         warningPeriods: formData.warningPeriods.filter(p => p > 0)
       };
 
-      console.log('Payload being sent:', payload);
-
       if (editingTimeline) {
         // Update existing timeline
-        console.log('Updating timeline:', editingTimeline._id);
         await axiosInstance.put(`/api/module-timelines/${editingTimeline._id}`, payload);
       } else {
         // Create new timeline
-        console.log('Creating new timeline');
         await axiosInstance.post('/api/module-timelines', payload);
       }
 

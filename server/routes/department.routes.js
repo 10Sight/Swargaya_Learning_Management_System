@@ -61,7 +61,6 @@ router.patch("/deleted/:id/restore", verifyJWT, authorizeRoles("SUPERADMIN"), re
 // General routes
 // General routes
 router.get("/", verifyJWT, authorizeRoles("ADMIN", "INSTRUCTOR", "SUPERADMIN"), (req, res, next) => {
-    console.log("[DEBUG] Hit getAllDepartments route handler");
     next();
 }, getAllDepartments);
 router.get("/:id", verifyJWT, authorizeRoles("ADMIN", "INSTRUCTOR"), getDepartmentById);

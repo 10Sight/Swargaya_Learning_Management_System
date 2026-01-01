@@ -4,6 +4,9 @@ import { useGetUserByIdQuery } from "@/Redux/AllApi/UserApi";
 import { useGetStudentProgressQuery } from "@/Redux/AllApi/ProgressApi";
 import { useGetStudentSubmissionsQuery } from "@/Redux/AllApi/SubmissionApi";
 import { useGetStudentAttemptsQuery } from "@/Redux/AllApi/AttemptedQuizApi";
+import { useGetStudentOJTsQuery, useCreateOnJobTrainingMutation } from "@/Redux/AllApi/OnJobTrainingApi";
+import { useGetLinesByDepartmentQuery } from "@/Redux/AllApi/LineApi";
+import { useGetMachinesByLineQuery } from "@/Redux/AllApi/MachineApi";
 import {
     Card,
     CardContent,
@@ -19,6 +22,9 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
     Table,
     TableBody,
@@ -55,6 +61,12 @@ const StudentDetail = () => {
     const [activeTab, setActiveTab] = useState("overview");
     const [viewAttemptId, setViewAttemptId] = useState(null);
     const [attemptModalOpen, setAttemptModalOpen] = useState(false);
+
+    // OJT State
+    const [createOJTDialog, setCreateOJTDialog] = useState(false);
+    const [selectedLine, setSelectedLine] = useState("");
+    const [selectedMachine, setSelectedMachine] = useState("");
+    const [selectedOjt, setSelectedOjt] = useState(null);
 
     // API Queries
     const {
@@ -97,6 +109,25 @@ const StudentDetail = () => {
     const progressList = progressData?.data || [];
     const submissions = submissionsData?.data || [];
     const attempts = attemptsData?.data || [];
+
+    // OJT Data Fetching
+    const { data: ojtData, isLoading: isOjtLoading, refetch: refetchOjt } = useGetStudentOJTsQuery(studentId);
+    const [createOJT] = useCreateOnJobTrainingMutation();
+    const ojt = ojtData?.data?.[0];
+
+    // Fetch lines dependent on student department
+    // student.department can be populated object or ID string. Safely handle both.
+    const departmentId = student?.department?._id || student?.department;
+    const { data: linesData } = useGetLinesByDepartmentQuery(departmentId, {
+        skip: !departmentId
+    });
+    const lines = linesData?.data || [];
+
+    // Fetch machines dependent on selected line
+    const { data: machinesData } = useGetMachinesByLineQuery(selectedLine, {
+        skip: !selectedLine
+    });
+    const machines = machinesData?.data || [];
 
     // Loading state
     const isLoading = studentLoading || progressLoading || submissionsLoading || attemptsLoading;
@@ -150,7 +181,26 @@ const StudentDetail = () => {
         refetchProgress();
         refetchSubmissions();
         refetchAttempts();
+        refetchOjt();
         toast.success("Employee data refreshed successfully!");
+    };
+
+    const handleCreateOJT = async () => {
+        if (!selectedLine || !selectedMachine || !studentId) {
+            toast.error("Please select both a Line and a Machine.");
+            return;
+        }
+
+        try {
+            await createOJT({ studentId, lineId: selectedLine, machineId: selectedMachine }).unwrap();
+            toast.success("On-Job Training created successfully!");
+            setCreateOJTDialog(false);
+            setSelectedLine("");
+            setSelectedMachine("");
+            refetchOjt(); // Refresh OJT data to show the new OJT
+        } catch (err) {
+            toast.error(err?.data?.message || "Failed to create On-Job Training.");
+        }
     };
 
     const getStatusBadge = (status) => {
@@ -885,10 +935,94 @@ const StudentDetail = () => {
                 </TabsContent>
 
                 <TabsContent value="ojt">
-                    <OnJobTrainingTable
-                        studentName={student?.fullName}
-                        model={student?.department?.name || "N/A"}
-                    />
+                    {/* Check if we are in detail view (selectedOjt is set) */}
+                    {selectedOjt ? (
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-xl font-bold">On Job Training Evaluation</CardTitle>
+                                <Button variant="outline" size="sm" onClick={() => setSelectedOjt(null)}>
+                                    <IconArrowLeft className="h-4 w-4 mr-2" />
+                                    Back to List
+                                </Button>
+                            </CardHeader>
+                            <CardContent>
+                                <OnJobTrainingTable
+                                    ojtId={selectedOjt._id}
+                                    studentName={student?.fullName}
+                                    model={student?.department?.name || "N/A"}
+                                    readOnly={false}
+                                    onBack={() => setSelectedOjt(null)}
+                                />
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between">
+                                <div>
+                                    <CardTitle>On Job Training Records</CardTitle>
+                                    <CardDescription>
+                                        Manage On Job Training evaluations for this employee
+                                    </CardDescription>
+                                </div>
+                                <Button onClick={() => setCreateOJTDialog(true)}>
+                                    <IconClipboardList className="h-4 w-4 mr-2" />
+                                    Start New OJT
+                                </Button>
+                            </CardHeader>
+                            <CardContent>
+                                {isOjtLoading ? (
+                                    <div className="text-center py-4">Loading OJT Data...</div>
+                                ) : ojtData?.data?.length > 0 ? (
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Training Name</TableHead>
+                                                <TableHead>Line / Machine</TableHead>
+                                                <TableHead>Created Date</TableHead>
+                                                <TableHead>Result</TableHead>
+                                                <TableHead className="text-right">Actions</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {ojtData.data.map((ojtItem) => (
+                                                <TableRow key={ojtItem._id}>
+                                                    <TableCell className="font-medium">{ojtItem.name}</TableCell>
+                                                    <TableCell>
+                                                        {ojtItem.line?.name} / {ojtItem.machine?.name}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {new Date(ojtItem.createdAt).toLocaleDateString()}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Badge variant={ojtItem.result === "Pass" ? "success" : ojtItem.result === "Fail" ? "destructive" : "secondary"}>
+                                                            {ojtItem.result || "Pending"}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell className="text-right">
+                                                        <Button variant="outline" size="sm" onClick={() => setSelectedOjt(ojtItem)}>
+                                                            <IconEye className="h-4 w-4 mr-2" />
+                                                            View/Edit
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                ) : (
+                                    <div className="text-center py-12">
+                                        <IconClipboardList className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                                        <h3 className="text-lg font-medium mb-2">No On Job Training Record</h3>
+                                        <p className="text-muted-foreground mb-6">
+                                            There is no ongoing On Job Training evaluation for this employee.
+                                        </p>
+                                        <Button onClick={() => setCreateOJTDialog(true)}>
+                                            Start On Job Training
+                                        </Button>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
                 </TabsContent>
             </Tabs>
             {/* Attempt Review Modal (admin editable) */}
@@ -898,6 +1032,51 @@ const StudentDetail = () => {
                 onClose={() => setAttemptModalOpen(false)}
                 canEdit={true}
             />
+
+            {/* Create OJT Dialog */}
+            <Dialog open={createOJTDialog} onOpenChange={setCreateOJTDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Start On Job Training</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Line</Label>
+                            <Select value={selectedLine} onValueChange={setSelectedLine}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select Line" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {lines.map((line) => (
+                                        <SelectItem key={line._id} value={line._id}>
+                                            {line.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Machine</Label>
+                            <Select value={selectedMachine} onValueChange={setSelectedMachine} disabled={!selectedLine}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select Machine" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {machines.map((machine) => (
+                                        <SelectItem key={machine._id} value={machine._id}>
+                                            {machine.name} {machine.machineName ? `(${machine.machineName})` : ""}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setCreateOJTDialog(false)}>Cancel</Button>
+                        <Button onClick={handleCreateOJT} disabled={!selectedLine || !selectedMachine}>Create</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

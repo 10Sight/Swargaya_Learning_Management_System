@@ -10,7 +10,7 @@ export const AvailableUserRoles = Object.values(UserRolesEnum);
 export const UserStatusEnum = {
     PRESENT: "PRESENT",
     ON_LEAVE: "ON_LEAVE",
-    ABSENT: "ABSENT",
+    LEFT: "LEFT",
 };
 
 export const LegacyUserStatusEnum = {
@@ -30,7 +30,7 @@ export const mapLegacyStatusToNew = (status) => {
             return UserStatusEnum.ON_LEAVE;
         case LegacyUserStatusEnum.SUSPENDED:
         case LegacyUserStatusEnum.BANNED:
-            return UserStatusEnum.ABSENT;
+            return UserStatusEnum.LEFT;
         default:
             return status;
     }

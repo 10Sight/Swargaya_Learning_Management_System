@@ -86,7 +86,7 @@ const normalizeStatus = (status) => {
       return "ON_LEAVE";
     case "SUSPENDED":
     case "BANNED":
-      return "ABSENT";
+      return "LEFT";
     default:
       return status || "";
   }
@@ -182,7 +182,7 @@ const Students = () => {
     { value: "ALL", label: "All Status" },
     { value: "PRESENT", label: "Present" },
     { value: "ON_LEAVE", label: "On Leave" },
-    { value: "ABSENT", label: "Absent" },
+    { value: "LEFT", label: "Left" },
   ];
 
   const departmentOptions = [
@@ -525,13 +525,13 @@ const Students = () => {
             <div className="h-2 w-2 rounded-full bg-amber-500"></div> On Leave
           </Badge>
         );
-      case "ABSENT":
+      case "LEFT":
         return (
           <Badge
             variant="destructive"
             className="flex items-center gap-1 w-fit"
           >
-            <div className="h-2 w-2 rounded-full bg-red-600"></div> Absent
+            <div className="h-2 w-2 rounded-full bg-red-600"></div> Left
           </Badge>
         );
       default:
@@ -545,7 +545,7 @@ const Students = () => {
 
   const handleQuickStatusChange = async (studentId, newStatus, oldStatus) => {
     // Confirm destructive actions
-    if (["ABSENT"].includes(newStatus)) {
+    if (["LEFT"].includes(newStatus)) {
       if (
         !window.confirm(
           `Are you sure you want to ${newStatus.toLowerCase()} this student?`
@@ -946,7 +946,7 @@ const Students = () => {
                         <SelectContent>
                           <SelectItem value="PRESENT">Present</SelectItem>
                           <SelectItem value="ON_LEAVE">On Leave</SelectItem>
-                          <SelectItem value="ABSENT">Absent</SelectItem>
+                          <SelectItem value="LEFT">Left</SelectItem>
                         </SelectContent>
                       </Select>
                     </TableCell>
@@ -1229,27 +1229,6 @@ const Students = () => {
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="unit">Unit</Label>
-              <Select
-                value={formData.unit}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, unit: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select unit" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="UNIT_1">Unit 1</SelectItem>
-                  <SelectItem value="UNIT_2">Unit 2</SelectItem>
-                  <SelectItem value="UNIT_3">Unit 3</SelectItem>
-                  <SelectItem value="UNIT_4">Unit 4</SelectItem>
-                  <SelectItem value="UNIT_5">Unit 5</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="password">Password</Label>
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"

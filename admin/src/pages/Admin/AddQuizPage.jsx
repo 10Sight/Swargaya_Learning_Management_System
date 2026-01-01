@@ -22,6 +22,7 @@ import {
   IconCheck,
   IconX,
   IconLoader,
+  IconPhoto,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import {
@@ -31,32 +32,34 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import useFileUpload from "@/hooks/useFileUpload";
 
 const AddQuizPage = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const [createQuiz, { isLoading }] = useCreateQuizMutation();
-  
+  const { uploadFile, isUploading: isImageUploading } = useFileUpload();
+
   const basePath = React.useMemo(() => {
     const p = location.pathname || '';
     if (p.startsWith('/superadmin')) return '/superadmin';
     if (p.startsWith('/instructor')) return '/instructor';
     return '/admin';
   }, [location.pathname]);
-  
+
   // Fetch course to know its slug for navigation after creation
   const { data: courseData, refetch: refetchCourse } = useGetCourseByIdQuery(courseId);
-  
+
   // Fetch modules for the course
-  const { 
-    data: modulesData, 
-    isLoading: modulesLoading, 
+  const {
+    data: modulesData,
+    isLoading: modulesLoading,
     error: modulesError,
-    refetch: refetchModules 
+    refetch: refetchModules
   } = useGetModulesByCourseQuery(courseId, {
     skip: !courseId, // Skip if no courseId
   });
-  
+
   const modules = modulesData?.data || [];
 
   const [formData, setFormData] = useState({
@@ -68,10 +71,12 @@ const AddQuizPage = () => {
     passingScore: 70,
     timeLimit: 30,
     attemptsAllowed: 1,
+    skillUpgradation: false,
     questions: [
       {
         questionText: "",
         marks: 1,
+        image: null,
         options: [
           { text: "", isCorrect: false },
           { text: "", isCorrect: false },
@@ -81,15 +86,15 @@ const AddQuizPage = () => {
   });
 
   // Fetch lessons for the selected module
-  const { 
-    data: lessonsData, 
-    isLoading: lessonsLoading, 
+  const {
+    data: lessonsData,
+    isLoading: lessonsLoading,
     error: lessonsError,
-    refetch: refetchLessons 
+    refetch: refetchLessons
   } = useGetLessonsByModuleQuery(formData.moduleId, {
     skip: !formData.moduleId || formData.scope !== "lesson", // Skip if no module selected or not lesson scope
   });
-  
+
   const lessons = lessonsData?.data || [];
 
   const handleInputChange = (e) => {
@@ -111,7 +116,7 @@ const AddQuizPage = () => {
 
   const handleOptionChange = (questionIndex, optionIndex, field, value) => {
     const updatedQuestions = [...formData.questions];
-    
+
     if (field === "isCorrect") {
       // If setting this option as correct, make all others incorrect
       updatedQuestions[questionIndex].options.forEach((opt, idx) => {
@@ -120,7 +125,7 @@ const AddQuizPage = () => {
     } else {
       updatedQuestions[questionIndex].options[optionIndex][field] = value;
     }
-    
+
     setFormData((prev) => ({
       ...prev,
       questions: updatedQuestions,
@@ -135,6 +140,7 @@ const AddQuizPage = () => {
         {
           questionText: "",
           marks: 1,
+          image: null,
           options: [
             { text: "", isCorrect: false },
             { text: "", isCorrect: false },
@@ -149,7 +155,7 @@ const AddQuizPage = () => {
       toast.error("Quiz must have at least one question");
       return;
     }
-    
+
     setFormData((prev) => ({
       ...prev,
       questions: prev.questions.filter((_, i) => i !== index),
@@ -162,7 +168,7 @@ const AddQuizPage = () => {
       text: "",
       isCorrect: false,
     });
-    
+
     setFormData((prev) => ({
       ...prev,
       questions: updatedQuestions,
@@ -171,20 +177,45 @@ const AddQuizPage = () => {
 
   const removeOption = (questionIndex, optionIndex) => {
     const updatedQuestions = [...formData.questions];
-    
+
     if (updatedQuestions[questionIndex].options.length <= 2) {
       toast.error("Question must have at least 2 options");
       return;
     }
-    
+
     updatedQuestions[questionIndex].options = updatedQuestions[questionIndex].options.filter(
       (_, idx) => idx !== optionIndex
     );
-    
+
     setFormData((prev) => ({
       ...prev,
       questions: updatedQuestions,
     }));
+  };
+
+  const handleQuestionImageUpload = async (index, file) => {
+    if (!file) return;
+    try {
+      const loadingToast = toast.loading("Uploading image...");
+      const result = await uploadFile(file, { folder: 'quizzes' });
+
+      const updatedQuestions = [...formData.questions];
+      updatedQuestions[index].image = {
+        url: result.url,
+        public_id: result.public_id
+      };
+      setFormData(prev => ({ ...prev, questions: updatedQuestions }));
+      toast.dismiss(loadingToast);
+      toast.success("Image uploaded");
+    } catch (err) {
+      toast.error("Failed to upload image");
+    }
+  };
+
+  const removeQuestionImage = (index) => {
+    const updatedQuestions = [...formData.questions];
+    updatedQuestions[index].image = null;
+    setFormData(prev => ({ ...prev, questions: updatedQuestions }));
   };
 
   const validateForm = () => {
@@ -193,17 +224,17 @@ const AddQuizPage = () => {
       toast.error("Please select a module for module quiz");
       return false;
     }
-    
+
     if (formData.scope === "lesson" && !formData.moduleId) {
       toast.error("Please select a module for lesson quiz");
       return false;
     }
-    
+
     if (formData.scope === "lesson" && !formData.lessonId) {
       toast.error("Please select a lesson for lesson quiz");
       return false;
     }
-    
+
     if (!formData.title.trim()) {
       toast.error("Quiz title is required");
       return false;
@@ -258,51 +289,52 @@ const AddQuizPage = () => {
     return true;
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  
-  if (!validateForm()) {
-    return;
-  }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  try {
-    const resolvedCourseId = courseData?.data?._id || courseId;
-    const quizData = {
-      courseId: resolvedCourseId,
-      scope: formData.scope,
-      title: formData.title,
-      description: formData.description,
-      questions: formData.questions,
-      passingScore: parseInt(formData.passingScore),
-      timeLimit: formData.timeLimit ? parseInt(formData.timeLimit) : undefined,
-      attemptsAllowed: parseInt(formData.attemptsAllowed),
-    };
-
-    // Include moduleId for module and lesson scopes
-    if ((formData.scope === "module" || formData.scope === "lesson") && formData.moduleId) {
-      quizData.moduleId = formData.moduleId;
+    if (!validateForm()) {
+      return;
     }
-    
-    // Include lessonId for lesson scope
-    if (formData.scope === "lesson" && formData.lessonId) {
-      quizData.lessonId = formData.lessonId;
-    }
-    
-    await createQuiz(quizData).unwrap();
 
-    toast.success("Quiz created successfully!");
-    
-    // Instead of navigating immediately, wait a moment for the backend to process
-    setTimeout(() => {
-      const target = courseData?.data?.slug || courseId;
-      navigate(`${basePath}/courses/${target}`);
-    }, 500);
-    
-  } catch (error) {
-    console.error("Create quiz error:", error);
-    toast.error(error?.data?.message || "Failed to create quiz");
-  }
-};
+    try {
+      const resolvedCourseId = courseData?.data?._id || courseId;
+      const quizData = {
+        courseId: resolvedCourseId,
+        scope: formData.scope,
+        title: formData.title,
+        description: formData.description,
+        questions: formData.questions,
+        passingScore: parseInt(formData.passingScore),
+        timeLimit: formData.timeLimit ? parseInt(formData.timeLimit) : undefined,
+        attemptsAllowed: parseInt(formData.attemptsAllowed),
+        skillUpgradation: formData.skillUpgradation,
+      };
+
+      // Include moduleId for module and lesson scopes
+      if ((formData.scope === "module" || formData.scope === "lesson") && formData.moduleId) {
+        quizData.moduleId = formData.moduleId;
+      }
+
+      // Include lessonId for lesson scope
+      if (formData.scope === "lesson" && formData.lessonId) {
+        quizData.lessonId = formData.lessonId;
+      }
+
+      await createQuiz(quizData).unwrap();
+
+      toast.success("Quiz created successfully!");
+
+      // Instead of navigating immediately, wait a moment for the backend to process
+      setTimeout(() => {
+        const target = courseData?.data?.slug || courseId;
+        navigate(`${basePath}/courses/${target}`);
+      }, 500);
+
+    } catch (error) {
+      console.error("Create quiz error:", error);
+      toast.error(error?.data?.message || "Failed to create quiz");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -340,8 +372,8 @@ const handleSubmit = async (e) => {
               <Select
                 value={formData.quizType}
                 onValueChange={(value) => {
-                  setFormData((prev) => ({ 
-                    ...prev, 
+                  setFormData((prev) => ({
+                    ...prev,
                     quizType: value,
                     moduleId: value === "COURSE" ? "" : prev.moduleId // Clear module when switching to course
                   }))
@@ -361,7 +393,7 @@ const handleSubmit = async (e) => {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                {formData.quizType === "MODULE" 
+                {formData.quizType === "MODULE"
                   ? "Module quizzes unlock after completing all lessons in the selected module"
                   : "Course quizzes unlock only after completing ALL modules in the course"
                 }
@@ -407,7 +439,7 @@ const handleSubmit = async (e) => {
                     )}
                   </SelectContent>
                 </Select>
-              
+
                 {/* Show error message if no modules */}
                 {!modulesLoading && !modulesError && modules.length === 0 && (
                   <div className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-md p-3">
@@ -427,7 +459,7 @@ const handleSubmit = async (e) => {
                     </Button>
                   </div>
                 )}
-                
+
                 {/* Show error message if modules failed to load */}
                 {modulesError && (
                   <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
@@ -448,7 +480,7 @@ const handleSubmit = async (e) => {
                 )}
               </div>
             )}
-            
+
             <div className="grid gap-2">
               <Label htmlFor="title">Quiz Title *</Label>
               <Input
@@ -523,6 +555,30 @@ const handleSubmit = async (e) => {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="skillUpgradation">Skill Upgradation *</Label>
+                <Select
+                  value={formData.skillUpgradation ? "yes" : "no"}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      skillUpgradation: value === "yes",
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select option" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no">No</SelectItem>
+                    <SelectItem value="yes">Yes</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground">
+                  If Yes, student level will be upgraded upon passing this quiz.
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -575,6 +631,45 @@ const handleSubmit = async (e) => {
                     placeholder="Enter your question"
                     required
                   />
+
+                  {/* Image Upload */}
+                  <div className="mt-2">
+                    {question.image ? (
+                      <div className="relative w-full max-w-xs border rounded p-2">
+                        <img src={question.image.url} alt="Question" className="w-full h-auto rounded" />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2 h-6 w-6 rounded-full"
+                          onClick={() => removeQuestionImage(qIndex)}
+                        >
+                          <IconX className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="file"
+                          id={`question-image-${qIndex}`}
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleQuestionImageUpload(qIndex, e.target.files[0])}
+                          disabled={isImageUploading}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={isImageUploading}
+                          onClick={() => document.getElementById(`question-image-${qIndex}`).click()}
+                        >
+                          <IconPhoto className="h-4 w-4 mr-2" />
+                          {isImageUploading ? "Uploading..." : "Add Image"}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="grid gap-2">
@@ -613,11 +708,10 @@ const handleSubmit = async (e) => {
                         onClick={() =>
                           handleOptionChange(qIndex, oIndex, "isCorrect", true)
                         }
-                        className={`p-2 rounded-full border ${
-                          option.isCorrect
-                            ? "bg-green-100 border-green-300 text-green-700"
-                            : "bg-gray-100 border-gray-300 text-gray-500"
-                        }`}
+                        className={`p-2 rounded-full border ${option.isCorrect
+                          ? "bg-green-100 border-green-300 text-green-700"
+                          : "bg-gray-100 border-gray-300 text-gray-500"
+                          }`}
                         title={option.isCorrect ? "Correct answer" : "Mark as correct"}
                       >
                         {option.isCorrect ? (

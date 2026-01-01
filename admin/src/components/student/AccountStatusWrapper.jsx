@@ -21,10 +21,12 @@ const AccountStatusWrapper = ({ children, allowPending = false, pageName = '' })
   // Check account status
   switch (user.status) {
     case 'ACTIVE':
+    case 'PRESENT':
       // Active users have full access
       return children;
-      
+
     case 'PENDING':
+    case 'ON_LEAVE':
       // Pending users can only access certain pages (like profile)
       if (allowPending) {
         return (
@@ -36,12 +38,13 @@ const AccountStatusWrapper = ({ children, allowPending = false, pageName = '' })
       }
       // For restricted pages, show full-screen notification
       return <AccountStatusNotification status={user.status} fullScreen />;
-      
+
     case 'SUSPENDED':
     case 'BANNED':
+    case 'ABSENT':
       // Suspended and banned users cannot access any pages
       return <AccountStatusNotification status={user.status} fullScreen />;
-      
+
     default:
       // Unknown status, allow access but show warning
       return (

@@ -6,12 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { 
-  Clock, 
-  CheckCircle2, 
-  AlertCircle, 
-  BarChart3, 
-  ArrowLeft, 
+import {
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  BarChart3,
+  ArrowLeft,
   Send,
   Trophy,
   RotateCcw,
@@ -22,7 +22,7 @@ import {
 const TakeQuiz = () => {
   const { quizId } = useParams();
   const navigate = useNavigate();
-  
+
   const [loading, setLoading] = useState(true);
   const [quiz, setQuiz] = useState(null);
   const [answers, setAnswers] = useState({});
@@ -40,29 +40,29 @@ const TakeQuiz = () => {
         setLoading(true);
         const response = await axiosInstance.get(`/api/attempts/start/${quizId}`);
         const data = response.data.data;
-        
+
         if (!data.canAttempt) {
           setError(data.reason || "Cannot attempt this quiz");
           setQuiz({ title: data.quiz?.title || "Quiz" });
           return;
         }
-        
+
         setQuiz(data.quiz);
         setTimeRemaining(data.quiz.timeLimit ? data.quiz.timeLimit * 60 : null);
         setStartTime(Date.now());
-        
+
         // Initialize answers array
         const initialAnswers = {};
         data.quiz.questions.forEach((_, index) => {
           initialAnswers[index] = null;
         });
         setAnswers(initialAnswers);
-        
+
         // Start timer if time limit exists
         if (data.quiz.timeLimit) {
           setTimerActive(true);
         }
-        
+
         setError(null);
       } catch (err) {
         console.error("Failed to load quiz:", err);
@@ -71,7 +71,7 @@ const TakeQuiz = () => {
         setLoading(false);
       }
     };
-    
+
     if (quizId) {
       loadQuiz();
     }
@@ -80,7 +80,7 @@ const TakeQuiz = () => {
   // Timer countdown
   useEffect(() => {
     if (!timerActive || timeRemaining === null || timeRemaining <= 0) return;
-    
+
     const timer = setInterval(() => {
       setTimeRemaining(prev => {
         if (prev <= 1) {
@@ -91,7 +91,7 @@ const TakeQuiz = () => {
         return prev - 1;
       });
     }, 1000);
-    
+
     return () => clearInterval(timer);
   }, [timerActive, timeRemaining]);
 
@@ -112,19 +112,19 @@ const TakeQuiz = () => {
     try {
       setSubmitting(true);
       setTimerActive(false);
-      
+
       // Calculate time taken
       const timeTaken = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
-      
+
       // Convert answers to array format
       const answersArray = quiz.questions.map((_, index) => answers[index]);
-      
+
       const response = await axiosInstance.post("/api/attempts/submit", {
         quizId,
         answers: answersArray,
         timeTaken
       });
-      
+
       setResult(response.data.data);
     } catch (err) {
       console.error("Failed to submit quiz:", err);
@@ -157,7 +157,7 @@ const TakeQuiz = () => {
     setStartTime(Date.now());
     setTimerActive(quiz?.timeLimit ? true : false);
     setError(null);
-    
+
     // Reinitialize answers
     const initialAnswers = {};
     quiz.questions.forEach((_, index) => {
@@ -272,14 +272,14 @@ const TakeQuiz = () => {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Course
               </Button>
-              
+
               {!result.passed && result.canRetry && (
                 <Button onClick={handleRetry} className="flex-1">
                   <RotateCcw className="h-4 w-4 mr-2" />
                   Try Again
                 </Button>
               )}
-              
+
               {!result.passed && !result.canRetry && (
                 <Button onClick={handleContactInstructor} variant="secondary" className="flex-1">
                   <MessageSquare className="h-4 w-4 mr-2" />
@@ -355,8 +355,8 @@ const TakeQuiz = () => {
             <ArrowLeft className="h-4 w-4 mr-1" />
             Back to Course
           </Button>
-          <Button 
-            onClick={() => window.location.reload()} 
+          <Button
+            onClick={() => window.location.reload()}
             variant="secondary"
           >
             Retry
@@ -389,7 +389,7 @@ const TakeQuiz = () => {
                 <span>{quiz.questions.length} Questions</span>
               </div>
             </div>
-            
+
             {/* Timer */}
             {timeRemaining !== null && (
               <div className="text-right flex-shrink-0">
@@ -403,7 +403,7 @@ const TakeQuiz = () => {
               </div>
             )}
           </div>
-          
+
           {/* Progress Bar */}
           <div className="mt-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1">
@@ -412,8 +412,8 @@ const TakeQuiz = () => {
                 {getAnsweredCount()} of {quiz.questions.length} answered
               </span>
             </div>
-            <Progress 
-              value={(getAnsweredCount() / quiz.questions.length) * 100} 
+            <Progress
+              value={(getAnsweredCount() / quiz.questions.length) * 100}
               className="h-2"
             />
           </div>
@@ -436,23 +436,30 @@ const TakeQuiz = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {question.image && question.image.url && (
+                <div className="mb-4 flex justify-center">
+                  <img
+                    src={question.image.url}
+                    alt="Question Reference"
+                    className="max-h-72 w-auto rounded-md object-contain border bg-white"
+                  />
+                </div>
+              )}
               <div className="space-y-3">
                 {question.options.map((option, optionIndex) => (
                   <div
                     key={optionIndex}
-                    className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                      answers[questionIndex]?.text === option.text
+                    className={`p-3 rounded-lg border cursor-pointer transition-colors ${answers[questionIndex]?.text === option.text
                         ? 'bg-blue-50 border-blue-300'
                         : 'hover:bg-gray-50 border-gray-200'
-                    }`}
+                      }`}
                     onClick={() => handleAnswerChange(questionIndex, option)}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                        answers[questionIndex]?.text === option.text
+                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${answers[questionIndex]?.text === option.text
                           ? 'border-blue-500 bg-blue-500'
                           : 'border-gray-300'
-                      }`}>
+                        }`}>
                         {answers[questionIndex]?.text === option.text && (
                           <div className="w-2 h-2 bg-white rounded-full"></div>
                         )}
@@ -474,8 +481,8 @@ const TakeQuiz = () => {
             <div>
               <div className="font-medium">Ready to submit?</div>
               <div className="text-sm text-gray-600">
-                {getAnsweredCount() === quiz.questions.length 
-                  ? "All questions answered" 
+                {getAnsweredCount() === quiz.questions.length
+                  ? "All questions answered"
                   : `${quiz.questions.length - getAnsweredCount()} questions remaining`}
               </div>
             </div>
@@ -484,8 +491,8 @@ const TakeQuiz = () => {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
               </Button>
-              <Button 
-                onClick={() => handleSubmit()} 
+              <Button
+                onClick={() => handleSubmit()}
                 disabled={submitting}
                 className="bg-green-600 hover:bg-green-700 text-sm"
               >

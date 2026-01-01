@@ -30,13 +30,10 @@ import {
   IconUsers,
   IconClipboardList,
   IconClipboard,
-  IconAward,
   IconUser,
   IconSettings,
-  IconBell,
-  IconSearch,
   IconMenu2,
-  IconX,
+  IconDownload,
 } from "@tabler/icons-react";
 import { HomeIcon, Command } from "lucide-react";
 import { useUpdateAvatarMutation } from "@/Redux/AllApi/UserApi";
@@ -52,15 +49,31 @@ const baseTabs = [
   { link: "/trainer/quiz-monitoring", labelKey: "nav.quizManagement", icon: IconClipboardList },
   { link: "/trainer/attempt-requests", labelKey: "nav.attemptRequests", icon: IconClipboardList },
   { link: "/trainer/assignment-monitoring", labelKey: "nav.assignmentManagement", icon: IconClipboard },
-  { link: "/trainer/certificate-issuance", labelKey: "nav.certificateIssuance", icon: IconAward },
+  { link: "/trainer/skill-matrix", labelKey: "nav.skillMatrix", icon: IconUsers },
+
 ];
 
 export function InstructorLayout() {
   const [collapsed, setCollapsed] = useState(
     window.innerWidth >= 820 ? false : true
   );
+
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [pageName, setPageName] = useState("Dashboard");
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
 
   const { t, language } = useTranslate();
   const tabs = baseTabs.map((tab) => ({ ...tab, label: t(tab.labelKey) }));
@@ -129,6 +142,20 @@ export function InstructorLayout() {
     } catch (error) {
       // Even if logout fails, redirect to login (toast handled by Redux)
       navigate("/login", { replace: true });
+    }
+  };
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) {
+      alert("To install the app:\n1. Desktop: Click the install icon in the address bar (if available) or look in the browser menu.\n2. Mobile: Tap 'Share' -> 'Add to Home Screen'.\n\n(Note: This functionality requires PWA configuration which might not be fully active in development mode)");
+      return;
+    }
+
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
     }
   };
 
@@ -300,23 +327,20 @@ export function InstructorLayout() {
 
           {/* Right side (Search & Avatar) */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Language Selector */}
-            <LanguageSelector />
-
-            {/* Search Button - Desktop */}
+            {/* Install App Button - Desktop & Mobile */}
             <Button
               variant="ghost"
               size="icon"
               className="hidden sm:flex hover:bg-gray-100 text-gray-600 hover:text-gray-800 transition-colors"
-              onClick={() => {
-                // Add search functionality here
-                console.log('Search clicked');
-              }}
+              onClick={handleInstallClick}
+              title="Install App"
             >
-              <IconSearch className="h-4 w-4" />
+              <IconDownload className="h-4 w-4" />
             </Button>
-
+            {/* Language Selector */}
+            <LanguageSelector />
             {/* User Dropdown Menu */}
+            <input ref={avatarFileRef} type="file" accept="image/*" className="hidden" onChange={onAvatarChange} />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:ring-2 hover:ring-green-200 transition-all">
@@ -333,7 +357,6 @@ export function InstructorLayout() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-64 p-2" align="end" forceMount>
-                <input ref={avatarFileRef} type="file" accept="image/*" className="hidden" onChange={onAvatarChange} />
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <div className="flex items-center gap-2">
@@ -353,10 +376,6 @@ export function InstructorLayout() {
                 <DropdownMenuItem className="cursor-pointer hover:bg-green-50" onClick={pickAvatar}>
                   <IconUser className="mr-2 h-4 w-4" />
                   {t("profile.changeProfilePicture")}
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer hover:bg-green-50">
-                  <IconSettings className="mr-2 h-4 w-4" />
-                  {t("settings.accountSettings")}
                 </DropdownMenuItem>
                 <DropdownMenuItem className="cursor-pointer hover:bg-green-50">
                   <IconSettings className="mr-2 h-4 w-4" />

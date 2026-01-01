@@ -8,7 +8,19 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { logout } from "@/Redux/Slice/AuthSlice";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { logout, profile as fetchProfile } from "@/Redux/Slice/AuthSlice";
+import { useUpdateAvatarMutation } from "@/Redux/AllApi/UserApi";
 import {
   IconLayoutDashboardFilled,
   IconLayoutSidebarRightCollapse,
@@ -22,8 +34,10 @@ import {
   IconX,
   IconFileCertificate,
   IconClipboardList,
+  IconDownload,
+  IconSettings,
 } from "@tabler/icons-react";
-import { HomeIcon } from "lucide-react";
+import { HomeIcon, Command } from "lucide-react";
 import clsx from "clsx";
 import axiosInstance from "@/Helper/axiosInstance";
 import useTranslate from "@/hooks/useTranslate";
@@ -34,7 +48,6 @@ const baseTabs = [
   { link: "/student/profile", labelKey: "nav.profile", icon: IconUser },
   { link: "/student/department", labelKey: "nav.department", icon: IconFolder },
   { link: "/student/course", labelKey: "nav.course", icon: IconBooks },
-  { link: "/student/reports", labelKey: "nav.reports", icon: IconFileText },
   { link: "/student/certificates", labelKey: "nav.certificates", icon: IconFileCertificate }, // Modified icon for Certificates
   { link: "/student/on-job-training", labelKey: "nav.onJobTraining", icon: IconClipboardList }, // Added On Job Training
 ];
@@ -44,6 +57,20 @@ export function StudentLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [pageName, setPageName] = useState("Dashboard");
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
 
   const { t, language } = useTranslate();
   const tabs = baseTabs.map((tab) => ({ ...tab, label: t(tab.labelKey) }));
@@ -52,6 +79,18 @@ export function StudentLayout() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { user, isLoading } = useSelector((state) => state.auth);
+  const [updateAvatar] = useUpdateAvatarMutation();
+  const avatarFileRef = React.useRef(null);
+  const pickAvatar = () => avatarFileRef.current?.click();
+  const onAvatarChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { alert('Please select an image'); e.target.value = ''; return; }
+    const form = new FormData(); form.append('avatar', file);
+    try { await updateAvatar(form).unwrap(); await dispatch(fetchProfile()).unwrap(); }
+    catch (err) { alert(err?.data?.message || 'Failed to update avatar'); }
+    finally { e.target.value = ''; }
+  };
 
   // Handle window resize
   useEffect(() => {
@@ -145,6 +184,20 @@ export function StudentLayout() {
       navigate("/login", { replace: true });
     } catch (error) {
       navigate("/login", { replace: true });
+    }
+  };
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) {
+      alert("To install the app:\n1. Desktop: Click the install icon in the address bar (if available) or look in the browser menu.\n2. Mobile: Tap 'Share' -> 'Add to Home Screen'.\n\n(Note: This functionality requires PWA configuration which might not be fully active in development mode)");
+      return;
+    }
+
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
     }
   };
 
@@ -329,25 +382,81 @@ export function StudentLayout() {
             </div>
 
             {/* Right side - User info and avatar */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Install App Button - Desktop & Mobile */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="hidden sm:flex hover:bg-gray-100 text-gray-600 hover:text-gray-800 transition-colors"
+                onClick={handleInstallClick}
+                title="Install App"
+              >
+                <IconDownload className="h-4 w-4" />
+              </Button>
               <LanguageSelector />
-              <div className="hidden lg:block text-right">
-                <p className="text-sm font-medium text-gray-900 leading-tight">
-                  {user?.fullName || user?.userName || 'Student'}
-                </p>
-                <p className="text-xs text-gray-500 capitalize">
-                  {user?.role?.toLowerCase().replace('_', ' ') || 'Student'}
-                </p>
-              </div>
 
-              <div className="relative">
-                <img
-                  src={user?.avatar?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.fullName || user?.userName || 'Student')}&background=2563eb&color=fff`}
-                  className="w-10 h-10 rounded-full border-2 border-white shadow-md object-cover ring-2 ring-gray-100"
-                  alt="User avatar"
-                />
-                <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
-              </div>
+              {/* User Dropdown Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:ring-2 hover:ring-green-200 transition-all p-0">
+                    <Avatar className="h-9 w-9 border-2 border-white shadow-md ring-2 ring-gray-100">
+                      <AvatarImage
+                        src={user?.avatar?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.fullName || user?.userName || 'Student')}&background=2563eb&color=fff`}
+                        alt={user?.fullName || user?.userName || 'Student'}
+                        className="object-cover"
+                      />
+                      <AvatarFallback className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
+                        {(user?.fullName || user?.userName || 'ST').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute bg-green-500 rounded-full bottom-0 right-0 size-2.5 border-2 border-white animate-pulse"></div>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-64 p-2" align="end" forceMount>
+                  <input ref={avatarFileRef} type="file" accept="image/*" className="hidden" onChange={onAvatarChange} />
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-gray-900">
+                          {user?.fullName || user?.userName || 'Student'}
+                        </p>
+                        <Badge variant="secondary" className="text-xs">
+                          {user?.role?.toLowerCase().replace('_', ' ') || 'Student'}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        {user?.email || 'student@sarvagaya.edu'}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="cursor-pointer hover:bg-blue-50" onClick={pickAvatar}>
+                    <IconUser className="mr-2 h-4 w-4" />
+                    {t("profile.changeProfilePicture")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer hover:bg-blue-50">
+                    <IconSettings className="mr-2 h-4 w-4" />
+                    {t("settings.accountSettings")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer hover:bg-blue-50">
+                    <Command className="mr-2 h-4 w-4" />
+                    {t("ui.keyboardShortcuts")}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="cursor-pointer hover:bg-red-50 text-red-600 focus:text-red-600"
+                    onClick={handleLogout}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <div className="mr-2 animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                    ) : (
+                      <IconLogout className="mr-2 h-4 w-4" />
+                    )}
+                    {isLoading ? t("auth.signingOut") : t("auth.signOut")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </header>

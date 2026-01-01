@@ -13,7 +13,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { IconArrowLeft, IconPlus, IconTrash, IconLoader, IconCheck, IconX } from "@tabler/icons-react";
+import { IconArrowLeft, IconPlus, IconTrash, IconLoader, IconCheck, IconX, IconPhoto } from "@tabler/icons-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import useFileUpload from "@/hooks/useFileUpload";
 
 const EditQuizPage = () => {
   const { quizId } = useParams();
@@ -22,6 +30,7 @@ const EditQuizPage = () => {
 
   const { data, isFetching, isError } = useGetQuizByIdQuery(quizId);
   const [updateQuiz, { isLoading: isSaving }] = useUpdateQuizMutation();
+  const { uploadFile, isUploading: isImageUploading } = useFileUpload();
 
   const basePath = React.useMemo(() => {
     const p = location.pathname || '';
@@ -37,6 +46,7 @@ const EditQuizPage = () => {
     title: "",
     description: "",
     passingScore: 70,
+    skillUpgradation: false,
     questions: [
       {
         questionText: "",
@@ -55,25 +65,27 @@ const EditQuizPage = () => {
         title: quiz.title || "",
         description: quiz.description || "",
         passingScore: quiz.passingScore ?? 70,
+        skillUpgradation: quiz.skillUpgradation || false,
         questions: Array.isArray(quiz.questions) && quiz.questions.length > 0
           ? quiz.questions.map((q) => ({
-              questionText: q.questionText || q.text || "",
-              marks: q.marks ?? 1,
-              options: (q.options || []).map((o) => ({
-                text: o.text || "",
-                isCorrect: !!o.isCorrect,
-              })),
-            }))
+            questionText: q.questionText || q.text || "",
+            marks: q.marks ?? 1,
+            image: q.image || null,
+            options: (q.options || []).map((o) => ({
+              text: o.text || "",
+              isCorrect: !!o.isCorrect,
+            })),
+          }))
           : [
-              {
-                questionText: "",
-                marks: 1,
-                options: [
-                  { text: "", isCorrect: false },
-                  { text: "", isCorrect: false },
-                ],
-              },
-            ],
+            {
+              questionText: "",
+              marks: 1,
+              options: [
+                { text: "", isCorrect: false },
+                { text: "", isCorrect: false },
+              ],
+            },
+          ],
       });
     }
   }, [quiz]);
@@ -107,7 +119,7 @@ const EditQuizPage = () => {
       ...prev,
       questions: [
         ...prev.questions,
-        { questionText: "", marks: 1, options: [ { text: "", isCorrect: false }, { text: "", isCorrect: false } ] },
+        { questionText: "", marks: 1, options: [{ text: "", isCorrect: false }, { text: "", isCorrect: false }] },
       ],
     }));
   };
@@ -137,6 +149,31 @@ const EditQuizPage = () => {
     }
     updated[qIndex].options = updated[qIndex].options.filter((_, idx) => idx !== oIndex);
     setFormData((prev) => ({ ...prev, questions: updated }));
+  };
+
+  const handleQuestionImageUpload = async (index, file) => {
+    if (!file) return;
+    try {
+      const loadingToast = toast.loading("Uploading image...");
+      const result = await uploadFile(file, { folder: 'quizzes' });
+
+      const updated = [...formData.questions];
+      updated[index].image = {
+        url: result.url,
+        public_id: result.public_id
+      };
+      setFormData(prev => ({ ...prev, questions: updated }));
+      toast.dismiss(loadingToast);
+      toast.success("Image uploaded");
+    } catch (err) {
+      toast.error("Failed to upload image");
+    }
+  };
+
+  const removeQuestionImage = (index) => {
+    const updated = [...formData.questions];
+    updated[index].image = null;
+    setFormData(prev => ({ ...prev, questions: updated }));
   };
 
   const validateForm = () => {
@@ -177,8 +214,11 @@ const EditQuizPage = () => {
       await updateQuiz({
         id: quiz?._id,
         title: formData.title,
+        description: formData.description,
         questions: formData.questions,
         passingScore: parseInt(formData.passingScore),
+        // timeLimit and attemptsAllowed are not in state currently but should be if we want full editing
+        skillUpgradation: formData.skillUpgradation,
       }).unwrap();
 
       toast.success("Quiz updated successfully!");
@@ -234,6 +274,30 @@ const EditQuizPage = () => {
               <Label htmlFor="description">Description</Label>
               <Textarea id="description" name="description" value={formData.description} onChange={handleInputChange} rows={3} />
             </div>
+            <div className="grid gap-2">
+              <Label htmlFor="skillUpgradation">Skill Upgradation</Label>
+              <Select
+                key={formData.skillUpgradation ? "yes" : "no"} // Force re-mount on change
+                value={formData.skillUpgradation ? "yes" : "no"}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    skillUpgradation: value === "yes",
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select option" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="no">No</SelectItem>
+                  <SelectItem value="yes">Yes</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground">
+                If Yes, student level will be upgraded upon passing this quiz.
+              </p>
+            </div>
           </CardContent>
         </Card>
 
@@ -263,6 +327,45 @@ const EditQuizPage = () => {
                 <div className="grid gap-2">
                   <Label htmlFor={`question-${qi}`}>Question Text *</Label>
                   <Input id={`question-${qi}`} value={q.questionText} onChange={(e) => handleQuestionChange(qi, "questionText", e.target.value)} required />
+
+                  {/* Image Upload */}
+                  <div className="mt-2">
+                    {q.image ? (
+                      <div className="relative w-full max-w-xs border rounded p-2">
+                        <img src={q.image.url} alt="Question" className="w-full h-auto rounded" />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2 h-6 w-6 rounded-full"
+                          onClick={() => removeQuestionImage(qi)}
+                        >
+                          <IconX className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="file"
+                          id={`question-image-${qi}`}
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleQuestionImageUpload(qi, e.target.files[0])}
+                          disabled={isImageUploading}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={isImageUploading}
+                          onClick={() => document.getElementById(`question-image-${qi}`).click()}
+                        >
+                          <IconPhoto className="h-4 w-4 mr-2" />
+                          {isImageUploading ? "Uploading..." : "Add Image"}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="grid gap-2">

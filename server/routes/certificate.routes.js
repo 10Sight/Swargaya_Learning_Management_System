@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { 
-    issueCertificate, 
-    getCertificateById, 
-    getStudentCertificates, 
-    getCourseCertificates, 
+import {
+    issueCertificate,
+    getCertificateById,
+    getStudentCertificates,
+    getCourseCertificates,
     revokeCertificate,
     checkCertificateEligibility,
     issueCertificateWithTemplate,
@@ -22,8 +22,8 @@ router.get("/:id", verifyJWT, authorizeRoles("ADMIN", "SUPERADMIN", "INSTRUCTOR"
 router.delete("/:id", verifyJWT, authorizeRoles("ADMIN", "SUPERADMIN", "INSTRUCTOR"), revokeCertificate);
 
 // Certificate workflow routes (SuperAdmin, Admin, and Instructor access)
-router.get("/check-eligibility/:studentId/:courseId", verifyJWT, authorizeRoles("SUPERADMIN", "ADMIN", "INSTRUCTOR"), checkCertificateEligibility);
-router.post("/issue-with-template", verifyJWT, authorizeRoles("SUPERADMIN", "ADMIN", "INSTRUCTOR"), issueCertificateWithTemplate);
+router.get("/check-eligibility/:studentId/:courseId", verifyJWT, authorizeRoles("SUPERADMIN", "ADMIN", "INSTRUCTOR", "STUDENT"), checkCertificateEligibility);
+router.post("/issue-with-template", verifyJWT, authorizeRoles("SUPERADMIN", "ADMIN", "INSTRUCTOR", "STUDENT"), issueCertificateWithTemplate);
 router.post("/preview", verifyJWT, authorizeRoles("SUPERADMIN", "ADMIN", "INSTRUCTOR"), generateCertificatePreview);
 
 export default router;

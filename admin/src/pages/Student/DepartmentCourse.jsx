@@ -221,8 +221,6 @@ const useModuleContent = () => {
 
     try {
       // Load lessons and resources (still using direct API calls as no RTK Query hooks exist for these)
-      console.log(`DepartmentCourse - Loading content for moduleId: ${moduleId}`);
-
       const [lessonsRes, resourcesRes] = await Promise.allSettled([
         axiosInstance.get(`/api/modules/${moduleId}/lessons`),
         axiosInstance.get(`/api/resources/module/${moduleId}`),

@@ -8,6 +8,7 @@ import {
   useCreateCertificateTemplateMutation,
   useUpdateCertificateTemplateMutation
 } from '@/Redux/AllApi/CertificateTemplateApi'
+import { useGetActiveConfigQuery } from '@/Redux/AllApi/CourseLevelConfigApi'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -67,6 +68,21 @@ const CertificateTemplates = () => {
     refetch
   } = useGetCertificateTemplatesQuery()
 
+  // Fetch active course level config
+  const { data: configData, isLoading: configLoading } = useGetActiveConfigQuery()
+  const activeConfig = configData?.data
+
+  // Update form data when active config loads if opening create dialog
+  useEffect(() => {
+    if (showCreateDialog && activeConfig && !formData.name) {
+      setFormData(prev => ({
+        ...prev,
+        template: generateDefaultTemplate(activeConfig),
+        styles: generateDefaultStyles(activeConfig)
+      }))
+    }
+  }, [activeConfig, showCreateDialog])
+
   const [deleteTemplate, { isLoading: isDeleting }] = useDeleteCertificateTemplateMutation()
   const [setDefaultTemplate, { isLoading: isSettingDefault }] = useSetDefaultCertificateTemplateMutation()
   const [createTemplate, { isLoading: isCreating }] = useCreateCertificateTemplateMutation()
@@ -75,8 +91,17 @@ const CertificateTemplates = () => {
   // Extract templates from response
   const templates = response?.data || []
 
-  // Default templates
-  const defaultTemplateHtml = `<!DOCTYPE html>
+  // Generate dynamic template based on config
+  const generateDefaultTemplate = (config) => {
+    const levels = config?.levels || []
+    const levelRows = levels.map(level => `
+                    <!-- Level ${level.name} -->
+                    <div class="table-row">
+                        <div class="col-level lvl-${level.name.replace(/\s+/g, '-').toLowerCase()}">${level.name}</div>
+                        <div class="col-date">{{level${level.order + 1}Date}}</div>
+                    </div>`).join('')
+
+    return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -129,31 +154,7 @@ const CertificateTemplates = () => {
                         <div class="col-level">Level</div>
                         <div class="col-date">Level Certified Date</div>
                     </div>
-                    <!-- Level 1 -->
-                    <div class="table-row">
-                        <div class="col-level lvl-grey">Level-1</div>
-                        <div class="col-date">{{level1Date}}</div>
-                    </div>
-                    <!-- Level 2 -->
-                    <div class="table-row">
-                        <div class="col-level lvl-yellow">Level-2</div>
-                        <div class="col-date">{{level2Date}}</div>
-                    </div>
-                    <!-- Level 3 -->
-                    <div class="table-row">
-                        <div class="col-level lvl-orange">Level-3</div>
-                        <div class="col-date">{{level3Date}}</div>
-                    </div>
-                    <!-- Level 4 -->
-                    <div class="table-row">
-                        <div class="col-level lvl-blue">Level-4</div>
-                        <div class="col-date">{{level4Date}}</div>
-                    </div>
-                    <!-- Level 5 -->
-                    <div class="table-row">
-                        <div class="col-level lvl-green">Level-5</div>
-                        <div class="col-date">{{level5Date}}</div>
-                    </div>
+                    ${levelRows}
                 </div>
 
                 <!-- Right Column: Visualization -->
@@ -189,8 +190,18 @@ const CertificateTemplates = () => {
     </div>
 </body>
 </html>`
+  }
 
-  const defaultStyles = `* {
+  const generateDefaultStyles = (config) => {
+    const levels = config?.levels || []
+    const levelColors = levels.map(level => `
+.lvl-${level.name.replace(/\s+/g, '-').toLowerCase()} { background-color: ${level.color || '#cccccc'}; }`).join('\n')
+
+    // Find the current level color or default to blue for the box
+    // For template default, we might key off a specific level or just use the first non-grey one
+    const defaultBoxColor = levels.length > 1 ? levels[1].color : '#5b9bd5'
+
+    return `* {
     box-sizing: border-box;
 }
 
@@ -340,12 +351,8 @@ body {
     height: 100%;
 }
 
-/* Level Colors */
-.lvl-grey { background-color: #bfbfbf; }
-.lvl-yellow { background-color: #ffff00; }
-.lvl-orange { background-color: #ffc000; }
-.lvl-blue { background-color: #00b0f0; }
-.lvl-green { background-color: #00b050; }
+/* Level Colors - Dynamic */
+${levelColors}
 
 /* Visual Section */
 .visual-section {
@@ -360,7 +367,7 @@ body {
 .blue-box {
     width: 120px;
     height: 120px;
-    background-color: #5b9bd5;
+    background-color: ${defaultBoxColor};
     border-radius: 15px;
     border: 1px solid #333;
     margin-bottom: 20px;
@@ -435,6 +442,7 @@ body {
     border-right: none;
 }
 `
+  }
 
   const handleCreateTemplate = async () => {
     if (!formData.name.trim() || !formData.template.trim()) {
@@ -446,8 +454,8 @@ body {
       const result = await createTemplate({
         name: formData.name.trim(),
         description: formData.description.trim(),
-        template: formData.template || defaultTemplateHtml,
-        styles: formData.styles || defaultStyles,
+        template: formData.template || generateDefaultTemplate(activeConfig),
+        styles: formData.styles || generateDefaultStyles(activeConfig),
         isDefault: formData.isDefault
       }).unwrap()
 
@@ -532,9 +540,19 @@ body {
         })
       }
 
+      // Add dynamic dates for other levels if they exist in config
+      if (activeConfig?.levels) {
+        activeConfig.levels.forEach((l, i) => {
+          const dateKey = `level${i + 1}Date`
+          if (!sampleData[dateKey]) {
+            sampleData[dateKey] = i < 2 ? '01/01/2024' : '' // Mock some data
+          }
+        })
+      }
+
       // Simple and safe replacement
       let previewContent = template.template.toString()
-      const templateStyles = template.styles || defaultStyles
+      const templateStyles = template.styles || generateDefaultStyles(activeConfig)
 
       // Replace placeholders with sample data
       Object.keys(sampleData).forEach(key => {
@@ -596,8 +614,8 @@ body {
     setFormData({
       name: `${template.name} (Copy)`,
       description: template.description || '',
-      template: template.template || defaultTemplateHtml,
-      styles: template.styles || defaultStyles,
+      template: template.template || generateDefaultTemplate(activeConfig),
+      styles: template.styles || generateDefaultStyles(activeConfig),
       isDefault: false
     })
     setShowCreateDialog(true)
@@ -607,8 +625,8 @@ body {
     setFormData({
       name: '',
       description: '',
-      template: defaultTemplateHtml,
-      styles: defaultStyles,
+      template: generateDefaultTemplate(activeConfig),
+      styles: generateDefaultStyles(activeConfig),
       isDefault: false
     })
   }
@@ -665,7 +683,7 @@ body {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-background p-1 rounded-lg">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Award className="h-6 w-6" />
@@ -676,14 +694,20 @@ body {
           </p>
         </div>
 
-        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Template
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <Button onClick={() => {
+          resetForm()
+          setShowCreateDialog(true)
+        }}>
+          <Plus className="h-4 w-4 mr-2" />
+          Create Template
+        </Button>
+
+        <Dialog
+          open={showCreateDialog}
+          onOpenChange={setShowCreateDialog}
+          className="max-w-4xl"
+        >
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create Certificate Template</DialogTitle>
             </DialogHeader>

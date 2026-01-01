@@ -18,10 +18,10 @@ import {
 const InstructorCourses = () => {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
-  const { data, isLoading, error } = useGetInstructorAssignedCoursesQuery({ 
-    page, 
+  const { data, isLoading, error } = useGetInstructorAssignedCoursesQuery({
+    page,
     limit: 12,
-    search 
+    search
   })
 
   const courses = data?.data?.courses || []
@@ -104,7 +104,7 @@ const InstructorCourses = () => {
             View your assigned published courses
           </p>
         </div>
-        
+
         <div className="relative w-full sm:w-64">
           <IconSearch className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
@@ -133,12 +133,12 @@ const InstructorCourses = () => {
                   {course.title}
                 </CardTitle>
               </CardHeader>
-              
+
               <CardContent className="space-y-4">
                 <p className="text-sm text-muted-foreground line-clamp-3">
                   {course.description}
                 </p>
-                
+
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Category:</span>
@@ -146,14 +146,14 @@ const InstructorCourses = () => {
                       {course.category}
                     </Badge>
                   </div>
-                  
+
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Level:</span>
                     <span className={`font-medium ${getLevelColor(course.level)}`}>
                       {course.level}
                     </span>
                   </div>
-                  
+
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center space-x-1">
                       <IconClock className="h-3 w-3" />
@@ -165,9 +165,9 @@ const InstructorCourses = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="pt-2 border-t">
-                  <Link to={`/instructor/courses/${course._id}`}>
+                  <Link to={`/trainer/courses/${course._id}`}>
                     <Button variant="outline" size="sm" className="w-full">
                       <IconEye className="h-4 w-4 mr-2" />
                       View Details
@@ -184,8 +184,8 @@ const InstructorCourses = () => {
             <IconBook className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium mb-2">No Courses Found</h3>
             <p className="text-muted-foreground">
-              {search ? 
-                'No courses match your search criteria.' : 
+              {search ?
+                'No courses match your search criteria.' :
                 'You don\'t have any assigned courses yet.'
               }
             </p>
@@ -203,7 +203,7 @@ const InstructorCourses = () => {
           >
             Previous
           </Button>
-          
+
           <div className="flex items-center space-x-2">
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
               const pageNumber = i + 1
@@ -220,7 +220,7 @@ const InstructorCourses = () => {
               )
             })}
           </div>
-          
+
           <Button
             variant="outline"
             disabled={page === totalPages}
@@ -241,7 +241,7 @@ const InstructorCourses = () => {
             <div>
               <h3 className="font-medium text-blue-900">Read-Only Access</h3>
               <p className="text-sm text-blue-700 mt-1">
-                You can view course details, modules, and lessons but cannot make any modifications. 
+                You can view course details, modules, and lessons but cannot make any modifications.
                 Only published courses assigned to you are visible.
               </p>
             </div>

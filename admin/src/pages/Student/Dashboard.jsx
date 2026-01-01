@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import axiosInstance from "@/Helper/axiosInstance";
 import AccountStatusWrapper from "../../components/student/AccountStatusWrapper";
-import DownloadAppPopup from "../../components/student/DownloadAppPopup";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,7 +41,6 @@ const StudentDashboard = () => {
     upcomingDeadlines: []
   });
   const [error, setError] = useState(null);
-  const [showDownloadPopup, setShowDownloadPopup] = useState(false);
 
   // Fetch active level configuration for dynamic level names/colors
   const { data: levelConfigData } = useGetActiveConfigQuery();
@@ -85,7 +83,7 @@ const StudentDashboard = () => {
     fetchDashboardData();
   }, []);
 
-  // Service Worker registration and download popup logic
+  // Service Worker registration
   useEffect(() => {
     // Register service worker
     if ('serviceWorker' in navigator) {
@@ -99,45 +97,7 @@ const StudentDashboard = () => {
           });
       });
     }
-
-    // Check if we should show download popup (only for students)
-    if (user?.role === 'STUDENT' && !loading) {
-      const shouldShowPopup = () => {
-        // Don't show if user has opted out
-        if (localStorage.getItem('downloadAppDontShow') === 'true') {
-          return false;
-        }
-
-        // Don't show if app is already installed
-        if (window.matchMedia('(display-mode: standalone)').matches) {
-          return false;
-        }
-
-        // Check if remind later time has passed
-        const remindTime = localStorage.getItem('downloadAppRemindTime');
-        if (remindTime && Date.now() < parseInt(remindTime)) {
-          return false;
-        }
-
-        // Don't show if already shown in this session
-        if (sessionStorage.getItem('downloadPopupShown')) {
-          return false;
-        }
-
-        return true;
-      };
-
-      if (shouldShowPopup()) {
-        // Show popup after a short delay to let the page load
-        const timer = setTimeout(() => {
-          setShowDownloadPopup(true);
-          sessionStorage.setItem('downloadPopupShown', 'true');
-        }, 3000); // 3 second delay
-
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [user?.role, loading]);
+  }, []);
 
   const calculateCourseProgress = () => {
     if (!dashboardData.courseContent?.course?.modules) return 0;
@@ -505,14 +465,7 @@ const StudentDashboard = () => {
                       <span className="hidden sm:inline">Final Assessments</span>
                       <span className="sm:hidden">Assessments</span>
                     </Button>
-                    <Button
-                      onClick={() => navigate(`/student/report/${dashboardData.courseContent.course._id}`)}
-                      className="flex-1 bg-green-600 hover:bg-green-700"
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      <span className="hidden sm:inline">Course Report</span>
-                      <span className="sm:hidden">Report</span>
-                    </Button>
+
                   </div>
                 </div>
               ) : (
@@ -547,7 +500,7 @@ const StudentDashboard = () => {
                 <div className="space-y-2">
                   <p className="text-xs sm:text-sm font-medium text-muted-foreground">Course</p>
                   <p className="font-semibold break-words text-sm sm:text-base">
-                    {dashboardData.department.course?.title || dashboardData.department.course?.name || "N/A"}
+                    {dashboardData.department.course?.title || dashboardData.department.course?.name || dashboardData.department.courses?.[0]?.title || dashboardData.department.courses?.[0]?.name || "N/A"}
                   </p>
                 </div>
 
@@ -628,27 +581,7 @@ const StudentDashboard = () => {
                 </div>
               </Button>
 
-              {/* Show Course Report button if course is completed */}
-              {dashboardData.courseContent?.course && courseProgress === 100 && (
-                <Button
-                  variant="outline"
-                  onClick={() => navigate(`/student/report/${dashboardData.courseContent.course._id}`)}
-                  className="h-auto p-3 sm:p-4 justify-start border-green-200 hover:bg-green-50 hover:shadow-md transition-all duration-300 hover:scale-105 group"
-                >
-                  <div className="flex items-center gap-3 w-full">
-                    <div className="p-2 bg-green-100 rounded-lg group-hover:bg-green-200 transition-colors duration-300">
-                      <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
-                    </div>
-                    <div className="text-left flex-1 min-w-0">
-                      <p className="font-medium text-green-700 text-sm sm:text-base truncate">Course Report</p>
-                      <p className="text-xs text-green-600 leading-tight">
-                        <span className="hidden sm:inline">View & download certificate</span>
-                        <span className="sm:hidden">Certificate ready</span>
-                      </p>
-                    </div>
-                  </div>
-                </Button>
-              )}
+
 
               <Button
                 variant="outline"
@@ -669,35 +602,13 @@ const StudentDashboard = () => {
                 </div>
               </Button>
 
-              <Button
-                variant="outline"
-                onClick={() => navigate('/student/reports')}
-                className="h-auto p-3 sm:p-4 justify-start hover:shadow-md transition-all duration-300 hover:scale-105 group"
-              >
-                <div className="flex items-center gap-3 w-full">
-                  <div className="p-2 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors duration-300">
-                    <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
-                  </div>
-                  <div className="text-left flex-1 min-w-0">
-                    <p className="font-medium text-sm sm:text-base truncate">View Reports</p>
-                    <p className="text-xs text-muted-foreground leading-tight">
-                      <span className="hidden sm:inline">Track your progress</span>
-                      <span className="sm:hidden">Progress reports</span>
-                    </p>
-                  </div>
-                </div>
-              </Button>
+
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Download App Popup */}
-      <DownloadAppPopup
-        isOpen={showDownloadPopup}
-        onClose={() => setShowDownloadPopup(false)}
-        userRole={user?.role}
-      />
+
     </AccountStatusWrapper>
   );
 };

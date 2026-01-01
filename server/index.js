@@ -79,7 +79,6 @@ app.use((req, res, next) => {
 
 // GLOBAL DEBUG LOGGER - TOP OF STACK
 app.use((req, res, next) => {
-    console.log(`[DEBUG_GLOBAL] Request: ${req.method} ${req.url}`);
     next();
 });
 
@@ -118,16 +117,12 @@ app.use((req, res, next) => {
     next();
 });
 
-console.log("Mounting department routes...", departmentRoutes ? "Router found (type: " + typeof departmentRoutes + ")" : "Router MISSING");
-
 // Test route to verify server is reachable at this path
 app.get("/api/test-departments", (req, res) => {
-    console.log("[DEBUG] Hit test-departments route");
     res.send("Departments API is reachable");
 });
 
 app.use("/api/departments", (req, res, next) => {
-    console.log(`[DEBUG] Entering /api/departments mount for: ${req.url}`);
     next();
 }, departmentRoutes);
 app.use("/api/enrollments", enrollmentRoutes);
@@ -149,7 +144,6 @@ app.use("/api/module-timelines", moduleTimelineRoutes);
 app.use("/api/exports", exportRoutes);
 app.use("/api/course-level-config", courseLevelConfigRoutes);
 app.use("/api/languages", languageRoutes);
-console.log("[DEBUG] Mounting /api/on-job-training route...");
 app.use("/api/on-job-training", onJobTrainingRoutes);
 
 import machineRoutes from "./routes/machine.routes.js";
@@ -306,7 +300,6 @@ app.use((err, req, res, next) => {
 // Handle 404 for unmatched API routes (fixed pattern)
 // Handle 404 for unmatched API routes (fixed pattern)
 app.use('/api', (req, res) => {
-    console.log(`[DEBUG_404] 404 Handler reached for: ${req.originalUrl}`);
     res.status(404).json({
         success: false,
         message: `API route ${req.originalUrl} not found`

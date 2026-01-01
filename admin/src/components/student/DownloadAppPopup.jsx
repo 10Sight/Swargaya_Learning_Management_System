@@ -62,8 +62,6 @@ const DownloadAppPopup = ({ isOpen, onClose, userRole }) => {
       setIsInstalled(true);
       setIsInstallable(false);
       setDeferredPrompt(null);
-      
-      // Optional: Show success message
       console.log('PWA was installed');
     };
 
@@ -87,7 +85,6 @@ const DownloadAppPopup = ({ isOpen, onClose, userRole }) => {
       const choiceResult = await deferredPrompt.userChoice;
       
       if (choiceResult.outcome === 'accepted') {
-        console.log('User accepted the install prompt');
         setIsInstalled(true);
         onClose();
       } else {

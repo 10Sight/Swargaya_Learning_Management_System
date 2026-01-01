@@ -93,7 +93,7 @@ const Instructor = () => {
     email: "",
     phoneNumber: "",
     password: "",
-    status: "PENDING",
+    status: "PRESENT",
     unit: "UNIT_1",
   });
   const [formErrors, setFormErrors] = useState({});
@@ -193,10 +193,9 @@ const Instructor = () => {
   // Filter options for reusable components
   const statusOptions = [
     { value: "ALL", label: "All Status" },
-    { value: "ACTIVE", label: "Active" },
-    { value: "PENDING", label: "Pending" },
-    { value: "SUSPENDED", label: "Suspended" },
-    { value: "BANNED", label: "Banned" },
+    { value: "PRESENT", label: "Present" },
+    { value: "ON_LEAVE", label: "On Leave" },
+    { value: "LEFT", label: "Left" },
   ];
 
   const departmentOptions = [
@@ -299,7 +298,7 @@ const Instructor = () => {
       email: "",
       phoneNumber: "",
       password: "",
-      status: "PENDING",
+      status: "PRESENT",
       unit: "UNIT_1",
     });
     setFormErrors({});
@@ -532,34 +531,25 @@ const Instructor = () => {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case "ACTIVE":
+      case "PRESENT":
         return (
           <Badge variant="success" className="flex items-center gap-1 w-fit">
-            <div className="h-2 w-2 rounded-full bg-green-500"></div> Active
+            <div className="h-2 w-2 rounded-full bg-green-500"></div> Present
           </Badge>
         );
-      case "SUSPENDED":
-        return (
-          <Badge
-            variant="destructive"
-            className="flex items-center gap-1 w-fit"
-          >
-            <div className="h-2 w-2 rounded-full bg-red-500"></div> Suspended
-          </Badge>
-        );
-      case "PENDING":
+      case "ON_LEAVE":
         return (
           <Badge variant="warning" className="flex items-center gap-1 w-fit">
-            <div className="h-2 w-2 rounded-full bg-amber-500"></div> Pending
+            <div className="h-2 w-2 rounded-full bg-amber-500"></div> On Leave
           </Badge>
         );
-      case "BANNED":
+      case "LEFT":
         return (
           <Badge
             variant="destructive"
             className="flex items-center gap-1 w-fit"
           >
-            <div className="h-2 w-2 rounded-full bg-red-700"></div> Banned
+            <div className="h-2 w-2 rounded-full bg-red-500"></div> Left
           </Badge>
         );
       default:
@@ -577,10 +567,10 @@ const Instructor = () => {
     oldStatus
   ) => {
     // Confirm destructive actions
-    if (["BANNED", "SUSPENDED"].includes(newStatus)) {
+    if (["LEFT"].includes(newStatus)) {
       if (
         !window.confirm(
-          `Are you sure you want to ${newStatus.toLowerCase()} this instructor?`
+          `Are you sure you want to mark this instructor as ${newStatus.toLowerCase()}?`
         )
       ) {
         return;
@@ -750,7 +740,7 @@ const Instructor = () => {
 
         <StatCard
           title="Active Trainers"
-          value={instructors.filter((i) => i.status === "ACTIVE").length}
+          value={instructors.filter((i) => i.status === "PRESENT").length}
           description="Currently active"
           icon={IconUserPlus}
           iconBgColor="bg-green-100"
@@ -786,7 +776,7 @@ const Instructor = () => {
             </TabsTrigger>
             <TabsTrigger
               value="active"
-              onClick={() => setStatusFilter("ACTIVE")}
+              onClick={() => setStatusFilter("PRESENT")}
             >
               Active
             </TabsTrigger>
@@ -957,10 +947,9 @@ const Instructor = () => {
                           {getStatusBadge(instructor.status)}
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="ACTIVE">Active</SelectItem>
-                          <SelectItem value="PENDING">Pending</SelectItem>
-                          <SelectItem value="SUSPENDED">Suspended</SelectItem>
-                          <SelectItem value="BANNED">Banned</SelectItem>
+                          <SelectItem value="PRESENT">Present</SelectItem>
+                          <SelectItem value="ON_LEAVE">On Leave</SelectItem>
+                          <SelectItem value="LEFT">Left</SelectItem>
                         </SelectContent>
                       </Select>
                     </TableCell>
@@ -1339,6 +1328,44 @@ const Instructor = () => {
                 onChange={handleInputChange}
                 placeholder="Enter phone number"
               />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-status">Status</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, status: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PRESENT">Present</SelectItem>
+                  <SelectItem value="ON_LEAVE">On Leave</SelectItem>
+                  <SelectItem value="LEFT">Left</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-unit">Unit</Label>
+              <Select
+                value={formData.unit}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, unit: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select unit" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="UNIT_1">Unit 1</SelectItem>
+                  <SelectItem value="UNIT_2">Unit 2</SelectItem>
+                  <SelectItem value="UNIT_3">Unit 3</SelectItem>
+                  <SelectItem value="UNIT_4">Unit 4</SelectItem>
+                  <SelectItem value="UNIT_5">Unit 5</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

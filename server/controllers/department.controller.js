@@ -28,7 +28,8 @@ export const getMyDepartment = asyncHandler(async (req, res) => {
     const department = await Department.findById(req.user.department)
         .populate("instructor", "fullName email")
         .populate("courses", "title name")
-        .select("name status startDate endDate capacity schedule");
+        .populate("course", "title name")
+        .select("name status startDate endDate capacity schedule courses course");
 
     if (!department) {
         return res.json(new ApiResponse(200, null, "No department assigned"));
@@ -51,8 +52,8 @@ export const getMyDepartments = asyncHandler(async (req, res) => {
             isDeleted: { $ne: true }
         })
             .populate("courses", "title name")
+            .populate("course", "title name")
             .populate("students", "fullName email")
-            .select("name status startDate endDate capacity students courses createdAt")
             .sort({ createdAt: -1 });
     } else if (userRole === "STUDENT") {
         // For students, return their single assigned department
@@ -203,7 +204,6 @@ export const removeInstructor = asyncHandler(async (req, res) => {
 
 export const addStudentToDepartment = asyncHandler(async (req, res) => {
     const { departmentId, studentId } = req.body;
-    console.log("addStudentToDepartment payload:", req.body);
 
     if (!mongoose.Types.ObjectId.isValid(departmentId)) {
         throw new ApiError("Invalid department ID", 400);
@@ -843,15 +843,6 @@ export const getDepartmentCourseContent = asyncHandler(async (req, res) => {
         .select('name course courses');
 
     const activeCourse = department?.course || (department?.courses && department.courses.length > 0 ? department.courses[0] : null);
-
-    console.log("DEBUG: getDepartmentCourseContent fetching...", {
-        userDepartmentId: user.department?._id,
-        departmentName: department?.name,
-        hasCourse: !!department?.course,
-        hasCourses: !!department?.courses,
-        coursesLength: department?.courses?.length,
-        activeCourseId: activeCourse?._id
-    });
 
     if (!department) {
         throw new ApiError("Department not found", 404);

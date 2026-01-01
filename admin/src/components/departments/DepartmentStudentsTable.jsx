@@ -179,7 +179,9 @@ const DepartmentStudentsTable = ({ students, departmentId, departmentName, onRef
       await Promise.all(
         validStudentIds.map(studentId => {
           if (!studentId || studentId === "undefined") {
-            alert("CRITICAL ERROR: Attempting to send undefined ID!");
+            const msg = `CRITICAL ERROR: Attempting to send undefined ID! Value: ${studentId}`;
+            console.error(msg);
+            alert(msg);
             throw new Error("Invalid ID in loop");
           }
           return addStudentToDepartment({ departmentId, studentId }).unwrap();
@@ -219,7 +221,7 @@ const DepartmentStudentsTable = ({ students, departmentId, departmentName, onRef
   // Toggle student selection for adding
   const toggleStudentSelection = (studentId) => {
     if (!studentId) {
-      console.error("Attempted to toggle undefined student ID");
+      console.error("Helper: Attempted to toggle undefined student ID");
       return;
     }
     setSelectedStudents(prev =>
@@ -427,34 +429,40 @@ const DepartmentStudentsTable = ({ students, departmentId, departmentName, onRef
                         </div>
                       ) : studentsNotInDepartment.length > 0 ? (
                         <div className="p-2 space-y-1">
-                          {studentsNotInDepartment.map(student => (
-                            <div
-                              key={student._id}
-                              className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 ${selectedStudents.includes(student._id) ? 'bg-blue-50 border border-blue-200' : ''
-                                }`}
-                              onClick={() => toggleStudentSelection(student._id)}
-                            >
-                              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${selectedStudents.includes(student._id)
-                                ? 'bg-blue-600 border-blue-600 text-white'
-                                : 'border-gray-300'
-                                }`}>
-                                {selectedStudents.includes(student._id) && (
-                                  <IconCheck className="h-3 w-3" />
-                                )}
+                          {studentsNotInDepartment.map(student => {
+                            const rawId = student._id || student.id;
+                            if (!rawId) return null;
+                            const sId = String(rawId);
+
+                            return (
+                              <div
+                                key={sId}
+                                className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 ${selectedStudents.includes(sId) ? 'bg-blue-50 border border-blue-200' : ''
+                                  }`}
+                                onClick={() => toggleStudentSelection(sId)}
+                              >
+                                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${selectedStudents.includes(sId)
+                                  ? 'bg-blue-600 border-blue-600 text-white'
+                                  : 'border-gray-300'
+                                  }`}>
+                                  {selectedStudents.includes(sId) && (
+                                    <IconCheck className="h-3 w-3" />
+                                  )}
+                                </div>
+                                <Avatar className="h-10 w-10">
+                                  <AvatarImage src={student.avatar?.url} />
+                                  <AvatarFallback>
+                                    {student.fullName?.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1">
+                                  <p className="font-medium">{student.fullName}</p>
+                                  <p className="text-sm text-muted-foreground">{student.email}</p>
+                                </div>
+                                <Badge variant="outline">{student.status}</Badge>
                               </div>
-                              <Avatar className="h-10 w-10">
-                                <AvatarImage src={student.avatar?.url} />
-                                <AvatarFallback>
-                                  {student.fullName?.split(' ').map(n => n[0]).join('').toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="flex-1">
-                                <p className="font-medium">{student.fullName}</p>
-                                <p className="text-sm text-muted-foreground">{student.email}</p>
-                              </div>
-                              <Badge variant="outline">{student.status}</Badge>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       ) : (
                         <div className="p-8 text-center text-muted-foreground">

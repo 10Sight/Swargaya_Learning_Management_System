@@ -10,13 +10,16 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { checkModuleAccessForAssessments } from "../utils/moduleCompletion.js";
 import ensureCertificateIfEligible from "../utils/autoCertificate.js";
+import CourseLevelConfig from "../models/courseLevelConfig.model.js";
+import Certificate from "../models/certificate.model.js";
+import CertificateTemplate from "../models/certificateTemplate.model.js";
 
 export const attemptQuiz = asyncHandler(async (req, res) => {
     const { quizId, answers } = req.body;
     const userId = req.user._id;
 
     let resolvedQuizId = quizId;
-    if(!mongoose.Types.ObjectId.isValid(quizId)) {
+    if (!mongoose.Types.ObjectId.isValid(quizId)) {
         const q = await Quiz.findOne({ slug: String(quizId).toLowerCase() }).select('_id');
         if (!q) {
             throw new ApiError("Invalid quiz ID", 400);
@@ -25,42 +28,42 @@ export const attemptQuiz = asyncHandler(async (req, res) => {
     }
 
     const quiz = await Quiz.findById(resolvedQuizId).populate('course').populate('module');
-    if(!quiz) {
+    if (!quiz) {
         throw new ApiError("Quiz not found", 400);
     }
-    
+
     // Validate access permissions
-    if(quiz.module && quiz.type === "MODULE") {
+    if (quiz.module && quiz.type === "MODULE") {
         // Module quiz - check module completion
         const accessCheck = await checkModuleAccessForAssessments(userId, quiz.course._id, quiz.module._id);
-        if(!accessCheck.hasAccess) {
+        if (!accessCheck.hasAccess) {
             throw new ApiError(accessCheck.reason || "Access denied. Complete all lessons in the module first.", 403);
         }
-    } else if(quiz.type === "COURSE") {
+    } else if (quiz.type === "COURSE") {
         // Course quiz - check if all modules are completed
         const course = await Course.findById(quiz.course._id).populate('modules');
-        if(!course) {
+        if (!course) {
             throw new ApiError("Course not found", 404);
         }
 
-        const progress = await Progress.findOne({ 
-            student: userId, 
-            course: quiz.course._id 
+        const progress = await Progress.findOne({
+            student: userId,
+            course: quiz.course._id
         });
 
-        if(!progress) {
+        if (!progress) {
             throw new ApiError("No progress found. Complete all modules first.", 403);
         }
 
         const totalModules = course.modules?.length || 0;
         const completedModules = progress.completedModules?.length || 0;
-        
-        if(completedModules < totalModules) {
+
+        if (completedModules < totalModules) {
             throw new ApiError(`Complete all ${totalModules} modules to access this course quiz. Currently completed: ${completedModules}`, 403);
         }
     }
 
-    if(!answers || answers.length === 0) {
+    if (!answers || answers.length === 0) {
         throw new ApiError("Answers are required", 400);
     }
 
@@ -69,7 +72,7 @@ export const attemptQuiz = asyncHandler(async (req, res) => {
     quiz.questions.forEach((q, index) => {
         const questionMarks = q.marks || 1;
         totalMarks += questionMarks;
-        if(answers[index] && answers[index] === q.correctOption) {
+        if (answers[index] && answers[index] === q.correctOption) {
             score += questionMarks;
         }
     });
@@ -110,7 +113,7 @@ export const getAttemptsQuiz = asyncHandler(async (req, res) => {
     const { quizId } = req.params;
 
     let resolvedQuizId = quizId;
-    if(!mongoose.Types.ObjectId.isValid(quizId)) {
+    if (!mongoose.Types.ObjectId.isValid(quizId)) {
         const q = await Quiz.findOne({ slug: String(quizId).toLowerCase() }).select('_id');
         if (!q) {
             throw new ApiError("Invalid quiz ID", 400);
@@ -128,7 +131,7 @@ export const getAttemptsQuiz = asyncHandler(async (req, res) => {
 export const getAttemptById = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
-    if(!mongoose.Types.ObjectId.isValid(id)) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
         throw new ApiError("Invalid attempt ID", 400);
     }
 
@@ -136,7 +139,7 @@ export const getAttemptById = asyncHandler(async (req, res) => {
         .populate("quiz", "title questions")
         .populate("student", "fullName email")
 
-    if(!attempt) {
+    if (!attempt) {
         throw new ApiError("Attempt not found", 404);
     }
 
@@ -146,18 +149,18 @@ export const getAttemptById = asyncHandler(async (req, res) => {
 export const deleteAttempt = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
-    if(!mongoose.Types.ObjectId.isValid(id)) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
         throw new ApiError("Invalid attempt ID", 400);
     }
 
     const attempt = await AttemptedQuiz.findById(id);
-    if(!attempt) {
+    if (!attempt) {
         throw new ApiError("Attempt now found", 404);
     }
 
     await attempt.deleteOne();
 
-res.json(new ApiResponse(200, null, "Attempt deleted successfully"));
+    res.json(new ApiResponse(200, null, "Attempt deleted successfully"));
 });
 
 // ADMIN: Update attempt answers/scores manually
@@ -165,7 +168,7 @@ export const adminUpdateAttempt = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { answersOverride, adjustmentNotes } = req.body || {};
 
-    if(!mongoose.Types.ObjectId.isValid(id)) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
         throw new ApiError("Invalid attempt ID", 400);
     }
 
@@ -173,21 +176,21 @@ export const adminUpdateAttempt = asyncHandler(async (req, res) => {
         path: 'quiz',
         select: 'questions passingScore title',
     });
-    if(!attempt) throw new ApiError("Attempt not found", 404);
+    if (!attempt) throw new ApiError("Attempt not found", 404);
 
     // Only ADMIN can edit; route also guards, but double-check
-    if(!req.user || !req.user.role || (req.user.role !== 'ADMIN' && req.user.role !== 'SUPERADMIN')) {
+    if (!req.user || !req.user.role || (req.user.role !== 'ADMIN' && req.user.role !== 'SUPERADMIN')) {
         throw new ApiError("Only admin can modify attempts", 403);
     }
 
-    if(!Array.isArray(answersOverride)) {
+    if (!Array.isArray(answersOverride)) {
         throw new ApiError("answersOverride must be an array", 400);
     }
 
     // Build a map by questionId for quick updates
     const overrideMap = new Map();
-    for(const item of answersOverride) {
-        if(!item || !item.questionId) continue;
+    for (const item of answersOverride) {
+        if (!item || !item.questionId) continue;
         overrideMap.set(String(item.questionId), {
             selectedOptions: item.selectedOptions,
             isCorrect: item.isCorrect,
@@ -200,14 +203,14 @@ export const adminUpdateAttempt = asyncHandler(async (req, res) => {
     const newAnswers = attempt.answer.map(ans => {
         const key = String(ans.questionId);
         const override = overrideMap.get(key);
-        if(!override) {
+        if (!override) {
             newScore += (ans.marksObtained || 0);
             return ans;
         }
         const updated = { ...ans };
-        if(Array.isArray(override.selectedOptions)) updated.selectedOptions = override.selectedOptions;
-        if(typeof override.isCorrect === 'boolean') updated.isCorrect = override.isCorrect;
-        if(override.marksObtained !== undefined) updated.marksObtained = override.marksObtained;
+        if (Array.isArray(override.selectedOptions)) updated.selectedOptions = override.selectedOptions;
+        if (typeof override.isCorrect === 'boolean') updated.isCorrect = override.isCorrect;
+        if (override.marksObtained !== undefined) updated.marksObtained = override.marksObtained;
         newScore += (updated.marksObtained || 0);
         return updated;
     });
@@ -236,7 +239,7 @@ export const getStudentAttempts = asyncHandler(async (req, res) => {
     const { studentId } = req.params;
 
     let resolvedStudentId = studentId;
-    if(!mongoose.Types.ObjectId.isValid(studentId)) {
+    if (!mongoose.Types.ObjectId.isValid(studentId)) {
         const User = (await import("../models/auth.model.js")).default;
         const handle = String(studentId).toLowerCase();
         const u = await User.findOne({ $or: [{ slug: handle }, { userName: handle }] }).select('_id');
@@ -285,7 +288,7 @@ export const startQuiz = asyncHandler(async (req, res) => {
     const userId = req.user._id;
 
     let resolvedQuizId = quizId;
-    if(!mongoose.Types.ObjectId.isValid(quizId)) {
+    if (!mongoose.Types.ObjectId.isValid(quizId)) {
         const q = await Quiz.findOne({ slug: String(quizId).toLowerCase() }).select('_id');
         if (!q) {
             throw new ApiError("Invalid quiz ID", 400);
@@ -296,41 +299,41 @@ export const startQuiz = asyncHandler(async (req, res) => {
     const quiz = await Quiz.findById(resolvedQuizId)
         .populate("course", "title")
         .populate("module", "title");
-        
-    if(!quiz) {
+
+    if (!quiz) {
         throw new ApiError("Quiz not found", 404);
     }
 
     // Check if user has access to this quiz based on type
-    if(quiz.module && quiz.type === "MODULE") {
+    if (quiz.module && quiz.type === "MODULE") {
         // Module quiz - check module completion
         const accessCheck = await checkModuleAccessForAssessments(userId, quiz.course._id, quiz.module._id);
-        if(!accessCheck.hasAccess) {
+        if (!accessCheck.hasAccess) {
             throw new ApiError(accessCheck.reason || "Access denied to this quiz. Complete all lessons in the module first.", 403);
         }
-    } else if(quiz.type === "COURSE") {
+    } else if (quiz.type === "COURSE") {
         // Course quiz - check if all modules are completed
         const Progress = (await import("../models/progress.model.js")).default;
         const Course = (await import("../models/course.model.js")).default;
-        
+
         const course = await Course.findById(quiz.course._id).populate('modules');
-        if(!course) {
+        if (!course) {
             throw new ApiError("Course not found", 404);
         }
 
-        const progress = await Progress.findOne({ 
-            student: userId, 
-            course: quiz.course._id 
+        const progress = await Progress.findOne({
+            student: userId,
+            course: quiz.course._id
         });
 
-        if(!progress) {
+        if (!progress) {
             throw new ApiError("No progress found. Complete all modules first.", 403);
         }
 
         const totalModules = course.modules?.length || 0;
         const completedModules = progress.completedModules?.length || 0;
-        
-        if(completedModules < totalModules) {
+
+        if (completedModules < totalModules) {
             throw new ApiError(`Complete all ${totalModules} modules to access this course quiz. Currently completed: ${completedModules}`, 403);
         }
     }
@@ -357,7 +360,7 @@ export const startQuiz = asyncHandler(async (req, res) => {
 
     const isUnlimited = quiz.attemptsAllowed === 0;
 
-    if(!isUnlimited && attemptsRemainingWithExtra <= 0) {
+    if (!isUnlimited && attemptsRemainingWithExtra <= 0) {
         return res.json(new ApiResponse(200, {
             canAttempt: false,
             reason: "No attempts remaining",
@@ -389,6 +392,7 @@ export const startQuiz = asyncHandler(async (req, res) => {
         questions: quiz.questions.map((q, index) => ({
             questionNumber: index + 1,
             questionText: q.questionText,
+            image: q.image,
             options: q.options.map(opt => ({ text: opt.text })), // Remove isCorrect
             marks: q.marks
         }))
@@ -407,12 +411,12 @@ export const submitQuiz = asyncHandler(async (req, res) => {
 
 
     // Validate input payload
-    if(!quizId) {
+    if (!quizId) {
         throw new ApiError("Quiz ID is required", 400);
     }
 
     let resolvedQuizId = quizId;
-    if(!mongoose.Types.ObjectId.isValid(quizId)) {
+    if (!mongoose.Types.ObjectId.isValid(quizId)) {
         const q = await Quiz.findOne({ slug: String(quizId).toLowerCase() }).select('_id');
         if (!q) {
             throw new ApiError("Invalid quiz ID format", 400);
@@ -420,41 +424,41 @@ export const submitQuiz = asyncHandler(async (req, res) => {
         resolvedQuizId = q._id;
     }
 
-    if(!answers || !Array.isArray(answers)) {
+    if (!answers || !Array.isArray(answers)) {
         throw new ApiError("Answers must be provided as an array", 400);
     }
 
     // Validate timeTaken if provided
-    if(timeTaken !== undefined && (typeof timeTaken !== 'number' || timeTaken < 0)) {
+    if (timeTaken !== undefined && (typeof timeTaken !== 'number' || timeTaken < 0)) {
         throw new ApiError("Time taken must be a non-negative number", 400);
     }
 
     const quiz = await Quiz.findById(resolvedQuizId)
         .populate("course")
         .populate("module");
-        
-    if(!quiz) {
+
+    if (!quiz) {
         throw new ApiError("Quiz not found", 404);
     }
 
     // Validate quiz has questions
-    if(!quiz.questions || quiz.questions.length === 0) {
+    if (!quiz.questions || quiz.questions.length === 0) {
         throw new ApiError("Quiz has no questions", 400);
     }
 
 
     // Validate answers array length matches quiz questions
-    if(answers.length !== quiz.questions.length) {
+    if (answers.length !== quiz.questions.length) {
         throw new ApiError(`Expected ${quiz.questions.length} answers, but received ${answers.length}`, 400);
     }
 
     // Validate each answer object structure
-    for(let i = 0; i < answers.length; i++) {
+    for (let i = 0; i < answers.length; i++) {
         const answer = answers[i];
-        if(answer && typeof answer === 'object' && answer.text !== undefined) {
+        if (answer && typeof answer === 'object' && answer.text !== undefined) {
             // Valid answer format: { text: "option text" } or null/undefined for unanswered
             continue;
-        } else if(answer === null || answer === undefined) {
+        } else if (answer === null || answer === undefined) {
             // Allow null/undefined for unanswered questions
             continue;
         } else {
@@ -467,7 +471,7 @@ export const submitQuiz = asyncHandler(async (req, res) => {
         quiz: resolvedQuizId,
         student: userId
     });
-    
+
     // Include extra allowances (approved) for this user
     const ExtraAttemptAllowance = (await import("../models/extraAttempt.model.js")).default;
     const allowances = await ExtraAttemptAllowance.aggregate([
@@ -481,7 +485,7 @@ export const submitQuiz = asyncHandler(async (req, res) => {
     const attemptsAllowed = baseAllowed + extraAllowed;
     const isUnlimited = quiz.attemptsAllowed === 0;
 
-    if(!isUnlimited && previousAttempts >= attemptsAllowed) {
+    if (!isUnlimited && previousAttempts >= attemptsAllowed) {
         throw new ApiError("No attempts remaining for this quiz", 400);
     }
 
@@ -489,43 +493,43 @@ export const submitQuiz = asyncHandler(async (req, res) => {
     let score = 0;
     let totalMarks = 0;
     const detailedAnswers = [];
-    
+
     try {
         quiz.questions.forEach((question, index) => {
             // Validate question structure
-            if(!question) {
+            if (!question) {
                 throw new Error(`Question at index ${index} is null or undefined`);
             }
-            
-            if(!question._id) {
+
+            if (!question._id) {
                 throw new Error(`Question at index ${index} missing _id property`);
             }
-            
-            if(!question.options || !Array.isArray(question.options)) {
+
+            if (!question.options || !Array.isArray(question.options)) {
                 throw new Error(`Question at index ${index} has invalid or missing options`);
             }
-            
-            if(typeof question.marks !== 'number' || question.marks <= 0) {
+
+            if (typeof question.marks !== 'number' || question.marks <= 0) {
                 throw new Error(`Question at index ${index} has invalid marks value`);
             }
-            
+
             const userAnswer = answers[index];
             const correctOption = question.options.find(opt => opt && opt.isCorrect === true);
-            
+
             // Handle case where no correct option is marked (data integrity issue)
-            if(!correctOption) {
+            if (!correctOption) {
                 // Question has no correct option marked - data integrity issue
             }
-            
-            const isCorrect = userAnswer && correctOption && 
-                              typeof userAnswer.text === 'string' && 
-                              userAnswer.text === correctOption.text;
-            
+
+            const isCorrect = userAnswer && correctOption &&
+                typeof userAnswer.text === 'string' &&
+                userAnswer.text === correctOption.text;
+
             totalMarks += question.marks;
-            if(isCorrect) {
+            if (isCorrect) {
                 score += question.marks;
             }
-            
+
             detailedAnswers.push({
                 questionNumber: index + 1,
                 questionText: question.questionText || `Question ${index + 1}`,
@@ -536,14 +540,14 @@ export const submitQuiz = asyncHandler(async (req, res) => {
                 totalMarks: question.marks
             });
         });
-    } catch(validationError) {
+    } catch (validationError) {
         throw new ApiError(`Quiz data validation failed: ${validationError.message}`, 400);
     }
 
     // Calculate percentage
     const scorePercent = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 0;
     const passed = scorePercent >= (quiz.passingScore || 70);
-    
+
     // Create attempt record with safe data mapping
     let attempt;
     try {
@@ -553,16 +557,16 @@ export const submitQuiz = asyncHandler(async (req, res) => {
             answer: answers.map((ans, idx) => {
                 const question = quiz.questions[idx];
                 const detailedAnswer = detailedAnswers[idx];
-                
+
                 // This should not happen due to earlier validation, but double-check
                 if (!question || !question._id) {
                     throw new Error(`Question at index ${idx} is invalid`);
                 }
-                
+
                 if (!detailedAnswer) {
                     throw new Error(`Detailed answer at index ${idx} is missing`);
                 }
-                
+
                 return {
                     questionId: question._id,
                     selectedOptions: [ans && ans.text ? String(ans.text) : ""],
@@ -576,9 +580,9 @@ export const submitQuiz = asyncHandler(async (req, res) => {
             attemptNumber: previousAttempts + 1,
             timeTaken: timeTaken || 0
         };
-        
+
         attempt = await AttemptedQuiz.create(attemptData);
-    } catch(createError) {
+    } catch (createError) {
         throw new ApiError(`Failed to save quiz attempt: ${createError.message}`, 500);
     }
 
@@ -586,81 +590,190 @@ export const submitQuiz = asyncHandler(async (req, res) => {
     let nextModuleUnlocked = false;
     let levelUpgraded = false;
     let newLevel = null;
-    
-    if(passed && quiz.module && quiz.course) {
+
+    if (passed && quiz.module && quiz.course) {
         try {
             // Get user's progress
             const progress = await Progress.findOne({
                 student: userId,
                 course: quiz.course._id
             });
-            
-            if(progress) {
+
+            if (progress) {
                 // Get course modules to find the next module
                 const course = await Course.findById(quiz.course._id)
                     .populate({
                         path: 'modules',
                         options: { sort: { order: 1 } }
                     });
-                
-                if(course && course.modules) {
+
+                if (course && course.modules) {
                     const currentModuleIndex = course.modules.findIndex(
                         m => String(m._id) === String(quiz.module._id)
                     );
-                    
+
                     // Check if there's a next module to unlock
-                    if(currentModuleIndex >= 0 && currentModuleIndex < course.modules.length - 1) {
+                    if (currentModuleIndex >= 0 && currentModuleIndex < course.modules.length - 1) {
                         const nextModule = course.modules[currentModuleIndex + 1];
                         const nextModuleId = String(nextModule._id);
-                        
+
                         // Check if next module is not already completed
                         const isNextModuleCompleted = progress.completedModules.some(
                             mod => String(mod.moduleId || mod) === nextModuleId
                         );
-                        
-                        if(!isNextModuleCompleted) {
+
+                        if (!isNextModuleCompleted) {
                             // Mark the current module as completed if not already
                             const currentModuleId = String(quiz.module._id);
                             const isCurrentModuleCompleted = progress.completedModules.some(
                                 mod => String(mod.moduleId || mod) === currentModuleId
                             );
-                            
-                            if(!isCurrentModuleCompleted) {
+
+                            if (!isCurrentModuleCompleted) {
                                 progress.completedModules.push({
                                     moduleId: quiz.module._id,
                                     completedAt: new Date()
                                 });
-                                
-                                // Update level based on completed modules
-                                const completedCount = progress.completedModules.length;
-                                let updatedLevel = "L1";
-                                
-                                if (completedCount >= 6) updatedLevel = "L3";
-                                else if (completedCount >= 3) updatedLevel = "L2";
-                                
-                                if (updatedLevel !== progress.currentLevel) {
-                                    levelUpgraded = true;
-                                    newLevel = updatedLevel;
-                                    progress.currentLevel = updatedLevel;
-                                }
-                                
+
+
+
                                 await progress.save();
                             }
-                            
+
                             nextModuleUnlocked = true;
                         }
                     }
                 }
             }
-        } catch(progressError) {
+        } catch (progressError) {
             // Error updating progress
         }
     }
-    
+
+    // Independent check for skill upgradation if passed
+    if (passed && quiz.skillUpgradation && quiz.course) {
+        try {
+            const fs = await import('fs');
+            const debugLog = (msg) => {
+                try { fs.appendFileSync('debug_output.txt', new Date().toISOString() + ': ' + msg + '\n'); } catch (e) { }
+            };
+
+            debugLog(`Quiz Passed. upgradation: ${quiz.skillUpgradation}, course: ${quiz.course._id}, student: ${userId}`);
+
+            const progress = await Progress.findOne({
+                student: userId,
+                course: quiz.course._id
+            });
+
+            debugLog(`Progress found: ${!!progress}, currentLevel: ${progress?.currentLevel}`);
+
+            if (progress) {
+                // Use dynamic level configuration
+                const levelConfig = await CourseLevelConfig.getActiveConfig();
+                debugLog(`LevelConfig found: ${!!levelConfig}`);
+
+                if (levelConfig) {
+                    const nextLevel = levelConfig.getNextLevel(progress.currentLevel);
+                    debugLog(`Next Level: ${nextLevel?.name}`);
+
+                    // Upgrade if next level exists and is different
+                    if (nextLevel && nextLevel.name !== progress.currentLevel) {
+                        progress.currentLevel = nextLevel.name;
+                        levelUpgraded = true;
+                        newLevel = nextLevel.name;
+                        await progress.save();
+                        debugLog(`Upgraded to ${newLevel}`);
+
+                        // Automatically Issue Certificate for Skill Upgradation
+                        try {
+                            // 1. Check if certificate for this level already exists
+                            const existingCert = await Certificate.findOne({
+                                student: userId,
+                                course: quiz.course._id,
+                                type: 'SKILL_UPGRADATION',
+                                level: newLevel
+                            });
+
+                            if (!existingCert) {
+                                // 2. Get Certificate Template
+                                let template = await CertificateTemplate.findOne({ isDefault: true, isActive: true });
+                                if (!template) {
+                                    template = await CertificateTemplate.findOne({ isActive: true }).sort({ createdAt: 1 });
+                                }
+
+                                if (template) {
+                                    // 3. Generate Certificate Data
+                                    const issueDate = new Date();
+                                    const certificateData = {
+                                        studentName: req.user.fullName || "Student",
+                                        courseName: quiz.course.title || "Course",
+                                        departmentName: "N/A", // Can't easily populate here without extra query, keep simple
+                                        instructorName: "System",
+                                        level: newLevel,
+                                        issueDate: issueDate.toLocaleDateString('en-US', {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric'
+                                        }),
+                                        grade: 'PASS'
+                                    };
+
+                                    // 4. Replace Placeholders
+                                    let certificateHTML = template.template;
+                                    Object.keys(certificateData).forEach(key => {
+                                        const placeholder = new RegExp(`{{${key}}}`, 'g');
+                                        certificateHTML = certificateHTML.replace(placeholder, certificateData[key]);
+                                    });
+
+                                    // 5. Create Certificate Record
+                                    await Certificate.create({
+                                        student: userId,
+                                        course: quiz.course._id,
+                                        issuedBy: userId, // Issued by system/self on auto-upgrade
+                                        grade: 'PASS',
+                                        type: 'SKILL_UPGRADATION',
+                                        level: newLevel,
+                                        metadata: {
+                                            ...certificateData,
+                                            templateId: template._id.toString(),
+                                            templateName: template.name,
+                                            generatedHTML: certificateHTML,
+                                            styles: template.styles
+                                        }
+                                    });
+                                    debugLog(`Issued certificate for ${newLevel}`);
+                                } else {
+                                    debugLog(`No certificate template found for auto-issuance`);
+                                }
+                            }
+                        } catch (certError) {
+                            console.error("Error issuing auto-certificate for level upgrade:", certError);
+                            debugLog(`Cert Error: ${certError.message}`);
+                        }
+                    } else {
+                        debugLog(`No upgrade needed or possible. Next: ${nextLevel?.name}, Current: ${progress.currentLevel}`);
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("Error upgrading level on quiz pass:", err);
+            try {
+                const fs = await import('fs');
+                fs.appendFileSync('debug_output.txt', `ERROR: ${err.message}\n${err.stack}\n`);
+            } catch (e) { }
+        }
+    } else {
+        // Log why it didn't enter
+        try {
+            const fs = await import('fs');
+            fs.appendFileSync('debug_output.txt', `${new Date().toISOString()}: Condition failed - Passed: ${passed}, Upgrad: ${quiz.skillUpgradation}, Course: ${!!quiz.course}\n`);
+        } catch (e) { }
+    }
+
     // Calculate remaining attempts
     const attemptsUsed = previousAttempts + 1;
     const attemptsRemaining = isUnlimited ? null : (attemptsAllowed - attemptsUsed);
-    
+
     // Prepare result data
     const result = {
         attemptId: attempt._id,
@@ -686,15 +799,15 @@ export const submitQuiz = asyncHandler(async (req, res) => {
         levelUpgraded,
         newLevel
     };
-    
-    let message = passed 
-        ? "Quiz completed successfully! You passed." 
+
+    let message = passed
+        ? "Quiz completed successfully! You passed."
         : "Quiz completed. You did not pass.";
-        
-    if(nextModuleUnlocked) {
+
+    if (nextModuleUnlocked) {
         message += " Next module unlocked!";
     }
-    if(levelUpgraded) {
+    if (levelUpgraded) {
         message += ` Congratulations! Level upgraded to ${newLevel}!`;
     }
 
@@ -703,7 +816,7 @@ export const submitQuiz = asyncHandler(async (req, res) => {
         if (passed && quiz?.course?._id) {
             await ensureCertificateIfEligible(userId, quiz.course._id, { issuedByUserId: undefined });
         }
-    } catch(_) {}
+    } catch (_) { }
 
     res.json(new ApiResponse(200, result, message));
 });
@@ -714,7 +827,7 @@ export const getQuizAttemptStatus = asyncHandler(async (req, res) => {
     const userId = req.user._id;
 
     let resolvedQuizId = quizId;
-    if(!mongoose.Types.ObjectId.isValid(quizId)) {
+    if (!mongoose.Types.ObjectId.isValid(quizId)) {
         const q = await Quiz.findOne({ slug: String(quizId).toLowerCase() }).select('_id');
         if (!q) {
             throw new ApiError("Invalid quiz ID", 400);
@@ -723,7 +836,7 @@ export const getQuizAttemptStatus = asyncHandler(async (req, res) => {
     }
 
     const quiz = await Quiz.findById(resolvedQuizId, "title attemptsAllowed passingScore");
-    if(!quiz) {
+    if (!quiz) {
         throw new ApiError("Quiz not found", 404);
     }
 
@@ -751,7 +864,7 @@ export const getQuizAttemptStatus = asyncHandler(async (req, res) => {
     const bestAttempt = attempts.length > 0 ? attempts.reduce((best, current) => {
         return current.score > best.score ? current : best;
     }, attempts[0]) : null;
-    
+
     const hasPassed = bestAttempt && bestAttempt.score >= (quiz.passingScore || 70);
 
     res.json(new ApiResponse(200, {
@@ -782,12 +895,12 @@ export const requestExtraAttempt = asyncHandler(async (req, res) => {
     const { quizId, reason } = req.body;
     const userId = req.user._id;
 
-    if(!quizId) {
+    if (!quizId) {
         throw new ApiError("Valid quizId is required", 400);
     }
 
     let resolvedQuizId = quizId;
-    if(!mongoose.Types.ObjectId.isValid(quizId)) {
+    if (!mongoose.Types.ObjectId.isValid(quizId)) {
         const QuizModel = (await import("../models/quiz.model.js")).default;
         const q = await QuizModel.findOne({ slug: String(quizId).toLowerCase() }).select('_id');
         if (!q) throw new ApiError("Valid quizId is required", 400);
@@ -796,7 +909,7 @@ export const requestExtraAttempt = asyncHandler(async (req, res) => {
 
     const Quiz = (await import("../models/quiz.model.js")).default;
     const quiz = await Quiz.findById(resolvedQuizId);
-    if(!quiz) throw new ApiError("Quiz not found", 404);
+    if (!quiz) throw new ApiError("Quiz not found", 404);
 
     const AttemptExtensionRequest = (await import("../models/attemptExtensionRequest.model.js")).default;
 
@@ -817,7 +930,7 @@ export const approveExtraAttempt = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { extraAttempts = 1 } = req.body || {};
 
-    if(!mongoose.Types.ObjectId.isValid(id)) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
         throw new ApiError("Invalid request ID", 400);
     }
 
@@ -825,8 +938,8 @@ export const approveExtraAttempt = asyncHandler(async (req, res) => {
     const ExtraAttemptAllowance = (await import("../models/extraAttempt.model.js")).default;
 
     const reqDoc = await AttemptExtensionRequest.findById(id);
-    if(!reqDoc) throw new ApiError("Request not found", 404);
-    if(reqDoc.status !== 'PENDING') throw new ApiError("Request is not pending", 400);
+    if (!reqDoc) throw new ApiError("Request not found", 404);
+    if (reqDoc.status !== 'PENDING') throw new ApiError("Request is not pending", 400);
 
     reqDoc.status = 'APPROVED';
     reqDoc.reviewedBy = req.user._id;
@@ -851,20 +964,20 @@ export const approveExtraAttempt = asyncHandler(async (req, res) => {
             quiz: { _id: reqDoc.quiz },
             timestamp: new Date()
         });
-    } catch(_) {}
+    } catch (_) { }
 
     res.json(new ApiResponse(200, reqDoc, "Request approved and extra attempts granted"));
 });
 
 export const rejectExtraAttempt = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    if(!mongoose.Types.ObjectId.isValid(id)) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
         throw new ApiError("Invalid request ID", 400);
     }
     const AttemptExtensionRequest = (await import("../models/attemptExtensionRequest.model.js")).default;
     const reqDoc = await AttemptExtensionRequest.findById(id);
-    if(!reqDoc) throw new ApiError("Request not found", 404);
-    if(reqDoc.status !== 'PENDING') throw new ApiError("Request is not pending", 400);
+    if (!reqDoc) throw new ApiError("Request not found", 404);
+    if (reqDoc.status !== 'PENDING') throw new ApiError("Request is not pending", 400);
 
     reqDoc.status = 'REJECTED';
     reqDoc.reviewedBy = req.user._id;
@@ -879,7 +992,7 @@ export const rejectExtraAttempt = asyncHandler(async (req, res) => {
             quiz: { _id: reqDoc.quiz },
             timestamp: new Date()
         });
-    } catch(_) {}
+    } catch (_) { }
 
     res.json(new ApiResponse(200, reqDoc, "Request rejected"));
 });

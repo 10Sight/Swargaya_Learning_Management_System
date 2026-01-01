@@ -131,46 +131,10 @@ const SystemAuditLogs = () => {
                     auditLogsData?.total || 
                     auditLogs.length;
 
-  // Debug logging
-  useEffect(() => {
-    console.log('[SystemAuditLogs] API Response Debug:', {
-      auditLogsData,
-      isLoading,
-      isError,
-      error,
-      auditLogs: auditLogs,
-      auditLogsCount: auditLogs.length,
-      totalLogs,
-      totalPages
-    });
-  }, [auditLogsData, isLoading, isError, error, auditLogs.length, totalLogs, totalPages]);
-
-  // Debug query parameters and Redux state
-  useEffect(() => {
-    console.log('[SystemAuditLogs] Query Parameters Debug:', {
-      queryParams: {
-        page: currentPage,
-        limit: 20,
-        sortBy,
-        order: sortOrder,
-        search: searchTerm,
-        action: filters.action,
-        userId: filters.userId,
-        dateFrom: dateFrom?.toISOString(),
-        dateTo: dateTo?.toISOString(),
-        ipAddress: filters.ipAddress,
-        userAgent: filters.userAgent
-      },
-      currentUser,
-      authToken: localStorage.getItem('token') ? 'Present' : 'Missing',
-      isLoggedIn: localStorage.getItem('isLoggedIn')
-    });
-  }, [currentPage, sortBy, sortOrder, searchTerm, filters, dateFrom, dateTo, currentUser]);
 
   // Manual API test - for debugging
   const testApiCall = async () => {
     try {
-      console.log('[Manual API Test] Starting...');
       // Use fetch with credentials: 'include' to send HTTP-only cookies
       const response = await fetch('https://swargaya-learning-management-system-3vcz.onrender.com/api/audits?page=1&limit=5', {
         method: 'GET',
@@ -180,7 +144,6 @@ const SystemAuditLogs = () => {
         }
       });
       const data = await response.json();
-      console.log('[Manual API Test] Response:', { status: response.status, data });
       
       if (!response.ok) {
         console.error('[Manual API Test] Failed:', data);

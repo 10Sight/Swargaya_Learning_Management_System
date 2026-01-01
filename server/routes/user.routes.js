@@ -46,7 +46,7 @@ router.patch(
   upload.single("avatar"),
   updateAvatar
 );
-router.get("/:id", verifyJWT, authorizeRoles("ADMIN", "SUPERADMIN"), getUserById);
+router.get("/:id", verifyJWT, authorizeRoles("ADMIN", "SUPERADMIN", "INSTRUCTOR"), getUserById);
 router.patch("/:id", verifyJWT, authorizeRoles("ADMIN", "SUPERADMIN"), updateUser);
 router.delete("/:id", verifyJWT, authorizeRoles("ADMIN", "SUPERADMIN"), deleteUser);
 
