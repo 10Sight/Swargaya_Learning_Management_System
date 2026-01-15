@@ -104,7 +104,7 @@ const InstructorStudents = () => {
             </SelectTrigger>
             <SelectContent>
               {departments.map((department) => (
-                <SelectItem key={department._id} value={department._id}>
+                <SelectItem key={department.id || department._id} value={department.id ? String(department.id) : String(department._id)}>
                   {department.name}
                 </SelectItem>
               ))}

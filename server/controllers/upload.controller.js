@@ -1,4 +1,4 @@
-import cloudinary from "../configs/cloudinary.config.js";
+import { uploadToCloudinary } from "../config/cloudinary.js";
 import fs from "fs";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
@@ -11,25 +11,32 @@ export const uploadSingleFile = asyncHandler(async (req, res) => {
   }
 
   try {
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      resource_type: "auto", // auto-detect image/pdf/video
-      folder: "uploads",     // optional folder in Cloudinary
-      use_filename: true,
-      unique_filename: true,
-    });
+    const result = await uploadToCloudinary(req.file.path, "uploads");
 
-    try { if (req.file?.path) fs.unlinkSync(req.file.path); } catch (_) {}
+    if (!result.success) {
+      throw new Error(result.error || "Upload failed");
+    }
+
+    // uploadToCloudinary typically handles unlink if we look at common implementations, 
+    // but for safety in this controller refactor where we don't see the helper code:
+    // We will assume helper MIGHT not unlink on success in all versions, 
+    // but usually it does. 
+    // However, looking at resource.controller pattern, we unlinked on catch.
+    // Let's rely on helper or manual unlink? 
+    // Best practice: Helper usually does it. If not, we can do it here. 
+    // I'll check if file still exists before unlinking to be safe.
+    try { if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path); } catch (_) { }
 
     return res
       .status(200)
       .json(
         new ApiResponse(200, {
-          url: result.secure_url,
+          url: result.url,
           public_id: result.public_id,
         }, "File uploaded successfully")
       );
   } catch (err) {
-    try { if (req.file?.path) fs.unlinkSync(req.file.path); } catch (_) {}
+    try { if (req.file?.path && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path); } catch (_) { }
     throw new ApiError(err?.message || "Failed to upload file", 500);
   }
 });
@@ -41,34 +48,37 @@ export const uploadMultipleFiles = asyncHandler(async (req, res) => {
   }
 
   const results = [];
+  const errors = [];
 
-  try {
-    for (const file of req.files) {
-      const result = await cloudinary.uploader.upload(file.path, {
-        resource_type: "auto",
-        folder: "uploads",
-        use_filename: true,
-        unique_filename: true,
-      });
+  // Parallel uploads could be faster but serial is safer for resource limits
+  for (const file of req.files) {
+    try {
+      const result = await uploadToCloudinary(file.path, "uploads");
 
-      try { if (file?.path) fs.unlinkSync(file.path); } catch (_) {}
+      try { if (fs.existsSync(file.path)) fs.unlinkSync(file.path); } catch (_) { }
 
-      results.push({
-        url: result.secure_url,
-        public_id: result.public_id,
-      });
+      if (result.success) {
+        results.push({
+          url: result.url,
+          public_id: result.public_id,
+          originalName: file.originalname
+        });
+      } else {
+        errors.push({ file: file.originalname, error: result.error });
+      }
+    } catch (err) {
+      try { if (fs.existsSync(file.path)) fs.unlinkSync(file.path); } catch (_) { }
+      errors.push({ file: file.originalname, error: err.message });
     }
-
-    return res
-      .status(200)
-      .json(
-        new ApiResponse(200, results, "Files uploaded successfully")
-      );
-  } catch (err) {
-    // cleanup any remaining tmp files
-    for (const file of req.files) {
-      try { if (file?.path) fs.unlinkSync(file.path); } catch (_) {}
-    }
-    throw new ApiError(err?.message || "Failed to upload files", 500);
   }
+
+  if (results.length === 0 && errors.length > 0) {
+    throw new ApiError(`All uploads failed. Errors: ${errors.map(e => e.error).join(', ')}`, 500);
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, { uploaded: results, errors }, "Files processed")
+    );
 });

@@ -70,7 +70,7 @@ const MachineManager = ({ lineId }) => {
 
     const startEditing = (e, machine) => {
         e.stopPropagation();
-        setEditingMachineId(machine._id);
+        setEditingMachineId(machine.id || machine._id);
         setEditName(machine.name);
     };
 
@@ -169,11 +169,11 @@ const MachineManager = ({ lineId }) => {
                         <TableBody>
                             {machinesData?.data?.map((machine) => (
                                 <TableRow
-                                    key={machine._id}
+                                    key={machine.id || machine._id}
                                     className="hover:bg-gray-100"
                                 >
                                     <TableCell className="font-medium">
-                                        {editingMachineId === machine._id ? (
+                                        {editingMachineId === (machine.id || machine._id) ? (
                                             <Input
                                                 value={editName}
                                                 onChange={(e) => setEditName(e.target.value)}
@@ -186,7 +186,7 @@ const MachineManager = ({ lineId }) => {
                                     </TableCell>
                                     <TableCell>{machine.description || "-"}</TableCell>
                                     <TableCell className="text-right">
-                                        {editingMachineId === machine._id ? (
+                                        {editingMachineId === (machine.id || machine._id) ? (
                                             <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                                                 <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600" onClick={(e) => saveEdit(e)} disabled={isUpdating}>
                                                     <IconCheck className="h-4 w-4" />
@@ -200,7 +200,7 @@ const MachineManager = ({ lineId }) => {
                                                 <Button size="icon" variant="ghost" className="h-8 w-8 text-blue-600" onClick={(e) => startEditing(e, machine)}>
                                                     <IconEdit className="h-4 w-4" />
                                                 </Button>
-                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-red-600" onClick={(e) => handleDeleteMachine(e, machine._id)}>
+                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-red-600" onClick={(e) => handleDeleteMachine(e, machine.id || machine._id)}>
                                                     {isDeleting ? <IconLoader className="h-4 w-4 animate-spin" /> : <IconTrash className="h-4 w-4" />}
                                                 </Button>
                                             </div>

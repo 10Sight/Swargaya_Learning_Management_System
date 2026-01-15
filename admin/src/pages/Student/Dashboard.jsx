@@ -35,7 +35,7 @@ const StudentDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState({
     department: null,
-    courseContent: null,
+    course: null,
     progress: null,
     recentActivity: [],
     upcomingDeadlines: []
@@ -62,12 +62,12 @@ const StudentDashboard = () => {
         ]);
 
         const department = departmentRes.status === 'fulfilled' ? departmentRes.value?.data?.data : null;
-        const courseContent = courseContentRes.status === 'fulfilled' ? courseContentRes.value?.data?.data : null;
+        const courseData = courseContentRes.status === 'fulfilled' ? courseContentRes.value?.data?.data : null;
 
         setDashboardData({
           department,
-          courseContent,
-          progress: courseContent?.progress || null,
+          course: courseData, // courseData IS the course object with nested modules
+          progress: courseData?.progress || null,
           recentActivity: [], // We can add this later
           upcomingDeadlines: [] // We can add this later
         });
@@ -100,15 +100,15 @@ const StudentDashboard = () => {
   }, []);
 
   const calculateCourseProgress = () => {
-    if (!dashboardData.courseContent?.course?.modules) return 0;
-    const totalModules = dashboardData.courseContent.course.modules.length;
+    if (!dashboardData.course?.modules) return 0;
+    const totalModules = dashboardData.course.modules.length;
     const completedModules = dashboardData.progress?.completedModules?.length || 0;
     return totalModules > 0 ? Math.round((completedModules / totalModules) * 100) : 0;
   };
 
   const getTotalLessons = () => {
-    if (!dashboardData.courseContent?.course?.modules) return 0;
-    return dashboardData.courseContent.course.modules.reduce(
+    if (!dashboardData.course?.modules) return 0;
+    return dashboardData.course.modules.reduce(
       (total, module) => total + (module.lessons?.length || 0), 0
     );
   };
@@ -118,9 +118,9 @@ const StudentDashboard = () => {
   };
 
   const getCurrentModule = () => {
-    if (!dashboardData.courseContent?.course?.modules || !dashboardData.progress) return null;
+    if (!dashboardData.course?.modules || !dashboardData.progress) return null;
     const completedCount = dashboardData.progress.completedModules?.length || 0;
-    return dashboardData.courseContent.course.modules[completedCount] || null;
+    return dashboardData.course.modules[completedCount] || null;
   };
 
   // Get dynamic level info from active configuration (fallback to defaults)
@@ -268,7 +268,7 @@ const StudentDashboard = () => {
                   <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Course Progress</p>
                   <p className="text-2xl sm:text-3xl font-bold text-blue-600 mt-1">{courseProgress}%</p>
                   <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                    {dashboardData.progress?.completedModules?.length || 0} of {dashboardData.courseContent?.course?.modules?.length || 0} modules
+                    {dashboardData.progress?.completedModules?.length || 0} of {dashboardData.course?.modules?.length || 0} modules
                   </p>
                 </div>
                 <div className="p-2 sm:p-3 bg-blue-100 rounded-full shrink-0 group-hover:bg-blue-200 transition-colors duration-300">
@@ -349,11 +349,11 @@ const StudentDashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {dashboardData.courseContent?.course ? (
+              {dashboardData.course ? (
                 <>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="font-medium">{dashboardData.courseContent.course.title}</span>
+                      <span className="font-medium">{dashboardData.course.title}</span>
                       <Badge variant="secondary">{courseProgress}% Complete</Badge>
                     </div>
                     <Progress value={courseProgress} className="h-3" />
@@ -363,7 +363,7 @@ const StudentDashboard = () => {
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">Modules:</span>
                       <span className="font-medium">
-                        {dashboardData.progress?.completedModules?.length || 0} / {dashboardData.courseContent.course.modules?.length || 0}
+                        {dashboardData.progress?.completedModules?.length || 0} / {dashboardData.course.modules?.length || 0}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
@@ -447,7 +447,7 @@ const StudentDashboard = () => {
                     <span className="sm:hidden">Start</span>
                   </Button>
                 </div>
-              ) : dashboardData.courseContent?.course && courseProgress === 100 ? (
+              ) : dashboardData.course && courseProgress === 100 ? (
                 <div className="text-center py-6 sm:py-8 space-y-4">
                   <div className="relative">
                     <Trophy className="h-12 w-12 sm:h-16 sm:w-16 text-yellow-500 mx-auto mb-4 animate-bounce" />

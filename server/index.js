@@ -38,15 +38,26 @@ import exportRoutes from "./routes/export.routes.js";
 import courseLevelConfigRoutes from "./routes/courseLevelConfig.routes.js";
 import languageRoutes from "./routes/language.routes.js";
 import onJobTrainingRoutes from "./routes/onJobTraining.routes.js";
+import OnJobTraining from "./models/onJobTraining.model.js"; // Initialize table
 import timelineScheduler from "./services/timelineScheduler.js";
 import departmentStatusScheduler from "./services/departmentStatusScheduler.js";
 // import cleanupOldFiles from './scripts/cleanup.js';
+
+import machineRoutes from "./routes/machine.routes.js";
+import lineRoutes from "./routes/line.routes.js";
+import skillMatrixRoutes from "./routes/skillMatrix.route.js";
+import Machine from "./models/machine.model.js";
+import Line from "./models/line.model.js";
+import SkillMatrix from "./models/skillMatrix.model.js";
+import SystemSettings from "./models/systemSettings.model.js";
+import Resource from "./models/resource.model.js";
+import Certificate from "./models/certificate.model.js";
 
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: ["https://swargaya-learning-management-system.onrender.com", "https://learning-management-system-avwu.onrender.com", "http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176", "http://localhost:5177"],
+        origin: ["https://swargaya-learning-management-system-3vcz.onrender.com", "https://swargaya-learning-management-system.onrender.com", "https://learning-management-system-avwu.onrender.com", "http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176", "http://localhost:5177"],
         credentials: true,
         methods: ["GET", "POST"]
     }
@@ -62,7 +73,7 @@ app.use(cookieParser()); // Add cookie parser middleware
 
 // CORS with caching for preflight
 const corsOptions = {
-    origin: ["https://swargaya-learning-management-system.onrender.com", "https://learning-management-system-avwu.onrender.com", "http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176", "http://localhost:5177"],
+    origin: ["https://swargaya-learning-management-system-3vcz.onrender.com", "https://swargaya-learning-management-system.onrender.com", "https://learning-management-system-avwu.onrender.com", "http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176", "http://localhost:5177"],
     credentials: true,
     optionsSuccessStatus: 200, // For legacy browser support
     maxAge: 86400, // Cache preflight for 24 hours
@@ -146,13 +157,8 @@ app.use("/api/course-level-config", courseLevelConfigRoutes);
 app.use("/api/languages", languageRoutes);
 app.use("/api/on-job-training", onJobTrainingRoutes);
 
-import machineRoutes from "./routes/machine.routes.js";
 app.use("/api/machines", machineRoutes);
-
-import lineRoutes from "./routes/line.routes.js";
 app.use("/api/lines", lineRoutes);
-
-import skillMatrixRoutes from "./routes/skillMatrix.route.js";
 app.use("/api/skill-matrix", skillMatrixRoutes);
 
 // Initialize Socket.IO service
@@ -281,12 +287,12 @@ app.use((err, req, res, next) => {
     if (err.name === 'ValidationError') {
         statusCode = 400;
         message = Object.values(err.errors).map(e => e.message).join(', ');
-    } else if (err.name === 'CastError') {
-        statusCode = 400;
-        message = 'Invalid ID format';
-    } else if (err.code === 11000) {
+    } else if (err.code === 'ER_DUP_ENTRY') { // MySQL Duplicate Entry
         statusCode = 400;
         message = 'Duplicate field value';
+    } else if (err.code === 'ER_NO_REFERENCED_ROW_2' || err.code === 'ER_NO_REFERENCED_ROW') { // MySQL FK Constraint
+        statusCode = 400;
+        message = 'Invalid reference (Foreign Key)';
     }
 
     // Send JSON error response
@@ -296,9 +302,6 @@ app.use((err, req, res, next) => {
         ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
     });
 });
-
-// Handle 404 for unmatched API routes (fixed pattern)
-// Handle 404 for unmatched API routes (fixed pattern)
 app.use('/api', (req, res) => {
     res.status(404).json({
         success: false,
@@ -309,6 +312,7 @@ app.use('/api', (req, res) => {
 const startServer = async () => {
     try {
 
+        // Validate DB Connection
         await connectDB();
 
         // Initialize schedulers after DB connection
@@ -333,6 +337,7 @@ const startServer = async () => {
         });
 
     } catch (error) {
+        console.error("Failed to start server:", error);
         process.exit(1);
     }
 };

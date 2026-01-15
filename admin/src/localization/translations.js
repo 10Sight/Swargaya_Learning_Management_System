@@ -69,7 +69,7 @@ export const translations = {
     "skillMatrix.module1": "Module 1",
     "skillMatrix.module2": "Module 2",
     "skillMatrix.module3": "Module 3",
-    "nav.bulkOperations": "Bulk Operations",
+
 
     // Headers
     "header.instituteName": "SARVAGAYA INSTITUTE",

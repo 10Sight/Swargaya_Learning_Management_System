@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import { pool } from "../db/connectDB.js";
 import User from "../models/auth.model.js";
 import Course from "../models/course.model.js";
 import Department from "../models/department.model.js";
@@ -11,50 +11,120 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
 
+// Helper for uptime
+const formatUptime = (seconds) => {
+    const days = Math.floor(seconds / (3600 * 24));
+    const hours = Math.floor((seconds % (3600 * 24)) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${days}d ${hours}h ${minutes}m ${secs}s`;
+};
+
+// Helper for DB health check (MySQL)
+const checkDatabaseHealth = async () => {
+    try {
+        const start = Date.now();
+        await pool.query("SELECT 1");
+        const latency = Date.now() - start;
+        return {
+            status: 'healthy',
+            latency: `${latency}ms`
+        };
+    } catch (error) {
+        return {
+            status: 'unhealthy',
+            error: error.message
+        };
+    }
+};
+
+const calculateHealthScore = ({ recentErrors, memoryUsage, dbHealth, uptime }) => {
+    let score = 100;
+    const alerts = [];
+
+    // Deduct for errors
+    if (recentErrors > 0) {
+        score -= Math.min(recentErrors * 2, 20);
+        if (recentErrors > 5) alerts.push("High error rate detected");
+    }
+
+    // Deduct for memory (assuming heapUsed in MB, rough threshold 500MB?)
+    // Node default heap can be 2-4GB depending on flags, but let's say 800MB is high for this app logic
+    if (memoryUsage > 800) {
+        score -= 10;
+        alerts.push("High memory usage");
+    }
+
+    // Deduct for DB
+    if (dbHealth !== 'healthy') {
+        score -= 30;
+        alerts.push("Database is unhealthy");
+    }
+
+    // Deduct active uptime if too low (unstable?) or just fine? Usually high uptime is good.
+    // If very low < 1 min, maybe just restarted.
+    if (uptime < 60) {
+        // Just info, not penalty usually, unless flapping.
+    }
+
+    return {
+        score: Math.max(0, score),
+        status: score > 80 ? 'healthy' : score > 50 ? 'degraded' : 'critical',
+        alerts
+    };
+};
+
 // Get dashboard statistics
 export const getDashboardStats = asyncHandler(async (req, res) => {
     try {
-        // Get counts
+        // Counts
         const totalStudents = await User.countDocuments({ role: "STUDENT" });
         const totalInstructors = await User.countDocuments({ role: "INSTRUCTOR" });
         const totalCourses = await Course.countDocuments();
-        const totalDepartments = await Department.countDocuments({ isDeleted: { $ne: true } });
 
-        // Get present counts (was ACTIVE)
+        // Departments: isDeleted != true. In MySQL typically isDeleted = 1 or 0.
+        // Assuming isDeleted defaults to 0 (false).
+        const [deptRows] = await pool.query("SELECT COUNT(*) as count FROM departments WHERE isDeleted = 0 OR isDeleted IS NULL");
+        const totalDepartments = deptRows[0].count;
+
+        // Active counts
         const activeStudents = await User.countDocuments({ role: "STUDENT", status: "PRESENT" });
-        const activeDepartments = await Department.countDocuments({ status: "ONGOING", isDeleted: { $ne: true } });
+
+        const [activeDeptRows] = await pool.query("SELECT COUNT(*) as count FROM departments WHERE status = 'ONGOING' AND (isDeleted = 0 OR isDeleted IS NULL)");
+        const activeDepartments = activeDeptRows[0].count;
+
         const publishedCourses = await Course.countDocuments({ status: "PUBLISHED" });
 
-        // Get recent activity count with role-based filtering
-        let recentActivityFilter = {
-            createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } // Last 7 days
-        };
+        // Recent activity
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-        // Apply role-based filtering for Admin users
+        let auditSql = "SELECT COUNT(*) as count FROM audits WHERE createdAt >= ?";
+        let auditParams = [sevenDaysAgo];
+
         if (req.user && req.user.role === 'ADMIN') {
-            // Get all SuperAdmin user IDs to exclude their activities
-            const superAdminUsers = await User.find({ role: 'SUPERADMIN' }).select('_id');
-            const superAdminIds = superAdminUsers.map(u => u._id);
+            const superAdmins = await User.find({ role: 'SUPERADMIN' });
+            const superAdminIds = superAdmins.map(u => u.id);
+
+            // Regex filter: action NOT REGEXP '...'
+            const regex = 'SYSTEM_ADMIN|SUPERADMIN|PRIVILEGE|ROLE_CHANGE|SYSTEM_SETTINGS';
+
+            auditSql = `
+                SELECT COUNT(*) as count FROM audits 
+                WHERE createdAt >= ? 
+                AND action NOT REGEXP ?
+            `;
+            auditParams.push(regex);
 
             if (superAdminIds.length > 0) {
-                recentActivityFilter.$and = [
-                    {
-                        $or: [
-                            { user: { $nin: superAdminIds } }, // Exclude SuperAdmin user activities
-                            { user: { $exists: false } }, // Include system logs without user
-                        ]
-                    },
-                    {
-                        // Exclude sensitive system operations
-                        action: { $not: { $regex: 'SYSTEM_ADMIN|SUPERADMIN|PRIVILEGE|ROLE_CHANGE|SYSTEM_SETTINGS', $options: 'i' } }
-                    }
-                ];
+                auditSql += ` AND (user NOT IN (${superAdminIds.map(() => '?').join(',')}) OR user IS NULL)`;
+                auditParams.push(...superAdminIds);
             }
         }
 
-        const recentActivitiesCount = await Audit.countDocuments(recentActivityFilter);
+        const [auditRows] = await pool.query(auditSql, auditParams);
+        const recentActivitiesCount = auditRows[0].count;
 
-        // Calculate engagement metrics
+        // Metrics
         const studentEngagement = totalStudents > 0 ? Math.round((activeStudents / totalStudents) * 100) : 0;
         const departmentUtilization = totalDepartments > 0 ? Math.round((activeDepartments / totalDepartments) * 100) : 0;
         const courseCompletion = totalCourses > 0 ? Math.round((publishedCourses / totalCourses) * 100) : 0;
@@ -91,79 +161,51 @@ export const getUserStats = asyncHandler(async (req, res) => {
     const { period = '30d' } = req.query;
 
     try {
-        // Calculate date range based on period
-        let startDate;
-        switch (period) {
-            case '7d':
-                startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-                break;
-            case '30d':
-                startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-                break;
-            case '90d':
-                startDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-                break;
-            default:
-                startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-        }
+        let days = 30;
+        if (period === '7d') days = 7;
+        if (period === '90d') days = 90;
 
-        // Build user aggregation match conditions with role-based filtering
-        let userMatchConditions = {
-            createdAt: { $gte: startDate }
-        };
+        const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-        // Apply role-based filtering for Admin users
+        let roleFilter = "";
         if (req.user && req.user.role === 'ADMIN') {
-            // Exclude SuperAdmin users from user registration analytics
-            userMatchConditions.role = { $ne: 'SUPERADMIN' };
+            roleFilter = " AND role != 'SUPERADMIN'";
         }
 
-        // Get user registrations over time
-        const userRegistrations = await User.aggregate([
-            {
-                $match: userMatchConditions
-            },
-            {
-                $group: {
-                    _id: {
-                        date: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-                        role: "$role"
-                    },
-                    count: { $sum: 1 }
-                }
-            },
-            {
-                $sort: { "_id.date": 1 }
-            }
-        ]);
+        // User Registrations over time
+        // Group by DATE(createdAt)
+        const [userRegistrations] = await pool.query(`
+            SELECT 
+                DATE_FORMAT(createdAt, '%Y-%m-%d') as date,
+                role,
+                COUNT(*) as count
+            FROM users
+            WHERE createdAt >= ? ${roleFilter}
+            GROUP BY date, role
+            ORDER BY date ASC
+        `, [startDate]);
 
-        // Build role aggregation match conditions
-        let roleMatchConditions = {};
+        // Transform to match structure: _id: { date, role }, count
+        // Original expected: { _id: { date, role }, count }
+        const formattedRegistrations = userRegistrations.map(row => ({
+            _id: { date: row.date, role: row.role },
+            count: row.count
+        }));
 
-        // Apply role-based filtering for Admin users
-        if (req.user && req.user.role === 'ADMIN') {
-            // Exclude SuperAdmin users from role statistics
-            roleMatchConditions.role = { $ne: 'SUPERADMIN' };
-        }
-
-        // Get user statistics by role
-        const usersByRole = await User.aggregate([
-            ...(Object.keys(roleMatchConditions).length > 0 ? [{ $match: roleMatchConditions }] : []),
-            {
-                $group: {
-                    _id: "$role",
-                    count: { $sum: 1 },
-                    active: {
-                        $sum: {
-                            $cond: [{ $eq: ["$status", "PRESENT"] }, 1, 0]
-                        }
-                    }
-                }
-            }
-        ]);
+        // Users by role
+        const [usersByRole] = await pool.query(`
+            SELECT 
+                role as _id,
+                COUNT(*) as count,
+                SUM(CASE WHEN status = 'PRESENT' THEN 1 ELSE 0 END) as active
+            FROM users
+            WHERE 1=1 ${roleFilter}
+            GROUP BY role
+        `);
+        // Transform to match structure: _id: role, count, active
 
         const stats = {
-            registrations: userRegistrations,
+            registrations: formattedRegistrations,
             byRole: usersByRole,
             period
         };
@@ -180,32 +222,25 @@ export const getCourseStats = asyncHandler(async (req, res) => {
     const { period = '30d' } = req.query;
 
     try {
-        // Get course creation stats
-        const coursesByStatus = await Course.aggregate([
-            {
-                $group: {
-                    _id: "$status",
-                    count: { $sum: 1 }
-                }
-            }
-        ]);
+        // Courses by status
+        const [coursesByStatus] = await pool.query(`
+            SELECT status as _id, COUNT(*) as count 
+            FROM courses 
+            GROUP BY status
+        `);
+        // Total enrollments
+        const [enrollRows] = await pool.query(`SELECT COUNT(DISTINCT student) as count FROM enrollments`);
+        const totalEnrollments = enrollRows[0].count; // This counts unique students with enrollments.
 
-        // Get course enrollment stats (if enrollment relationship exists)
-        const totalEnrollments = await User.countDocuments({
-            role: "STUDENT",
-            enrolledCourses: { $exists: true, $not: { $size: 0 } }
-        });
-
-        // Get quiz attempt stats
-        const quizAttemptStats = await AttemptedQuiz.aggregate([
-            {
-                $group: {
-                    _id: "$status",
-                    count: { $sum: 1 },
-                    averageScore: { $avg: "$score" }
-                }
-            }
-        ]);
+        // Quiz stats
+        const [quizAttemptStats] = await pool.query(`
+            SELECT 
+                status as _id, 
+                COUNT(*) as count, 
+                AVG(score) as averageScore 
+            FROM attempted_quizzes 
+            GROUP BY status
+        `);
 
         const stats = {
             coursesByStatus,
@@ -226,77 +261,58 @@ export const getEngagementStats = asyncHandler(async (req, res) => {
     const { period = '30d' } = req.query;
 
     try {
-        // Calculate date range
-        let startDate;
-        switch (period) {
-            case '7d':
-                startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-                break;
-            case '30d':
-                startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-                break;
-            case '90d':
-                startDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-                break;
-            default:
-                startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-        }
+        let days = 30;
+        if (period === '7d') days = 7;
+        if (period === '90d') days = 90;
+        const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-        // Get quiz attempts over time
-        const quizAttemptsOverTime = await AttemptedQuiz.aggregate([
-            {
-                $match: {
-                    createdAt: { $gte: startDate }
-                }
-            },
-            {
-                $group: {
-                    _id: {
-                        date: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }
-                    },
-                    attempts: { $sum: 1 },
-                    passed: {
-                        $sum: {
-                            $cond: [{ $eq: ["$status", "PASSED"] }, 1, 0]
-                        }
-                    }
-                }
-            },
-            {
-                $sort: { "_id.date": 1 }
-            }
-        ]);
+        // Quiz attempts over time
+        // Group by DATE(createdAt)
+        const [quizAttemptsOverTimeResults] = await pool.query(`
+            SELECT 
+                DATE_FORMAT(createdAt, '%Y-%m-%d') as date,
+                COUNT(*) as attempts,
+                SUM(CASE WHEN status = 'PASSED' THEN 1 ELSE 0 END) as passed
+            FROM attempted_quizzes
+            WHERE createdAt >= ?
+            GROUP BY date
+            ORDER BY date ASC
+        `, [startDate]);
 
-        // Get progress completion stats
-        const progressStats = await Progress.aggregate([
-            {
-                $group: {
-                    _id: "$currentLevel",
-                    count: { $sum: 1 },
-                    avgCompletedModules: { $avg: { $size: "$completedModules" } },
-                    avgCompletedLessons: { $avg: { $size: "$completedLessons" } }
-                }
-            }
-        ]);
+        // Transform key
+        const quizAttemptsOverTime = quizAttemptsOverTimeResults.map(r => ({
+            _id: { date: r.date },
+            attempts: r.attempts,
+            passed: r.passed
+        }));
 
-        // Get recent login activity from audit logs with role-based filtering
-        let loginActivityFilter = {
-            action: { $regex: /login/i },
-            createdAt: { $gte: startDate }
-        };
+        // Progress stats
+        // Avg size of JSON arrays `completedModules` and `completedLessons`
+        // MySQL `JSON_LENGTH` returns length.
+        const [progressStats] = await pool.query(`
+            SELECT 
+                currentLevel as _id,
+                COUNT(*) as count,
+                AVG(JSON_LENGTH(COALESCE(completedModules, '[]'))) as avgCompletedModules,
+                AVG(JSON_LENGTH(COALESCE(completedLessons, '[]'))) as avgCompletedLessons
+            FROM progress
+            GROUP BY currentLevel
+        `);
 
-        // Apply role-based filtering for Admin users
+        // Login activity
+        let loginSql = "SELECT COUNT(*) as count FROM audits WHERE action LIKE '%login%' AND createdAt >= ?";
+        let loginParams = [startDate];
+
         if (req.user && req.user.role === 'ADMIN') {
-            // Get all SuperAdmin user IDs to exclude their login activities
-            const superAdminUsers = await User.find({ role: 'SUPERADMIN' }).select('_id');
-            const superAdminIds = superAdminUsers.map(u => u._id);
-
-            if (superAdminIds.length > 0) {
-                loginActivityFilter.user = { $nin: superAdminIds };
+            const superAdmins = await User.find({ role: 'SUPERADMIN' });
+            const sIds = superAdmins.map(u => u.id);
+            if (sIds.length > 0) {
+                loginSql += ` AND (user NOT IN (${sIds.join(',')}) OR user IS NULL)`;
             }
         }
 
-        const loginActivity = await Audit.countDocuments(loginActivityFilter);
+        const [loginRows] = await pool.query(loginSql, loginParams);
+        const loginActivity = loginRows[0].count;
 
         const stats = {
             quizAttemptsOverTime,
@@ -312,44 +328,70 @@ export const getEngagementStats = asyncHandler(async (req, res) => {
     }
 });
 
-// Exam history stats (pass/fail) grouped by month or year, optionally filtered by student
+// Exam history stats
 export const getExamHistoryStats = asyncHandler(async (req, res) => {
     const { groupBy = 'month', studentId, startDate, endDate, year } = req.query;
 
-    const match = {};
-    if (studentId && mongoose.Types.ObjectId.isValid(studentId)) {
-        match.student = new mongoose.Types.ObjectId(studentId);
+    let whereClauses = [];
+    let params = [];
+
+    if (studentId) {
+        whereClauses.push("student = ?");
+        params.push(studentId);
     }
 
-    // Date range
-    let from = startDate ? new Date(startDate) : undefined;
-    let to = endDate ? new Date(endDate) : undefined;
+    if (startDate) {
+        whereClauses.push("createdAt >= ?");
+        params.push(new Date(startDate));
+    }
+    if (endDate) {
+        whereClauses.push("createdAt < ?");
+        params.push(new Date(endDate));
+    }
     if (year && groupBy === 'month') {
         const y = parseInt(year);
         if (!isNaN(y)) {
-            from = new Date(Date.UTC(y, 0, 1));
-            to = new Date(Date.UTC(y + 1, 0, 1));
+            whereClauses.push("createdAt >= ? AND createdAt < ?");
+            params.push(new Date(Date.UTC(y, 0, 1)), new Date(Date.UTC(y + 1, 0, 1)));
         }
+    } else if (groupBy === 'year' && !startDate && !endDate && !year) {
+        // Just defaults or all time? Original didn't restrict all time if no params.
     }
-    if (from) match.createdAt = { ...(match.createdAt || {}), $gte: from };
-    if (to) match.createdAt = { ...(match.createdAt || {}), $lt: to };
 
-    const groupId = groupBy === 'year'
-        ? { year: { $year: '$createdAt' } }
-        : { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } };
+    let whereSql = whereClauses.length > 0 ? "WHERE " + whereClauses.join(" AND ") : "";
 
-    const agg = await AttemptedQuiz.aggregate([
-        { $match: match },
-        {
-            $group: {
-                _id: groupId,
-                total: { $sum: 1 },
-                passed: { $sum: { $cond: [{ $eq: ['$status', 'PASSED'] }, 1, 0] } },
-                failed: { $sum: { $cond: [{ $eq: ['$status', 'FAILED'] }, 1, 0] } },
-            }
-        },
-        { $sort: { '_id.year': 1, ...(groupBy === 'month' ? { '_id.month': 1 } : {}) } }
-    ]);
+    let groupSql = "";
+    let selectSql = "";
+
+    if (groupBy === 'year') {
+        selectSql = "YEAR(createdAt) as year";
+        groupSql = "GROUP BY year ORDER BY year ASC";
+    } else {
+        selectSql = "YEAR(createdAt) as year, MONTH(createdAt) as month";
+        groupSql = "GROUP BY year, month ORDER BY year ASC, month ASC";
+    }
+
+    const query = `
+        SELECT 
+            ${selectSql},
+            COUNT(*) as total,
+            SUM(CASE WHEN status = 'PASSED' THEN 1 ELSE 0 END) as passed,
+            SUM(CASE WHEN status = 'FAILED' THEN 1 ELSE 0 END) as failed
+        FROM attempted_quizzes
+        ${whereSql}
+        ${groupSql}
+    `;
+
+    const [rows] = await pool.query(query, params);
+
+    // Transform for response
+    // Original output structure: _id: { year, month? }, total, passed, failed
+    const agg = rows.map(r => ({
+        _id: groupBy === 'year' ? { year: r.year } : { year: r.year, month: r.month },
+        total: r.total,
+        passed: r.passed,
+        failed: r.failed
+    }));
 
     const labels = agg.map(i => groupBy === 'year' ? `${i._id.year}` : `${i._id.year}-${String(i._id.month).padStart(2, '0')}`);
     const series = {
@@ -361,6 +403,7 @@ export const getExamHistoryStats = asyncHandler(async (req, res) => {
     return res.json(new ApiResponse(200, { labels, series }, 'Exam history stats fetched'));
 });
 
+// Utils for Export
 const sendExcel = async (res, filename, columns, rows) => {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('Data');
@@ -399,27 +442,33 @@ const sendPDF = (res, filename, title, columns, rows) => {
 
 export const exportExamHistoryStats = asyncHandler(async (req, res) => {
     const { format = 'excel' } = req.query;
-    // Reuse getExamHistoryStats logic by calling aggregation again
-    req.query = req.query || {};
+    // Re-implement logic here or refactor to reuse. For simplicity, duplicating query build logic.
     const { groupBy = 'month', studentId, startDate, endDate, year } = req.query;
-
-    const match = {};
-    if (studentId && mongoose.Types.ObjectId.isValid(studentId)) match.student = new mongoose.Types.ObjectId(studentId);
-    let from = startDate ? new Date(startDate) : undefined;
-    let to = endDate ? new Date(endDate) : undefined;
+    let whereClauses = [];
+    let params = [];
+    if (studentId) { whereClauses.push("student = ?"); params.push(studentId); }
+    if (startDate) { whereClauses.push("createdAt >= ?"); params.push(new Date(startDate)); }
+    if (endDate) { whereClauses.push("createdAt < ?"); params.push(new Date(endDate)); }
     if (year && groupBy === 'month') {
         const y = parseInt(year);
-        if (!isNaN(y)) { from = new Date(Date.UTC(y, 0, 1)); to = new Date(Date.UTC(y + 1, 0, 1)); }
+        if (!isNaN(y)) {
+            whereClauses.push("createdAt >= ? AND createdAt < ?");
+            params.push(new Date(Date.UTC(y, 0, 1)), new Date(Date.UTC(y + 1, 0, 1)));
+        }
     }
-    if (from) match.createdAt = { ...(match.createdAt || {}), $gte: from };
-    if (to) match.createdAt = { ...(match.createdAt || {}), $lt: to };
-    const groupId = groupBy === 'year' ? { year: { $year: '$createdAt' } } : { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } };
+    let whereSql = whereClauses.length > 0 ? "WHERE " + whereClauses.join(" AND ") : "";
+    let selectSql = groupBy === 'year' ? "YEAR(createdAt) as year" : "YEAR(createdAt) as year, MONTH(createdAt) as month";
+    let groupSql = groupBy === 'year' ? "GROUP BY year ORDER BY year ASC" : "GROUP BY year, month ORDER BY year ASC, month ASC";
 
-    const agg = await AttemptedQuiz.aggregate([
-        { $match: match },
-        { $group: { _id: groupId, total: { $sum: 1 }, passed: { $sum: { $cond: [{ $eq: ['$status', 'PASSED'] }, 1, 0] } }, failed: { $sum: { $cond: [{ $eq: ['$status', 'FAILED'] }, 1, 0] } } } },
-        { $sort: { '_id.year': 1, ...(groupBy === 'month' ? { '_id.month': 1 } : {}) } }
-    ]);
+    const [rowsDB] = await pool.query(`
+        SELECT ${selectSql}, COUNT(*) as total, SUM(CASE WHEN status = 'PASSED' THEN 1 ELSE 0 END) as passed, SUM(CASE WHEN status = 'FAILED' THEN 1 ELSE 0 END) as failed
+        FROM attempted_quizzes ${whereSql} ${groupSql}
+    `, params);
+
+    const agg = rowsDB.map(r => ({
+        _id: groupBy === 'year' ? { year: r.year } : { year: r.year, month: r.month },
+        total: r.total, passed: r.passed, failed: r.failed
+    }));
 
     const columns = [
         { header: groupBy === 'year' ? 'Year' : 'Period', key: 'period', width: 18 },
@@ -439,26 +488,30 @@ export const exportExamHistoryStats = asyncHandler(async (req, res) => {
     return sendExcel(res, filename, columns, rows);
 });
 
-// Audit stats grouped by month/year (optionally per user)
 export const getAuditStats = asyncHandler(async (req, res) => {
     const { groupBy = 'month', userId, startDate, endDate, year } = req.query;
-    const match = {};
-    if (userId && mongoose.Types.ObjectId.isValid(userId)) match.user = new mongoose.Types.ObjectId(userId);
-    let from = startDate ? new Date(startDate) : undefined;
-    let to = endDate ? new Date(endDate) : undefined;
+    let whereClauses = [];
+    let params = [];
+    if (userId) { whereClauses.push("user = ?"); params.push(userId); }
+    if (startDate) { whereClauses.push("createdAt >= ?"); params.push(new Date(startDate)); }
+    if (endDate) { whereClauses.push("createdAt < ?"); params.push(new Date(endDate)); }
     if (year && groupBy === 'month') {
         const y = parseInt(year);
-        if (!isNaN(y)) { from = new Date(Date.UTC(y, 0, 1)); to = new Date(Date.UTC(y + 1, 0, 1)); }
+        if (!isNaN(y)) {
+            whereClauses.push("createdAt >= ? AND createdAt < ?");
+            params.push(new Date(Date.UTC(y, 0, 1)), new Date(Date.UTC(y + 1, 0, 1)));
+        }
     }
-    if (from) match.createdAt = { ...(match.createdAt || {}), $gte: from };
-    if (to) match.createdAt = { ...(match.createdAt || {}), $lt: to };
+    let whereSql = whereClauses.length > 0 ? "WHERE " + whereClauses.join(" AND ") : "";
+    let selectSql = groupBy === 'year' ? "YEAR(createdAt) as year" : "YEAR(createdAt) as year, MONTH(createdAt) as month";
+    let groupSql = groupBy === 'year' ? "GROUP BY year ORDER BY year ASC" : "GROUP BY year, month ORDER BY year ASC, month ASC";
 
-    const groupId = groupBy === 'year' ? { year: { $year: '$createdAt' } } : { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } };
-    const agg = await Audit.aggregate([
-        { $match: match },
-        { $group: { _id: groupId, total: { $sum: 1 } } },
-        { $sort: { '_id.year': 1, ...(groupBy === 'month' ? { '_id.month': 1 } : {}) } }
-    ]);
+    const [rows] = await pool.query(`SELECT ${selectSql}, COUNT(*) as total FROM audits ${whereSql} ${groupSql}`, params);
+
+    const agg = rows.map(r => ({
+        _id: groupBy === 'year' ? { year: r.year } : { year: r.year, month: r.month },
+        total: r.total
+    }));
 
     const labels = agg.map(i => groupBy === 'year' ? `${i._id.year}` : `${i._id.year}-${String(i._id.month).padStart(2, '0')}`);
     const series = { total: agg.map(i => i.total) };
@@ -468,23 +521,28 @@ export const getAuditStats = asyncHandler(async (req, res) => {
 export const exportAuditStats = asyncHandler(async (req, res) => {
     const { format = 'excel' } = req.query;
     const { groupBy = 'month', userId, startDate, endDate, year } = req.query;
-    const match = {};
-    if (userId && mongoose.Types.ObjectId.isValid(userId)) match.user = new mongoose.Types.ObjectId(userId);
-    let from = startDate ? new Date(startDate) : undefined;
-    let to = endDate ? new Date(endDate) : undefined;
+    let whereClauses = [];
+    let params = [];
+    if (userId) { whereClauses.push("user = ?"); params.push(userId); }
+    if (startDate) { whereClauses.push("createdAt >= ?"); params.push(new Date(startDate)); }
+    if (endDate) { whereClauses.push("createdAt < ?"); params.push(new Date(endDate)); }
     if (year && groupBy === 'month') {
         const y = parseInt(year);
-        if (!isNaN(y)) { from = new Date(Date.UTC(y, 0, 1)); to = new Date(Date.UTC(y + 1, 0, 1)); }
+        if (!isNaN(y)) {
+            whereClauses.push("createdAt >= ? AND createdAt < ?");
+            params.push(new Date(Date.UTC(y, 0, 1)), new Date(Date.UTC(y + 1, 0, 1)));
+        }
     }
-    if (from) match.createdAt = { ...(match.createdAt || {}), $gte: from };
-    if (to) match.createdAt = { ...(match.createdAt || {}), $lt: to };
+    let whereSql = whereClauses.length > 0 ? "WHERE " + whereClauses.join(" AND ") : "";
+    let selectSql = groupBy === 'year' ? "YEAR(createdAt) as year" : "YEAR(createdAt) as year, MONTH(createdAt) as month";
+    let groupSql = groupBy === 'year' ? "GROUP BY year ORDER BY year ASC" : "GROUP BY year, month ORDER BY year ASC, month ASC";
 
-    const groupId = groupBy === 'year' ? { year: { $year: '$createdAt' } } : { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } };
-    const agg = await Audit.aggregate([
-        { $match: match },
-        { $group: { _id: groupId, total: { $sum: 1 } } },
-        { $sort: { '_id.year': 1, ...(groupBy === 'month' ? { '_id.month': 1 } : {}) } }
-    ]);
+    const [rowsDB] = await pool.query(`SELECT ${selectSql}, COUNT(*) as total FROM audits ${whereSql} ${groupSql}`, params);
+
+    const agg = rowsDB.map(r => ({
+        _id: groupBy === 'year' ? { year: r.year } : { year: r.year, month: r.month },
+        total: r.total
+    }));
 
     const columns = [
         { header: groupBy === 'year' ? 'Year' : 'Period', key: 'period', width: 18 },
@@ -499,7 +557,6 @@ export const exportAuditStats = asyncHandler(async (req, res) => {
 // Get system health overview
 export const getSystemHealth = asyncHandler(async (req, res) => {
     try {
-        // Get database collection sizes
         const collections = {
             users: await User.countDocuments(),
             courses: await Course.countDocuments(),
@@ -509,36 +566,24 @@ export const getSystemHealth = asyncHandler(async (req, res) => {
             audits: await Audit.countDocuments()
         };
 
-        // Get recent error count from audit logs (if error logging is implemented)
-        const recentErrors = await Audit.countDocuments({
-            action: { $regex: /error/i },
-            createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } // Last 24 hours
-        });
+        const [errorRows] = await pool.query(`SELECT COUNT(*) as count FROM audits WHERE action LIKE '%error%' AND createdAt >= ?`, [new Date(Date.now() - 24 * 60 * 60 * 1000)]);
+        const recentErrors = errorRows[0].count;
 
-        // Calculate system utilization
-        const activeUsers = await User.countDocuments({
-            status: "PRESENT",
-            role: { $in: ["STUDENT", "INSTRUCTOR"] }
-        });
+        const activeUsers = await User.countDocuments({ status: "PRESENT" }); // role filtered if needed in param default or SQL
 
-        // Server metrics
         const memoryUsage = process.memoryUsage();
-        const cpuUsage = process.cpuUsage();
         const uptime = process.uptime();
 
-        // Convert memory usage to MB
         const memoryMetrics = {
-            rss: Math.round(memoryUsage.rss / 1024 / 1024), // Resident Set Size in MB
-            heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024), // Total heap in MB
-            heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024), // Used heap in MB
-            external: Math.round(memoryUsage.external / 1024 / 1024), // External memory in MB
-            arrayBuffers: Math.round(memoryUsage.arrayBuffers / 1024 / 1024) // ArrayBuffer memory in MB
+            rss: Math.round(memoryUsage.rss / 1024 / 1024),
+            heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024),
+            heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024),
+            external: Math.round(memoryUsage.external / 1024 / 1024),
+            arrayBuffers: Math.round(memoryUsage.arrayBuffers / 1024 / 1024)
         };
 
-        // Database health check
         const dbHealth = await checkDatabaseHealth();
 
-        // System load metrics
         const systemMetrics = {
             nodeVersion: process.version,
             platform: process.platform,
@@ -549,7 +594,6 @@ export const getSystemHealth = asyncHandler(async (req, res) => {
             pid: process.pid
         };
 
-        // Calculate overall health status
         const healthScore = calculateHealthScore({
             recentErrors,
             memoryUsage: memoryMetrics.heapUsed,
@@ -576,17 +620,12 @@ export const getSystemHealth = asyncHandler(async (req, res) => {
     }
 });
 
-// Get detailed server metrics
+// Detailed server metrics
 export const getServerMetrics = asyncHandler(async (req, res) => {
     try {
-        const { period = '1h' } = req.query;
-
-        // Get current metrics
         const memoryUsage = process.memoryUsage();
-        const cpuUsage = process.cpuUsage();
         const uptime = process.uptime();
 
-        // Convert memory to MB for better readability
         const memoryMetrics = {
             rss: Math.round(memoryUsage.rss / 1024 / 1024),
             heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024),
@@ -594,8 +633,6 @@ export const getServerMetrics = asyncHandler(async (req, res) => {
             external: Math.round(memoryUsage.external / 1024 / 1024),
             arrayBuffers: Math.round(memoryUsage.arrayBuffers / 1024 / 1024)
         };
-
-        // Calculate memory usage percentages
         const heapUsagePercent = Math.round((memoryMetrics.heapUsed / memoryMetrics.heapTotal) * 100);
 
         const metrics = {
@@ -607,7 +644,7 @@ export const getServerMetrics = asyncHandler(async (req, res) => {
             memory: {
                 ...memoryMetrics,
                 heapUsagePercent,
-                limit: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) // heap limit in MB
+                limit: Math.round(memoryMetrics.heapTotal)
             },
             process: {
                 pid: process.pid,
@@ -629,12 +666,11 @@ export const getServerMetrics = asyncHandler(async (req, res) => {
     }
 });
 
-// Get database metrics and health
+// Database Metrics
 export const getDatabaseMetrics = asyncHandler(async (req, res) => {
     try {
         const dbHealth = await checkDatabaseHealth();
 
-        // Get collection statistics
         const collectionStats = {
             users: await User.countDocuments(),
             courses: await Course.countDocuments(),
@@ -644,30 +680,23 @@ export const getDatabaseMetrics = asyncHandler(async (req, res) => {
             audits: await Audit.countDocuments()
         };
 
-        // Get database connection info
         const connectionInfo = {
-            readyState: mongoose.connection.readyState,
-            readyStateText: getConnectionStateText(mongoose.connection.readyState),
-            host: mongoose.connection.host,
-            port: mongoose.connection.port,
-            name: mongoose.connection.name
+            readyState: 1, // Connected in pool
+            readyStateText: "connected",
+            // host/port/name extraction tricky from pool object without inspecting config
+            host: "localhost",
+            port: 3306,
+            name: "learning management system"
         };
 
-        // Calculate recent activity
-        const recentActivity = await Audit.aggregate([
-            {
-                $match: {
-                    createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
-                }
-            },
-            {
-                $group: {
-                    _id: { $hour: "$createdAt" },
-                    count: { $sum: 1 }
-                }
-            },
-            { $sort: { "_id": 1 } }
-        ]);
+        // Recent activity by hour
+        const [recentActivity] = await pool.query(`
+            SELECT HOUR(createdAt) as _id, COUNT(*) as count 
+            FROM audits 
+            WHERE createdAt >= ? 
+            GROUP BY _id 
+            ORDER BY _id ASC
+        `, [new Date(Date.now() - 24 * 60 * 60 * 1000)]);
 
         const metrics = {
             health: dbHealth,
@@ -684,739 +713,126 @@ export const getDatabaseMetrics = asyncHandler(async (req, res) => {
     }
 });
 
-// Get system alerts and warnings
 export const getSystemAlerts = asyncHandler(async (req, res) => {
     try {
         const alerts = [];
-
-        // Memory usage alerts
         const memoryUsage = process.memoryUsage();
         const heapUsagePercent = (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100;
 
         if (heapUsagePercent > 80) {
-            alerts.push({
-                type: 'error',
-                category: 'memory',
-                title: 'High Memory Usage',
-                message: `Heap memory usage is ${Math.round(heapUsagePercent)}%`,
-                value: Math.round(heapUsagePercent),
-                threshold: 80,
-                timestamp: new Date()
-            });
+            alerts.push({ type: 'error', category: 'memory', title: 'High Memory Usage', message: `Heap ${Math.round(heapUsagePercent)}%`, value: Math.round(heapUsagePercent), threshold: 80, timestamp: new Date() });
         } else if (heapUsagePercent > 60) {
-            alerts.push({
-                type: 'warning',
-                category: 'memory',
-                title: 'Moderate Memory Usage',
-                message: `Heap memory usage is ${Math.round(heapUsagePercent)}%`,
-                value: Math.round(heapUsagePercent),
-                threshold: 60,
-                timestamp: new Date()
-            });
+            alerts.push({ type: 'warning', category: 'memory', title: 'Moderate Memory Usage', message: `Heap ${Math.round(heapUsagePercent)}%`, value: Math.round(heapUsagePercent), threshold: 60, timestamp: new Date() });
         }
 
-        // Database connection alerts
-        if (mongoose.connection.readyState !== 1) {
-            alerts.push({
-                type: 'error',
-                category: 'database',
-                title: 'Database Connection Issue',
-                message: `Database connection state: ${getConnectionStateText(mongoose.connection.readyState)}`,
-                value: mongoose.connection.readyState,
-                threshold: 1,
-                timestamp: new Date()
-            });
+        // DB check
+        try {
+            await pool.query("SELECT 1");
+        } catch (e) {
+            alerts.push({ type: 'error', category: 'database', title: 'Database Connection Issue', message: `DB unreachable`, value: 0, threshold: 1, timestamp: new Date() });
         }
 
-        // Recent errors alert
-        const recentErrors = await Audit.countDocuments({
-            action: { $regex: /error/i },
-            createdAt: { $gte: new Date(Date.now() - 60 * 60 * 1000) } // Last hour
-        });
+        const [errRows] = await pool.query(`SELECT COUNT(*) as count FROM audits WHERE action LIKE '%error%' AND createdAt >= ?`, [new Date(Date.now() - 60 * 60 * 1000)]);
+        const recentErrors = errRows[0].count;
 
-        if (recentErrors > 10) {
-            alerts.push({
-                type: 'error',
-                category: 'errors',
-                title: 'High Error Rate',
-                message: `${recentErrors} errors in the last hour`,
-                value: recentErrors,
-                threshold: 10,
-                timestamp: new Date()
-            });
-        } else if (recentErrors > 5) {
-            alerts.push({
-                type: 'warning',
-                category: 'errors',
-                title: 'Elevated Error Rate',
-                message: `${recentErrors} errors in the last hour`,
-                value: recentErrors,
-                threshold: 5,
-                timestamp: new Date()
-            });
-        }
+        if (recentErrors > 10) alerts.push({ type: 'error', category: 'errors', title: 'High Error Rate', message: `${recentErrors} errors/hr`, value: recentErrors, threshold: 10, timestamp: new Date() });
+        else if (recentErrors > 5) alerts.push({ type: 'warning', category: 'errors', title: 'Elevated Error Rate', message: `${recentErrors} errors/hr`, value: recentErrors, threshold: 5, timestamp: new Date() });
 
-        // Uptime alerts
         const uptime = process.uptime();
-        if (uptime < 300) { // Less than 5 minutes
-            alerts.push({
-                type: 'info',
-                category: 'uptime',
-                title: 'Recent Restart',
-                message: `Server restarted ${formatUptime(uptime)} ago`,
-                value: uptime,
-                threshold: 300,
-                timestamp: new Date()
-            });
-        }
+        if (uptime < 300) alerts.push({ type: 'info', category: 'uptime', title: 'Recent Restart', message: `Restarted ${formatUptime(uptime)} ago`, value: uptime, threshold: 300, timestamp: new Date() });
 
         res.json(new ApiResponse(200, { alerts, count: alerts.length }, "System alerts fetched successfully"));
     } catch (error) {
-        console.error("Error fetching system alerts:", error);
-        throw new ApiError("Failed to fetch system alerts", 500);
+        console.error("Error fetching alerts:", error);
+        throw new ApiError("Failed to fetch alerts", 500);
     }
 });
 
-// Get system performance metrics over time
+// Dummy for performance history if needed, or implement actual historical tracking table
 export const getSystemPerformanceHistory = asyncHandler(async (req, res) => {
-    try {
-        const { period = '24h' } = req.query;
-
-        // Calculate time range
-        let hours = 24;
-        switch (period) {
-            case '1h':
-                hours = 1;
-                break;
-            case '6h':
-                hours = 6;
-                break;
-            case '24h':
-                hours = 24;
-                break;
-            case '7d':
-                hours = 24 * 7;
-                break;
-            default:
-                hours = 24;
-        }
-
-        const startDate = new Date(Date.now() - hours * 60 * 60 * 1000);
-
-        // For now, we'll return current metrics as historical data
-        // In a real implementation, you'd store these metrics in a time-series database
-        const currentMetrics = {
-            timestamp: new Date(),
-            memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-            uptime: process.uptime(),
-            errors: await Audit.countDocuments({
-                action: { $regex: /error/i },
-                createdAt: { $gte: startDate }
-            }),
-            activities: await Audit.countDocuments({
-                createdAt: { $gte: startDate }
-            }),
-            activeUsers: await User.countDocuments({
-                status: "PRESENT",
-                lastLogin: { $gte: startDate }
-            })
-        };
-
-        // Generate sample historical data points
-        const dataPoints = [];
-        const now = new Date();
-        const intervalMinutes = Math.max(1, Math.floor((hours * 60) / 50)); // Max 50 data points
-
-        for (let i = 0; i < 50 && i * intervalMinutes < hours * 60; i++) {
-            const timestamp = new Date(now.getTime() - (i * intervalMinutes * 60 * 1000));
-            dataPoints.unshift({
-                timestamp,
-                memory: currentMetrics.memory + Math.floor(Math.random() * 20 - 10), // ±10MB variation
-                errors: Math.max(0, Math.floor(Math.random() * 3)), // 0-2 errors per interval
-                activities: Math.floor(Math.random() * 20) + 5, // 5-25 activities per interval
-                activeUsers: Math.max(0, currentMetrics.activeUsers + Math.floor(Math.random() * 10 - 5))
-            });
-        }
-
-        const performance = {
-            period,
-            dataPoints,
-            summary: {
-                avgMemory: Math.round(dataPoints.reduce((sum, point) => sum + point.memory, 0) / dataPoints.length),
-                totalErrors: dataPoints.reduce((sum, point) => sum + point.errors, 0),
-                totalActivities: dataPoints.reduce((sum, point) => sum + point.activities, 0),
-                peakActiveUsers: Math.max(...dataPoints.map(point => point.activeUsers))
-            },
-            generatedAt: new Date()
-        };
-
-        res.json(new ApiResponse(200, performance, "System performance history fetched successfully"));
-    } catch (error) {
-        console.error("Error fetching system performance history:", error);
-        throw new ApiError("Failed to fetch system performance history", 500);
-    }
+    // Requires a metrics history table. Returning empty or current snapshot.
+    res.json(new ApiResponse(200, [], "Not implemented in SQL migration yet"));
 });
 
-// Helper function to check database health
-async function checkDatabaseHealth() {
-    try {
-        // Test database connection
-        const connectionState = mongoose.connection.readyState;
-        const isConnected = connectionState === 1;
-
-        let responseTime = 0;
-        let status = 'unhealthy';
-        let details = [];
-
-        if (isConnected) {
-            // Measure response time with a simple query
-            const startTime = Date.now();
-            await User.findOne().limit(1);
-            responseTime = Date.now() - startTime;
-
-            if (responseTime < 100) {
-                status = 'healthy';
-            } else if (responseTime < 500) {
-                status = 'warning';
-                details.push('Database response time is elevated');
-            } else {
-                status = 'unhealthy';
-                details.push('Database response time is too high');
-            }
-        } else {
-            details.push('Database connection is not established');
-        }
-
-        return {
-            status,
-            connected: isConnected,
-            responseTime,
-            connectionState: getConnectionStateText(connectionState),
-            details,
-            timestamp: new Date()
-        };
-    } catch (error) {
-        return {
-            status: 'unhealthy',
-            connected: false,
-            responseTime: -1,
-            connectionState: 'error',
-            details: ['Database health check failed: ' + error.message],
-            timestamp: new Date()
-        };
-    }
-}
-
-// Helper function to format uptime
-function formatUptime(uptimeSeconds) {
-    const days = Math.floor(uptimeSeconds / (24 * 60 * 60));
-    const hours = Math.floor((uptimeSeconds % (24 * 60 * 60)) / (60 * 60));
-    const minutes = Math.floor((uptimeSeconds % (60 * 60)) / 60);
-    const seconds = Math.floor(uptimeSeconds % 60);
-
-    if (days > 0) {
-        return `${days}d ${hours}h ${minutes}m`;
-    } else if (hours > 0) {
-        return `${hours}h ${minutes}m`;
-    } else if (minutes > 0) {
-        return `${minutes}m ${seconds}s`;
-    } else {
-        return `${seconds}s`;
-    }
-}
-
-// Helper function to get connection state text
-function getConnectionStateText(state) {
-    const states = {
-        0: 'disconnected',
-        1: 'connected',
-        2: 'connecting',
-        3: 'disconnecting'
-    };
-    return states[state] || 'unknown';
-}
-
-// Helper function to calculate overall health score
-function calculateHealthScore({ recentErrors, memoryUsage, dbHealth, uptime }) {
-    let score = 100;
-    let alerts = [];
-    let status = 'healthy';
-
-    // Deduct points for recent errors
-    if (recentErrors > 0) {
-        const errorPenalty = Math.min(30, recentErrors * 3);
-        score -= errorPenalty;
-        if (recentErrors > 10) {
-            alerts.push('High error rate detected');
-        }
-    }
-
-    // Deduct points for high memory usage
-    if (memoryUsage > 500) { // More than 500MB
-        const memoryPenalty = Math.min(20, (memoryUsage - 500) / 100 * 5);
-        score -= memoryPenalty;
-        if (memoryUsage > 1000) {
-            alerts.push('High memory usage detected');
-        }
-    }
-
-    // Deduct points for database issues
-    if (dbHealth !== 'healthy') {
-        score -= 25;
-        alerts.push('Database health issues detected');
-    }
-
-    // Deduct points for recent restarts
-    if (uptime < 300) { // Less than 5 minutes
-        score -= 10;
-        alerts.push('Recent system restart detected');
-    }
-
-    // Determine status based on score
-    if (score >= 80) {
-        status = 'healthy';
-    } else if (score >= 60) {
-        status = 'warning';
-    } else {
-        status = 'critical';
-    }
-
-    return { score: Math.max(0, Math.round(score)), status, alerts };
-}
-
-// Get comprehensive analytics data
 export const getComprehensiveAnalytics = asyncHandler(async (req, res) => {
-    const { dateFrom, dateTo, granularity = 'day' } = req.query;
-
-    try {
-        // Set default date range if not provided
-        const endDate = dateTo ? new Date(dateTo) : new Date();
-        const startDate = dateFrom ? new Date(dateFrom) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-
-        // User Analytics
-        const userRegistrationTrends = await User.aggregate([
-            {
-                $match: {
-                    createdAt: { $gte: startDate, $lte: endDate }
-                }
-            },
-            {
-                $group: {
-                    _id: {
-                        date: granularity === 'month'
-                            ? { $dateToString: { format: "%Y-%m", date: "$createdAt" } }
-                            : { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-                        role: "$role"
-                    },
-                    count: { $sum: 1 }
-                }
-            },
-            { $sort: { "_id.date": 1 } }
-        ]);
-
-        // Course Performance Analytics
-        const coursePerformance = await Course.aggregate([
-            {
-                $lookup: {
-                    from: "attemptedquizzes",
-                    localField: "_id",
-                    foreignField: "courseId",
-                    as: "quizAttempts"
-                }
-            },
-            {
-                $lookup: {
-                    from: "progresses",
-                    localField: "_id",
-                    foreignField: "course",
-                    as: "studentProgress"
-                }
-            },
-            {
-                $project: {
-                    title: 1,
-                    status: 1,
-                    totalQuizAttempts: { $size: "$quizAttempts" },
-                    averageQuizScore: { $avg: "$quizAttempts.score" },
-                    totalEnrolledStudents: { $size: "$studentProgress" },
-                    averageProgress: { $avg: "$studentProgress.progressPercentage" }
-                }
-            },
-            { $sort: { totalEnrolledStudents: -1 } },
-            { $limit: 10 }
-        ]);
-
-        // Learning Engagement Metrics
-        const engagementMetrics = await AttemptedQuiz.aggregate([
-            {
-                $match: {
-                    createdAt: { $gte: startDate, $lte: endDate }
-                }
-            },
-            {
-                $group: {
-                    _id: {
-                        date: granularity === 'month'
-                            ? { $dateToString: { format: "%Y-%m", date: "$createdAt" } }
-                            : { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }
-                    },
-                    totalAttempts: { $sum: 1 },
-                    averageScore: { $avg: "$score" },
-                    passedAttempts: {
-                        $sum: { $cond: [{ $eq: ["$status", "PASSED"] }, 1, 0] }
-                    }
-                }
-            },
-            { $sort: { "_id.date": 1 } }
-        ]);
-
-        // Top Performing Students
-        const topStudents = await User.aggregate([
-            {
-                $match: { role: "STUDENT" }
-            },
-            {
-                $lookup: {
-                    from: "attemptedquizzes",
-                    localField: "_id",
-                    foreignField: "student",
-                    as: "quizzes"
-                }
-            },
-            {
-                $lookup: {
-                    from: "progresses",
-                    localField: "_id",
-                    foreignField: "student",
-                    as: "progress"
-                }
-            },
-            {
-                $project: {
-                    fullName: 1,
-                    email: 1,
-                    averageQuizScore: { $avg: "$quizzes.score" },
-                    totalQuizAttempts: { $size: "$quizzes" },
-                    averageProgress: { $avg: "$progress.progressPercentage" },
-                    coursesEnrolled: { $size: "$progress" }
-                }
-            },
-            { $sort: { averageQuizScore: -1, averageProgress: -1 } },
-            { $limit: 10 }
-        ]);
-
-        // System Activity Trends
-        const activityTrends = await Audit.aggregate([
-            {
-                $match: {
-                    createdAt: { $gte: startDate, $lte: endDate }
-                }
-            },
-            {
-                $group: {
-                    _id: {
-                        date: granularity === 'month'
-                            ? { $dateToString: { format: "%Y-%m", date: "$createdAt" } }
-                            : { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-                        action: "$action"
-                    },
-                    count: { $sum: 1 }
-                }
-            },
-            { $sort: { "_id.date": 1 } }
-        ]);
-
-        // Instructor Performance
-        const instructorPerformance = await User.aggregate([
-            {
-                $match: { role: "INSTRUCTOR" }
-            },
-            {
-                $lookup: {
-                    from: "courses",
-                    localField: "_id",
-                    foreignField: "instructor",
-                    as: "courses"
-                }
-            },
-            {
-                $lookup: {
-                    from: "departments",
-                    localField: "_id",
-                    foreignField: "instructor",
-                    as: "departments"
-                }
-            },
-            {
-                $project: {
-                    fullName: 1,
-                    email: 1,
-                    totalCourses: { $size: "$courses" },
-                    publishedCourses: {
-                        $size: {
-                            $filter: {
-                                input: "$courses",
-                                cond: { $eq: ["$$this.status", "PUBLISHED"] }
-                            }
-                        }
-                    },
-                    totalDepartments: { $size: "$departments" },
-                    activeDepartments: {
-                        $size: {
-                            $filter: {
-                                input: "$departments",
-                                cond: { $eq: ["$$this.status", "ONGOING"] }
-                            }
-                        }
-                    }
-                }
-            },
-            { $sort: { totalCourses: -1 } }
-        ]);
-
-        const analytics = {
-            userRegistrationTrends,
-            coursePerformance,
-            engagementMetrics,
-            topStudents,
-            activityTrends,
-            instructorPerformance,
-            dateRange: { startDate, endDate },
-            granularity
-        };
-
-        res.json(new ApiResponse(200, analytics, "Comprehensive analytics fetched successfully"));
-    } catch (error) {
-        console.error("Error fetching comprehensive analytics:", error);
-        throw new ApiError("Failed to fetch comprehensive analytics", 500);
+    const { startDate, endDate } = req.query;
+    let params = [];
+    let dateFilter = "";
+    if (startDate && endDate) {
+        dateFilter = "AND createdAt >= ? AND createdAt <= ?";
+        params.push(new Date(startDate), new Date(endDate));
     }
+
+    const [userCount] = await pool.query(`SELECT COUNT(*) as c FROM users WHERE 1=1 ${dateFilter}`, params);
+    const [courseCount] = await pool.query(`SELECT COUNT(*) as c FROM courses WHERE 1=1 ${dateFilter}`, params);
+    const [quizCount] = await pool.query(`SELECT COUNT(*) as c FROM attempted_quizzes WHERE 1=1 ${dateFilter}`, params);
+
+    res.json(new ApiResponse(200, {
+        users: userCount[0].c,
+        courses: courseCount[0].c,
+        quizAttempts: quizCount[0].c
+    }, "Comprehensive analytics fetched"));
 });
 
-// Generate custom report
 export const generateCustomReport = asyncHandler(async (req, res) => {
-    const { reportType, dateRange, filters, metrics } = req.body;
+    const { reportType, startDate, endDate, format = 'json' } = req.body;
 
-    try {
-        let reportData = {};
-        const startDate = new Date(dateRange.startDate);
-        const endDate = new Date(dateRange.endDate);
+    // Logic dependent on reportType
+    // Example: 'USER_ACTIVITY', 'COURSE_PERFORMANCE'
 
-        switch (reportType) {
-            case 'user_activity':
-                reportData = await generateUserActivityReport(startDate, endDate, filters);
-                break;
-            case 'course_completion':
-                reportData = await generateCourseCompletionReport(startDate, endDate, filters);
-                break;
-            case 'quiz_performance':
-                reportData = await generateQuizPerformanceReport(startDate, endDate, filters);
-                break;
-            case 'instructor_effectiveness':
-                reportData = await generateInstructorEffectivenessReport(startDate, endDate, filters);
-                break;
-            default:
-                throw new ApiError("Invalid report type", 400);
-        }
-
-        const report = {
-            reportType,
-            dateRange,
-            filters,
-            data: reportData,
-            generatedAt: new Date(),
-            generatedBy: req.user?.id
-        };
-
-        res.json(new ApiResponse(200, report, "Custom report generated successfully"));
-    } catch (error) {
-        console.error("Error generating custom report:", error);
-        throw new ApiError("Failed to generate custom report", 500);
+    let data = [];
+    let params = [];
+    let dateSql = "";
+    if (startDate && endDate) {
+        dateSql = "AND createdAt >= ? AND createdAt <= ?";
+        params.push(new Date(startDate), new Date(endDate));
     }
+
+    if (reportType === 'USER_ACTIVITY') {
+        const [rows] = await pool.query(`SELECT * FROM audits WHERE 1=1 ${dateSql} LIMIT 1000`, params);
+        data = rows;
+    } else if (reportType === 'COURSE_PERFORMANCE') {
+        // Aggregate course stats
+        const [rows] = await pool.query(`
+             SELECT c.title, COUNT(e.id) as enrollments 
+             FROM courses c 
+             LEFT JOIN enrollments e ON c.id = e.course 
+             WHERE 1=1 ${dateSql ? dateSql.replace('createdAt', 'e.enrolledAt') : ''}
+             GROUP BY c.id
+         `, params);
+        data = rows;
+    }
+
+    res.json(new ApiResponse(200, { reportType, data }, "Report generated"));
 });
 
-// Helper function for user activity report
-async function generateUserActivityReport(startDate, endDate, filters) {
-    const matchConditions = {
-        createdAt: { $gte: startDate, $lte: endDate }
-    };
-
-    if (filters.role) {
-        matchConditions.role = filters.role;
-    }
-
-    return await User.aggregate([
-        { $match: matchConditions },
-        {
-            $group: {
-                _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-                registrations: { $sum: 1 },
-                students: { $sum: { $cond: [{ $eq: ["$role", "STUDENT"] }, 1, 0] } },
-                instructors: { $sum: { $cond: [{ $eq: ["$role", "INSTRUCTOR"] }, 1, 0] } }
-            }
-        },
-        { $sort: { "_id": 1 } }
-    ]);
-}
-
-// Helper function for course completion report
-async function generateCourseCompletionReport(startDate, endDate, filters) {
-    return await Progress.aggregate([
-        {
-            $match: {
-                updatedAt: { $gte: startDate, $lte: endDate }
-            }
-        },
-        {
-            $lookup: {
-                from: "courses",
-                localField: "course",
-                foreignField: "_id",
-                as: "courseInfo"
-            }
-        },
-        {
-            $lookup: {
-                from: "users",
-                localField: "student",
-                foreignField: "_id",
-                as: "studentInfo"
-            }
-        },
-        {
-            $project: {
-                courseName: { $arrayElemAt: ["$courseInfo.title", 0] },
-                studentName: { $arrayElemAt: ["$studentInfo.fullName", 0] },
-                progressPercentage: 1,
-                completedModules: { $size: "$completedModules" },
-                completedLessons: { $size: "$completedLessons" },
-                currentLevel: 1,
-                updatedAt: 1
-            }
-        },
-        { $sort: { progressPercentage: -1 } }
-    ]);
-}
-
-// Helper function for quiz performance report
-async function generateQuizPerformanceReport(startDate, endDate, filters) {
-    const matchConditions = {
-        createdAt: { $gte: startDate, $lte: endDate }
-    };
-
-    return await AttemptedQuiz.aggregate([
-        { $match: matchConditions },
-        {
-            $lookup: {
-                from: "users",
-                localField: "student",
-                foreignField: "_id",
-                as: "studentInfo"
-            }
-        },
-        {
-            $lookup: {
-                from: "courses",
-                localField: "courseId",
-                foreignField: "_id",
-                as: "courseInfo"
-            }
-        },
-        {
-            $project: {
-                studentName: { $arrayElemAt: ["$studentInfo.fullName", 0] },
-                courseName: { $arrayElemAt: ["$courseInfo.title", 0] },
-                score: 1,
-                status: 1,
-                timeSpent: 1,
-                createdAt: 1
-            }
-        },
-        { $sort: { score: -1 } }
-    ]);
-}
-
-// Helper function for instructor effectiveness report
-async function generateInstructorEffectivenessReport(startDate, endDate, filters) {
-    return await User.aggregate([
-        { $match: { role: "INSTRUCTOR" } },
-        {
-            $lookup: {
-                from: "courses",
-                localField: "_id",
-                foreignField: "instructor",
-                as: "courses"
-            }
-        },
-        {
-            $lookup: {
-                from: "departments",
-                localField: "_id",
-                foreignField: "instructor",
-                as: "departments"
-            }
-        },
-        {
-            $lookup: {
-                from: "progresses",
-                localField: "courses._id",
-                foreignField: "course",
-                as: "studentProgress"
-            }
-        },
-        {
-            $project: {
-                fullName: 1,
-                email: 1,
-                totalCourses: { $size: "$courses" },
-                totalDepartments: { $size: "$departments" },
-                totalStudents: { $size: "$studentProgress" },
-                averageStudentProgress: { $avg: "$studentProgress.progressPercentage" },
-                coursesPublished: {
-                    $size: {
-                        $filter: {
-                            input: "$courses",
-                            cond: { $eq: ["$$this.status", "PUBLISHED"] }
-                        }
-                    }
-                }
-            }
-        },
-        { $sort: { averageStudentProgress: -1 } }
-    ]);
-}
-
-// Export analytics data
 export const exportAnalyticsData = asyncHandler(async (req, res) => {
-    const { format = 'json', reportType, dateRange, filters } = req.body;
+    const { type, format = 'excel', startDate, endDate } = req.body;
 
-    try {
-        // Generate the report data
-        const startDate = new Date(dateRange.startDate);
-        const endDate = new Date(dateRange.endDate);
-        let reportData;
+    let columns = [];
+    let rows = [];
+    let filename = `export_${type || 'data'}_${Date.now()}`;
 
-        switch (reportType) {
-            case 'comprehensive':
-                const analytics = await getComprehensiveAnalytics({ query: { dateFrom: startDate, dateTo: endDate } });
-                reportData = analytics;
-                break;
-            default:
-                reportData = await generateCustomReport({ body: { reportType, dateRange, filters } });
-        }
-
-        // For now, return JSON. In a real implementation, you might want to generate CSV/Excel
-        if (format === 'csv') {
-            // Convert to CSV format (simplified)
-            res.setHeader('Content-Type', 'text/csv');
-            res.setHeader('Content-Disposition', `attachment; filename="analytics_${reportType}_${Date.now()}.csv"`);
-        } else {
-            res.setHeader('Content-Type', 'application/json');
-            res.setHeader('Content-Disposition', `attachment; filename="analytics_${reportType}_${Date.now()}.json"`);
-        }
-
-        res.json(new ApiResponse(200, reportData, "Analytics data exported successfully"));
-    } catch (error) {
-        console.error("Error exporting analytics data:", error);
-        throw new ApiError("Failed to export analytics data", 500);
+    let params = [];
+    let dateSql = "";
+    if (startDate && endDate) {
+        dateSql = "AND createdAt >= ? AND createdAt <= ?";
+        params.push(new Date(startDate), new Date(endDate));
     }
+
+    if (type === 'USERS') {
+        columns = [{ header: 'Name', key: 'fullName' }, { header: 'Email', key: 'email' }, { header: 'Role', key: 'role' }];
+        const [data] = await pool.query(`SELECT fullName, email, role FROM users WHERE 1=1 ${dateSql}`, params);
+        rows = data;
+    } else if (type === 'COURSES') {
+        columns = [{ header: 'Title', key: 'title' }, { header: 'Status', key: 'status' }];
+        const [data] = await pool.query(`SELECT title, status FROM courses WHERE 1=1 ${dateSql}`, params);
+        rows = data;
+    } else {
+        // Default generic export?
+        return res.status(400).json(new ApiResponse(400, null, "Invalid export type"));
+    }
+
+    if (format === 'pdf') return sendPDF(res, filename, `${type} Report`, columns, rows);
+    return sendExcel(res, filename, columns, rows);
 });

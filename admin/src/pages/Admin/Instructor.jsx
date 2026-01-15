@@ -173,10 +173,11 @@ const Instructor = () => {
     departments.forEach((department) => {
       if (!department?.instructor) return;
 
+      const instructorRaw = department.instructor;
       const instructorId =
-        typeof department.instructor === "object"
-          ? department.instructor?._id
-          : department.instructor;
+        typeof instructorRaw === "object"
+          ? (instructorRaw?._id || instructorRaw?.id)?.toString()
+          : instructorRaw?.toString();
 
       if (!instructorId) return;
 
@@ -246,7 +247,8 @@ const Instructor = () => {
   // Filter instructors based on department and unit (status handled by API)
   const filteredInstructors = useMemo(() => {
     return instructors.filter((instructor) => {
-      const departmentsForInstructor = instructorDepartmentMap[instructor._id] || [];
+      const instId = (instructor._id || instructor.id)?.toString();
+      const departmentsForInstructor = instructorDepartmentMap[instId] || [];
       const hasDepartment = departmentsForInstructor.length > 0;
 
       const departmentMatch =
@@ -530,7 +532,8 @@ const Instructor = () => {
   };
 
   const getStatusBadge = (status) => {
-    switch (status) {
+    const s = status || "PRESENT";
+    switch (s) {
       case "PRESENT":
         return (
           <Badge variant="success" className="flex items-center gap-1 w-fit">
@@ -593,7 +596,8 @@ const Instructor = () => {
   };
 
   const getDepartmentInfo = (instructor) => {
-    const departmentsForInstructor = instructorDepartmentMap[instructor._id] || [];
+    const instId = (instructor._id || instructor.id)?.toString();
+    const departmentsForInstructor = instructorDepartmentMap[instId] || [];
 
     if (!departmentsForInstructor.length) {
       return (
@@ -1205,10 +1209,9 @@ const Instructor = () => {
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ACTIVE">Active</SelectItem>
-                  <SelectItem value="PENDING">Pending</SelectItem>
-                  <SelectItem value="SUSPENDED">Suspended</SelectItem>
-                  <SelectItem value="BANNED">Banned</SelectItem>
+                  <SelectItem value="PRESENT">Present</SelectItem>
+                  <SelectItem value="ON_LEAVE">On Leave</SelectItem>
+                  <SelectItem value="LEFT">Left</SelectItem>
                 </SelectContent>
               </Select>
             </div>

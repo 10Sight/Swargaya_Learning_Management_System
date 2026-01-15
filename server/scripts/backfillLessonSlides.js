@@ -1,28 +1,28 @@
-import mongoose from 'mongoose';
-import ENV from '../configs/env.config.js';
+import { pool } from '../db/connectDB.js';
 import Lesson from '../models/lesson.model.js';
 
 (async () => {
   try {
-    if (!ENV.MONGO_URI) {
-      console.error('MONGO_URI not set');
-      process.exit(1);
-    }
-    await mongoose.connect(ENV.MONGO_URI, { dbName: mongoose.connection?.client?.s?.options?.dbName || undefined });
-    console.log('Connected to MongoDB');
+    console.log('Starting backfill for lesson slides (SQL)...');
 
-    const cursor = Lesson.find({ $or: [ { slides: { $exists: false } }, { slides: { $size: 0 } } ] }).cursor();
+    // Find lessons where slides are missing or empty
+    const [lessons] = await pool.query("SELECT * FROM lessons WHERE slides IS NULL OR JSON_LENGTH(slides) = 0");
+
     let updated = 0;
-    for (let doc = await cursor.next(); doc != null; doc = await cursor.next()) {
-      const contentHtml = (doc.content && String(doc.content).trim().length > 0) ? String(doc.content) : '';
+    for (const row of lessons) {
+      const lesson = new Lesson(row);
+      const contentHtml = (lesson.content && String(lesson.content).trim().length > 0) ? String(lesson.content) : '';
+
       const slides = contentHtml
         ? [{ order: 1, contentHtml, bgColor: '#ffffff', images: [] }]
         : [];
-      doc.slides = slides;
-      await doc.save();
+
+      lesson.slides = slides;
+      await lesson.save();
       updated += 1;
     }
-    await mongoose.disconnect();
+
+    console.log(`Backfill complete. Updated ${updated} lessons.`);
     process.exit(0);
   } catch (err) {
     console.error('Backfill failed:', err);

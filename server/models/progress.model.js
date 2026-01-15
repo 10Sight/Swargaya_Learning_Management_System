@@ -1,341 +1,399 @@
-import { Schema, model } from "mongoose";
+import { pool } from "../db/connectDB.js";
+import logger from "../logger/winston.logger.js";
 import Course from "./course.model.js";
 import Module from "./module.model.js";
 
-const progressSchema = new Schema(
-  {
-    student: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-    course: {
-      type: Schema.Types.ObjectId,
-      ref: "Course",
-      required: true,
-    },
+class Progress {
+  constructor(data) {
+    this.id = data.id;
+    this._id = data.id; // Compatibility
 
-    completedLessons: [
-      {
-        lessonId: { type: Schema.Types.ObjectId, required: true },
-        completedAt: { type: Date, default: Date.now },
-      },
-    ],
+    this.student = data.student;
+    this.course = data.course;
 
-    completedModules: [
-      {
-        moduleId: { type: Schema.Types.ObjectId, required: true },
-        completedAt: { type: Date, default: Date.now },
-      },
-    ],
+    this.completedLessons = typeof data.completedLessons === 'string' ? JSON.parse(data.completedLessons) : (data.completedLessons || []);
+    this.completedModules = typeof data.completedModules === 'string' ? JSON.parse(data.completedModules) : (data.completedModules || []);
+    this.quizzes = typeof data.quizzes === 'string' ? JSON.parse(data.quizzes) : (data.quizzes || []);
+    this.assignments = typeof data.assignments === 'string' ? JSON.parse(data.assignments) : (data.assignments || []);
 
-    quizzes: [
-      {
-        quiz: { type: Schema.Types.ObjectId, ref: "Quiz", required: true },
-        score: { type: Number, default: 0 },
-        isPassed: { type: Boolean, default: false },
-        attemptedAt: { type: Date, default: Date.now },
-      },
-    ],
+    this.currentLevel = data.currentLevel || "L1";
+    this.levelLockEnabled = !!data.levelLockEnabled;
+    this.lockedLevel = data.lockedLevel || null;
 
-    assignments: [
-      {
-        assignment: { type: Schema.Types.ObjectId, ref: "Assignment", required: true },
-        fileUrl: { type: String, required: true },
-        grade: { type: Number, min: 0, max: 100 },
-        submittedAt: { type: Date, default: Date.now },
-      },
-    ],
+    this.progressPercent = data.progressPercent !== undefined ? data.progressPercent : 0;
+    this.lastAccessed = data.lastAccessed ? new Date(data.lastAccessed) : new Date();
+    this.currentAccessibleModule = data.currentAccessibleModule;
 
-    currentLevel: {
-      type: String,
-      default: "L1"
-      // Removed enum to support dynamic levels from CourseLevelConfig
-    },
+    this.timelineViolations = typeof data.timelineViolations === 'string' ? JSON.parse(data.timelineViolations) : (data.timelineViolations || []);
+    this.timelineNotifications = typeof data.timelineNotifications === 'string' ? JSON.parse(data.timelineNotifications) : (data.timelineNotifications || []);
 
-    // Admin-controlled level lock: when enabled, automatic promotions are disabled
-    levelLockEnabled: {
-      type: Boolean,
-      default: false
-    },
-    // If set, currentLevel will be enforced to this value while lock is enabled
-    lockedLevel: {
-      type: String,
-      default: null
-      // Removed enum to support dynamic levels from CourseLevelConfig
-    },
-
-    progressPercent: {
-      type: Number,
-      default: 0,
-      min: 0,
-      max: 100,
-    },
-
-    lastAccessed: {
-      type: Date,
-      default: Date.now,
-    },
-
-    // Timeline-based module access control
-    currentAccessibleModule: {
-      type: Schema.Types.ObjectId,
-      ref: "Module",
-    },
-    
-    // Track timeline violations and demotions
-    timelineViolations: [{
-      module: {
-        type: Schema.Types.ObjectId,
-        ref: "Module",
-        required: true,
-      },
-      deadline: {
-        type: Date,
-        required: true,
-      },
-      violatedAt: {
-        type: Date,
-        default: Date.now,
-      },
-      demotedFromModule: {
-        type: Schema.Types.ObjectId,
-        ref: "Module",
-      },
-      demotedToModule: {
-        type: Schema.Types.ObjectId,
-        ref: "Module",
-      },
-      reason: {
-        type: String,
-        default: 'TIMELINE_VIOLATION',
-      },
-    }],
-    
-    // Track notifications sent to student
-    timelineNotifications: [{
-      type: {
-        type: String,
-        enum: ['WARNING', 'DEMOTION', 'DEADLINE_REMINDER'],
-        required: true,
-      },
-      module: {
-        type: Schema.Types.ObjectId,
-        ref: "Module",
-        required: true,
-      },
-      message: {
-        type: String,
-        required: true,
-      },
-      sentAt: {
-        type: Date,
-        default: Date.now,
-      },
-      read: {
-        type: Boolean,
-        default: false,
-      },
-    }],
-  },
-  { timestamps: true }
-);
-
-progressSchema.index({ student: 1, course: 1 }, { unique: true });
-progressSchema.index({ course: 1 });
-progressSchema.index({ student: 1 });
-progressSchema.index({ "completedLessons.lessonId": 1 });
-progressSchema.index({ "completedModules.moduleId": 1 });
-progressSchema.index({ lastAccessed: 1 });
-progressSchema.index({ currentAccessibleModule: 1 });
-progressSchema.index({ "timelineViolations.module": 1 });
-progressSchema.index({ "timelineNotifications.read": 1 });
-
-progressSchema.methods.calculateProgress = async function () {
-  const course = await Course.findById(this.course).lean();
-
-  if (!course) return this.progressPercent;
-
-  // Get total lessons by querying modules directly since course.modules contains only IDs
-  let totalLessons = 0;
-  let totalModules = 0;
-  if (course.modules && course.modules.length > 0) {
-    const modules = await Module.find({ 
-      _id: { $in: course.modules },
-      course: this.course 
-    }).lean();
-    totalModules = modules.length;
-    totalLessons = modules.reduce(
-      (count, mod) => count + (mod.lessons?.length || 0),
-      0
-    );
+    this.createdAt = data.createdAt;
+    this.updatedAt = data.updatedAt;
   }
- 
-  const completedLessons = this.completedLessons.length;
-  const completedModules = this.completedModules.length;
- 
-  const lessonWeight = 0.7;
-  const quizWeight = 0.2;
-  const assignmentWeight = 0.1;
- 
-  // If no lessons are defined, approximate lessonProgress using modules
-  let lessonProgress = 0;
-  if (totalLessons > 0) {
-    lessonProgress = (completedLessons / totalLessons) * 100;
-  } else if (totalModules > 0) {
-    lessonProgress = (completedModules / totalModules) * 100;
-  }
- 
-  const passedQuizzes = this.quizzes.filter((q) => q.isPassed).length;
-  const totalQuizzes = course.quizzes?.length || 0;
-  const quizProgress = totalQuizzes > 0 ? (passedQuizzes / totalQuizzes) * 100 : 0;
- 
-  const submittedAssignments = this.assignments.length;
-  const totalAssignments = course.assignments?.length || 0;
-  const assignmentProgress = totalAssignments > 0 ? (submittedAssignments / totalAssignments) * 100 : 0;
- 
-  // Dynamically normalize weights based on available components
-  const parts = [];
-  const weights = [];
-  if (totalLessons > 0 || totalModules > 0) { parts.push(lessonProgress); weights.push(lessonWeight); }
-  if (totalQuizzes > 0) { parts.push(quizProgress); weights.push(quizWeight); }
-  if (totalAssignments > 0) { parts.push(assignmentProgress); weights.push(assignmentWeight); }
-  
-  let totalProgress = 0;
-  if (parts.length > 0) {
-    const weighted = parts.reduce((sum, val, idx) => sum + val * weights[idx], 0);
-    const weightSum = weights.reduce((a,b)=>a+b,0);
-    totalProgress = weighted / (weightSum || 1);
-  }
- 
-  this.progressPercent = Math.min(100, Math.round(totalProgress));
-  return this.progressPercent;
-};
 
-// Method to determine current accessible module based on completed modules and timeline
-progressSchema.methods.updateCurrentAccessibleModule = async function() {
-  try {
-    const course = await Course.findById(this.course).populate('modules');
-    if (!course || !course.modules || course.modules.length === 0) {
-      return;
+  static async init() {
+    const query = `
+            CREATE TABLE IF NOT EXISTS progress (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                student VARCHAR(255) NOT NULL,
+                course VARCHAR(255) NOT NULL,
+                completedLessons TEXT,
+                completedModules TEXT,
+                quizzes TEXT,
+                assignments TEXT,
+                currentLevel VARCHAR(50) DEFAULT 'L1',
+                levelLockEnabled BOOLEAN DEFAULT FALSE,
+                lockedLevel VARCHAR(50),
+                progressPercent DECIMAL(5, 2) DEFAULT 0,
+                lastAccessed DATETIME,
+                currentAccessibleModule VARCHAR(255),
+                timelineViolations TEXT,
+                timelineNotifications TEXT,
+                createdAt DATETIME,
+                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_student_course (student, course),
+                INDEX idx_student (student),
+                INDEX idx_course (course)
+            )
+        `;
+    try {
+      await pool.query(query);
+    } catch (error) {
+      logger.error("Failed to initialize Progress table", error);
     }
+  }
 
-    // Sort modules by order
-    const sortedModules = course.modules.sort((a, b) => a.order - b.order);
-    
-    // Find the next incomplete module
-    let nextModule = null;
-    for (const module of sortedModules) {
-      const isCompleted = this.completedModules.some(
-        completed => completed.moduleId.toString() === module._id.toString()
-      );
-      
-      if (!isCompleted) {
-        nextModule = module;
-        break;
+  static async create(data) {
+    // Validation/Defaults logic could go here
+    const progress = new Progress(data);
+
+    // Initial Calculation (optional, but good practice if data provided implies progress)
+    // await progress.calculateProgress(); // Might require saving first or mocking the context
+
+    const fields = [
+      "student", "course", "completedLessons", "completedModules",
+      "quizzes", "assignments", "currentLevel", "levelLockEnabled",
+      "lockedLevel", "progressPercent", "lastAccessed", "currentAccessibleModule",
+      "timelineViolations", "timelineNotifications", "createdAt"
+    ];
+
+    if (!progress.createdAt) progress.createdAt = new Date();
+
+    const values = fields.map(field => {
+      let val = progress[field];
+      if (['completedLessons', 'completedModules', 'quizzes', 'assignments', 'timelineViolations', 'timelineNotifications'].includes(field)) {
+        return JSON.stringify(val);
       }
+      if (val === undefined) return null;
+      return val;
+    });
+
+    const placeholders = fields.map(() => "?").join(",");
+    const query = `INSERT INTO progress (${fields.join(",")}) VALUES (${placeholders})`;
+
+    const [result] = await pool.query(query, values);
+    return Progress.findById(result.insertId);
+  }
+
+  static async findById(id) {
+    const [rows] = await pool.query("SELECT * FROM progress WHERE id = ?", [id]);
+    if (rows.length === 0) return null;
+    return new Progress(rows[0]);
+  }
+
+  static async findOne(query) {
+    const keys = Object.keys(query).filter(key => query[key] !== undefined);
+    if (keys.length === 0) return null;
+
+    const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
+    const values = keys.map(key => query[key]);
+
+    const [rows] = await pool.query(`SELECT * FROM progress WHERE ${whereClause} LIMIT 1`, values);
+    if (rows.length === 0) return null;
+    return new Progress(rows[0]);
+  }
+
+  static async find(query = {}) {
+    const keys = Object.keys(query).filter(key => query[key] !== undefined);
+    let sql = "SELECT * FROM progress";
+    let values = [];
+
+    if (keys.length > 0) {
+      const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
+      sql += ` WHERE ${whereClause}`;
+      values = keys.map(key => query[key]);
     }
-    
-    // If all modules are completed, set to null
-    this.currentAccessibleModule = nextModule ? nextModule._id : null;
-  } catch (error) {
-    console.error('Error updating current accessible module:', error);
+
+    const [rows] = await pool.query(sql, values);
+    return rows.map(row => new Progress(row));
   }
-};
 
-// Method to demote student to previous module
-progressSchema.methods.demoteToModule = async function(targetModuleId, reason = 'TIMELINE_VIOLATION') {
-  try {
-    // Remove completion records for modules after the target module
-    const course = await Course.findById(this.course).populate('modules');
-    if (!course) return;
+  static async countDocuments(query = {}) {
+    const keys = Object.keys(query).filter(key => query[key] !== undefined);
+    let sql = "SELECT COUNT(*) as count FROM progress";
+    let values = [];
 
-    const targetModule = course.modules.find(m => m._id.toString() === targetModuleId.toString());
-    if (!targetModule) return;
+    if (keys.length > 0) {
+      const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
+      sql += ` WHERE ${whereClause}`;
+      values = keys.map(key => query[key]);
+    }
 
-    // Get all modules that come after the target module
-    const modulesToRemove = course.modules
-      .filter(m => m.order > targetModule.order)
-      .map(m => m._id.toString());
-
-    // Remove completion records for these modules
-    this.completedModules = this.completedModules.filter(
-      completed => !modulesToRemove.includes(completed.moduleId.toString())
-    );
-
-    // Also remove lesson completions for lessons in these modules
-    const ModuleModel = this.constructor.base.model('Module');
-    const modulesData = await ModuleModel.find({
-      _id: { $in: modulesToRemove }
-    }).select('lessons');
-    
-    const lessonsToRemove = modulesData.reduce((acc, mod) => {
-      return acc.concat(mod.lessons.map(l => l.toString()));
-    }, []);
-
-    this.completedLessons = this.completedLessons.filter(
-      completed => !lessonsToRemove.includes(completed.lessonId.toString())
-    );
-
-    // Update current accessible module
-    this.currentAccessibleModule = targetModuleId;
-    
-    return true;
-  } catch (error) {
-    console.error('Error demoting student:', error);
-    return false;
+    const [rows] = await pool.query(sql, values);
+    return rows[0].count;
   }
-};
 
-// Method to add timeline violation record
-progressSchema.methods.addTimelineViolation = function(moduleId, deadline, demotedFromModuleId, demotedToModuleId) {
-  this.timelineViolations.push({
-    module: moduleId,
-    deadline: deadline,
-    violatedAt: new Date(),
-    demotedFromModule: demotedFromModuleId,
-    demotedToModule: demotedToModuleId,
-    reason: 'TIMELINE_VIOLATION',
-  });
-};
-
-// Method to add timeline notification
-progressSchema.methods.addTimelineNotification = function(type, moduleId, message) {
-  this.timelineNotifications.push({
-    type: type,
-    module: moduleId,
-    message: message,
-    sentAt: new Date(),
-    read: false,
-  });
-};
-
-// Method to get unread timeline notifications
-progressSchema.methods.getUnreadTimelineNotifications = function() {
-  return this.timelineNotifications.filter(notification => !notification.read);
-};
-
-// Method to mark notification as read
-progressSchema.methods.markNotificationRead = function(notificationId) {
-  const notification = this.timelineNotifications.id(notificationId);
-  if (notification) {
-    notification.read = true;
+  static async exists(query) {
+    const doc = await this.findOne(query);
+    return !!doc;
   }
-};
 
-progressSchema.pre("save", async function (next) {
-  try {
+  async calculateProgress() {
+    const course = await Course.findById(this.course);
+    if (!course) return this.progressPercent;
+
+    // Note: Course model in SQL uses JSON for 'modules' but those are typically just IDs or basic structures depending on how it was saved.
+    // The original logic assumes course.modules is an array of IDs.
+    // In our migrated Course model, `modules` is a JSON column.
+
+    let totalLessons = 0;
+    let totalModules = 0;
+
+    // Retrieve actual Module objects
+    // We assume course.modules contains IDs or objects with IDs
+    let moduleIds = [];
+    if (Array.isArray(course.modules)) {
+      moduleIds = course.modules.map(m => (typeof m === 'object' && m._id) ? m._id : m);
+    } else if (typeof course.modules === 'string') {
+      // Edge case if it somehow stayed a string despite parsing in constructor?
+      // Should not happen if Course model is working, but safe guard.
+      try { moduleIds = JSON.parse(course.modules); } catch (e) { }
+      if (Array.isArray(moduleIds)) moduleIds = moduleIds.map(m => (typeof m === 'object' && m._id) ? m._id : m);
+    }
+
+    if (moduleIds.length > 0) {
+      // Fetch modules from DB
+      // Need a way to do WHERE id IN (...)
+      const placeholders = moduleIds.map(() => '?').join(',');
+      const [modules] = await pool.query(`SELECT * FROM modules WHERE course = ? AND id IN (${placeholders})`, [this.course, ...moduleIds]);
+
+      totalModules = modules.length;
+      totalLessons = modules.reduce((count, mod) => {
+        let lessons = [];
+        if (typeof mod.lessons === 'string') try { lessons = JSON.parse(mod.lessons); } catch (e) { }
+        else lessons = mod.lessons || [];
+        // Original logic: lessons refers to IDs in the module definition in Mongoose
+        // In our SQL Module model, lessons is a JSON array of lesson objects or IDs.
+        return count + lessons.length;
+      }, 0);
+    }
+
+    const completedLessonsCount = this.completedLessons.length;
+    const completedModulesCount = this.completedModules.length;
+
+    const lessonWeight = 0.7;
+    const quizWeight = 0.2;
+    const assignmentWeight = 0.1;
+
+    let lessonProgress = 0;
+    if (totalLessons > 0) {
+      lessonProgress = (completedLessonsCount / totalLessons) * 100;
+    } else if (totalModules > 0) {
+      lessonProgress = (completedModulesCount / totalModules) * 100;
+    }
+
+    const passedQuizzes = this.quizzes.filter((q) => q.isPassed).length;
+    // Quizzes in Course:
+    let courseQuizzes = [];
+    if (Array.isArray(course.quizzes)) courseQuizzes = course.quizzes;
+    else if (course.quizzes) try { courseQuizzes = JSON.parse(course.quizzes); } catch (e) { }
+    const totalQuizzes = courseQuizzes.length || 0;
+    const quizProgress = totalQuizzes > 0 ? (passedQuizzes / totalQuizzes) * 100 : 0;
+
+    const submittedAssignments = this.assignments.length;
+    // Assignments in Course:
+    let courseAssignments = [];
+    if (Array.isArray(course.assignments)) courseAssignments = course.assignments;
+    else if (course.assignments) try { courseAssignments = JSON.parse(course.assignments); } catch (e) { }
+    const totalAssignments = courseAssignments.length || 0;
+    const assignmentProgress = totalAssignments > 0 ? (submittedAssignments / totalAssignments) * 100 : 0;
+
+    const parts = [];
+    const weights = [];
+    if (totalLessons > 0 || totalModules > 0) { parts.push(lessonProgress); weights.push(lessonWeight); }
+    if (totalQuizzes > 0) { parts.push(quizProgress); weights.push(quizWeight); }
+    if (totalAssignments > 0) { parts.push(assignmentProgress); weights.push(assignmentWeight); }
+
+    let totalProgress = 0;
+    if (parts.length > 0) {
+      const weighted = parts.reduce((sum, val, idx) => sum + val * weights[idx], 0);
+      const weightSum = weights.reduce((a, b) => a + b, 0);
+      totalProgress = weighted / (weightSum || 1);
+    }
+
+    this.progressPercent = Math.min(100, Math.round(totalProgress));
+    return this.progressPercent;
+  }
+
+  async updateCurrentAccessibleModule() {
+    try {
+      const course = await Course.findById(this.course);
+      if (!course) return;
+
+      let moduleIds = [];
+      if (Array.isArray(course.modules)) {
+        moduleIds = course.modules.map(m => (typeof m === 'object' && m._id) ? m._id : m);
+      }
+
+      if (moduleIds.length === 0) return;
+
+      // Fetch full module objects to get 'order'
+      const placeholders = moduleIds.map(() => '?').join(',');
+      const [modulesData] = await pool.query(`SELECT * FROM modules WHERE id IN (${placeholders})`, moduleIds);
+
+      // Map SQL rows to Module instances if needed, or just use raw data
+      const modules = modulesData.map(m => new Module(m));
+      modules.sort((a, b) => a.order - b.order);
+
+      let nextModule = null;
+      for (const module of modules) {
+        const isCompleted = this.completedModules.some(
+          completed => completed.moduleId.toString() === module.id.toString()
+        );
+
+        if (!isCompleted) {
+          nextModule = module;
+          break;
+        }
+      }
+
+      this.currentAccessibleModule = nextModule ? nextModule.id : null;
+
+    } catch (error) {
+      logger.error('Error updating current accessible module:', error);
+    }
+  }
+
+  async demoteToModule(targetModuleId, reason = 'TIMELINE_VIOLATION') {
+    try {
+      const course = await Course.findById(this.course);
+      if (!course) return false;
+
+      // Fetch target module to get its order
+      const targetModule = await Module.findById(targetModuleId);
+      if (!targetModule) return false;
+
+      // Fetch all modules for course to compare orders
+      let moduleIds = [];
+      if (Array.isArray(course.modules)) {
+        moduleIds = course.modules.map(m => (typeof m === 'object' && m._id) ? m._id : m);
+      }
+      if (moduleIds.length === 0) return false;
+
+      const placeholders = moduleIds.map(() => '?').join(',');
+      const [allModules] = await pool.query(`SELECT * FROM modules WHERE id IN (${placeholders})`, moduleIds);
+      const modulesToRemove = allModules.filter(m => m.order > targetModule.order);
+      const modulesToRemoveIds = modulesToRemove.map(m => m.id.toString());
+
+      // Remove completion records
+      this.completedModules = this.completedModules.filter(
+        completed => !modulesToRemoveIds.includes(completed.moduleId.toString())
+      );
+
+      // Remove lesson completions
+      // Gather all lessons from the modules we are removing
+      let lessonsToRemoveIds = [];
+      modulesToRemove.forEach(mod => {
+        let lessons = [];
+        if (typeof mod.lessons === 'string') try { lessons = JSON.parse(mod.lessons); } catch (e) { }
+        else lessons = mod.lessons || [];
+        // Assuming lessons array in Module contains IDs or objects with IDs
+        lessonsToRemoveIds.push(...lessons.map(l => (typeof l === 'object' && l._id) ? l._id.toString() : l.toString()));
+      });
+
+      this.completedLessons = this.completedLessons.filter(
+        completed => !lessonsToRemoveIds.includes(completed.lessonId.toString())
+      );
+
+      this.currentAccessibleModule = targetModuleId;
+      return true;
+
+    } catch (error) {
+      logger.error('Error demoting student:', error);
+      return false;
+    }
+  }
+
+  addTimelineViolation(moduleId, deadline, demotedFromModuleId, demotedToModuleId) {
+    this.timelineViolations.push({
+      module: moduleId,
+      deadline: deadline,
+      violatedAt: new Date(),
+      demotedFromModule: demotedFromModuleId,
+      demotedToModule: demotedToModuleId,
+      reason: 'TIMELINE_VIOLATION',
+    });
+  }
+
+  addTimelineNotification(type, moduleId, message) {
+    this.timelineNotifications.push({
+      type: type,
+      module: moduleId,
+      message: message,
+      sentAt: new Date(),
+      read: false,
+    });
+  }
+
+  getUnreadTimelineNotifications() {
+    return this.timelineNotifications.filter(notification => !notification.read);
+  }
+
+  markNotificationRead(notificationId) {
+    // In array of objects, usually we don't have unique IDs unless generated.
+    // Assuming notificationId matches index or some unique prop if we added one.
+    // Original implementation used Mongoose subdocument .id().
+    // Here we might need to rely on index or strict object matching, or add IDs manually.
+    // For simplicity, let's look for a match by reference if possible, or assume caller provides index? 
+    // Or strictly, we can't easily find by ID if we didn't generate one.
+    // Let's modify creation to add an ephemeral ID for runtime, or assume typical usage.
+    // Better: Find by properties or add ID field in addTimelineNotification.
+    // Let's add a simple random ID if missing.
+    const notification = this.timelineNotifications.find(n => n.id === notificationId || n._id === notificationId);
+    if (notification) {
+      notification.read = true;
+    }
+  }
+
+  async save() {
     await this.calculateProgress();
-    
-    // Update current accessible module if not manually set
-    if (this.isModified('completedModules') && !this.isModified('currentAccessibleModule')) {
-      await this.updateCurrentAccessibleModule();
-    }
-    
-    next();
-  } catch (err) {
-    next(err);
-  }
-});
+    // Check if completedModules changed? Hard to track changes without proxies.
+    // We'll just always update accessible module on save for correctness.
+    await this.updateCurrentAccessibleModule();
 
-export default model("Progress", progressSchema);
+    const fields = [
+      "student", "course", "completedLessons", "completedModules",
+      "quizzes", "assignments", "currentLevel", "levelLockEnabled",
+      "lockedLevel", "progressPercent", "lastAccessed", "currentAccessibleModule",
+      "timelineViolations", "timelineNotifications"
+    ];
+
+    const setClause = fields.map(field => `${field} = ?`).join(", ");
+    const values = fields.map(field => {
+      let val = this[field];
+      if (['completedLessons', 'completedModules', 'quizzes', 'assignments', 'timelineViolations', 'timelineNotifications'].includes(field)) {
+        return JSON.stringify(val);
+      }
+      return val;
+    });
+    values.push(this.id);
+
+    await pool.query(`UPDATE progress SET ${setClause} WHERE id = ?`, values);
+    return this;
+  }
+}
+
+// Initialize table
+Progress.init();
+
+export default Progress;

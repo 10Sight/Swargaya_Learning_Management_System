@@ -34,7 +34,8 @@ export default defineConfig({
         ]
       },
       devOptions: {
-        enabled: true
+        enabled: true,
+        suppressWarnings: true
       },
       workbox: {
         skipWaiting: true,

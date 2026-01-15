@@ -60,12 +60,12 @@ const OJTList = ({ studentId, onViewDetails, onAddTraining }) => {
                         </TableHeader>
                         <TableBody>
                             {ojts.map((ojt) => (
-                                <TableRow key={ojt._id}>
+                                <TableRow key={ojt.id || ojt._id}>
                                     <TableCell>{new Date(ojt.createdAt).toLocaleDateString()}</TableCell>
                                     <TableCell className="font-medium">{ojt.name || "Evaluation"}</TableCell>
                                     <TableCell>{ojt.department?.name || "-"}</TableCell>
                                     <TableCell>{ojt.line?.name || "-"}</TableCell>
-                                    <TableCell>{ojt.machine?.name} ({ojt.machine?.machineName})</TableCell>
+                                    <TableCell>{ojt.machine?.name}</TableCell>
                                     <TableCell>
                                         <Badge variant={ojt.result === 'Pass' ? 'success' : ojt.result === 'Fail' ? 'destructive' : 'secondary'}>
                                             {ojt.result || 'Pending'}

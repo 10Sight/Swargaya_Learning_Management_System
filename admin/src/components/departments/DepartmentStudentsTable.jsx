@@ -176,25 +176,19 @@ const DepartmentStudentsTable = ({ students, departmentId, departmentName, onRef
     }
 
     try {
-      await Promise.all(
-        validStudentIds.map(studentId => {
-          if (!studentId || studentId === "undefined") {
-            const msg = `CRITICAL ERROR: Attempting to send undefined ID! Value: ${studentId}`;
-            console.error(msg);
-            alert(msg);
-            throw new Error("Invalid ID in loop");
-          }
-          return addStudentToDepartment({ departmentId, studentId }).unwrap();
-        })
-      );
+      // Single Batch Call
+      const res = await addStudentToDepartment({
+        departmentId,
+        studentIds: validStudentIds
+      }).unwrap();
 
-      toast.success(`${validStudentIds.length} trainee(s) added successfully`);
+      toast.success(res.message || `${validStudentIds.length} trainee(s) added successfully`);
 
       setAddStudentDialogOpen(false);
       setSelectedStudents([]);
       setStudentSearchTerm("");
 
-      onRefetch?.(); // cleaner optional call
+      onRefetch?.();
     } catch (error) {
       console.error("Error adding trainees:", error);
       toast.error(error?.data?.message || "Failed to add trainees to department");

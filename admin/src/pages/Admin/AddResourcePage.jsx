@@ -39,13 +39,13 @@ const AddResourcePage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [createResource, { isLoading }] = useCreateResourceMutation();
-  
+
   // Get initial scope and entity from URL params or location state
   const urlParams = new URLSearchParams(location.search);
   const initialScope = urlParams.get('scope') || 'course';
   const initialModuleId = urlParams.get('moduleId') || '';
   const initialLessonId = urlParams.get('lessonId') || '';
-  
+
   const [formData, setFormData] = useState({
     scope: initialScope,
     courseId: courseId || '',
@@ -62,24 +62,24 @@ const AddResourcePage = () => {
   const { data: courseData } = useGetCourseByIdQuery(courseId, {
     skip: !courseId,
   });
-  
+
   // Fetch modules for the course
-  const { 
-    data: modulesData, 
-    isLoading: modulesLoading, 
-    error: modulesError 
+  const {
+    data: modulesData,
+    isLoading: modulesLoading,
+    error: modulesError
   } = useGetModulesByCourseQuery(courseId, {
     skip: !courseId || formData.scope === 'course',
   });
-  
+
   // Fetch lessons for selected module
-  const { 
-    data: lessonsData, 
-    isLoading: lessonsLoading 
+  const {
+    data: lessonsData,
+    isLoading: lessonsLoading
   } = useGetLessonsByModuleQuery(formData.moduleId, {
     skip: !formData.moduleId || formData.scope !== 'lesson',
   });
-  
+
   const course = courseData?.data || {};
   const modules = modulesData?.data || [];
   const lessons = lessonsData?.data || [];
@@ -170,17 +170,17 @@ const AddResourcePage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     try {
       const formDataToSend = new FormData();
-      
+
       // Add required fields
       formDataToSend.append("title", formData.title.trim());
       formDataToSend.append("type", formData.type);
       formDataToSend.append("scope", formData.scope);
-      
+
       if (formData.description.trim()) {
         formDataToSend.append("description", formData.description.trim());
       }
@@ -202,7 +202,7 @@ const AddResourcePage = () => {
       }
 
       await createResource(formDataToSend).unwrap();
-      
+
       toast.success(`Resource added to ${formData.scope} successfully!`);
       const basePath = (() => {
         const p = location.pathname || '';
@@ -336,7 +336,7 @@ const AddResourcePage = () => {
                       </SelectItem>
                     ) : (
                       modules.map((module) => (
-                        <SelectItem key={module._id} value={module._id}>
+                        <SelectItem key={String(module.id || module._id)} value={String(module.id || module._id)}>
                           {module.title}
                         </SelectItem>
                       ))
@@ -372,7 +372,7 @@ const AddResourcePage = () => {
                       </SelectItem>
                     ) : (
                       lessons.map((lesson) => (
-                        <SelectItem key={lesson._id} value={lesson._id}>
+                        <SelectItem key={String(lesson.id || lesson._id)} value={String(lesson.id || lesson._id)}>
                           {lesson.title}
                         </SelectItem>
                       ))
@@ -455,7 +455,7 @@ const AddResourcePage = () => {
                   className="hidden"
                   id="file-upload"
                 />
-                
+
                 {formData.file ? (
                   <div className="flex items-center justify-between bg-blue-50 p-4 rounded-md">
                     <div className="flex items-center gap-3">
@@ -493,7 +493,7 @@ const AddResourcePage = () => {
                     </div>
                   </label>
                 )}
-                
+
                 {filePreview && (
                   <div className="mt-4">
                     <img
@@ -524,7 +524,7 @@ const AddResourcePage = () => {
                 disabled={!!formData.file}
               />
               <p className="text-xs text-gray-500">
-                {formData.file 
+                {formData.file
                   ? "URL input is disabled when a file is selected"
                   : "Provide a URL to an external resource"
                 }

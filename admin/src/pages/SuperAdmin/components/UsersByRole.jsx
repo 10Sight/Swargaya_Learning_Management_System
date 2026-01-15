@@ -21,12 +21,12 @@ const UsersByRole = ({ selectedRole, roles, onRoleSelect }) => {
   const itemsPerPage = 10;
 
   // Fetch users for the selected role
-  const { 
-    data: usersData, 
-    isLoading, 
-    error 
+  const {
+    data: usersData,
+    isLoading,
+    error
   } = useGetUsersByRoleQuery(
-    selectedRole?.id, 
+    { roleId: selectedRole?.id, limit: 1000 },
     { skip: !selectedRole }
   );
 
@@ -39,7 +39,7 @@ const UsersByRole = ({ selectedRole, roles, onRoleSelect }) => {
     // Apply search filter
     if (searchTerm) {
       const lowerSearchTerm = searchTerm.toLowerCase();
-      filtered = filtered.filter(user => 
+      filtered = filtered.filter(user =>
         user.fullName?.toLowerCase().includes(lowerSearchTerm) ||
         user.userName?.toLowerCase().includes(lowerSearchTerm) ||
         user.email?.toLowerCase().includes(lowerSearchTerm)
@@ -116,8 +116,8 @@ const UsersByRole = ({ selectedRole, roles, onRoleSelect }) => {
     >
       <span>{children}</span>
       {sortBy === field && (
-        sortOrder === 'asc' ? 
-          <IconChevronUp size={16} /> : 
+        sortOrder === 'asc' ?
+          <IconChevronUp size={16} /> :
           <IconChevronDown size={16} />
       )}
     </button>
@@ -137,11 +137,10 @@ const UsersByRole = ({ selectedRole, roles, onRoleSelect }) => {
                 setCurrentPage(1);
                 setSearchTerm('');
               }}
-              className={`p-4 rounded-lg border text-left transition-colors ${
-                selectedRole?.id === role.id
+              className={`p-4 rounded-lg border text-left transition-colors ${selectedRole?.id === role.id
                   ? 'border-blue-500 bg-blue-50'
                   : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-              }`}
+                }`}
             >
               <div className="flex items-center space-x-2 mb-2">
                 <IconShield size={18} className="text-gray-500" />
@@ -266,11 +265,10 @@ const UsersByRole = ({ selectedRole, roles, onRoleSelect }) => {
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                user.isActive 
-                                  ? 'bg-green-100 text-green-800' 
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${user.isActive
+                                  ? 'bg-green-100 text-green-800'
                                   : 'bg-red-100 text-red-800'
-                              }`}>
+                                }`}>
                                 {user.isActive ? 'Active' : 'Inactive'}
                               </span>
                             </td>
@@ -314,7 +312,7 @@ const UsersByRole = ({ selectedRole, roles, onRoleSelect }) => {
                     >
                       Previous
                     </button>
-                    
+
                     <div className="flex items-center space-x-1">
                       {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                         let pageNum;
@@ -327,16 +325,15 @@ const UsersByRole = ({ selectedRole, roles, onRoleSelect }) => {
                         } else {
                           pageNum = currentPage - 2 + i;
                         }
-                        
+
                         return (
                           <button
                             key={pageNum}
                             onClick={() => setCurrentPage(pageNum)}
-                            className={`px-3 py-2 text-sm font-medium rounded-md ${
-                              currentPage === pageNum
+                            className={`px-3 py-2 text-sm font-medium rounded-md ${currentPage === pageNum
                                 ? 'bg-blue-600 text-white'
                                 : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
-                            }`}
+                              }`}
                           >
                             {pageNum}
                           </button>

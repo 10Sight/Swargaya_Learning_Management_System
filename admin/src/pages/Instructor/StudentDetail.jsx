@@ -392,8 +392,8 @@ const StudentDetail = () => {
                 <CardContent>
                     {progressList && progressList.length > 0 ? (
                         <div className="space-y-4">
-                            {progressList.map((p) => (
-                                <div key={p._id} className="space-y-1">
+                            {progressList.map((p, i) => (
+                                <div key={p._id || i} className="space-y-1">
                                     <div className="flex justify-between text-sm">
                                         <span className="font-medium">{p.course?.title || 'Course'}</span>
                                         <span className="text-muted-foreground">{p.progressPercent || 0}%</span>
@@ -602,8 +602,8 @@ const StudentDetail = () => {
                             <CardContent>
                                 {submissions.slice(0, 3).length > 0 ? (
                                     <div className="space-y-3">
-                                        {submissions.slice(0, 3).map((submission) => (
-                                            <div key={submission._id} className="flex items-center justify-between p-3 border rounded-lg">
+                                        {submissions.slice(0, 3).map((submission, i) => (
+                                            <div key={submission._id || i} className="flex items-center justify-between p-3 border rounded-lg">
                                                 <div>
                                                     <p className="font-medium text-sm">{submission.assignment?.title || "Assignment"}</p>
                                                     <p className="text-xs text-muted-foreground">
@@ -646,8 +646,8 @@ const StudentDetail = () => {
                             <CardContent>
                                 {attempts.slice(0, 3).length > 0 ? (
                                     <div className="space-y-3">
-                                        {attempts.slice(0, 3).map((attempt) => (
-                                            <div key={attempt._id} className="flex items-center justify-between p-3 border rounded-lg">
+                                        {attempts.slice(0, 3).map((attempt, i) => (
+                                            <div key={attempt._id || i} className="flex items-center justify-between p-3 border rounded-lg">
                                                 <div>
                                                     <p className="font-medium text-sm">{attempt.quiz?.title || "Quiz"}</p>
                                                     <p className="text-xs text-muted-foreground">

@@ -17,7 +17,7 @@ const LineDetail = () => {
     const { data: linesData, isLoading: isLinesLoading } = useGetLinesByDepartmentQuery(departmentId);
 
     const departmentName = departmentData?.data?.name || "Loading Department...";
-    const currentLine = linesData?.data?.find(l => l._id === lineId);
+    const currentLine = linesData?.data?.find(l => (l.id || l._id) === lineId);
     const lineName = currentLine?.name || "Loading Line...";
 
     if (isDeptLoading || isLinesLoading) {

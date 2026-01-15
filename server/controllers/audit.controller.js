@@ -1,138 +1,150 @@
-import mongoose from "mongoose";
+import { pool } from "../db/connectDB.js";
 import Audit from "../models/audit.model.js";
+import User from "../models/auth.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
+// Helper to populate user details
+const populateAuditUser = async (audit) => {
+    if (!audit) return null;
+    if (audit.user) {
+        // If user is just an ID
+        if (typeof audit.user !== 'object' || !audit.user.fullName) {
+            const u = await User.findById(audit.user);
+            if (u) {
+                audit.user = { id: u.id, fullName: u.fullName, email: u.email, role: u.role };
+            }
+        }
+    }
+    return audit;
+};
+
 export const getAllAudits = asyncHandler(async (req, res) => {
     const page = Math.max(parseInt(req.query.page) || 1, 1);
     const limit = Math.min(parseInt(req.query.limit) || 20, 100);
-    const skip = (page - 1) * limit;
+    const offset = (page - 1) * limit;
 
-    // Build filters
-    const filters = {};
-    
+    const filters = [];
+    const params = [];
+
     // Role-based filtering: Admin users cannot see SuperAdmin activities
     let superAdminIds = [];
     if (req.user && req.user.role === 'ADMIN') {
-        // Get all SuperAdmin user IDs to exclude their activities
-        const superAdminUsers = await mongoose.model('User').find({ role: 'SUPERADMIN' }).select('_id');
-        superAdminIds = superAdminUsers.map(u => u._id);
+        const superAdmins = await User.find({ role: 'SUPERADMIN' });
+        superAdminIds = superAdmins.map(u => u.id);
     }
-    
-    // User filter - support both userId and user email/name search
-    if(req.query.userId) {
-        if(mongoose.Types.ObjectId.isValid(req.query.userId)) {
-            // Check if this specific user ID is a SuperAdmin and current user is Admin
-            if (req.user && req.user.role === 'ADMIN' && superAdminIds.some(id => id.toString() === req.query.userId)) {
-                // Don't allow Admin to see SuperAdmin activities
-                filters.user = null; // This will result in no matches
+
+    // User filter
+    if (req.query.userId) {
+        // Check if looks like ID (number or string depending on DB, assuming int ID for SQL user but string input)
+        // If it's a number-like string, try ID match
+        let isId = !isNaN(parseInt(req.query.userId));
+
+        if (isId) {
+            const targetId = parseInt(req.query.userId);
+            if (req.user && req.user.role === 'ADMIN' && superAdminIds.includes(targetId)) {
+                filters.push("1=0"); // Block access
             } else {
-                filters.user = req.query.userId;
+                filters.push("user = ?");
+                params.push(targetId);
             }
         } else {
-            // If not a valid ObjectId, search by user email or name
-            let userSearchFilter = {
-                $or: [
-                    { email: { $regex: req.query.userId, $options: "i" } },
-                    { fullName: { $regex: req.query.userId, $options: "i" } }
-                ]
-            };
-            
-            // If admin user, exclude SuperAdmin users from search results
-            if (req.user && req.user.role === 'ADMIN' && superAdminIds.length > 0) {
-                userSearchFilter._id = { $nin: superAdminIds };
+            // Search by email or name
+            const [users] = await pool.query(
+                "SELECT id FROM users WHERE (email LIKE ? OR fullName LIKE ?)",
+                [`%${req.query.userId}%`, `%${req.query.userId}%`]
+            );
+
+            let allowedUserIds = users.map(u => u.id);
+            if (req.user && req.user.role === 'ADMIN') {
+                allowedUserIds = allowedUserIds.filter(id => !superAdminIds.includes(id));
             }
-            
-            const users = await mongoose.model('User').find(userSearchFilter).select('_id');
-            if(users.length > 0) {
-                filters.user = { $in: users.map(u => u._id) };
+
+            if (allowedUserIds.length > 0) {
+                filters.push(`user IN (${allowedUserIds.join(',')})`);
             } else {
-                filters.user = null; // No matching users found
+                filters.push("1=0");
             }
         }
     } else if (req.user && req.user.role === 'ADMIN' && superAdminIds.length > 0) {
-        // If no specific user filter but admin user, exclude SuperAdmin activities
-        filters.user = { $nin: superAdminIds };
+        // Exclude SuperAdmins
+        filters.push(`(user NOT IN (${superAdminIds.join(',')}) OR user IS NULL)`);
     }
-    
-    // Additional filtering for Admin users - exclude sensitive system operations
+
+    // Additional filtering for Admin - sensitive ops
     if (req.user && req.user.role === 'ADMIN') {
-        if (!filters.$and) filters.$and = [];
-        
-        filters.$and.push({
-            $or: [
-                { user: { $exists: true } }, // Include logs with user reference (already filtered above)
-                { 
-                    $and: [
-                        { user: { $exists: false } }, // System logs without user
-                        { action: { $not: { $regex: 'SYSTEM_ADMIN|SUPERADMIN|PRIVILEGE|ROLE_CHANGE|SYSTEM_SETTINGS', $options: 'i' } } }
-                    ]
-                }
-            ]
-        });
+        // Complex logic: (user exists) OR (user null AND action NOT SENSITIVE)
+        // In SQL: (user IS NOT NULL) OR (user IS NULL AND action NOT REGEXP ...)
+        const sensitiveParams = 'SYSTEM_ADMIN|SUPERADMIN|PRIVILEGE|ROLE_CHANGE|SYSTEM_SETTINGS';
+        filters.push(`(
+            user IS NOT NULL 
+            OR 
+            (user IS NULL AND action NOT REGEXP '${sensitiveParams}')
+        )`);
     }
-    
+
     // Action filter
-    if(req.query.action) {
-        filters.action = { $regex: req.query.action, $options: "i" };
-    }
-    
-    // Search filter - search across multiple fields
-    if(req.query.search) {
-        const searchFilters = [
-            { action: { $regex: req.query.search, $options: "i" } },
-            { resourceType: { $regex: req.query.search, $options: "i" } },
-            { ip: { $regex: req.query.search, $options: "i" } }
-        ];
-        
-        // If there are existing $and filters, combine them properly
-        if (filters.$and && filters.$and.length > 0) {
-            filters.$and.push({ $or: searchFilters });
-        } else {
-            filters.$or = searchFilters;
-        }
-    }
-    
-    // Date range filters
-    if(req.query.dateFrom || req.query.dateTo) {
-        filters.createdAt = {};
-        if(req.query.dateFrom) {
-            filters.createdAt.$gte = new Date(req.query.dateFrom);
-        }
-        if(req.query.dateTo) {
-            filters.createdAt.$lte = new Date(req.query.dateTo);
-        }
-    }
-    
-    // IP Address filter
-    if(req.query.ipAddress) {
-        filters.ip = { $regex: req.query.ipAddress, $options: "i" };
-    }
-    
-    // User Agent filter
-    if(req.query.userAgent) {
-        filters.userAgent = { $regex: req.query.userAgent, $options: "i" };
-    }
-    
-    // Severity filter
-    if(req.query.severity) {
-        filters.severity = req.query.severity.toLowerCase();
+    if (req.query.action) {
+        filters.push("action LIKE ?");
+        params.push(`%${req.query.action}%`);
     }
 
-    const total = await Audit.countDocuments(filters);
+    // Search filter
+    if (req.query.search) {
+        const term = `%${req.query.search}%`;
+        filters.push(`(action LIKE ? OR resourceType LIKE ? OR ip LIKE ?)`);
+        params.push(term, term, term);
+    }
 
-    // Build sort options
+    // Date range
+    if (req.query.dateFrom) {
+        filters.push("createdAt >= ?");
+        params.push(new Date(req.query.dateFrom));
+    }
+    if (req.query.dateTo) {
+        filters.push("createdAt <= ?");
+        params.push(new Date(req.query.dateTo));
+    }
+
+    // IP
+    if (req.query.ipAddress) {
+        filters.push("ip LIKE ?");
+        params.push(`%${req.query.ipAddress}%`);
+    }
+
+    // User Agent
+    if (req.query.userAgent) {
+        filters.push("userAgent LIKE ?");
+        params.push(`%${req.query.userAgent}%`);
+    }
+
+    // Severity
+    if (req.query.severity) {
+        filters.push("severity = ?");
+        params.push(req.query.severity.toLowerCase());
+    }
+
+    const whereClause = filters.length > 0 ? "WHERE " + filters.join(" AND ") : "";
+
+    // Count total
+    const [countRows] = await pool.query(`SELECT COUNT(*) as count FROM audits ${whereClause}`, params);
+    const total = countRows[0].count;
+
+    // Sorting
     const sortBy = req.query.sortBy || 'createdAt';
-    const order = req.query.order === 'asc' ? 1 : -1;
-    const sort = {};
-    sort[sortBy] = order;
+    // Validate sort column to prevent SQL injection
+    const allowedSorts = ['createdAt', 'action', 'severity', 'user', 'ip'];
+    const safeSortBy = allowedSorts.includes(sortBy) ? sortBy : 'createdAt';
+    const order = req.query.order === 'asc' ? 'ASC' : 'DESC';
 
-    const audits = await Audit.find(filters)
-        .populate("user", "fullName email role")
-        .skip(skip)
-        .limit(limit)
-        .sort(sort);
+    const [rows] = await pool.query(
+        `SELECT * FROM audits ${whereClause} ORDER BY ${safeSortBy} ${order} LIMIT ? OFFSET ?`,
+        [...params, limit, offset]
+    );
+
+    let audits = rows.map(r => new Audit(r));
+    audits = await Promise.all(audits.map(populateAuditUser));
 
     res.json(
         new ApiResponse(
@@ -154,22 +166,18 @@ export const getAllAudits = asyncHandler(async (req, res) => {
 export const getAuditById = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
-    if(!mongoose.Types.ObjectId.isValid(id)) {
-        throw new ApiError("Invalid audit ID", 400);
-    }
+    let audit = await Audit.findById(id);
+    if (!audit) throw new ApiError("Audit log not found", 404);
 
-    const audit = await Audit.findById(id).populate("user", "fullName email role");
-    if(!audit) throw new ApiError("Audit log not found", 404);
-    
-    // Role-based filtering: Admin users cannot see SuperAdmin activities
+    audit = await populateAuditUser(audit);
+
+    // Role-based access check
     if (req.user && req.user.role === 'ADMIN') {
-        // Check if this audit log belongs to a SuperAdmin user
         if (audit.user && audit.user.role === 'SUPERADMIN') {
             throw new ApiError("Access denied: You don't have permission to view this audit log", 403);
         }
-        
-        // Check if this is a sensitive system operation
-        if (!audit.user && audit.action && 
+
+        if (!audit.user && audit.action &&
             /SYSTEM_ADMIN|SUPERADMIN|PRIVILEGE|ROLE_CHANGE|SYSTEM_SETTINGS/i.test(audit.action)) {
             throw new ApiError("Access denied: You don't have permission to view this audit log", 403);
         }
@@ -181,14 +189,11 @@ export const getAuditById = asyncHandler(async (req, res) => {
 export const deleteAudit = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
-    if(!mongoose.Types.ObjectId.isValid(id)) {
-        throw new ApiError("Invalid audit ID", 400);
-    }
-
     const audit = await Audit.findById(id);
-    if(!audit) throw new ApiError("Audit log not found", 404);
+    if (!audit) throw new ApiError("Audit log not found", 404);
 
-    await audit.deleteOne();
+    const { pool } = await import("../db/connectDB.js");
+    await pool.query("DELETE FROM audits WHERE id = ?", [id]);
 
     res.json(new ApiResponse(200, null, "Audit log deleted successfully"));
 });

@@ -31,7 +31,7 @@ const PermissionMatrix = ({ roles, permissions }) => {
     }
 
     if (roleFilter) {
-      filtered = filtered.filter(role => 
+      filtered = filtered.filter(role =>
         role.name.toLowerCase().includes(roleFilter.toLowerCase())
       );
     }
@@ -42,12 +42,17 @@ const PermissionMatrix = ({ roles, permissions }) => {
   // Filter permissions based on search and category
   const filteredPermissions = useMemo(() => {
     const allPermissions = [];
-    
+
     Object.entries(permissions).forEach(([category, categoryPermissions]) => {
       if (!categoryFilter || category === categoryFilter) {
-        categoryPermissions.forEach(permission => {
-          if (!searchTerm || permission.toLowerCase().includes(searchTerm.toLowerCase())) {
-            allPermissions.push({ category, permission });
+        categoryPermissions.forEach(permObj => {
+          // permObj is expected to be { id, name, description }
+          // We can match against name or id
+          const permName = permObj.name || permObj.id || String(permObj);
+          const permId = permObj.id || String(permObj);
+
+          if (!searchTerm || permName.toLowerCase().includes(searchTerm.toLowerCase())) {
+            allPermissions.push({ category, permission: permName, id: permId });
           }
         });
       }
@@ -59,11 +64,11 @@ const PermissionMatrix = ({ roles, permissions }) => {
   // Check if a role has a specific permission
   const hasPermission = (role, permission) => {
     if (!role.permissions) return false;
-    
+
     if (Array.isArray(role.permissions)) {
       return role.permissions.includes(permission);
     }
-    
+
     return Object.values(role.permissions).flat().includes(permission);
   };
 
@@ -75,16 +80,16 @@ const PermissionMatrix = ({ roles, permissions }) => {
     const roleCoverage = {};
 
     // Calculate permission coverage (how many roles have each permission)
-    filteredPermissions.forEach(({ permission }) => {
-      permissionCoverage[permission] = filteredRoles.filter(role => 
-        hasPermission(role, permission)
+    filteredPermissions.forEach(({ permission, id }) => {
+      permissionCoverage[permission] = filteredRoles.filter(role =>
+        hasPermission(role, id)
       ).length;
     });
 
     // Calculate role coverage (how many permissions each role has)
     filteredRoles.forEach(role => {
-      roleCoverage[role.id] = filteredPermissions.filter(({ permission }) => 
-        hasPermission(role, permission)
+      roleCoverage[role.id] = filteredPermissions.filter(({ id }) =>
+        hasPermission(role, id)
       ).length;
     });
 
@@ -93,8 +98,8 @@ const PermissionMatrix = ({ roles, permissions }) => {
       totalPermissions,
       permissionCoverage,
       roleCoverage,
-      avgPermissionsPerRole: totalRoles > 0 
-        ? Object.values(roleCoverage).reduce((sum, count) => sum + count, 0) / totalRoles 
+      avgPermissionsPerRole: totalRoles > 0
+        ? Object.values(roleCoverage).reduce((sum, count) => sum + count, 0) / totalRoles
         : 0
     };
   }, [filteredRoles, filteredPermissions]);
@@ -118,8 +123,8 @@ const PermissionMatrix = ({ roles, permissions }) => {
       ...filteredRoles.map(role => [
         role.name,
         role.isSystemRole ? 'Yes' : 'No',
-        ...filteredPermissions.map(({ permission }) => 
-          hasPermission(role, permission) ? 'Yes' : 'No'
+        ...filteredPermissions.map(({ id }) =>
+          hasPermission(role, id) ? 'Yes' : 'No'
         )
       ].join(','))
     ].join('\n');
@@ -273,7 +278,7 @@ const PermissionMatrix = ({ roles, permissions }) => {
           </p>
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden max-w-[calc(100vw-2rem)] lg:max-w-[calc(100vw-280px)]">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -281,15 +286,15 @@ const PermissionMatrix = ({ roles, permissions }) => {
                   <th className="sticky left-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
                     Role
                   </th>
-                  {filteredPermissions.map(({ category, permission }, index) => (
+                  {filteredPermissions.map(({ category, permission, id }, index) => (
                     <th
                       key={`${category}-${permission}`}
-                      className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-32"
-                      title={`${category}: ${permission}`}
+                      className="h-[180px] px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider align-bottom w-[60px] relative"
+                      title={`${category}: ${permission} (${id})`}
                     >
-                      <div className="transform -rotate-45 origin-left whitespace-nowrap">
+                      <div className="absolute bottom-2 left-2 transform -rotate-45 origin-bottom-left w-max translate-x-1">
                         <div className="flex items-center space-x-1">
-                          <span className="truncate max-w-24">{permission}</span>
+                          <span className="">{permission}</span>
                           <span className="text-gray-400">
                             ({stats.permissionCoverage[permission]})
                           </span>
@@ -316,12 +321,12 @@ const PermissionMatrix = ({ roles, permissions }) => {
                         </span>
                       </div>
                     </td>
-                    {filteredPermissions.map(({ permission }) => (
+                    {filteredPermissions.map(({ permission, id }) => (
                       <td
                         key={`${role.id}-${permission}`}
                         className="px-3 py-4 whitespace-nowrap text-center"
                       >
-                        {hasPermission(role, permission) ? (
+                        {hasPermission(role, id) ? (
                           <div className="inline-flex items-center justify-center w-6 h-6 bg-green-100 rounded-full">
                             <IconCheck size={14} className="text-green-600" />
                           </div>
@@ -338,7 +343,7 @@ const PermissionMatrix = ({ roles, permissions }) => {
                           {stats.roleCoverage[role.id]} / {stats.totalPermissions}
                         </div>
                         <div className="text-xs text-gray-500">
-                          {stats.totalPermissions > 0 
+                          {stats.totalPermissions > 0
                             ? Math.round((stats.roleCoverage[role.id] / stats.totalPermissions) * 100)
                             : 0
                           }%

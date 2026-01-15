@@ -316,7 +316,7 @@ const EditQuizPage = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             {formData.questions.map((q, qi) => (
-              <div key={qi} className="border rounded-lg p-4 space-y-4">
+              <div key={`q-${qi}`} className="border rounded-lg p-4 space-y-4">
                 <div className="flex justify-between items-start">
                   <h3 className="font-semibold">Question {qi + 1}</h3>
                   <Button type="button" onClick={() => removeQuestion(qi)} variant="ghost" size="sm" className="text-red-600 hover:text-red-800 hover:bg-red-50">
@@ -383,7 +383,7 @@ const EditQuizPage = () => {
                   </div>
 
                   {q.options.map((o, oi) => (
-                    <div key={oi} className="flex items-center gap-2">
+                    <div key={`q-${qi}-o-${oi}`} className="flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => handleOptionChange(qi, oi, "isCorrect", true)}

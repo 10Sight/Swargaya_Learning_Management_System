@@ -72,7 +72,7 @@ const DepartmentLineManager = ({ departmentId }) => {
 
     const startEditing = (e, line) => {
         e.stopPropagation(); // Prevent row click
-        setEditingLineId(line._id);
+        setEditingLineId(line.id || line._id);
         setEditName(line.name);
     };
 
@@ -172,12 +172,12 @@ const DepartmentLineManager = ({ departmentId }) => {
                         <TableBody>
                             {linesData?.data?.map((line) => (
                                 <TableRow
-                                    key={line._id}
+                                    key={line.id || line._id}
                                     className="cursor-pointer hover:bg-gray-100"
-                                    onClick={() => navigate(`/admin/departments/${departmentId}/lines/${line._id}`)}
+                                    onClick={() => navigate(`/admin/departments/${departmentId}/lines/${line.id || line._id}`)}
                                 >
                                     <TableCell className="font-medium">
-                                        {editingLineId === line._id ? (
+                                        {editingLineId === (line.id || line._id) ? (
                                             <Input
                                                 value={editName}
                                                 onChange={(e) => setEditName(e.target.value)}
@@ -190,7 +190,7 @@ const DepartmentLineManager = ({ departmentId }) => {
                                     </TableCell>
                                     <TableCell>{line.description || "-"}</TableCell>
                                     <TableCell className="text-right">
-                                        {editingLineId === line._id ? (
+                                        {editingLineId === (line.id || line._id) ? (
                                             <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                                                 <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600" onClick={(e) => saveEdit(e)} disabled={isUpdating}>
                                                     <IconCheck className="h-4 w-4" />
@@ -204,7 +204,7 @@ const DepartmentLineManager = ({ departmentId }) => {
                                                 <Button size="icon" variant="ghost" className="h-8 w-8 text-blue-600" onClick={(e) => startEditing(e, line)}>
                                                     <IconEdit className="h-4 w-4" />
                                                 </Button>
-                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-red-600" onClick={(e) => handleDeleteLine(e, line._id)}>
+                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-red-600" onClick={(e) => handleDeleteLine(e, line.id || line._id)}>
                                                     {isDeleting ? <IconLoader className="h-4 w-4 animate-spin" /> : <IconTrash className="h-4 w-4" />}
                                                 </Button>
                                             </div>

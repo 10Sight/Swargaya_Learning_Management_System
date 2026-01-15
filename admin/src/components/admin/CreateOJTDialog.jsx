@@ -106,7 +106,7 @@ const CreateOJTDialog = ({ open, onOpenChange, studentId, onSuccess }) => {
                             <SelectContent>
                                 {deptLoading ? <SelectItem value="loading" disabled>Loading...</SelectItem> :
                                     departments.map(d => (
-                                        <SelectItem key={d._id} value={d._id}>{d.name}</SelectItem>
+                                        <SelectItem key={d._id || d.id} value={String(d._id || d.id)}>{d.name}</SelectItem>
                                     ))
                                 }
                             </SelectContent>
@@ -123,7 +123,7 @@ const CreateOJTDialog = ({ open, onOpenChange, studentId, onSuccess }) => {
                                 {lineLoading ? <SelectItem value="loading" disabled>Loading...</SelectItem> :
                                     lines.length === 0 ? <SelectItem value="none" disabled>No Lines Found</SelectItem> :
                                         lines.map(l => (
-                                            <SelectItem key={l._id} value={l._id}>{l.name}</SelectItem>
+                                            <SelectItem key={l._id || l.id} value={String(l._id || l.id)}>{l.name}</SelectItem>
                                         ))
                                 }
                             </SelectContent>
@@ -140,7 +140,7 @@ const CreateOJTDialog = ({ open, onOpenChange, studentId, onSuccess }) => {
                                 {machineLoading ? <SelectItem value="loading" disabled>Loading...</SelectItem> :
                                     machines.length === 0 ? <SelectItem value="none" disabled>No Machines Found</SelectItem> :
                                         machines.map(m => (
-                                            <SelectItem key={m._id} value={m._id}>{m.name} ({m.machineName})</SelectItem>
+                                            <SelectItem key={m._id || m.id} value={String(m._id || m.id)}>{m.name}</SelectItem>
                                         ))
                                 }
                             </SelectContent>

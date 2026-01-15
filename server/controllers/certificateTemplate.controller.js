@@ -1,9 +1,23 @@
-import mongoose from "mongoose";
-
+import { pool } from "../db/connectDB.js";
 import CertificateTemplate from "../models/certificateTemplate.model.js";
+import User from "../models/auth.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+
+// Helper for population
+const populateTemplate = async (template) => {
+    if (!template) return null;
+    if (template.createdBy && typeof template.createdBy !== 'object') {
+        const u = await User.findById(template.createdBy);
+        if (u) template.createdBy = { id: u.id, fullName: u.fullName, email: u.email };
+    }
+    if (template.updatedBy && typeof template.updatedBy !== 'object') {
+        const u = await User.findById(template.updatedBy);
+        if (u) template.updatedBy = { id: u.id, fullName: u.fullName, email: u.email };
+    }
+    return template;
+};
 
 // Create a new certificate template (Admin only)
 export const createCertificateTemplate = asyncHandler(async (req, res) => {
@@ -13,7 +27,6 @@ export const createCertificateTemplate = asyncHandler(async (req, res) => {
         throw new ApiError("Name and template are required", 400);
     }
 
-    // Validate placeholders structure
     if (placeholders && !Array.isArray(placeholders)) {
         throw new ApiError("Placeholders must be an array", 400);
     }
@@ -33,9 +46,14 @@ export const createCertificateTemplate = asyncHandler(async (req, res) => {
             { key: "grade", description: "Grade or score", required: false }
         ],
         isDefault: isDefault || false,
-        createdBy: req.user._id,
-        updatedBy: req.user._id,
+        createdBy: req.user.id,
+        updatedBy: req.user.id,
     };
+
+    // If setting as default, unset others first
+    if (templateData.isDefault) {
+        await pool.query("UPDATE certificate_templates SET isDefault = 0");
+    }
 
     const certificateTemplate = await CertificateTemplate.create(templateData);
 
@@ -44,12 +62,17 @@ export const createCertificateTemplate = asyncHandler(async (req, res) => {
     );
 });
 
-// Get all certificate templates (Admin only)
+// Get all certificate templates
 export const getCertificateTemplates = asyncHandler(async (req, res) => {
-    const templates = await CertificateTemplate.find({ isActive: true })
-        .populate("createdBy", "fullName email")
-        .populate("updatedBy", "fullName email")
-        .sort({ isDefault: -1, createdAt: -1 });
+    let templates = await CertificateTemplate.find({ isActive: 1 });
+
+    // Sort logic (isDefault desc, createdAt desc)
+    templates.sort((a, b) => {
+        if (b.isDefault !== a.isDefault) return (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0);
+        return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+
+    templates = await Promise.all(templates.map(populateTemplate));
 
     res.json(new ApiResponse(200, templates, "Certificate templates fetched successfully"));
 });
@@ -58,86 +81,71 @@ export const getCertificateTemplates = asyncHandler(async (req, res) => {
 export const getCertificateTemplateById = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-        throw new ApiError("Invalid template ID", 400);
-    }
-
-    const template = await CertificateTemplate.findById(id)
-        .populate("createdBy", "fullName email")
-        .populate("updatedBy", "fullName email");
+    let template = await CertificateTemplate.findById(id);
 
     if (!template || !template.isActive) {
         throw new ApiError("Certificate template not found", 404);
     }
+
+    template = await populateTemplate(template);
 
     res.json(new ApiResponse(200, template, "Certificate template fetched successfully"));
 });
 
 // Get default certificate template
 export const getDefaultCertificateTemplate = asyncHandler(async (req, res) => {
-    let template = await CertificateTemplate.findOne({ isDefault: true, isActive: true })
-        .populate("createdBy", "fullName email")
-        .populate("updatedBy", "fullName email");
+    let template = await CertificateTemplate.findOne({ isDefault: 1, isActive: 1 });
 
     if (!template) {
         // If no default template, get the first available template
-        template = await CertificateTemplate.findOne({ isActive: true })
-            .populate("createdBy", "fullName email")
-            .populate("updatedBy", "fullName email")
-            .sort({ createdAt: 1 });
+        const [temps] = await pool.query("SELECT * FROM certificate_templates WHERE isActive = 1 ORDER BY createdAt ASC LIMIT 1");
+        if (temps.length > 0) template = new CertificateTemplate(temps[0]);
     }
 
     if (!template) {
         throw new ApiError("No certificate template available", 404);
     }
 
+    template = await populateTemplate(template);
+
     res.json(new ApiResponse(200, template, "Default certificate template fetched successfully"));
 });
 
-// Update certificate template (Admin only)
+// Update certificate template
 export const updateCertificateTemplate = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { name, description, template, styles, placeholders, isDefault, isActive } = req.body;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-        throw new ApiError("Invalid template ID", 400);
-    }
-
-    const existingTemplate = await CertificateTemplate.findById(id);
+    let existingTemplate = await CertificateTemplate.findById(id);
     if (!existingTemplate) {
         throw new ApiError("Certificate template not found", 404);
     }
 
-    const updateData = {
-        updatedBy: req.user._id,
-    };
+    // Handle isDefault logic
+    if (isDefault) {
+        await pool.query("UPDATE certificate_templates SET isDefault = 0 WHERE id != ?", [id]);
+    }
 
-    if (name !== undefined) updateData.name = name;
-    if (description !== undefined) updateData.description = description;
-    if (template !== undefined) updateData.template = template;
-    if (styles !== undefined) updateData.styles = styles;
-    if (placeholders !== undefined) updateData.placeholders = placeholders;
-    if (isDefault !== undefined) updateData.isDefault = isDefault;
-    if (isActive !== undefined) updateData.isActive = isActive;
+    if (name !== undefined) existingTemplate.name = name;
+    if (description !== undefined) existingTemplate.description = description;
+    if (template !== undefined) existingTemplate.template = template;
+    if (styles !== undefined) existingTemplate.styles = styles;
+    if (placeholders !== undefined) existingTemplate.placeholders = placeholders;
+    if (isDefault !== undefined) existingTemplate.isDefault = isDefault;
+    if (isActive !== undefined) existingTemplate.isActive = isActive;
 
-    const updatedTemplate = await CertificateTemplate.findByIdAndUpdate(
-        id,
-        updateData,
-        { new: true, runValidators: true }
-    )
-        .populate("createdBy", "fullName email")
-        .populate("updatedBy", "fullName email");
+    existingTemplate.updatedBy = req.user.id; // Corrected to just ID
 
-    res.json(new ApiResponse(200, updatedTemplate, "Certificate template updated successfully"));
+    await existingTemplate.save();
+
+    existingTemplate = await populateTemplate(existingTemplate);
+
+    res.json(new ApiResponse(200, existingTemplate, "Certificate template updated successfully"));
 });
 
-// Delete certificate template (Admin only) - Soft delete
+// Delete certificate template (Soft delete)
 export const deleteCertificateTemplate = asyncHandler(async (req, res) => {
     const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-        throw new ApiError("Invalid template ID", 400);
-    }
 
     const template = await CertificateTemplate.findById(id);
     if (!template) {
@@ -148,41 +156,30 @@ export const deleteCertificateTemplate = asyncHandler(async (req, res) => {
         throw new ApiError("Cannot delete the default certificate template", 400);
     }
 
-    // Soft delete by setting isActive to false
-    template.isActive = false;
-    template.updatedBy = req.user._id;
+    template.isActive = 0; // SQL bit/boolean
+    template.updatedBy = req.user.id;
     await template.save();
 
     res.json(new ApiResponse(200, null, "Certificate template deleted successfully"));
 });
 
-// Set template as default (Admin only)
+// Set template as default
 export const setDefaultCertificateTemplate = asyncHandler(async (req, res) => {
     const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-        throw new ApiError("Invalid template ID", 400);
-    }
 
     const template = await CertificateTemplate.findById(id);
     if (!template || !template.isActive) {
         throw new ApiError("Certificate template not found", 404);
     }
 
-    // Remove default from all other templates
-    await CertificateTemplate.updateMany(
-        { _id: { $ne: id } },
-        { $set: { isDefault: false } }
-    );
+    // Unset all Others
+    await pool.query("UPDATE certificate_templates SET isDefault = 0 WHERE id != ?", [id]);
 
-    // Set this template as default
-    template.isDefault = true;
-    template.updatedBy = req.user._id;
+    template.isDefault = 1;
+    template.updatedBy = req.user.id;
     await template.save();
 
-    const updatedTemplate = await CertificateTemplate.findById(id)
-        .populate("createdBy", "fullName email")
-        .populate("updatedBy", "fullName email");
+    const updatedTemplate = await populateTemplate(template);
 
     res.json(new ApiResponse(200, updatedTemplate, "Default certificate template updated successfully"));
 });

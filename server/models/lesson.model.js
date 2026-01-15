@@ -1,101 +1,186 @@
-import { Schema, model } from "mongoose";
+import { pool } from "../db/connectDB.js";
+import { slugify } from "../utils/slugify.js";
+import logger from "../logger/winston.logger.js";
 
-const elementSchema = new Schema(
-  {
-    id: { type: String, required: true },
-    type: { type: String, enum: ['text', 'rect', 'image'], required: true },
-    xPct: { type: Number, default: 10 },
-    yPct: { type: Number, default: 10 },
-    wPct: { type: Number, default: 20 },
-    hPct: { type: Number, default: 10 },
-    rotation: { type: Number, default: 0 },
-    // Text
-    text: { type: String },
-    // Shape styles
-    fill: { type: String },
-    stroke: { type: String },
-    // Image
-    url: { type: String },
-    alt: { type: String },
-    aspectRatio: { type: Number },
-  },
-  { _id: false }
-);
+class Lesson {
+  constructor(data) {
+    this.id = data.id;
+    this._id = data.id; // Compatibility
 
-const slideSchema = new Schema(
-  {
-    order: { type: Number, default: 1 },
-    // Store TipTap/HTML content as string to keep frontend simple and flexible
-    contentHtml: { type: String, default: "" },
-    bgColor: { type: String, default: "#ffffff" },
-    images: [
-      {
-        url: { type: String, required: true },
-        public_id: { type: String },
-        alt: { type: String, default: "" },
-      },
-    ],
-    // New positioned elements (text boxes, shapes, images)
-    elements: { type: [elementSchema], default: [] },
-  },
-  { _id: true }
-);
+    this.module = data.module;
+    this.title = data.title;
+    this.content = data.content;
+    this.slides = typeof data.slides === 'string' ? JSON.parse(data.slides) : (data.slides || []);
+    this.duration = data.duration !== undefined ? data.duration : 0;
+    this.order = data.order !== undefined ? data.order : 1;
+    this.slug = data.slug;
+    this.resources = typeof data.resources === 'string' ? JSON.parse(data.resources) : (data.resources || []);
 
-const lessonSchema = new Schema(
-  {
-    module: {
-      type: Schema.Types.ObjectId,
-      ref: "Module",
-      required: true,
-    },
-    title: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    // Legacy single content field (kept for backward compatibility)
-    content: {
-      type: String,
-      trim: true,
-    },
-    // New slide-based presentation content
-    slides: {
-      type: [slideSchema],
-      default: [],
-    },
-    duration: {
-      type: Number,
-      default: 0,
-    },
-    order: {
-      type: Number,
-      default: 1,
-    },
-    slug: {
-      type: String,
-      trim: true,
-      lowercase: true,
-      index: true,
-    },
-    resources: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Resource",
-      },
-    ],
-  },
-  { timestamps: true }
-);
+    this.createdAt = data.createdAt;
+    this.updatedAt = data.updatedAt;
+  }
 
-import { slugify, ensureUniqueSlug } from "../utils/slugify.js";
+  static async init() {
+    const query = `
+            CREATE TABLE IF NOT EXISTS lessons (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                module VARCHAR(255) NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                content TEXT,
+                slides TEXT,
+                duration INT DEFAULT 0,
+                \`order\` INT DEFAULT 1,
+                slug VARCHAR(255),
+                resources TEXT,
+                createdAt DATETIME,
+                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_module_slug (module, slug)
+            )
+        `;
+    try {
+      await pool.query(query);
+    } catch (error) {
+      logger.error("Failed to initialize Lesson table", error);
+    }
+  }
 
-lessonSchema.index({ module: 1, slug: 1 }, { unique: true });
+  static async create(data) {
+    // Generate unique slug scoped to module
+    let baseSlug = slugify(data.title);
+    let slug = baseSlug;
+    let suffix = 1;
+    while (true) {
+      const [rows] = await pool.query(
+        "SELECT id FROM lessons WHERE slug = ? AND module = ?",
+        [slug, data.module]
+      );
+      if (rows.length === 0) break;
+      suffix++;
+      slug = `${baseSlug}-${suffix}`;
+    }
+    data.slug = slug;
 
-lessonSchema.pre('save', async function(next) {
-  if (!this.isModified('title') && this.slug) return next();
-  const base = slugify(this.title);
-  this.slug = await ensureUniqueSlug(this.constructor, base, { module: this.module }, this._id);
-  next();
-});
+    const lesson = new Lesson(data);
 
-export default model("Lesson", lessonSchema);
+    const fields = [
+      "module", "title", "content", "slides",
+      "duration", "order", "slug", "resources", "createdAt"
+    ];
+
+    if (!lesson.createdAt) lesson.createdAt = new Date();
+
+    const values = fields.map(field => {
+      let val = lesson[field];
+      if (['slides', 'resources'].includes(field)) {
+        return JSON.stringify(val);
+      }
+      if (val === undefined) return null;
+      return val;
+    });
+
+    // specific handling for "order" keyword in SQL usually requires backticks, 
+    // but parameters (?) don't need them. The column name in the INSERT clause needs them if it conflicts.
+    // "order" is a reserved word.
+    const escapedFields = fields.map(f => f === 'order' ? '`order`' : f);
+    const placeholders = fields.map(() => "?").join(",");
+    const query = `INSERT INTO lessons (${escapedFields.join(",")}) VALUES (${placeholders})`;
+
+    const [result] = await pool.query(query, values);
+    return Lesson.findById(result.insertId);
+  }
+
+  static async findById(id) {
+    const [rows] = await pool.query("SELECT * FROM lessons WHERE id = ?", [id]);
+    if (rows.length === 0) return null;
+    return new Lesson(rows[0]);
+  }
+
+  static async findOne(query) {
+    const keys = Object.keys(query).filter(key => query[key] !== undefined);
+    if (keys.length === 0) return null;
+
+    const whereClause = keys.map(key => {
+      if (key === 'order') return "`order` = ?";
+      return `${key} = ?`;
+    }).join(" AND ");
+    const values = keys.map(key => query[key]);
+
+    const [rows] = await pool.query(`SELECT * FROM lessons WHERE ${whereClause} LIMIT 1`, values);
+    if (rows.length === 0) return null;
+    return new Lesson(rows[0]);
+  }
+
+  static async find(query = {}) {
+    const keys = Object.keys(query).filter(key => query[key] !== undefined && key !== 'sort');
+    let sql = "SELECT * FROM lessons";
+    let values = [];
+
+    if (keys.length > 0) {
+      const whereClause = keys.map(key => {
+        if (key === 'order') return "`order` = ?";
+        return `${key} = ?`;
+      }).join(" AND ");
+      sql += ` WHERE ${whereClause}`;
+      values = keys.map(key => query[key]);
+    }
+
+    if (query.sort) {
+      const sortKey = Object.keys(query.sort)[0];
+      const sortOrder = query.sort[sortKey] === -1 ? 'DESC' : 'ASC';
+      const escapedSortKey = sortKey === 'order' ? '`order`' : sortKey;
+      sql += ` ORDER BY ${escapedSortKey} ${sortOrder}`;
+    }
+
+    const [rows] = await pool.query(sql, values);
+    return rows.map(row => new Lesson(row));
+  }
+
+  static async countDocuments(query = {}) {
+    const keys = Object.keys(query).filter(key => query[key] !== undefined);
+    let sql = "SELECT COUNT(*) as count FROM lessons";
+    let values = [];
+
+    if (keys.length > 0) {
+      const whereClause = keys.map(key => {
+        if (key === 'order') return "`order` = ?";
+        return `${key} = ?`;
+      }).join(" AND ");
+      sql += ` WHERE ${whereClause}`;
+      values = keys.map(key => query[key]);
+    }
+
+    const [rows] = await pool.query(sql, values);
+    return rows[0].count;
+  }
+
+  async save() {
+    // Slug update logic (simplified: if title changed, ideally regen, but keeping it simple for now)
+
+    const fields = [
+      "module", "title", "content", "slides",
+      "duration", "order", "slug", "resources"
+    ];
+
+    const setClause = fields.map(field => {
+      const col = field === 'order' ? '`order`' : field;
+      return `${col} = ?`;
+    }).join(", ");
+
+    const values = fields.map(field => {
+      let val = this[field];
+      if (['slides', 'resources'].includes(field)) {
+        return JSON.stringify(val);
+      }
+      return val;
+    });
+    values.push(this.id);
+
+    await pool.query(`UPDATE lessons SET ${setClause} WHERE id = ?`, values);
+    return this;
+  }
+}
+
+// Initialize table
+Lesson.init();
+
+export default Lesson;

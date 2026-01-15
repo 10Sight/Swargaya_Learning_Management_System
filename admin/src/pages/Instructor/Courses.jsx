@@ -120,7 +120,7 @@ const InstructorCourses = () => {
       {courses.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {courses.map((course) => (
-            <Card key={course._id} className="hover:shadow-lg transition-shadow">
+            <Card key={course.id || course._id} className="hover:shadow-lg transition-shadow">
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start mb-2">
                   {getStatusBadge(course.status)}
@@ -167,7 +167,7 @@ const InstructorCourses = () => {
                 </div>
 
                 <div className="pt-2 border-t">
-                  <Link to={`/trainer/courses/${course._id}`}>
+                  <Link to={`/trainer/courses/${course.id || course._id}`}>
                     <Button variant="outline" size="sm" className="w-full">
                       <IconEye className="h-4 w-4 mr-2" />
                       View Details

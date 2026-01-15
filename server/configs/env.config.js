@@ -15,12 +15,17 @@ const ENV = {
     CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
     CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
     CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
-    
+
     // Email configuration
     SMTP_USERNAME: process.env.SMTP_USERNAME,
     SMTP_PASSWORD: process.env.SMTP_PASSWORD,
-    
+
     // Frontend URLs
+    DB_HOST: process.env.DB_HOST || "sql12.freesqldatabase.com",
+    DB_USER: process.env.DB_USER || "sql12813319",
+    DB_PASSWORD: process.env.DB_PASSWORD || "QwkPLDzqN7",
+    DB_NAME: process.env.DB_NAME || "sql12813319",
+
     FRONTEND_URL: process.env.FRONTEND_URL || "http://localhost:5173",
     ADMIN_URL: process.env.ADMIN_URL || "http://localhost:5174",
     INSTRUCTOR_URL: process.env.INSTRUCTOR_URL,

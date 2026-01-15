@@ -34,6 +34,7 @@ import {
   IconDownload,
   IconClock,
   IconLayersIntersect,
+  IconUserPlus,
 } from "@tabler/icons-react";
 import { HomeIcon } from "lucide-react";
 import useTranslate from "@/hooks/useTranslate";
@@ -50,8 +51,9 @@ const tabs = [
     category: "User Management",
     items: [
       { link: "/superadmin/all-users", labelKey: "nav.allUsers", icon: IconUsers },
-      { link: "/superadmin/instructors", labelKey: "nav.instructors", icon: IconUser },
-      { link: "/superadmin/students", labelKey: "nav.students", icon: IconUsers },
+      { link: "/superadmin/add-admin", label: "Create Admin", icon: IconUserPlus },
+      { link: "/superadmin/trainers", labelKey: "nav.instructors", icon: IconUser },
+      { link: "/superadmin/employees", labelKey: "nav.students", icon: IconUsers },
       { link: "/superadmin/soft-deleted-users", labelKey: "nav.deletedUsers", icon: IconTrash },
       { link: "/superadmin/roles-permissions", labelKey: "nav.rolesPermissions", icon: IconShield },
     ]
@@ -239,8 +241,8 @@ export function SuperAdminLayout() {
         <div className="absolute bottom-4 w-full px-2">
           <div
             className={`p-2 flex items-center rounded-lg w-full transition-all duration-200 ${isLoading
-                ? "opacity-50 cursor-not-allowed bg-gray-100"
-                : "hover:bg-red-50 hover:text-red-600 cursor-pointer"
+              ? "opacity-50 cursor-not-allowed bg-gray-100"
+              : "hover:bg-red-50 hover:text-red-600 cursor-pointer"
               } ${collapsed ? "justify-center" : "px-3"
               }`}
             onClick={isLoading ? undefined : handleLogout}

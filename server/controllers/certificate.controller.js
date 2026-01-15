@@ -1,23 +1,245 @@
-import mongoose from "mongoose";
-
+import { pool } from "../db/connectDB.js";
 import Certificate from "../models/certificate.model.js";
 import CertificateTemplate from "../models/certificateTemplate.model.js";
 import Course from "../models/course.model.js";
 import User from "../models/auth.model.js";
+import Enrollment from "../models/enrollment.model.js";
 import Submission from "../models/submission.model.js";
 import Assignment from "../models/assignment.model.js";
 import AttemptedQuiz from "../models/attemptedQuiz.model.js";
 import Progress from "../models/progress.model.js";
 import Department from "../models/department.model.js";
+import Quiz from "../models/quiz.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import ensureCertificateIfEligible from "../utils/autoCertificate.js";
+
+// Helper for population
+const populateCertificate = async (cert) => {
+    if (!cert) return null;
+    if (typeof cert.student !== 'object') {
+        const u = await User.findById(cert.student);
+        if (u) cert.student = { id: u.id, fullName: u.fullName, email: u.email };
+    }
+    if (typeof cert.course !== 'object') {
+        const c = await Course.findById(cert.course);
+        if (c) cert.course = { id: c.id, title: c.title, description: c.description };
+    }
+    if (typeof cert.issuedBy !== 'object' && cert.issuedBy) {
+        const u = await User.findById(cert.issuedBy);
+        if (u) cert.issuedBy = { id: u.id, fullName: u.fullName, email: u.email };
+    }
+    return cert;
+};
+
+// Inline helper for auto-eligibility check
+const checkEligibilityAndCreate = async (studentId, courseId, opts = {}) => {
+    // 1. Check existing
+    const existing = await Certificate.findOne({
+        student: studentId,
+        course: courseId,
+        type: { $ne: 'SKILL_UPGRADATION' }
+    });
+    if (existing) return { created: false, certificate: existing, reason: "Exists" };
+
+    // 2. Fetch data
+    const course = await Course.findById(courseId);
+    if (!course) return { created: false, reason: "Course not found" };
+
+    const progress = await Progress.findOne({ student: studentId, course: courseId });
+    if (!progress) return { created: false, reason: "No progress found" };
+
+    // 3. Check Modules Completion
+    // Course modules are not directly on course object in SQL usually unless fetched? 
+    // Course model usually has simple properties. Need to COUNT modules.
+    const [modRows] = await pool.query("SELECT COUNT(*) as count FROM modules WHERE course = ?", [courseId]);
+    const totalModules = modRows[0].count;
+
+    const completedModules = progress.completedModules?.length || 0;
+    const modulesCompleted = (totalModules === 0) || (completedModules >= totalModules);
+
+    // 4. Check Quizzes
+    const [quizzes] = await pool.query("SELECT id FROM quizzes WHERE course = ?", [courseId]);
+    let quizzesOk = true;
+    if (quizzes.length > 0) {
+        const quizIds = quizzes.map(q => q.id);
+        // Find passed attempts
+        const [attempts] = await pool.query(
+            "SELECT DISTINCT quiz FROM attempted_quizzes WHERE student = ? AND status = 'PASSED' AND quiz IN (?)",
+            [studentId, quizIds]
+        );
+        const passedSet = new Set(attempts.map(a => String(a.quiz)));
+        quizzesOk = quizIds.every(qid => passedSet.has(String(qid)));
+    }
+
+    if (!modulesCompleted || !quizzesOk) {
+        return { created: false, reason: "Eligibility not met" };
+    }
+
+    // 5. Determine Issuer
+    let issuedBy = opts.issuedByUserId;
+    if (!issuedBy) {
+        try {
+            // Find student department instructor
+            const student = await User.findById(studentId);
+            if (student && student.department) {
+                // student.department is just ID or populated? In SQL model usually just ID string/int?
+                // Wait, User model in SQL has `department` field?
+                // Let's assume it has department ID.
+                if (typeof student.department === 'string' || typeof student.department === 'number') {
+                    const dept = await Department.findById(student.department);
+                    if (dept && dept.instructor) issuedBy = dept.instructor;
+                }
+            }
+        } catch (e) { }
+    }
+    if (!issuedBy) issuedBy = studentId;
+
+    // 6. Generate Metadata with Template
+    let metadata = undefined;
+
+    let template = await CertificateTemplate.findOne({ isDefault: 1, isActive: 1 });
+    if (!template) {
+        const [temps] = await pool.query("SELECT * FROM certificate_templates WHERE isActive = 1 ORDER BY createdAt ASC LIMIT 1");
+        if (temps.length > 0) template = new CertificateTemplate(temps[0]);
+    }
+
+    if (template) {
+        const student = await User.findById(studentId);
+        let deptName = 'N/A';
+        if (student.department) {
+            const d = await Department.findById(student.department);
+            if (d) deptName = d.name;
+        }
+
+        // Fetch Level Config for ordering and total levels
+        let levelConfig = null;
+        const [lConfigs] = await pool.query("SELECT * FROM course_level_configs WHERE isActive = 1 LIMIT 1");
+        if (lConfigs.length > 0) {
+            const raw = lConfigs[0];
+            raw.levels = typeof raw.levels === 'string' ? JSON.parse(raw.levels) : raw.levels;
+            levelConfig = raw;
+        }
+
+        // Default to L1..L3 if no config
+        const levels = levelConfig?.levels || [{ name: 'L1' }, { name: 'L2' }, { name: 'L3' }];
+        const currentLevelName = progress.currentLevel || 'L1';
+        const currentLevelIndex = levels.findIndex(l => l.name === currentLevelName);
+
+        // Fetch all modules for course to map them to levels
+        // Note: modules table does NOT have 'level' column, so we use heuristic based on completion count
+
+        const completedModules = progress.completedModules || [];
+        completedModules.sort((a, b) => new Date(a.completedAt) - new Date(b.completedAt));
+        const totalCompleted = completedModules.length;
+
+        const getHeuristicDate = (percent) => {
+            if (totalCompleted === 0) return null;
+            const idx = Math.ceil(totalCompleted * percent) - 1;
+            const safeIdx = Math.max(0, Math.min(idx, totalCompleted - 1));
+            const mod = completedModules[safeIdx];
+            return mod ? new Date(mod.completedAt) : null;
+        };
+
+        const formatDate = (date) => {
+            if (!date) return '-';
+            return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '.');
+        };
+
+        let level1DateObj = null;
+        let level2DateObj = null;
+        let level3DateObj = null;
+
+        if (currentLevelName === 'L3') {
+            level1DateObj = getHeuristicDate(0.33);
+            level2DateObj = getHeuristicDate(0.66);
+            level3DateObj = getHeuristicDate(1.0);
+        } else if (currentLevelName === 'L2') {
+            level1DateObj = getHeuristicDate(0.5);
+            level2DateObj = getHeuristicDate(1.0);
+        } else {
+            level1DateObj = getHeuristicDate(1.0);
+        }
+
+        // Logic for Start Date & Completion Date
+        let startDateObj;
+        let completionDateObj;
+
+        // Start Date
+        startDateObj = new Date(student.createdAt);
+
+        // Completion Date
+        completionDateObj = level3DateObj || level2DateObj || level1DateObj || new Date();
+
+
+        // Pie Chart Logic
+        // "5 pizza slices... if level 2... 2 slices fill"
+        // We simulate this with a conic gradient.
+        // Total levels = levels.length. Current = currentLevelIndex + 1.
+        const totalLevels = levels.length || 3;
+        const currentProgressStep = currentLevelIndex + 1;
+        const fillPercentage = Math.round((currentProgressStep / totalLevels) * 100);
+
+        // CSS for a simple pie chart / donut
+        // Using a variable for color if possible, else hardcode standard orange/blue
+        const pieChartCss = `background: conic-gradient(#F97316 0% ${fillPercentage}%, #E5E7EB ${fillPercentage}% 100%); border-radius: 50%;`;
+        // Or if the template expects an <img> tag, we might need a placeholder image service, but usually CSS is better for {{pieChart}} style attribute?
+        // Let's assume {{pieChart}} is inside a style="..." attribute or we inject a full div string.
+        // User request: "in pie chart circle have to repersent his level"
+        // If the placeholder is {{pieChart}}, let's provide a data-uri or just the style string if the template uses it like <div style="{{pieChart}}"></div>
+        // Safest is to provide the style string.
+
+        const certData = {
+            studentName: student.fullName,
+            courseName: course.title,
+            departmentName: deptName,
+            instructorName: 'N/A',
+            level: currentLevelName,
+            issueDate: formatDate(new Date()),
+            grade: 'PASS',
+            employeeId: student.userName, // Changed from id to userName
+            unit: student.unit || 'N/A',
+            startDate: formatDate(startDateObj),
+            completionDate: formatDate(completionDateObj),
+            level1Date: formatDate(level1DateObj),
+            level2Date: formatDate(level2DateObj),
+            level3Date: formatDate(level3DateObj),
+            userImage: student.avatar?.url || 'https://via.placeholder.com/150', // User image
+            pieChart: pieChartCss // Intended for style attribute
+        };
+
+        let html = template.template;
+        Object.keys(certData).forEach(k => {
+            const val = certData[k] !== null && certData[k] !== undefined ? certData[k] : '';
+            html = html.split(`{{${k}}}`).join(val);
+        });
+
+
+        metadata = {
+            ...certData,
+            templateId: template.id,
+            templateName: template.name,
+            generatedHTML: html,
+            styles: template.styles
+        };
+    }
+
+    const cert = await Certificate.create({
+        student: studentId,
+        course: courseId,
+        issuedBy,
+        grade: 'PASS',
+        type: 'COURSE_COMPLETION',
+        metadata
+    });
+
+    return { created: true, certificate: cert };
+};
 
 export const issueCertificate = asyncHandler(async (req, res) => {
     const { courseId, studentId } = req.body;
 
-    if (!mongoose.Types.ObjectId.isValid(courseId) || !mongoose.Types.ObjectId.isValid(studentId)) {
+    if (!courseId || !studentId) {
         throw new ApiError("Invalid course or student ID", 400);
     }
 
@@ -27,7 +249,11 @@ export const issueCertificate = asyncHandler(async (req, res) => {
     const student = await User.findById(studentId);
     if (!student) throw new ApiError("Student not found", 404);
 
-    const existing = await Certificate.findOne({ student: studentId, course: courseId, type: { $ne: 'SKILL_UPGRADATION' } });
+    const existing = await Certificate.findOne({
+        student: studentId,
+        course: courseId,
+        type: { $ne: 'SKILL_UPGRADATION' }
+    });
     if (existing) {
         throw new ApiError("Certificate already issued for this student & course", 400);
     }
@@ -35,7 +261,7 @@ export const issueCertificate = asyncHandler(async (req, res) => {
     const certificate = await Certificate.create({
         student: studentId,
         course: courseId,
-        issuedBy: req.user._id,
+        issuedBy: req.user.id,
         type: 'COURSE_COMPLETION'
     });
 
@@ -43,392 +269,462 @@ export const issueCertificate = asyncHandler(async (req, res) => {
         .json(new ApiResponse(201, certificate, "Certificate issued successfully"));
 });
 
-// Issue certificate with template
 export const issueCertificateWithTemplate = asyncHandler(async (req, res) => {
     const { studentId, courseId, templateId, grade = 'PASS' } = req.body;
 
-    if (!mongoose.Types.ObjectId.isValid(studentId) || !mongoose.Types.ObjectId.isValid(courseId)) {
+    if (!studentId || !courseId) {
         throw new ApiError("Invalid student or course ID", 400);
     }
 
-    // Student Self-Service Logic
+    // Student Self-Service
     if (req.user.role === 'STUDENT') {
-        if (req.user._id.toString() !== studentId) {
+        if (String(req.user.id) !== String(studentId)) {
             throw new ApiError("You can only issue certificates for yourself", 403);
         }
-        // Run strict eligibility check and auto-issue
-        const result = await ensureCertificateIfEligible(studentId, courseId, { issuedByUserId: req.user._id });
 
+        const result = await checkEligibilityAndCreate(studentId, courseId, { issuedByUserId: req.user.id });
         if (!result.created && !result.certificate) {
-            throw new ApiError(result.reason || "You are not eligible for this certificate yet. Please complete all modules and quizzes.", 400);
+            throw new ApiError(result.reason || "Not eligible yet", 400);
         }
 
         const cert = result.certificate;
-        const populatedCertificate = await Certificate.findById(cert._id)
-            .populate('student', 'fullName email')
-            .populate('course', 'title description')
-            .populate('issuedBy', 'fullName email');
+        const populated = await populateCertificate(cert);
 
         return res.status(200).json(new ApiResponse(200, {
-            certificate: populatedCertificate,
+            certificate: populated,
             template: {
                 _id: cert.metadata?.templateId,
                 name: cert.metadata?.templateName,
                 html: cert.metadata?.generatedHTML,
                 styles: cert.metadata?.styles
             }
-        }, "Certificate issued successfully"));
+        }, "Certificate issued/fetched successfully"));
     }
 
-    // Check if certificate already exists
-    const existingCertificate = await Certificate.findOne({ student: studentId, course: courseId, type: { $ne: 'SKILL_UPGRADATION' } });
-    if (existingCertificate) {
-        throw new ApiError("Certificate already exists for this student and course", 400);
-    }
+    // Admin/Instructor Logic
+    const existing = await Certificate.findOne({ student: studentId, course: courseId, type: { $ne: 'SKILL_UPGRADATION' } });
+    if (existing) throw new ApiError("Certificate already exists", 400);
 
-    const student = await User.findById(studentId).populate('department');
+    const student = await User.findById(studentId);
     if (!student) throw new ApiError("Student not found", 404);
 
     const course = await Course.findById(courseId);
     if (!course) throw new ApiError("Course not found", 404);
 
-    // Get certificate template
     let template;
-    if (templateId && mongoose.Types.ObjectId.isValid(templateId)) {
+    if (templateId) {
         template = await CertificateTemplate.findById(templateId);
-        if (!template) {
-            throw new ApiError("Certificate template not found", 404);
-        }
+        if (!template) throw new ApiError("Template not found", 404);
     } else {
-        template = await CertificateTemplate.findOne({ isDefault: true, isActive: true });
+        // Find default or first active
+        template = await CertificateTemplate.findOne({ isDefault: 1, isActive: 1 });
         if (!template) {
-            template = await CertificateTemplate.findOne({ isActive: true }).sort({ createdAt: 1 });
+            const [temps] = await pool.query("SELECT * FROM certificate_templates WHERE isActive = 1 ORDER BY createdAt ASC LIMIT 1");
+            if (temps.length > 0) template = new CertificateTemplate(temps[0]);
         }
-        if (!template) {
-            throw new ApiError("No certificate template available", 404);
-        }
+        if (!template) throw new ApiError("No template available", 404);
     }
 
-    // Get department and progress information
-    const department = await Department.findById(student.department?._id)
-        .populate('instructor', 'fullName');
+    // Fetch details for placeholders
+    let deptName = 'N/A';
+    let instrName = 'N/A';
+    if (student.department) {
+        const d = await Department.findById(student.department);
+        if (d) {
+            deptName = d.name;
+            if (d.instructor) {
+                const i = await User.findById(d.instructor);
+                if (i) instrName = i.fullName;
+            }
+        }
+    }
 
     const progress = await Progress.findOne({ student: studentId, course: courseId });
 
-    // Generate certificate data
-    const certificateData = {
+    const enrollment = await Enrollment.findOne({ student: studentId, course: courseId });
+    const startDate = enrollment ? new Date(enrollment.enrolledAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A';
+    const completionDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    const certData = {
         studentName: student.fullName,
         courseName: course.title,
-        departmentName: department?.name || 'N/A',
-        instructorName: department?.instructor?.fullName || 'N/A',
+        departmentName: deptName,
+        instructorName: instrName,
         level: progress?.currentLevel || 'Beginner',
-        issueDate: new Date().toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        }),
-        grade: grade
+        issueDate: completionDate,
+        grade: grade,
+        employeeId: student.userName || student.id,
+        unit: student.unit || 'N/A',
+        startDate,
+        completionDate,
+        level1Date: '-',
+        level2Date: '-',
+        level3Date: '-'
     };
 
-    // Replace placeholders in template
-    let certificateHTML = template.template;
-    Object.keys(certificateData).forEach(key => {
-        const placeholder = new RegExp(`{{${key}}}`, 'g');
-        certificateHTML = certificateHTML.replace(placeholder, certificateData[key]);
+    let html = template.template;
+    Object.keys(certData).forEach(k => {
+        const val = certData[k] !== null && certData[k] !== undefined ? certData[k] : '';
+        html = html.split(`{{${k}}}`).join(val);
     });
 
-    // Create certificate record
-    const certificate = await Certificate.create({
+    const cert = await Certificate.create({
         student: studentId,
         course: courseId,
-        issuedBy: req.user._id,
-        grade: grade,
+        issuedBy: req.user.id,
+        grade,
         type: 'COURSE_COMPLETION',
         metadata: {
-            ...certificateData,
-            templateId: template._id.toString(),
+            ...certData,
+            templateId: template.id,
             templateName: template.name,
-            generatedHTML: certificateHTML,
+            generatedHTML: html,
             styles: template.styles
         }
     });
 
-    const populatedCertificate = await Certificate.findById(certificate._id)
-        .populate('student', 'fullName email')
-        .populate('course', 'title description')
-        .populate('issuedBy', 'fullName email');
+    const populated = await populateCertificate(cert);
 
     res.status(201).json(new ApiResponse(201, {
-        certificate: populatedCertificate,
+        certificate: populated,
         template: {
-            _id: template._id,
+            _id: template.id,
             name: template.name,
-            html: certificateHTML,
+            html: html,
             styles: template.styles
         }
-    }, "Certificate issued successfully with template"));
+    }, "Certificate issued successfully"));
 });
 
-// Generate certificate preview
 export const generateCertificatePreview = asyncHandler(async (req, res) => {
     const { studentId, courseId, templateId } = req.body;
 
-    if (!studentId || !courseId) {
-        throw new ApiError("Student ID and Course ID are required", 400);
-    }
+    if (!studentId || !courseId) throw new ApiError("Student and Course IDs required", 400);
 
-    // For preview, we can use sample data if student/course not found
-    let student, course, department, progress;
+    let student, course, deptName = 'Sample Dept', instrName = 'Jane Smith', level = 'Intermediate';
 
     try {
-        if (mongoose.Types.ObjectId.isValid(studentId)) {
-            student = await User.findById(studentId).populate('department');
-        }
-        if (mongoose.Types.ObjectId.isValid(courseId)) {
-            course = await Course.findById(courseId);
-        }
+        student = await User.findById(studentId);
+        course = await Course.findById(courseId);
         if (student?.department) {
-            department = await Department.findById(student.department._id).populate('instructor', 'fullName');
+            const d = await Department.findById(student.department);
+            if (d) {
+                deptName = d.name;
+                if (d.instructor) {
+                    const i = await User.findById(d.instructor);
+                    if (i) instrName = i.fullName;
+                }
+            }
         }
-        if (student && course) {
-            progress = await Progress.findOne({ student: studentId, course: courseId });
-        }
-    } catch (error) {
-        // Continue with sample data if queries fail
-    }
+        const prog = await Progress.findOne({ student: studentId, course: courseId });
+        if (prog) level = prog.currentLevel;
+    } catch (e) { }
 
-    // Get certificate template
     let template;
-    if (templateId && mongoose.Types.ObjectId.isValid(templateId)) {
+    if (templateId) {
         template = await CertificateTemplate.findById(templateId);
     } else {
-        template = await CertificateTemplate.findOne({ isDefault: true, isActive: true });
+        template = await CertificateTemplate.findOne({ isDefault: 1, isActive: 1 });
         if (!template) {
-            template = await CertificateTemplate.findOne({ isActive: true }).sort({ createdAt: 1 });
+            const [temps] = await pool.query("SELECT * FROM certificate_templates WHERE isActive = 1 ORDER BY createdAt ASC LIMIT 1");
+            if (temps.length > 0) template = new CertificateTemplate(temps[0]);
         }
     }
+    if (!template) throw new ApiError("No template found", 404);
 
-    if (!template) {
-        throw new ApiError("No certificate template available", 404);
+    // Fetch Level Config for ordering and total levels
+    let levelConfig = null;
+    const [lConfigs] = await pool.query("SELECT * FROM course_level_configs WHERE isActive = 1 LIMIT 1");
+    if (lConfigs.length > 0) {
+        const raw = lConfigs[0];
+        raw.levels = typeof raw.levels === 'string' ? JSON.parse(raw.levels) : raw.levels;
+        levelConfig = raw;
     }
 
-    // Generate preview data (use real data or sample data)
-    const previewData = {
-        studentName: student?.fullName || 'John Doe',
-        courseName: course?.title || 'Sample Course',
-        departmentName: department?.name || 'Sample Department',
-        instructorName: department?.instructor?.fullName || 'Jane Smith',
-        level: progress?.currentLevel || 'Intermediate',
-        issueDate: new Date().toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        }),
-        grade: 'A+'
+    // Default to L1..L3 if no config
+    const levels = levelConfig?.levels || [{ name: 'L1' }, { name: 'L2' }, { name: 'L3' }];
+    const currentLevelName = level || 'L1';
+    const currentLevelIndex = levels.findIndex(l => l.name === currentLevelName);
+
+    // Fetch all modules for course to map them to levels
+    // Note: modules table does NOT have 'level' column, so we use heuristic based on completion count
+
+    const completedModules = prog ? (prog.completedModules || []) : [];
+    completedModules.sort((a, b) => new Date(a.completedAt) - new Date(b.completedAt));
+    const totalCompleted = completedModules.length;
+
+    const getHeuristicDate = (percent) => {
+        if (totalCompleted === 0) return null;
+        const idx = Math.ceil(totalCompleted * percent) - 1;
+        const safeIdx = Math.max(0, Math.min(idx, totalCompleted - 1));
+        const mod = completedModules[safeIdx];
+        return mod ? new Date(mod.completedAt) : null;
     };
 
-    // Replace placeholders in template
-    let previewHTML = template.template;
-    Object.keys(previewData).forEach(key => {
-        const placeholder = new RegExp(`{{${key}}}`, 'g');
-        previewHTML = previewHTML.replace(placeholder, previewData[key]);
+    const formatDate = (date) => {
+        if (!date) return '-';
+        return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '.');
+    };
+
+    let level1DateObj = null;
+    let level2DateObj = null;
+    let level3DateObj = null;
+
+    if (currentLevelName === 'L3') {
+        level1DateObj = getHeuristicDate(0.33);
+        level2DateObj = getHeuristicDate(0.66);
+        level3DateObj = getHeuristicDate(1.0);
+    } else if (currentLevelName === 'L2') {
+        level1DateObj = getHeuristicDate(0.5);
+        level2DateObj = getHeuristicDate(1.0);
+    } else {
+        level1DateObj = getHeuristicDate(1.0);
+    }
+
+    let startDateObj;
+    let completionDateObj;
+
+    startDateObj = student ? new Date(student.createdAt) : new Date();
+
+    completionDateObj = level3DateObj || level2DateObj || level1DateObj || new Date();
+
+    const totalLevels = levels.length || 3;
+    const currentProgressStep = currentLevelIndex + 1;
+    const fillPercentage = Math.round((currentProgressStep / totalLevels) * 100);
+    const pieChartCss = `background: conic-gradient(#F97316 0% ${fillPercentage}%, #E5E7EB ${fillPercentage}% 100%); border-radius: 50%;`;
+
+    const data = {
+        studentName: student?.fullName || 'John Doe',
+        courseName: course?.title || 'Sample Course',
+        departmentName: deptName,
+        instructorName: instrName,
+        level: level,
+        issueDate: formatDate(new Date()),
+        grade: 'A+',
+        employeeId: student?.userName || 'EMP001',
+        unit: student?.unit || 'Main Unit',
+        startDate: formatDate(startDateObj),
+        completionDate: formatDate(completionDateObj),
+        level1Date: formatDate(level1DateObj),
+        level2Date: formatDate(level2DateObj),
+        level3Date: formatDate(level3DateObj),
+        userImage: student?.avatar?.url || 'https://via.placeholder.com/150',
+        pieChart: pieChartCss
+    };
+
+    let html = template.template;
+    Object.keys(data).forEach(k => {
+        const val = data[k] !== null && data[k] !== undefined ? data[k] : '';
+        html = html.split(`{{${k}}}`).join(val);
     });
 
     res.json(new ApiResponse(200, {
-        html: previewHTML,
+        html: html,
         styles: template.styles,
-        data: previewData,
+        data: data,
         template: {
-            _id: template._id,
+            _id: template.id,
             name: template.name,
             description: template.description
         }
-    }, "Certificate preview generated successfully"));
+    }, "Preview generated"));
 });
 
 export const getCertificateById = asyncHandler(async (req, res) => {
     const { id } = req.params;
+    let cert = await Certificate.findById(id);
+    if (!cert) throw new ApiError("Certificate not found", 404);
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-        throw new ApiError("Invalid certificate ID", 400);
-    }
-
-    const certificate = await Certificate.findById(id)
-        .populate("student", "fullName email")
-        .populate("course", "title")
-        .populate("issuedBy", "fullName email");
-
-    if (!certificate) throw new ApiError("Certificate not found", 404);
-
-    res.json(new ApiResponse(200, certificate, "Certificate fetched successfully"));
+    cert = await populateCertificate(cert);
+    res.json(new ApiResponse(200, cert, "Fetched successfully"));
 });
 
 export const getStudentCertificates = asyncHandler(async (req, res) => {
-    const studentId = req.user._id;
+    const studentId = req.user.id;
+    // Assuming studentId is correct ID for finding certs
+    let certs = await Certificate.find({ student: studentId });
+    console.log(`[DEBUG] Fetched ${certs.length} certs for student ${studentId}`);
+    certs.sort((a, b) => new Date(b.issueDate) - new Date(a.issueDate));
 
-    const certificates = await Certificate.find({ student: studentId })
-        .populate("student", "fullName email")
-        .populate("course", "title description")
-        .populate("issuedBy", "fullName email")
-        .sort({ issueDate: -1 });
+    // Optimize: Use req.user for student info
+    const studentInfo = { id: req.user.id, fullName: req.user.fullName, email: req.user.email };
 
-    res.json(new ApiResponse(200, certificates, "Certificates fetched successfully"));
+    // Bulk fetch courses and issuers
+    const courseIds = [...new Set(certs.map(c => c.course))].filter(id => id);
+    const issuerIds = [...new Set(certs.map(c => c.issuedBy))].filter(id => id);
+
+    let courseMap = new Map();
+    if (courseIds.length > 0) {
+        const { pool } = await import("../db/connectDB.js");
+        const [courses] = await pool.query("SELECT id, title, description FROM courses WHERE id IN (?)", [courseIds]);
+        courses.forEach(c => courseMap.set(String(c.id), c));
+    }
+
+    let issuerMap = new Map();
+    if (issuerIds.length > 0) {
+        const { pool } = await import("../db/connectDB.js");
+        const [issuers] = await pool.query("SELECT id, fullName, email FROM users WHERE id IN (?)", [issuerIds]);
+        issuers.forEach(u => issuerMap.set(String(u.id), u));
+    }
+
+    const populatedCerts = certs.map(cert => {
+        // Use spread to avoid mutating original if needed, but here fine
+        const populated = { ...cert };
+
+        // Student
+        populated.student = studentInfo;
+
+        // Course
+        if (populated.course) {
+            const c = courseMap.get(String(populated.course));
+            if (c) populated.course = { id: c.id, title: c.title, description: c.description };
+        }
+
+        // Issued By
+        if (populated.issuedBy) {
+            const u = issuerMap.get(String(populated.issuedBy));
+            if (u) populated.issuedBy = { id: u.id, fullName: u.fullName, email: u.email };
+        }
+
+        return populated;
+    });
+
+    res.json(new ApiResponse(200, populatedCerts, "Fetched successfully"));
 });
 
 export const getCourseCertificates = asyncHandler(async (req, res) => {
     const { courseId } = req.params;
+    let certs = await Certificate.find({ course: courseId });
+    certs.sort((a, b) => new Date(b.issueDate) - new Date(a.issueDate));
 
-    if (!mongoose.Types.ObjectId.isValid(courseId)) {
-        throw new ApiError("Invalid course ID", 400);
-    }
-
-    const certificates = await Certificate.find({ course: courseId })
-        .populate("student", "fullName email")
-        .populate("issuedBy", "fullName email")
-        .sort({ issueDate: -1 });
-
-    res.json(new ApiResponse(200, certificates, "Course certificates fetched successfully"));
+    certs = await Promise.all(certs.map(populateCertificate));
+    res.json(new ApiResponse(200, certs, "Fetched successfully"));
 });
 
 export const revokeCertificate = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-        throw new ApiError("Invalid certificate ID", 400);
-    }
+    const { pool } = await import("../db/connectDB.js");
+    const [resDb] = await pool.query("DELETE FROM certificates WHERE id = ?", [id]);
 
-    const certificate = await Certificate.findById(id);
-    if (!certificate) throw new ApiError("Certificate not found", 404);
+    if (resDb.affectedRows === 0) throw new ApiError("Certificate not found", 404);
 
-    await certificate.deleteOne();
-
-    res.json(new ApiResponse(200, null, "Certificate revoked successfully"));
+    res.json(new ApiResponse(200, null, "Revoked successfully"));
 });
 
-// Check student eligibility for certificate (Instructor only)
 export const checkCertificateEligibility = asyncHandler(async (req, res) => {
     const { studentId, courseId } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(studentId) || !mongoose.Types.ObjectId.isValid(courseId)) {
-        throw new ApiError("Invalid student or course ID", 400);
-    }
-
-    // Get student and course details
-    const student = await User.findById(studentId).populate('department');
+    const student = await User.findById(studentId);
     if (!student) throw new ApiError("Student not found", 404);
 
-    const course = await Course.findById(courseId).populate('modules');
+    const course = await Course.findById(courseId);
     if (!course) throw new ApiError("Course not found", 404);
 
-    // Check if student is enrolled in instructor's department for this course
-    if (!student.department) {
-        throw new ApiError("Student not assigned to any department", 400);
+    // Auth check
+    // Assuming student.department contains dept ID
+    let deptInstructorId = null;
+    if (student.department) {
+        const d = await Department.findById(student.department);
+        if (d) deptInstructorId = d.instructor;
     }
 
-    // Check authorization: Student checking self, or Instructor/Admin checking student
-    const isStudentSelf = req.user._id.toString() === studentId;
-    const isInstructor = department.instructor.toString() === req.user._id.toString();
+    const isStudentSelf = String(req.user.id) === String(studentId);
+    const isInstructor = deptInstructorId && String(deptInstructorId) === String(req.user.id);
     const isAdmin = ['ADMIN', 'SUPERADMIN'].includes(req.user.role);
 
     if (!isStudentSelf && !isInstructor && !isAdmin) {
-        throw new ApiError("You are not authorized to check certificate eligibility for this student", 403);
+        throw new ApiError("Unauthorized", 403);
     }
 
-    // Check if certificate already exists
-    const existingCertificate = await Certificate.findOne({ student: studentId, course: courseId });
-    if (existingCertificate) {
+    // Check existing
+    const existing = await Certificate.findOne({ student: studentId, course: courseId });
+    if (existing) {
         return res.json(new ApiResponse(200, {
             eligible: false,
             reason: "Certificate already issued",
-            certificate: existingCertificate
-        }, "Certificate eligibility checked"));
+            certificate: existing
+        }, "Checked"));
     }
 
-    // Check progress completion
     const progress = await Progress.findOne({ student: studentId, course: courseId });
     if (!progress) {
         return res.json(new ApiResponse(200, {
             eligible: false,
-            reason: "No progress found for this course",
-            requirements: {
-                courseCompletion: false,
-                quizPassed: false,
-                assignmentsGraded: false
-            }
-        }, "Certificate eligibility checked"));
+            reason: "No progress found",
+            requirements: { courseCompletion: false, quizPassed: false, assignmentsGraded: false }
+        }, "Checked"));
     }
 
-    // Check course completion (all modules completed)
-    const totalModules = course.modules?.length || 0;
+    // Check completion
+    const [modRows] = await pool.query("SELECT COUNT(*) as count FROM modules WHERE course = ?", [courseId]);
+    const totalModules = modRows[0].count;
     const completedModules = progress.completedModules?.length || 0;
-    const courseCompleted = totalModules > 0 && completedModules >= totalModules;
+    const courseCompleted = (totalModules > 0 && completedModules >= totalModules);
 
-    // Check quiz attempts and pass status
-    const quizAttempts = await AttemptedQuiz.find({ student: studentId })
-        .populate({
-            path: 'quiz',
-            match: { course: courseId },
-            select: 'title questions passingScore'
+    // Quizzes
+    const [allQuizzes] = await pool.query("SELECT id, title, passingScore FROM quizzes WHERE course = ?", [courseId]);
+    let passedAttempts = [];
+    if (allQuizzes.length > 0) {
+        [passedAttempts] = await pool.query(
+            "SELECT DISTINCT quiz FROM attempted_quizzes WHERE student = ? AND status = 'PASSED' AND quiz IN (?)",
+            [studentId, allQuizzes.map(q => q.id)]
+        );
+    }
+    const passedSet = new Set(passedAttempts.map(a => String(a.quiz)));
+    // If no quizzes, passed=true
+    const quizPassed = allQuizzes.length === 0 || allQuizzes.every(q => passedSet.has(String(q.id)));
+
+    // Assignments
+    const [assignments] = await pool.query("SELECT id, title, maxScore FROM assignments WHERE course = ?", [courseId]);
+    let assignmentsGraded = true;
+    let assignmentDetails = [];
+
+    if (assignments.length > 0) {
+        const [subs] = await pool.query(
+            "SELECT * FROM submissions WHERE student = ? AND assignment IN (?)",
+            [studentId, assignments.map(a => a.id)]
+        );
+
+        // Map subs
+        const subMap = new Map();
+        subs.forEach(s => subMap.set(String(s.assignment), s));
+
+        assignments.forEach(a => {
+            const s = subMap.get(String(a.id));
+            const isGraded = s && s.grade !== null && s.grade !== undefined;
+            if (!isGraded) assignmentsGraded = false;
+            assignmentDetails.push({
+                assignment: a.title,
+                grade: s ? s.grade : null,
+                maxScore: a.maxScore,
+                isGraded
+            });
         });
-
-    const courseQuizAttempts = quizAttempts.filter(attempt => attempt.quiz);
-    const passedQuizzes = courseQuizAttempts.filter(attempt => {
-        const totalQuestions = attempt.quiz.questions?.length || 0;
-        const scorePercent = totalQuestions > 0 ? (attempt.score / totalQuestions) * 100 : 0;
-        const passingScore = attempt.quiz.passingScore || 70;
-        return scorePercent >= passingScore;
-    });
-
-    // Check if course has any quizzes - if no quizzes exist, consider it passed
-    const Quiz = (await import('../models/quiz.model.js')).default;
-    const totalQuizzesInCourse = await Quiz.countDocuments({ course: courseId });
-    const hasQuizzes = totalQuizzesInCourse > 0;
-    const quizPassed = !hasQuizzes || (courseQuizAttempts.length > 0 && passedQuizzes.length > 0);
-
-    // Check assignment submissions and grading
-    const assignments = await Assignment.find({ course: courseId });
-    const submissions = await Submission.find({
-        student: studentId,
-        assignment: { $in: assignments.map(a => a._id) }
-    }).populate('assignment', 'title maxScore');
-
-    const gradedSubmissions = submissions.filter(sub => sub.grade !== null && sub.grade !== undefined);
-    // If course has no assignments, consider it passed. 
-    // If has assignments, all assignments must have submissions and all submissions must be graded.
-    const assignmentsGraded = assignments.length === 0 ||
-        (assignments.length === submissions.length && gradedSubmissions.length === submissions.length);
+    }
 
     const eligible = courseCompleted && quizPassed && assignmentsGraded;
 
     res.json(new ApiResponse(200, {
         eligible,
-        reason: eligible ? "Student is eligible for certificate" : "Student does not meet all requirements",
-        requirements: {
-            courseCompletion: courseCompleted,
-            quizPassed,
-            assignmentsGraded
-        },
+        reason: eligible ? "Eligible" : "Requirements not met",
+        requirements: { courseCompletion, quizPassed, assignmentsGraded },
         details: {
             progress: {
                 completedModules,
                 totalModules,
-                progressPercent: progress.progressPercent,
+                progressPercent: progress.progressPercent || 0,
                 currentLevel: progress.currentLevel
             },
             quizzes: {
-                totalAttempts: courseQuizAttempts.length,
-                passedQuizzes: passedQuizzes.length
+                totalAttempts: passedAttempts.length, // approximation of passed count
+                passedQuizzes: passedAttempts.length
             },
             assignments: {
-                totalSubmissions: submissions.length,
-                gradedSubmissions: gradedSubmissions.length,
-                submissions: submissions.map(sub => ({
-                    assignment: sub.assignment.title,
-                    grade: sub.grade,
-                    maxScore: sub.assignment.maxScore,
-                    isGraded: sub.grade !== null && sub.grade !== undefined
-                }))
+                totalSubmissions: assignmentDetails.length,
+                gradedSubmissions: assignmentDetails.filter(a => a.isGraded).length,
+                submissions: assignmentDetails
             }
         }
-    }, "Certificate eligibility checked"));
+    }, "Available"));
 });

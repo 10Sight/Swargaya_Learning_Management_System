@@ -71,7 +71,7 @@ const SkillMatrix = () => {
     const departmentUsers = React.useMemo(() => {
         if (!selectedDepartment || !departmentsData?.data?.departments) return [];
 
-        const selectedDept = departmentsData.data.departments.find(d => d._id === selectedDepartment);
+        const selectedDept = departmentsData.data.departments.find(d => String(d._id) === String(selectedDepartment));
         if (!selectedDept) return [];
 
         const users = [];
@@ -103,7 +103,7 @@ const SkillMatrix = () => {
 
     // Initialize Matrix on Line Selection (Merge Logic)
     useEffect(() => {
-        if (selectedLine && machinesData?.data && departmentUsers.length > 0) {
+        if (selectedLine && machinesData?.data) {
             const activeMachines = machinesData.data;
             const savedEntries = savedMatrixData?.data?.entries || [];
 
@@ -158,7 +158,7 @@ const SkillMatrix = () => {
                     stations: savedUserEntry ? mergedStations : defaultStations,
                     isManual: false
                 };
-            });
+            }).filter(Boolean); // Safety filter
 
             // 2. Add Manual Rows (Data that exists in Saved but not in Current Users, marked isManual)
             const manualRows = savedEntries.filter(e => e.isManual).map((entry, idx) => {
@@ -658,8 +658,8 @@ const SkillMatrix = () => {
         );
     };
 
-    const selectedDeptName = departmentsData?.data?.departments?.find(d => d._id === selectedDepartment)?.name || "Select Department";
-    const selectedLineDetail = linesData?.data?.find(l => l._id === selectedLine);
+    const selectedDeptName = departmentsData?.data?.departments?.find(d => String(d._id) === String(selectedDepartment))?.name || "Select Department";
+    const selectedLineDetail = linesData?.data?.find(l => String(l._id) === String(selectedLine));
     const lineName = selectedLineDetail?.name || "Select Line";
 
     return (
@@ -700,7 +700,7 @@ const SkillMatrix = () => {
                             </SelectTrigger>
                             <SelectContent>
                                 {departmentsData?.data?.departments?.map(dept => (
-                                    <SelectItem key={dept._id} value={dept._id}>{dept.name}</SelectItem>
+                                    <SelectItem key={String(dept._id)} value={String(dept._id)}>{dept.name}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -713,7 +713,7 @@ const SkillMatrix = () => {
                             </SelectTrigger>
                             <SelectContent>
                                 {linesData?.data?.map(line => (
-                                    <SelectItem key={line._id} value={line._id}>{line.name}</SelectItem>
+                                    <SelectItem key={String(line._id)} value={String(line._id)}>{line.name}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -766,13 +766,13 @@ const SkillMatrix = () => {
                         </div>
                         <div className="w-[200px] text-[10px]">
                             {['Format no.', 'Rev.No.', 'Rev. Date', 'Page No.'].map((label, idx) => (
-                                <div key={idx} className="flex border-b border-black last:border-b-0">
+                                <div key={label} className="flex border-b border-black last:border-b-0">
                                     <div className="w-20 border-r border-black p-1 font-semibold">{label}</div>
                                     <div className="flex-1 p-0 text-center">
                                         <input
                                             type="text"
                                             className="w-full h-full text-center bg-transparent border-none focus:ring-0 p-1 font-medium"
-                                            value={Object.values(headerInfo)[idx]}
+                                            value={headerInfo[Object.keys(headerInfo)[idx]] || ""}
                                             onChange={(e) => handleHeaderInfoChange(Object.keys(headerInfo)[idx], e.target.value)}
                                         />
                                     </div>
@@ -800,7 +800,7 @@ const SkillMatrix = () => {
 
                         <div className="flex-1 flex overflow-x-auto">
                             {matrixEntries[0]?.stations?.map((station) => (
-                                <div key={station._id} className="w-20 border-r border-black p-1 flex items-center justify-center text-[9px] font-bold break-words text-center min-w-[60px]">
+                                <div key={String(station._id)} className="w-20 border-r border-black p-1 flex items-center justify-center text-[9px] font-bold break-words text-center min-w-[60px]">
                                     {station.name}
                                 </div>
                             ))}
@@ -810,7 +810,7 @@ const SkillMatrix = () => {
 
                     {/* Data Rows */}
                     {matrixEntries.map((row, idx) => (
-                        <div key={idx} className="flex border-b border-black text-[10px] text-center min-h-[50px]">
+                        <div key={row._id} className="flex border-b border-black text-[10px] text-center min-h-[50px]">
                             <div className="w-8 border-r border-black p-2 flex items-center justify-center font-bold">{row.srNo}</div>
                             <div className="w-32 border-r border-black p-2 flex items-center justify-start font-bold text-left min-w-[128px]">
                                 {row.isManual ? (
@@ -820,7 +820,7 @@ const SkillMatrix = () => {
                                         </SelectTrigger>
                                         <SelectContent>
                                             {departmentUsers.map(u => (
-                                                <SelectItem key={u._id} value={u._id}>{u.fullName}</SelectItem>
+                                                <SelectItem key={String(u._id)} value={String(u._id)}>{u.fullName}</SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
@@ -848,13 +848,13 @@ const SkillMatrix = () => {
                                             {row.type === 'TNR' ? (
                                                 <span className="text-[9px] font-bold">Team Leader</span>
                                             ) : (
-                                                <Select value={row.assignedStationId} onValueChange={(val) => handleAssignedStationChange(idx, val)}>
+                                                <Select value={String(row.assignedStationId || "")} onValueChange={(val) => handleAssignedStationChange(idx, val)}>
                                                     <SelectTrigger className="w-full h-full border-none p-1 text-[9px] font-bold bg-transparent">
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent>
                                                         {row.stations.map(s => (
-                                                            <SelectItem key={s._id} value={s._id} className="text-xs">{s.name}</SelectItem>
+                                                            <SelectItem key={String(s._id)} value={String(s._id)} className="text-xs">{s.name}</SelectItem>
                                                         ))}
                                                     </SelectContent>
                                                 </Select>
@@ -864,9 +864,9 @@ const SkillMatrix = () => {
                                             {row.type === 'TNR' ? (
                                                 <span className="text-[9px] font-bold">Not Applicable</span>
                                             ) : (
-                                                <Select value={assignedStation?.critical} onValueChange={(val) => {
+                                                <Select value={assignedStation?.critical || ""} onValueChange={(val) => {
                                                     // Find the index of the assigned station in the stations array
-                                                    const sIdx = row.stations.findIndex(s => s._id === row.assignedStationId);
+                                                    const sIdx = row.stations.findIndex(s => String(s._id) === String(row.assignedStationId));
                                                     if (sIdx !== -1) handleCriticalityChange(idx, sIdx, val);
                                                 }}>
                                                     <SelectTrigger className="w-full h-full border-none p-0 text-[9px] font-bold bg-transparent">
@@ -891,7 +891,7 @@ const SkillMatrix = () => {
                                     const level = parseLevel(currentLevelStr);
 
                                     return (
-                                        <div key={station._id} className="w-20 border-r border-black flex items-center justify-center min-w-[60px] p-1">
+                                        <div key={String(station._id)} className="w-20 border-r border-black flex items-center justify-center min-w-[60px] p-1">
                                             <Select
                                                 value={currentLevelStr}
                                                 onValueChange={(val) => handleLevelChange(idx, sIdx, val)}
@@ -903,7 +903,7 @@ const SkillMatrix = () => {
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     {availableLevels.map((lvl) => (
-                                                        <SelectItem key={lvl.name} value={lvl.name}>
+                                                        <SelectItem key={String(lvl.name)} value={String(lvl.name)}>
                                                             <div className="flex items-center gap-2">
                                                                 <SkillIcon level={parseLevel(lvl.name)} size={16} />
                                                                 <span>{lvl.name}</span>
@@ -926,8 +926,8 @@ const SkillMatrix = () => {
                     <div className="flex border-t border-black min-h-[100px]">
                         <div className="w-[350px] border-r border-black p-2 text-[10px]">
                             <div className="font-bold mb-1">Level Legend:</div>
-                            {availableLevels.map((lvl, idx) => (
-                                <div key={idx} className="flex items-center gap-2 mb-2">
+                            {availableLevels.map((lvl) => (
+                                <div key={lvl.name} className="flex items-center gap-2 mb-2">
                                     <SkillIcon level={parseLevel(lvl.name)} size={20} />
                                     <div className="flex flex-col">
                                         <span className="font-bold">{lvl.name}</span>
@@ -969,7 +969,7 @@ const SkillMatrix = () => {
                             </div>
                             {/* Rows */}
                             {revisions.map((rev, idx) => (
-                                <div key={idx} className="flex border-b border-black text-center h-[30px]">
+                                <div key={`${rev.revNo}-${idx}`} className="flex border-b border-black text-center h-[30px]">
                                     <div className="w-16 border-r border-black p-0 h-full">
                                         <input
                                             value={rev.date}

@@ -95,11 +95,10 @@ const CertificateTemplates = () => {
   const generateDefaultTemplate = (config) => {
     const levels = config?.levels || []
     const levelRows = levels.map(level => `
-                    <!-- Level ${level.name} -->
-                    <div class="table-row">
-                        <div class="col-level lvl-${level.name.replace(/\s+/g, '-').toLowerCase()}">${level.name}</div>
-                        <div class="col-date">{{level${level.order + 1}Date}}</div>
-                    </div>`).join('')
+                    <tr style="background-color: ${level.color || '#cccccc'}; color: white;">
+                        <td style="border: 1px solid #000; padding: 8px;">${level.name}</td>
+                        <td style="border: 1px solid #000; padding: 8px;">{{level${level.order + 1}Date}}</td>
+                    </tr>`).join('')
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -120,72 +119,57 @@ const CertificateTemplates = () => {
                 <img src="/motherson+marelli.png" alt="Marelli Motherson" />
             </div>
         </div>
-
-        <!-- Candidate Details -->
-        <div class="candidate-info">
+    
+        <div style="background-color: #fffbeb; padding: 20px;">
             <p>
-                <span class="label">Mr. / Mrs.</span>
-                <span class="underline field-name">{{studentName}}</span>
-                <span class="label">Department</span>
-                <span class="underline field-dept">{{departmentName}}</span>
-                <span class="label">Employee ID</span>
-                <span class="underline field-id">{{employeeId}}</span>
+                <strong>Mr. / Mrs.</strong> <span style="text-decoration: underline; padding: 0 10px;">{{studentName}}</span>
+                &nbsp;&nbsp;&nbsp;
+                <strong>Department</strong> <span style="text-decoration: underline; padding: 0 10px;">{{departmentName}}</span>
+                &nbsp;&nbsp;&nbsp;
+                <strong>Employee ID</strong> <span style="text-decoration: underline; padding: 0 10px;">{{employeeId}}</span>
             </p>
-            <p>
-                <span class="label">who had started his/her training from (</span>
-                <span class="underline field-date">{{startDate}}</span>
-                <span class="label">) to (</span>
-                <span class="underline field-date">{{completionDate}}</span>
-                <span class="label">)</span>
-            </p>
-            <p class="training-declaration">
-                has successfully completed ( Integrated/ Refresher ) course through the following DOJO Gates.
-            </p>
-        </div>
 
-        <!-- Levels Table Section -->
-        <div class="levels-container">
-            <div class="level-header">Current Level</div>
+            <p>
+                who had started his/her training from ( <span style="text-decoration: underline; padding: 0 10px;">{{startDate}}</span> )
+                to ( <span style="text-decoration: underline; padding: 0 10px;">{{completionDate}}</span> )
+            </p>
             
-            <div class="main-grid">
-                <!-- Left Column: Levels Description -->
-                <div class="levels-table">
-                    <div class="table-row header-row">
-                        <div class="col-level">Level</div>
-                        <div class="col-date">Level Certified Date</div>
-                    </div>
-                    ${levelRows}
-                </div>
+            <p>has successfully completed ( Integrated/ Refresher ) course through the following DOJO Gates.</p>
+        </div>
 
-                <!-- Right Column: Visualization -->
-                <div class="visual-section">
-                    <div class="blue-box"></div>
-                    <div class="chart-box">
-                        <!-- Simple CSS Pie Chart Representation -->
-                        <div class="pie-chart"></div>
-                    </div>
-                    <div class="skill-level-text">
-                        Current Skill Level - {{level}}
+        <div style="border: 2px solid #000; display: flex;">
+            <div style="width: 50%; border-right: 2px solid #000;">
+                <div style="background-color: #dbeafe; padding: 10px; font-weight: bold; text-align: center; border-bottom: 2px solid #000;">DOJO Gates</div>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr style="background-color: #eee;">
+                        <th style="border: 1px solid #000; padding: 8px;">Level</th>
+                        <th style="border: 1px solid #000; padding: 8px;">Level Certified Date</th>
+                    </tr>
+                    ${levelRows}
+                </table>
+            </div>
+            
+            <div style="width: 50%; background-color: #dbeafe; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
+                <div style="margin-bottom: 20px;">
+                    <!-- User Image Square -->
+                    <div style="width: 100px; height: 100px; border-radius: 12px; overflow: hidden; border: 2px solid #333; background: #fff; margin: 0 auto;">
+                        <img src="{{userImage}}" alt="User" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='https://via.placeholder.com/150'"/>
                     </div>
                 </div>
+                
+                <!-- Pie Chart -->
+                <div style="width: 60px; height: 60px; {{pieChart}}; border: 2px solid #333; margin-bottom: 10px;"></div>
+                
+                <div style="font-weight: bold;">Current Skill Level - {{level}}</div>
             </div>
         </div>
 
-        <!-- Footer / Review Section -->
-        <div class="footer-table">
-            <div class="note-col">
-                Note:- Review Frequency after 3 month
-            </div>
-            <div class="review-col">
-                <div class="review-header">
-                    <div class="r-cell"></div>
-                    <div class="r-cell"></div>
-                </div>
-                <div class="review-body">
-                    <div class="r-cell">1st Review</div>
-                    <div class="r-cell">4th review</div>
-                </div>
-            </div>
+        <div style="margin-top: 20px; border-top: 2px solid #000; padding-top: 10px; display: flex; justify-content: space-between;">
+             <div>Note:- Review Frequency after 3 month</div>
+             <div>
+                 <span style="margin-right: 50px;">1st Review</span>
+                 <span>4th review</span>
+             </div>
         </div>
     </div>
 </body>
@@ -550,16 +534,120 @@ ${levelColors}
         })
       }
 
-      // Simple and safe replacement
+
+
+      // 1. Initial simple replacement for basic fields
       let previewContent = template.template.toString()
       const templateStyles = template.styles || generateDefaultStyles(activeConfig)
 
-      // Replace placeholders with sample data
+      // Replace basic placeholders
       Object.keys(sampleData).forEach(key => {
         const placeholder = `{{${key}}}`
         const value = sampleData[key]
         previewContent = previewContent.split(placeholder).join(value)
       })
+
+      // 2. Dynamic Row Injection (The "Smart Fix")
+      // Only runs if we have active config levels and specific {{level1}} placeholder is present
+      if (activeConfig?.levels) {
+        // Regex/Substring logic to find row template
+        let matchIndex = previewContent.search(/{{\s*level1\s*}}/);
+
+        if (matchIndex !== -1) {
+          const lowerHtml = previewContent.toLowerCase();
+          const rowStartIndex = lowerHtml.lastIndexOf('<tr', matchIndex);
+          const rowEndIndex = lowerHtml.indexOf('</tr>', matchIndex);
+
+          if (rowStartIndex !== -1 && rowEndIndex !== -1) {
+            const fullRowEndIndex = rowEndIndex + 5;
+            const rowTemplate = previewContent.substring(rowStartIndex, fullRowEndIndex);
+
+            const dynamicRows = activeConfig.levels.map((level, index) => {
+              let rowHtml = rowTemplate;
+              const levelNum = index + 1;
+
+              // Name Replacement
+              const levelNameRegex = new RegExp(`{{\\s*level1\\s*}}`, 'gi');
+              rowHtml = rowHtml.replace(levelNameRegex, level.name);
+              rowHtml = rowHtml.replace(/{{\s*levelIndex\\s*}}/gi, levelNum);
+
+              // Date Replacement (Mock Data for Preview)
+              // We use sampleData[`level${i}Date`]
+              const dateKey = `level${levelNum}Date`;
+              const dateStr = sampleData[dateKey] || (index < 2 ? '01/01/2024' : '-'); // Mock logic
+
+              const dateRegex = new RegExp(`{{\\s*level1Date\\s*}}`, 'gi');
+              rowHtml = rowHtml.replace(dateRegex, dateStr);
+              rowHtml = rowHtml.replace(/{{\s*levelDate\\s*}}/gi, dateStr);
+
+              return rowHtml;
+            }).join('');
+
+            previewContent = previewContent.slice(0, rowStartIndex) + dynamicRows + previewContent.slice(fullRowEndIndex);
+
+            // Cleanup unused rows level2...15
+            for (let i = 2; i <= 15; i++) {
+              const nextRowPattern = new RegExp(`<tr[^>]*>[\\s\\S]*?{{\\s*level${i}\\s*}}[\\s\\S]*?<\\/tr>`, 'gi');
+              previewContent = previewContent.replace(nextRowPattern, '');
+            }
+          }
+        }
+      }
+
+      // 3. Dynamic Pie Chart (Pizza Slice Style)
+      if (activeConfig?.levels) {
+        const totalLevels = activeConfig.levels.length;
+        // Mock a specific progress for preview 
+        // e.g. L3 user = 3 completed levels
+        let completedLevelsCount = 0;
+        if (sampleData.level === 'L3') completedLevelsCount = 3;
+        else if (sampleData.level === 'L2') completedLevelsCount = 2;
+        else completedLevelsCount = 1;
+
+        completedLevelsCount = Math.min(completedLevelsCount, totalLevels);
+
+        // A. CSS Conic Gradient
+        const fillPercentage = Math.round((completedLevelsCount / totalLevels) * 100);
+        const pieChartCss = `background: conic-gradient(#F97316 0% ${fillPercentage}%, #E5E7EB ${fillPercentage}% 100%); border-radius: 50%;`;
+
+        // B. SVG (Pizza Slices with Black Borders)
+        const size = 100;
+        const center = size / 2;
+        const radius = size / 2;
+        let paths = [];
+
+        for (let i = 0; i < totalLevels; i++) {
+          const startAngle = (i * 360) / totalLevels;
+          const endAngle = ((i + 1) * 360) / totalLevels;
+          const x1 = center + radius * Math.cos(Math.PI * startAngle / 180);
+          const y1 = center + radius * Math.sin(Math.PI * startAngle / 180);
+          const x2 = center + radius * Math.cos(Math.PI * endAngle / 180);
+          const y2 = center + radius * Math.sin(Math.PI * endAngle / 180);
+
+          const isFilled = i < completedLevelsCount;
+          const fillColor = isFilled ? activeConfig.levels[i]?.color || '#F97316' : '#FFFFFF';
+          const strokeColor = '#000000'; // Black borders as requested
+
+          // Path
+          const d = `M ${center} ${center} L ${x1} ${y1} A ${radius} ${radius} 0 0 1 ${x2} ${y2} Z`;
+          paths.push(`<path d="${d}" fill="${fillColor}" stroke="${strokeColor}" stroke-width="1" />`);
+        }
+
+        const svgContent = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">${paths.join('')}</svg>`;
+        const svgDataUri = `data:image/svg+xml;base64,${btoa(svgContent)}`;
+
+        // Smart Replacement
+        if (previewContent.match(/src\s*=\s*['"]{{pieChart}}['"]/i)) {
+          previewContent = previewContent.replace(/src\s*=\s*['"]{{pieChart}}['"]/gi, `src="${svgDataUri}"`);
+        }
+        else if (previewContent.match(/style\s*=\s*['"][^'"]*{{pieChart}}[^'"]*['"]/i)) {
+          previewContent = previewContent.replace(/{{pieChart}}/gi, pieChartCss);
+        }
+        else {
+          // Fallback to SVG if not in style tag, likely standalone div
+          previewContent = previewContent.replace(/{{pieChart}}/gi, svgContent);
+        }
+      }
 
       // Clean any remaining placeholders
       previewContent = previewContent.replace(/\{\{.*?\}\}/g, 'Sample Data')

@@ -70,12 +70,16 @@ const StudentLevelManager = () => {
   const selectedDepartmentData = departments.find(dept => dept._id === selectedDepartment);
   const courseId = selectedDepartmentData?.course?._id || selectedDepartmentData?.courseId;
 
-  // Auto-select first department if none selected and departments are available
+  // Auto-select first department if none selected or invalid selection
   useEffect(() => {
-    if (!selectedDepartment && departments.length > 0 && !departmentsLoading) {
-      const firstDepartment = departments[0];
-      setSelectedDepartment(firstDepartment._id);
-      try { localStorage.setItem("selectedDepartmentId", firstDepartment._id); } catch { }
+    if (!departmentsLoading && departments.length > 0) {
+      const isValidSelection = departments.some(dept => dept._id === selectedDepartment);
+
+      if (!selectedDepartment || !isValidSelection) {
+        const firstDepartment = departments[0];
+        setSelectedDepartment(firstDepartment._id);
+        try { localStorage.setItem("selectedDepartmentId", firstDepartment._id); } catch { }
+      }
     }
   }, [departments, selectedDepartment, departmentsLoading]);
 
@@ -95,14 +99,14 @@ const StudentLevelManager = () => {
         id: progress.student?._id || progress.student?.id,
         name: progress.student?.fullName || progress.student?.name || "Unknown",
         email: progress.student?.email || "No email",
-        currentLevel: progress.currentLevel || "L1", // Use actual level from API
-        levelLockEnabled: progress.levelLockEnabled || false, // Use actual lock status from API
-        lockedLevel: progress.lockedLevel || null, // Use actual locked level from API
+        currentLevel: progress.currentLevel || "L1",
+        levelLockEnabled: progress.levelLockEnabled || false,
+        lockedLevel: progress.lockedLevel || null,
         progressPercent: progress.progressPercentage || 0,
         completedModules: progress.completedModules || 0,
         lastAccessed: progress.lastActivity,
-        progressId: null, // Not available in department progress
-        courseId: selectedDepartmentData?.course?._id // Use course ID from selected department
+        courseId: progress.courseId,
+        courseTitle: progress.courseTitle
       }));
 
       setStudents(studentsWithProgress);
@@ -121,14 +125,14 @@ const StudentLevelManager = () => {
   };
 
   // Set student level and lock status
-  const handleSetStudentLevel = async (studentId, level, lock) => {
+  const handleSetStudentLevel = async (studentId, targetCourseId, level, lock) => {
     const updateKey = `${studentId}-${level}-${lock}`;
     setUpdating(prev => ({ ...prev, [updateKey]: true }));
 
     try {
       const response = await axiosInstance.patch("/api/progress/admin/set-level", {
         studentId,
-        courseId: courseId,
+        courseId: targetCourseId || courseId,
         level,
         lock
       });
@@ -167,15 +171,15 @@ const StudentLevelManager = () => {
 
   // Quick actions
   const handleLockAtCurrentLevel = (student) => {
-    handleSetStudentLevel(student.id, student.currentLevel, true);
+    handleSetStudentLevel(student.id, student.courseId, student.currentLevel, true);
   };
 
   const handleUnlockLevel = (student) => {
-    handleSetStudentLevel(student.id, student.currentLevel, false);
+    handleSetStudentLevel(student.id, student.courseId, student.currentLevel, false);
   };
 
   const handleSetLevel = (student, level) => {
-    handleSetStudentLevel(student.id, level, student.levelLockEnabled);
+    handleSetStudentLevel(student.id, student.courseId, level, student.levelLockEnabled);
   };
 
   const getLevelColor = (levelName) => {
@@ -298,12 +302,13 @@ const StudentLevelManager = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {students.map((student) => (
-                    <TableRow key={student.id}>
+                  {students.map((student, idx) => (
+                    <TableRow key={`${student.id}-${student.courseId || idx}`}>
                       <TableCell>
                         <div>
+                          <div className="font-medium text-blue-600">{student.courseTitle}</div>
                           <div className="font-medium">{student.name}</div>
-                          <div className="text-sm text-muted-foreground">{student.email}</div>
+                          <div className="text-xs text-muted-foreground">{student.email}</div>
                         </div>
                       </TableCell>
 

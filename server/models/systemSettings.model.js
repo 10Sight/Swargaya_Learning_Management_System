@@ -1,222 +1,207 @@
-import { Schema, model } from "mongoose";
+import { pool } from "../db/connectDB.js";
+import logger from "../logger/winston.logger.js";
 
-const systemSettingsSchema = new Schema(
-  {
-    // General Settings
-    siteName: {
-      type: String,
-      default: "Learning Management System",
-      maxlength: 100,
-    },
-    siteDescription: {
-      type: String,
-      default: "Advanced Learning Management System",
-      maxlength: 500,
-    },
-    siteUrl: {
-      type: String,
-      default: "https://lms.example.com",
-      maxlength: 200,
-    },
-    adminEmail: {
-      type: String,
-      default: "admin@example.com",
-      match: [/^\S+@\S+\.\S+$/, "Please enter a valid email"],
-    },
-    timezone: {
-      type: String,
-      default: "UTC",
-      maxlength: 50,
-    },
-    language: {
-      type: String,
-      default: "en",
-      maxlength: 10,
-    },
-    dateFormat: {
-      type: String,
-      default: "YYYY-MM-DD",
-      maxlength: 20,
-    },
-    timeFormat: {
-      type: String,
-      enum: ["12h", "24h"],
-      default: "24h",
-    },
+class SystemSettings {
+  constructor(data) {
+    this.id = data.id;
+    this._id = data.id; // Compatibility
 
-    // Security Settings
-    sessionTimeout: {
-      type: Number,
-      default: 30,
-      min: 5,
-      max: 480, // minutes
-    },
-    maxLoginAttempts: {
-      type: Number,
-      default: 5,
-      min: 3,
-      max: 10,
-    },
-    passwordMinLength: {
-      type: Number,
-      default: 8,
-      min: 6,
-      max: 32,
-    },
-    passwordRequireSpecial: {
-      type: Boolean,
-      default: true,
-    },
-    passwordRequireNumbers: {
-      type: Boolean,
-      default: true,
-    },
-    passwordRequireUppercase: {
-      type: Boolean,
-      default: true,
-    },
-    twoFactorAuth: {
-      type: Boolean,
-      default: false,
-    },
-    ipWhitelist: {
-      type: String,
-      default: "",
-      maxlength: 1000,
-    },
+    // General
+    this.siteName = data.siteName || "Learning Management System";
+    this.siteDescription = data.siteDescription || "Advanced Learning Management System";
+    this.siteUrl = data.siteUrl || "https://lms.example.com";
+    this.adminEmail = data.adminEmail || "admin@example.com";
+    this.timezone = data.timezone || "UTC";
+    this.language = data.language || "en";
+    this.dateFormat = data.dateFormat || "YYYY-MM-DD";
+    this.timeFormat = data.timeFormat || "24h";
 
-    // Email Settings
-    smtpHost: {
-      type: String,
-      default: "",
-      maxlength: 100,
-    },
-    smtpPort: {
-      type: Number,
-      default: 587,
-      min: 1,
-      max: 65535,
-    },
-    smtpUsername: {
-      type: String,
-      default: "",
-      maxlength: 100,
-    },
-    smtpPassword: {
-      type: String,
-      default: "",
-      maxlength: 200,
-    },
-    smtpEncryption: {
-      type: String,
-      enum: ["none", "tls", "ssl"],
-      default: "tls",
-    },
-    fromEmail: {
-      type: String,
-      default: "",
-      match: [/^$|^\S+@\S+\.\S+$/, "Please enter a valid email or leave empty"],
-    },
-    fromName: {
-      type: String,
-      default: "",
-      maxlength: 100,
-    },
+    // Security
+    this.sessionTimeout = data.sessionTimeout !== undefined ? data.sessionTimeout : 30;
+    this.maxLoginAttempts = data.maxLoginAttempts !== undefined ? data.maxLoginAttempts : 5;
+    this.passwordMinLength = data.passwordMinLength !== undefined ? data.passwordMinLength : 8;
+    this.passwordRequireSpecial = data.passwordRequireSpecial !== undefined ? !!data.passwordRequireSpecial : true;
+    this.passwordRequireNumbers = data.passwordRequireNumbers !== undefined ? !!data.passwordRequireNumbers : true;
+    this.passwordRequireUppercase = data.passwordRequireUppercase !== undefined ? !!data.passwordRequireUppercase : true;
+    this.twoFactorAuth = !!data.twoFactorAuth;
+    this.ipWhitelist = data.ipWhitelist || "";
 
-    // System Settings
-    maintenanceMode: {
-      type: Boolean,
-      default: false,
-    },
-    maintenanceMessage: {
-      type: String,
-      default: "System is under maintenance. Please check back later.",
-      maxlength: 500,
-    },
-    maxFileUploadSize: {
-      type: Number,
-      default: 10,
-      min: 1,
-      max: 100, // MB
-    },
-    allowedFileTypes: {
-      type: String,
-      default: "jpg,jpeg,png,pdf,doc,docx,txt",
-      maxlength: 200,
-    },
-    autoBackup: {
-      type: Boolean,
-      default: true,
-    },
-    backupRetention: {
-      type: Number,
-      default: 30,
-      min: 7,
-      max: 365, // days
-    },
+    // Email
+    this.smtpHost = data.smtpHost || "";
+    this.smtpPort = data.smtpPort !== undefined ? data.smtpPort : 587;
+    this.smtpUsername = data.smtpUsername || "";
+    this.smtpPassword = data.smtpPassword || "";
+    this.smtpEncryption = data.smtpEncryption || "tls";
+    this.fromEmail = data.fromEmail || "";
+    this.fromName = data.fromName || "";
 
-    // Notification Settings
-    emailNotifications: {
-      type: Boolean,
-      default: true,
-    },
-    systemNotifications: {
-      type: Boolean,
-      default: true,
-    },
-    notificationRetention: {
-      type: Number,
-      default: 90,
-      min: 7,
-      max: 365, // days
-    },
+    // System
+    this.maintenanceMode = !!data.maintenanceMode;
+    this.maintenanceMessage = data.maintenanceMessage || "System is under maintenance. Please check back later.";
+    this.maxFileUploadSize = data.maxFileUploadSize !== undefined ? data.maxFileUploadSize : 10;
+    this.allowedFileTypes = data.allowedFileTypes || "jpg,jpeg,png,pdf,doc,docx,txt";
+    this.autoBackup = data.autoBackup !== undefined ? !!data.autoBackup : true;
+    this.backupRetention = data.backupRetention !== undefined ? data.backupRetention : 30;
 
-    // Performance Settings
-    cacheEnabled: {
-      type: Boolean,
-      default: true,
-    },
-    compressionEnabled: {
-      type: Boolean,
-      default: true,
-    },
-    logLevel: {
-      type: String,
-      enum: ["error", "warn", "info", "debug"],
-      default: "info",
-    },
-    maxConcurrentUsers: {
-      type: Number,
-      default: 1000,
-      min: 100,
-      max: 10000,
-    },
+    // Notification
+    this.emailNotifications = data.emailNotifications !== undefined ? !!data.emailNotifications : true;
+    this.systemNotifications = data.systemNotifications !== undefined ? !!data.systemNotifications : true;
+    this.notificationRetention = data.notificationRetention !== undefined ? data.notificationRetention : 90;
 
-    // Meta information
-    lastModifiedBy: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      default: null,
-    },
-    version: {
-      type: Number,
-      default: 1,
-    },
-  },
-  {
-    timestamps: true,
+    // Performance
+    this.cacheEnabled = data.cacheEnabled !== undefined ? !!data.cacheEnabled : true;
+    this.compressionEnabled = data.compressionEnabled !== undefined ? !!data.compressionEnabled : true;
+    this.logLevel = data.logLevel || "info";
+    this.maxConcurrentUsers = data.maxConcurrentUsers !== undefined ? data.maxConcurrentUsers : 1000;
+
+    // Meta
+    this.lastModifiedBy = data.lastModifiedBy || null;
+    this.version = data.version !== undefined ? data.version : 1;
+
+    this.createdAt = data.createdAt;
+    this.updatedAt = data.updatedAt;
   }
-);
 
-// Ensure only one settings document exists
-systemSettingsSchema.index({ version: 1 }, { unique: true });
+  static async init() {
+    const query = `
+            CREATE TABLE IF NOT EXISTS system_settings (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                siteName VARCHAR(100) DEFAULT 'Learning Management System',
+                siteDescription VARCHAR(500) DEFAULT 'Advanced Learning Management System',
+                siteUrl VARCHAR(200) DEFAULT 'https://lms.example.com',
+                adminEmail VARCHAR(255) DEFAULT 'admin@example.com',
+                timezone VARCHAR(50) DEFAULT 'UTC',
+                language VARCHAR(10) DEFAULT 'en',
+                dateFormat VARCHAR(20) DEFAULT 'YYYY-MM-DD',
+                timeFormat ENUM('12h', '24h') DEFAULT '24h',
+                
+                sessionTimeout INT DEFAULT 30,
+                maxLoginAttempts INT DEFAULT 5,
+                passwordMinLength INT DEFAULT 8,
+                passwordRequireSpecial BOOLEAN DEFAULT TRUE,
+                passwordRequireNumbers BOOLEAN DEFAULT TRUE,
+                passwordRequireUppercase BOOLEAN DEFAULT TRUE,
+                twoFactorAuth BOOLEAN DEFAULT FALSE,
+                ipWhitelist TEXT,
+                
+                smtpHost VARCHAR(100) DEFAULT '',
+                smtpPort INT DEFAULT 587,
+                smtpUsername VARCHAR(100) DEFAULT '',
+                smtpPassword VARCHAR(200) DEFAULT '',
+                smtpEncryption ENUM('none', 'tls', 'ssl') DEFAULT 'tls',
+                fromEmail VARCHAR(255) DEFAULT '',
+                fromName VARCHAR(100) DEFAULT '',
+                
+                maintenanceMode BOOLEAN DEFAULT FALSE,
+                maintenanceMessage VARCHAR(500) DEFAULT 'System is under maintenance. Please check back later.',
+                maxFileUploadSize INT DEFAULT 10,
+                allowedFileTypes VARCHAR(200) DEFAULT 'jpg,jpeg,png,pdf,doc,docx,txt',
+                autoBackup BOOLEAN DEFAULT TRUE,
+                backupRetention INT DEFAULT 30,
+                
+                emailNotifications BOOLEAN DEFAULT TRUE,
+                systemNotifications BOOLEAN DEFAULT TRUE,
+                notificationRetention INT DEFAULT 90,
+                
+                cacheEnabled BOOLEAN DEFAULT TRUE,
+                compressionEnabled BOOLEAN DEFAULT TRUE,
+                logLevel ENUM('error', 'warn', 'info', 'debug') DEFAULT 'info',
+                maxConcurrentUsers INT DEFAULT 1000,
+                
+                lastModifiedBy VARCHAR(255),
+                version INT DEFAULT 1,
+                
+                createdAt DATETIME,
+                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            )
+        `;
+    try {
+      await pool.query(query);
+      // Ensure at least one row exists
+      const [rows] = await pool.query("SELECT COUNT(*) as count FROM system_settings");
+      if (rows[0].count === 0) {
+        await pool.query("INSERT INTO system_settings () VALUES ()");
+      }
+    } catch (error) {
+      logger.error("Failed to initialize SystemSettings table", error);
+    }
+  }
 
-// Pre-save middleware to increment version
-systemSettingsSchema.pre("save", function (next) {
-  if (this.isModified() && !this.isNew) {
+  static async getSettings() {
+    const [rows] = await pool.query("SELECT * FROM system_settings ORDER BY id ASC LIMIT 1");
+    if (rows.length === 0) return null; // Should not happen due to init logic
+    return new SystemSettings(rows[0]);
+  }
+
+  // Alias for compatibility
+  static async findOne() {
+    return this.getSettings();
+  }
+
+  // Create should rarely be used manually, as init ensures one exists. 
+  // But for completeness or resets:
+  static async create(data) {
+    // Enforce singleton by deleting previous entries? Or just update existing?
+    // Typically system settings is a single row.
+    // Let's assume this updates the singleton row if it exists, or creates.
+    const existing = await this.getSettings();
+    if (existing) {
+      const settings = new SystemSettings(data);
+      settings.id = existing.id; // Take over ID
+      return settings.save();
+    }
+
+    const settings = new SystemSettings(data);
+    const fields = [
+      "siteName", "siteDescription", "siteUrl", "adminEmail", "timezone", "language", "dateFormat", "timeFormat",
+      "sessionTimeout", "maxLoginAttempts", "passwordMinLength", "passwordRequireSpecial", "passwordRequireNumbers",
+      "passwordRequireUppercase", "twoFactorAuth", "ipWhitelist",
+      "smtpHost", "smtpPort", "smtpUsername", "smtpPassword", "smtpEncryption", "fromEmail", "fromName",
+      "maintenanceMode", "maintenanceMessage", "maxFileUploadSize", "allowedFileTypes", "autoBackup", "backupRetention",
+      "emailNotifications", "systemNotifications", "notificationRetention",
+      "cacheEnabled", "compressionEnabled", "logLevel", "maxConcurrentUsers",
+      "lastModifiedBy", "version", "createdAt"
+    ];
+
+    if (!settings.createdAt) settings.createdAt = new Date();
+
+    const values = fields.map(field => {
+      const val = settings[field];
+      if (val === undefined) return null;
+      return val;
+    });
+
+    const placeholders = fields.map(() => "?").join(",");
+    const query = `INSERT INTO system_settings (${fields.join(",")}) VALUES (${placeholders})`;
+
+    const [result] = await pool.query(query, values);
+    return new SystemSettings({ ...data, id: result.insertId });
+  }
+
+  async save() {
     this.version += 1;
-  }
-  next();
-});
 
-export default model("SystemSettings", systemSettingsSchema);
+    const fields = [
+      "siteName", "siteDescription", "siteUrl", "adminEmail", "timezone", "language", "dateFormat", "timeFormat",
+      "sessionTimeout", "maxLoginAttempts", "passwordMinLength", "passwordRequireSpecial", "passwordRequireNumbers",
+      "passwordRequireUppercase", "twoFactorAuth", "ipWhitelist",
+      "smtpHost", "smtpPort", "smtpUsername", "smtpPassword", "smtpEncryption", "fromEmail", "fromName",
+      "maintenanceMode", "maintenanceMessage", "maxFileUploadSize", "allowedFileTypes", "autoBackup", "backupRetention",
+      "emailNotifications", "systemNotifications", "notificationRetention",
+      "cacheEnabled", "compressionEnabled", "logLevel", "maxConcurrentUsers",
+      "lastModifiedBy", "version"
+    ];
+
+    const setClause = fields.map(field => `${field} = ?`).join(", ");
+    const values = fields.map(field => this[field]);
+    values.push(this.id);
+
+    await pool.query(`UPDATE system_settings SET ${setClause} WHERE id = ?`, values);
+    return this;
+  }
+}
+
+// Initialize table
+SystemSettings.init();
+
+export default SystemSettings;

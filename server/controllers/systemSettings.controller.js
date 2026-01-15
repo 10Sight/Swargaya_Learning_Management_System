@@ -1,150 +1,173 @@
-import SystemSettings from "../models/systemSettings.model.js";
+import { pool } from "../db/connectDB.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
+// Helper to ensure settings exist
+const ensureSettingsExist = async (userId = null) => {
+    const [rows] = await pool.query("SELECT * FROM system_settings LIMIT 1");
+    if (rows.length > 0) return rows[0];
+
+    // Create default
+    const [result] = await pool.query(`
+        INSERT INTO system_settings (lastModifiedBy, createdAt, updatedAt)
+        VALUES (?, NOW(), NOW())
+    `, [userId]);
+
+    const [newSettings] = await pool.query("SELECT * FROM system_settings WHERE id = ?", [result.insertId]);
+    return newSettings[0];
+};
+
 // Get current system settings
 export const getSystemSettings = asyncHandler(async (req, res) => {
-    let settings = await SystemSettings.findOne().populate("lastModifiedBy", "fullName email");
-    
-    // If no settings exist, create default settings
-    if (!settings) {
-        settings = new SystemSettings({
-            lastModifiedBy: req.user?.id || null
-        });
-        await settings.save();
-        // Populate after save
-        settings = await SystemSettings.findById(settings._id).populate("lastModifiedBy", "fullName email");
+    let settings = await ensureSettingsExist(req.user?.id);
+
+    // Populate lastModifiedBy
+    let lastModifiedBy = null;
+    if (settings.lastModifiedBy) {
+        const [users] = await pool.query("SELECT id, fullName, email FROM users WHERE id = ?", [settings.lastModifiedBy]);
+        if (users.length > 0) lastModifiedBy = users[0];
     }
 
-    res.json(new ApiResponse(200, settings, "System settings fetched successfully"));
+    res.json(new ApiResponse(200, { ...settings, lastModifiedBy }, "System settings fetched successfully"));
 });
 
 // Update system settings
 export const updateSystemSettings = asyncHandler(async (req, res) => {
     const updateData = { ...req.body };
-    
-    // Add metadata
-    updateData.lastModifiedBy = req.user?.id || null;
-    
+    const userId = req.user?.id || null; // Fix: use id not _id if relying on previous mysql implementations
+
     // Validate sensitive fields
     if (updateData.adminEmail && !/^\S+@\S+\.\S+$/.test(updateData.adminEmail)) {
         throw new ApiError("Invalid admin email format", 400);
     }
-    
-    if (updateData.fromEmail && updateData.fromEmail && !/^\S+@\S+\.\S+$/.test(updateData.fromEmail)) {
+
+    if (updateData.fromEmail && !/^\S+@\S+\.\S+$/.test(updateData.fromEmail)) {
         throw new ApiError("Invalid from email format", 400);
     }
-    
+
     // Validate numeric ranges
     if (updateData.sessionTimeout && (updateData.sessionTimeout < 5 || updateData.sessionTimeout > 480)) {
         throw new ApiError("Session timeout must be between 5 and 480 minutes", 400);
     }
-    
+
     if (updateData.maxLoginAttempts && (updateData.maxLoginAttempts < 3 || updateData.maxLoginAttempts > 10)) {
         throw new ApiError("Max login attempts must be between 3 and 10", 400);
     }
-    
+
     if (updateData.passwordMinLength && (updateData.passwordMinLength < 6 || updateData.passwordMinLength > 32)) {
         throw new ApiError("Password minimum length must be between 6 and 32 characters", 400);
     }
-    
+
     if (updateData.maxFileUploadSize && (updateData.maxFileUploadSize < 1 || updateData.maxFileUploadSize > 100)) {
         throw new ApiError("Max file upload size must be between 1 and 100 MB", 400);
     }
-    
+
     if (updateData.backupRetention && (updateData.backupRetention < 7 || updateData.backupRetention > 365)) {
         throw new ApiError("Backup retention must be between 7 and 365 days", 400);
     }
-    
+
     if (updateData.notificationRetention && (updateData.notificationRetention < 7 || updateData.notificationRetention > 365)) {
         throw new ApiError("Notification retention must be between 7 and 365 days", 400);
     }
-    
+
     if (updateData.maxConcurrentUsers && (updateData.maxConcurrentUsers < 100 || updateData.maxConcurrentUsers > 10000)) {
         throw new ApiError("Max concurrent users must be between 100 and 10,000", 400);
     }
-    
+
     // Validate enum values
     const validTimeFormats = ["12h", "24h"];
     if (updateData.timeFormat && !validTimeFormats.includes(updateData.timeFormat)) {
         throw new ApiError("Invalid time format. Must be '12h' or '24h'", 400);
     }
-    
+
     const validEncryptions = ["none", "tls", "ssl"];
     if (updateData.smtpEncryption && !validEncryptions.includes(updateData.smtpEncryption)) {
         throw new ApiError("Invalid SMTP encryption. Must be 'none', 'tls', or 'ssl'", 400);
     }
-    
+
     const validLogLevels = ["error", "warn", "info", "debug"];
     if (updateData.logLevel && !validLogLevels.includes(updateData.logLevel)) {
         throw new ApiError("Invalid log level. Must be 'error', 'warn', 'info', or 'debug'", 400);
     }
 
-    try {
-        // Find and update or create if doesn't exist
-        let settings = await SystemSettings.findOne();
-        
-        if (settings) {
-            // Update existing settings
-            Object.assign(settings, updateData);
-            await settings.save();
-        } else {
-            // Create new settings if none exist
-            settings = new SystemSettings(updateData);
-            await settings.save();
+    // Prepare Update Columns
+    // Only update fields present in body
+    // Allowed fields list to preventSQL injection via key names if we were doing dynamic keys (though we are parameterized)
+    const allowedFields = [
+        'adminEmail', 'appName', 'appUrl', 'companyName', 'companyAddress', 'companyPhone',
+        'fromEmail', 'smtpHost', 'smtpPort', 'smtpUser', 'smtpPassword', 'smtpEncryption',
+        'sessionTimeout', 'maxLoginAttempts', 'passwordMinLength', 'passwordRequireSpecial', 'passwordRequireNumbers', 'passwordRequireUppercase',
+        'maxFileUploadSize', 'allowedFileTypes', 'backupRetention', 'autoBackup',
+        'maintenanceMode', 'logLevel', 'emailNotifications', 'notificationRetention',
+        'maxConcurrentUsers', 'timeFormat'
+    ];
+
+    let updates = ["updatedAt = NOW()", "lastModifiedBy = ?"];
+    let values = [userId];
+
+    Object.keys(updateData).forEach(key => {
+        if (allowedFields.includes(key)) {
+            updates.push(`${key} = ?`);
+            values.push(updateData[key]);
         }
-        
-        // Populate and return updated settings
-        settings = await SystemSettings.findById(settings._id).populate("lastModifiedBy", "fullName email");
-        
-        res.json(new ApiResponse(200, settings, "System settings updated successfully"));
-    } catch (error) {
-        if (error.name === "ValidationError") {
-            const errorMessages = Object.values(error.errors).map(err => err.message);
-            throw new ApiError(errorMessages.join(", "), 400);
-        }
-        throw error;
+    });
+
+    const currentSettings = await ensureSettingsExist(userId);
+
+    await pool.query(`UPDATE system_settings SET ${updates.join(', ')} WHERE id = ?`, [...values, currentSettings.id]);
+
+    const [updatedRows] = await pool.query("SELECT * FROM system_settings WHERE id = ?", [currentSettings.id]);
+    let newSettings = updatedRows[0];
+
+    // Populate
+    let lastModifiedBy = null;
+    if (newSettings.lastModifiedBy) {
+        const [users] = await pool.query("SELECT id, fullName, email FROM users WHERE id = ?", [newSettings.lastModifiedBy]);
+        if (users.length > 0) lastModifiedBy = users[0];
     }
+
+    res.json(new ApiResponse(200, { ...newSettings, lastModifiedBy }, "System settings updated successfully"));
 });
 
 // Reset system settings to default
 export const resetSystemSettings = asyncHandler(async (req, res) => {
-    try {
-        // Delete existing settings
-        await SystemSettings.deleteOne({});
-        
-        // Create new default settings
-        const defaultSettings = new SystemSettings({
-            lastModifiedBy: req.user?.id || null
-        });
-        
-        await defaultSettings.save();
-        
-        // Populate and return default settings
-        const settings = await SystemSettings.findById(defaultSettings._id).populate("lastModifiedBy", "fullName email");
-        
-        res.json(new ApiResponse(200, settings, "System settings reset to default successfully"));
-    } catch (error) {
-        throw new ApiError("Failed to reset system settings", 500);
+    // Delete all
+    await pool.query("DELETE FROM system_settings");
+
+    // Create Default
+    const defaultSettings = await ensureSettingsExist(req.user?.id);
+
+    // Populate
+    let lastModifiedBy = null;
+    if (defaultSettings.lastModifiedBy) {
+        const [users] = await pool.query("SELECT id, fullName, email FROM users WHERE id = ?", [defaultSettings.lastModifiedBy]);
+        if (users.length > 0) lastModifiedBy = users[0];
     }
+
+    res.json(new ApiResponse(200, { ...defaultSettings, lastModifiedBy }, "System settings reset to default successfully"));
 });
 
 // Get system settings history (if needed for audit purposes)
 export const getSystemSettingsHistory = asyncHandler(async (req, res) => {
     const page = Math.max(parseInt(req.query.page) || 1, 1);
     const limit = Math.min(parseInt(req.query.limit) || 10, 50);
-    const skip = (page - 1) * limit;
+    // Since we only have 1 row in singleton design, pagination is trivial/fake here.
 
-    // This would require a separate audit log for settings changes
-    // For now, we'll just return the current settings with version info
-    const settings = await SystemSettings.find()
-        .populate("lastModifiedBy", "fullName email")
-        .sort({ updatedAt: -1 })
-        .skip(skip)
-        .limit(limit);
+    const [rows] = await pool.query("SELECT * FROM system_settings LIMIT 1");
+    const total = rows.length;
 
-    const total = await SystemSettings.countDocuments();
+    // Populate
+    const settings = [];
+    if (total > 0) {
+        const s = rows[0];
+        let lastModifiedBy = null;
+        if (s.lastModifiedBy) {
+            const [users] = await pool.query("SELECT id, fullName, email FROM users WHERE id = ?", [s.lastModifiedBy]);
+            if (users.length > 0) lastModifiedBy = users[0];
+        }
+        settings.push({ ...s, lastModifiedBy });
+    }
 
     res.json(new ApiResponse(200, {
         settings,
@@ -152,6 +175,7 @@ export const getSystemSettingsHistory = asyncHandler(async (req, res) => {
             total,
             page,
             pages: Math.ceil(total / limit),
+            totalUsers: total, // Keeping consistent key name if frontend expects it, though arguably wrong context
             limit,
         },
     }, "System settings history fetched successfully"));
@@ -159,11 +183,12 @@ export const getSystemSettingsHistory = asyncHandler(async (req, res) => {
 
 // Validate system configuration (useful for system health checks)
 export const validateSystemConfiguration = asyncHandler(async (req, res) => {
-    const settings = await SystemSettings.findOne();
-    
-    if (!settings) {
+    const [rows] = await pool.query("SELECT * FROM system_settings LIMIT 1");
+
+    if (rows.length === 0) {
         throw new ApiError("System settings not found", 404);
     }
+    const settings = rows[0];
 
     const validation = {
         isValid: true,

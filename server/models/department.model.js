@@ -1,322 +1,333 @@
-import { Schema, model } from "mongoose";
+import { pool } from "../db/connectDB.js";
+import { slugify } from "../utils/slugify.js";
+import logger from "../logger/winston.logger.js";
+// Imports for cleanup operations - assuming successful migration of these models
+import User from "./auth.model.js";
+import Assignment from "./assignment.model.js";
+import AttemptedQuiz from "./attemptedQuiz.model.js";
+// Progress and Submission models should be imported here when they are migrated, or use direct SQL queries.
+// To avoid circular or missing dependencies during partial migration, we will use dynamic imports or verify existence.
 
-const departmentSchema = new Schema(
-    {
-        name: {
-            type: String,
-            required: true,
-            trim: true
-        },
-        slug: {
-            type: String,
-            trim: true,
-            lowercase: true,
-            unique: true,
-            index: true,
-        },
-        course: {
-            type: Schema.Types.ObjectId,
-            ref: "Course",
-        },
-        courses: {
-            type: [Schema.Types.ObjectId],
-            ref: "Course",
-            default: []
-        },
-        instructor: {
-            type: Schema.Types.ObjectId,
-            ref: "User",
-            required: false,
-            index: true, // Index for instructor queries
-        },
-        students: [
-            {
-                type: Schema.Types.ObjectId,
-                ref: "User",
-            },
-        ],
-        startDate: {
-            type: Date,
-            required: false,
-            default: null,
-        },
-        endDate: {
-            type: Date,
-        },
-        capacity: {
-            type: Number,
-            default: 50,
-        },
-        status: {
-            type: String,
-            enum: ["UPCOMING", "ONGOING", "COMPLETED", "CANCELLED"],
-            default: "UPCOMING",
-            index: true, // Index for status filtering
-        },
-        schedule: [
-            {
-                day: { type: String },
-                startTime: { type: String },
-                endTime: { type: String },
-            },
-        ],
-        notes: {
-            type: String,
-            trim: true,
-        },
-        statusUpdatedAt: {
-            type: Date,
-            default: Date.now,
-            index: true, // Index for cleanup queries
-        },
-        departmentQuiz: {
-            type: Schema.Types.ObjectId,
-            ref: "Quiz",
-            required: false,
-        },
-        departmentAssignment: {
-            type: Schema.Types.ObjectId,
-            ref: "Assignment",
-            required: false,
-        },
-        isDeleted: {
-            type: Boolean,
-            default: false,
-        },
-    },
-    {
-        timestamps: true,
-    }
-);
+class Department {
+    constructor(data) {
+        this.id = data.id;
+        this._id = data.id; // Compatibility
 
-import { slugify, ensureUniqueSlug } from "../utils/slugify.js";
+        this.name = data.name;
+        this.slug = data.slug;
+        this.course = data.course;
+        this.courses = typeof data.courses === 'string' ? JSON.parse(data.courses) : (data.courses || []);
+        this.instructor = data.instructor;
+        this.students = typeof data.students === 'string' ? JSON.parse(data.students) : (data.students || []);
+        this.startDate = data.startDate ? new Date(data.startDate) : null;
+        this.endDate = data.endDate ? new Date(data.endDate) : null;
+        this.capacity = data.capacity !== undefined ? data.capacity : 50;
+        this.status = data.status || "UPCOMING";
+        this.schedule = typeof data.schedule === 'string' ? JSON.parse(data.schedule) : (data.schedule || []);
+        this.notes = data.notes;
+        this.statusUpdatedAt = data.statusUpdatedAt ? new Date(data.statusUpdatedAt) : new Date();
+        this.departmentQuiz = data.departmentQuiz;
+        this.departmentAssignment = data.departmentAssignment;
+        this.isDeleted = !!data.isDeleted;
 
-departmentSchema.pre('save', async function (next) {
-    if (!this.isModified('name') && this.slug) return next();
-    const base = slugify(this.name);
-    this.slug = await ensureUniqueSlug(this.constructor, base, {}, this._id);
-    next();
-});
-
-// Method to calculate status based on dates
-departmentSchema.methods.calculateStatus = function () {
-    if (this.status === 'CANCELLED') {
-        return 'CANCELLED'; // Keep cancelled status if manually set
+        this.createdAt = data.createdAt;
+        this.updatedAt = data.updatedAt;
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
-
-    if (this.startDate) {
-        const startDate = new Date(this.startDate);
-        startDate.setHours(0, 0, 0, 0);
-
-        if (startDate > today) {
-            return 'UPCOMING';
-        }
-
-        if (this.endDate) {
-            const endDate = new Date(this.endDate);
-            endDate.setHours(0, 0, 0, 0);
-
-            // If end date is today or before today, mark as completed
-            if (endDate <= today) {
-                return 'COMPLETED';
-            }
-
-            // If start date is today or before today, and end date is after today
-            if (startDate <= today && endDate > today) {
-                return 'ONGOING';
-            }
-        } else {
-            // No end date, but start date is today or before
-            if (startDate <= today) {
-                return 'ONGOING';
-            }
+    static async init() {
+        const query = `
+            CREATE TABLE IF NOT EXISTS departments (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                slug VARCHAR(255) UNIQUE,
+                course VARCHAR(255),
+                courses TEXT,
+                instructor VARCHAR(255),
+                students TEXT,
+                startDate DATETIME,
+                endDate DATETIME,
+                capacity INT DEFAULT 50,
+                status VARCHAR(50) DEFAULT 'UPCOMING',
+                schedule TEXT,
+                notes TEXT,
+                statusUpdatedAt DATETIME,
+                departmentQuiz VARCHAR(255),
+                departmentAssignment VARCHAR(255),
+                isDeleted BOOLEAN DEFAULT FALSE,
+                createdAt DATETIME,
+                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_status (status),
+                INDEX idx_instructor (instructor),
+                INDEX idx_statusUpdatedAt (statusUpdatedAt)
+            )
+        `;
+        try {
+            await pool.query(query);
+        } catch (error) {
+            logger.error("Failed to initialize Department table", error);
         }
     }
 
-    // Default to UPCOMING if no dates are set or logic doesn't match
-    return 'UPCOMING';
-};
+    calculateStatus() {
+        if (this.status === 'CANCELLED') {
+            return 'CANCELLED';
+        }
 
-// Method to update status based on dates
-departmentSchema.methods.updateStatus = async function () {
-    const newStatus = this.calculateStatus();
-    if (this.status !== newStatus && this.status !== 'CANCELLED') {
-        this.status = newStatus;
-        await this.save();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (this.startDate) {
+            const startDate = new Date(this.startDate);
+            startDate.setHours(0, 0, 0, 0);
+
+            if (startDate > today) {
+                return 'UPCOMING';
+            }
+
+            if (this.endDate) {
+                const endDate = new Date(this.endDate);
+                endDate.setHours(0, 0, 0, 0);
+
+                if (endDate <= today) {
+                    return 'COMPLETED';
+                }
+
+                if (startDate <= today && endDate > today) {
+                    return 'ONGOING';
+                }
+            } else {
+                if (startDate <= today) {
+                    return 'ONGOING';
+                }
+            }
+        }
+
+        return 'UPCOMING';
     }
-    return this.status;
-};
 
-// Static method to update all department statuses
-departmentSchema.statics.updateAllStatuses = async function () {
-    const departments = await this.find({
-        status: { $ne: 'CANCELLED' }, // Don't update cancelled departments
-        $or: [
-            { startDate: { $exists: true } },
-            { endDate: { $exists: true } }
-        ]
-    });
+    static async create(data) {
+        // Generate unique slug
+        let baseSlug = slugify(data.name);
+        let slug = baseSlug;
+        let suffix = 1;
+        while (true) {
+            const [rows] = await pool.query("SELECT id FROM departments WHERE slug = ?", [slug]);
+            if (rows.length === 0) break;
+            suffix++;
+            slug = `${baseSlug}-${suffix}`;
+        }
+        data.slug = slug;
 
-    let updatedCount = 0;
-    const results = [];
+        // Auto-calculate status on create
+        const tempDept = new Department(data);
+        if (tempDept.status !== 'CANCELLED') {
+            data.status = tempDept.calculateStatus();
+        }
 
-    for (const department of departments) {
-        const oldStatus = department.status;
-        const newStatus = department.calculateStatus();
+        const fields = [
+            "name", "slug", "course", "courses", "instructor",
+            "students", "startDate", "endDate", "capacity", "status",
+            "schedule", "notes", "statusUpdatedAt", "departmentQuiz",
+            "departmentAssignment", "isDeleted", "createdAt"
+        ];
 
-        if (oldStatus !== newStatus) {
-            department.status = newStatus;
-            await department.save();
-            updatedCount++;
+        if (!data.statusUpdatedAt) data.statusUpdatedAt = new Date();
+        if (!data.createdAt) data.createdAt = new Date();
 
-            results.push({
-                departmentId: department._id,
-                name: department.name,
-                oldStatus,
-                newStatus,
-                startDate: department.startDate,
-                endDate: department.endDate
+        const values = fields.map(field => {
+            let val = data[field];
+            if (['courses', 'students', 'schedule'].includes(field)) {
+                return JSON.stringify(val || []);
+            }
+            if (val === undefined) return null;
+            return val;
+        });
+
+        const placeholders = fields.map(() => "?").join(",");
+        const query = `INSERT INTO departments (${fields.join(",")}) VALUES (${placeholders})`;
+
+        const [result] = await pool.query(query, values);
+        return Department.findById(result.insertId);
+    }
+
+    static async findById(id) {
+        const [rows] = await pool.query("SELECT * FROM departments WHERE id = ?", [id]);
+        if (rows.length === 0) return null;
+        return new Department(rows[0]);
+    }
+
+    static async findOne(query) {
+        const keys = Object.keys(query).filter(key => query[key] !== undefined);
+        if (keys.length === 0) return null;
+
+        const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
+        const values = keys.map(key => query[key]);
+
+        const [rows] = await pool.query(`SELECT * FROM departments WHERE ${whereClause} LIMIT 1`, values);
+        if (rows.length === 0) return null;
+        return new Department(rows[0]);
+    }
+
+    static async find(query = {}) {
+        const keys = Object.keys(query).filter(key => query[key] !== undefined && key !== '$or' && key !== 'status' && key !== 'statusUpdatedAt' && key !== 'isDeleted');
+
+        let sql = "SELECT * FROM departments";
+        let values = [];
+        let conditions = [];
+
+        // Handle standard equality checks
+        if (keys.length > 0) {
+            conditions.push(...keys.map(key => `${key} = ?`));
+            values.push(...keys.map(key => query[key]));
+        }
+
+        // Handle specialized Mongoose-like query mappings manually for now
+        if (query.status && typeof query.status === 'object') {
+            if (query.status.$ne) {
+                conditions.push("status != ?");
+                values.push(query.status.$ne);
+            }
+            if (query.status.$in) {
+                conditions.push(`status IN (${query.status.$in.map(() => '?').join(',')})`);
+                values.push(...query.status.$in);
+            }
+        } else if (query.status) {
+            conditions.push("status = ?");
+            values.push(query.status);
+        }
+
+        if (query.isDeleted && typeof query.isDeleted === 'object' && query.isDeleted.$ne) {
+            conditions.push("isDeleted != ?");
+            values.push(query.isDeleted.$ne);
+        } else if (query.isDeleted !== undefined) {
+            conditions.push("isDeleted = ?");
+            values.push(query.isDeleted);
+        }
+
+        if (query.statusUpdatedAt && query.statusUpdatedAt.$lt) {
+            conditions.push("statusUpdatedAt < ?");
+            values.push(query.statusUpdatedAt.$lt);
+        }
+
+        if (query.$or) {
+            // Specific handling for startDate exists OR endDate exists logic in updateAllStatuses
+            // SQL equivalence: startDate IS NOT NULL OR endDate IS NOT NULL
+            const orConditions = query.$or.map(cond => {
+                if (cond.startDate && cond.startDate.$exists) return "startDate IS NOT NULL";
+                if (cond.endDate && cond.endDate.$exists) return "endDate IS NOT NULL";
+                return "1=0";
             });
-        }
-    }
-
-    return {
-        totalProcessed: departments.length,
-        updatedCount,
-        results
-    };
-};
-
-// Static method to find old departments for cleanup
-departmentSchema.statics.findOldDepartmentsForCleanup = async function () {
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-
-    return await this.find({
-        status: { $in: ['COMPLETED', 'CANCELLED'] },
-        statusUpdatedAt: { $lt: oneWeekAgo },
-        isDeleted: { $ne: true }
-    }).populate('students', 'fullName email')
-        .populate('instructor', 'fullName email')
-        .populate('course', 'title');
-};
-
-// Static method to cleanup old departments
-departmentSchema.statics.cleanupOldDepartments = async function () {
-    const results = {
-        found: 0,
-        deleted: 0,
-        errors: [],
-        deletedDepartments: []
-    };
-
-    try {
-        const oldDepartments = await this.findOldDepartmentsForCleanup();
-        results.found = oldDepartments.length;
-
-        if (oldDepartments.length === 0) {
-            return results;
-        }
-
-        const User = model('User');
-        const Progress = model('Progress');
-        const Submission = model('Submission');
-        const AttemptedQuiz = model('AttemptedQuiz');
-
-        for (const department of oldDepartments) {
-            try {
-                // Store department info for result
-                results.deletedDepartments.push({
-                    id: department._id,
-                    name: department.name,
-                    status: department.status,
-                    statusUpdatedAt: department.statusUpdatedAt,
-                    studentCount: department.students.length,
-                    courseName: department.course?.title || 'N/A'
-                });
-
-                // 1. Clean up user references (remove department from users)
-                // Remove department from students (single department reference)
-                await User.updateMany(
-                    { _id: { $in: department.students.map(s => s._id) } },
-                    { $unset: { department: 1 } }
-                );
-
-                // Remove department from instructor (array of departments)
-                if (department.instructor) {
-                    await User.updateOne(
-                        { _id: department.instructor },
-                        { $pull: { departments: department._id } }
-                    );
-                }
-
-                // 2. Clean up related data (optional - can be kept for historical purposes)
-                // Remove progress records for this department's course and students
-                if (department.course) {
-                    await Progress.deleteMany({
-                        student: { $in: department.students.map(s => s._id) },
-                        course: department.course._id
-                    });
-
-                    // Remove submissions for this department's course and students  
-                    await Submission.deleteMany({
-                        student: { $in: department.students.map(s => s._id) },
-                        assignment: { $exists: true }
-                    });
-
-                    // Remove quiz attempts for this department's course and students
-                    await AttemptedQuiz.deleteMany({
-                        student: { $in: department.students.map(s => s._id) },
-                        quiz: { $exists: true }
-                    });
-                }
-
-                // 3. Delete the department itself
-                await department.deleteOne();
-
-                results.deleted++;
-
-            } catch (departmentError) {
-                results.errors.push({
-                    departmentId: department._id,
-                    departmentName: department.name,
-                    error: departmentError.message
-                });
+            if (orConditions.length > 0) {
+                conditions.push(`(${orConditions.join(" OR ")})`);
             }
         }
 
-        return results;
+        if (conditions.length > 0) {
+            sql += ` WHERE ${conditions.join(" AND ")}`;
+        }
 
-    } catch (error) {
-        console.error('❌ Critical error in department cleanup:', error);
-        results.errors.push({ error: error.message });
-        return results;
-    }
-};
-
-// Pre-save middleware to automatically calculate status and track status changes
-departmentSchema.pre('save', function (next) {
-    // Track status changes
-    if (this.isModified('status') && (this.status === 'COMPLETED' || this.status === 'CANCELLED')) {
-        this.statusUpdatedAt = new Date();
+        const [rows] = await pool.query(sql, values);
+        return rows.map(row => new Department(row));
     }
 
-    // Only auto-update status if it's not manually set to CANCELLED
-    if (this.status !== 'CANCELLED' && (this.isModified('startDate') || this.isModified('endDate') || this.isNew)) {
+    static async countDocuments(query = {}) {
+        // Simplified count implementation
+        const result = await this.find(query);
+        return result.length;
+    }
+
+    async save() {
+        // Determine status before saving
         const newStatus = this.calculateStatus();
-        if (this.status !== newStatus) {
+        if (this.status !== newStatus && this.status !== 'CANCELLED') {
             this.status = newStatus;
-            // Track automatic status changes to COMPLETED
             if (newStatus === 'COMPLETED') {
                 this.statusUpdatedAt = new Date();
             }
         }
+        if (this.status === 'COMPLETED' || this.status === 'CANCELLED') {
+            // We'd ideally check if status *changed* to these values, but logic assumes if it *is* this, update timestamp
+            // For strict parity with Mongoose "isModified", we'd need old state.
+            // Assuming this save is called with intent to persistence changes.
+            this.statusUpdatedAt = new Date();
+        }
+
+        const fields = [
+            "name", "slug", "course", "courses", "instructor",
+            "students", "startDate", "endDate", "capacity", "status",
+            "schedule", "notes", "statusUpdatedAt", "departmentQuiz",
+            "departmentAssignment", "isDeleted"
+        ];
+
+        const setClause = fields.map(field => `${field} = ?`).join(", ");
+        const values = fields.map(field => {
+            let val = this[field];
+            if (['courses', 'students', 'schedule'].includes(field)) {
+                return JSON.stringify(val);
+            }
+            return val;
+        });
+        values.push(this.id);
+
+        await pool.query(`UPDATE departments SET ${setClause} WHERE id = ?`, values);
+        return this;
     }
 
-    next();
-});
+    async updateStatus() {
+        const newStatus = this.calculateStatus();
+        if (this.status !== newStatus && this.status !== 'CANCELLED') {
+            this.status = newStatus;
+            await this.save();
+        }
+        return this.status;
+    }
 
-export default model("Department", departmentSchema);
+    static async updateAllStatuses() {
+        const departments = await this.find({
+            status: { $ne: 'CANCELLED' },
+            $or: [
+                { startDate: { $exists: true } },
+                { endDate: { $exists: true } }
+            ]
+        });
+
+        let updatedCount = 0;
+        const results = [];
+
+        for (const department of departments) {
+            const oldStatus = department.status;
+            const newStatus = department.calculateStatus();
+
+            if (oldStatus !== newStatus) {
+                department.status = newStatus;
+                await department.save();
+                updatedCount++;
+
+                results.push({
+                    departmentId: department.id,
+                    name: department.name,
+                    oldStatus,
+                    newStatus,
+                    startDate: department.startDate,
+                    endDate: department.endDate
+                });
+            }
+        }
+
+        return {
+            totalProcessed: departments.length,
+            updatedCount,
+            results
+        };
+    }
+
+    // Stub for cleanup - requires other models to be fully migrated to SQL
+    static async cleanupOldDepartments() {
+        return { message: "Cleanup not fully implemented in SQL migration yet due to cross-model dependencies." };
+    }
+}
+
+// Initialize table
+Department.init();
+
+export default Department;

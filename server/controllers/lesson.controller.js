@@ -1,31 +1,34 @@
-import Lesson from "../models/lesson.model.js";
-import Module from "../models/module.model.js";
-import mongoose from "mongoose";
+import { pool } from "../db/connectDB.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
+
+// Helper to normalize slides (moved logic inside respective functions or kept simple)
+// Helper to parse JSON safely
+const parseJSON = (data, fallback = []) => {
+  if (typeof data === 'string') {
+    try { return JSON.parse(data); } catch (e) { return fallback; }
+  }
+  return data || fallback;
+}
 
 export const createLesson = asyncHandler(async (req, res) => {
   const rawModuleId = req.params?.moduleId ?? req.body?.moduleId;
   const { title, content, duration, order, slides } = req.body || {};
 
   if (!rawModuleId || rawModuleId === "undefined" || rawModuleId === "null") {
-    return res.status(400).json(new ApiResponse(400, null, "Module ID is required"));
+    throw new ApiError("Module ID is required", 400);
   }
 
-  if (!mongoose.Types.ObjectId.isValid(rawModuleId)) {
-    return res.status(400).json(new ApiResponse(400, null, "Invalid module ID format"));
-  }
-
-  const module = await Module.findById(rawModuleId);
-  if (!module) {
-    return res.status(404).json(new ApiResponse(404, null, "Module not found"));
-  }
+  const [modules] = await pool.query("SELECT id FROM modules WHERE id = ?", [rawModuleId]);
+  if (modules.length === 0) throw new ApiError("Module not found", 404);
 
   // Normalize slides if provided
   let normalizedSlides = [];
   if (Array.isArray(slides)) {
     normalizedSlides = slides.map((s, idx) => ({
+      id: s.id || `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      _id: s._id || s.id || `${Date.now()}-${Math.random().toString(36).slice(2)}`, // Maintain _id for frontend compatibility
       order: typeof s.order === 'number' ? s.order : idx + 1,
       contentHtml: String(s.contentHtml || ''),
       bgColor: s.bgColor || '#ffffff',
@@ -57,115 +60,101 @@ export const createLesson = asyncHandler(async (req, res) => {
     ? content
     : (normalizedSlides[0]?.contentHtml || '');
 
-  const lesson = await Lesson.create({
-    module: rawModuleId,
-    title,
-    content: legacyContent,
-    slides: normalizedSlides,
-    duration,
-    order,
-  });
+  const [result] = await pool.query(
+    "INSERT INTO lessons (module, title, content, duration, `order`, slides, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())",
+    [rawModuleId, title, legacyContent, duration || 0, order || 0, JSON.stringify(normalizedSlides)]
+  );
 
-  module.lessons.push(lesson._id);
-  await module.save();
+  const newLessonId = result.insertId;
+  const [rows] = await pool.query("SELECT * FROM lessons WHERE id = ?", [newLessonId]);
 
-  return res
-    .status(201)
-    .json(new ApiResponse(201, lesson, "Lesson created successfully"));
+  // Parse slides for response
+  if (rows[0] && typeof rows[0].slides === 'string') rows[0].slides = parseJSON(rows[0].slides);
+
+  res.status(201).json(new ApiResponse(201, rows[0], "Lesson created successfully"));
 });
 
 export const getLessonsByModule = asyncHandler(async (req, res) => {
   const rawModuleId = req.params?.moduleId ?? req.body?.moduleId;
 
   if (!rawModuleId || rawModuleId === 'undefined' || rawModuleId === 'null') {
-    return res.status(400).json(new ApiResponse(400, [], "Module ID is required"));
+    throw new ApiError("Module ID is required", 400);
   }
 
+  // Check if ID or Slug (assuming SQL ID is INT or UUID, if purely UUID/INT check format. If string slug, check slug)
+  // Here we query by ID if matches format or slug via join/separate check? 
+  // Assuming ID is passed. If standard UUID/INT check:
+  // If we support slugs for modules here:
   let moduleId = rawModuleId;
-  if (!mongoose.Types.ObjectId.isValid(rawModuleId)) {
-    const m = await Module.findOne({ slug: String(rawModuleId).toLowerCase() }).select('_id');
-    if (!m) {
-      return res.status(400).json(new ApiResponse(400, [], "Invalid module identifier"));
+  // Check if module exists by ID or Slug
+  const [mRows] = await pool.query("SELECT id FROM modules WHERE id = ? OR slug = ?", [rawModuleId, rawModuleId]);
+  if (mRows.length === 0) throw new ApiError("Module not found", 400);
+  moduleId = mRows[0].id;
+
+  const [lessons] = await pool.query("SELECT * FROM lessons WHERE module = ? ORDER BY `order` ASC", [moduleId]);
+
+  // Normalize
+  const normalized = lessons.map(l => {
+    let slides = parseJSON(l.slides);
+    if ((!slides || slides.length === 0) && l.content) {
+      slides = [{
+        order: 1,
+        contentHtml: String(l.content || ''),
+        bgColor: '#ffffff',
+        images: [],
+        _id: `${Date.now()}-legacy`
+      }];
     }
-    moduleId = m._id;
-  }
+    return { ...l, slides };
+  });
 
-  try {
-    const lessons = await Lesson.find({ module: moduleId })
-      .select('module title content duration order resources slides createdAt updatedAt')
-      .sort({ order: 1 })
-      .lean();
-
-    // Ensure slides present; fallback from legacy content if needed
-    const normalized = lessons.map(l => {
-      let slides = Array.isArray(l.slides) ? l.slides : [];
-      if ((!slides || slides.length === 0) && l.content) {
-        slides = [{ order: 1, contentHtml: String(l.content || ''), bgColor: '#ffffff', images: [] }];
-      }
-      return { ...l, slides };
-    });
-
-    return res
-      .status(200)
-      .json(new ApiResponse(200, normalized, "Lessons fetched successfully"));
-  } catch (err) {
-    return res.status(500).json(new ApiResponse(500, [], "Error fetching lessons"));
-  }
+  res.status(200).json(new ApiResponse(200, normalized, "Lessons fetched successfully"));
 });
 
 export const getLessonById = asyncHandler(async (req, res) => {
   const rawLessonId = req.params?.lessonId ?? req.body?.lessonId;
 
   if (!rawLessonId || rawLessonId === 'undefined' || rawLessonId === 'null') {
-    return res.status(400).json(new ApiResponse(400, null, "Lesson ID is required"));
+    throw new ApiError("Lesson ID is required", 400);
   }
 
-  let lesson = null;
-  if (mongoose.Types.ObjectId.isValid(rawLessonId)) {
-    lesson = await Lesson.findById(rawLessonId)
-      .select('module title content duration order resources slides createdAt updatedAt')
-      .lean();
-  }
-  if (!lesson) {
-    lesson = await Lesson.findOne({ slug: String(rawLessonId).toLowerCase() })
-      .select('module title content duration order resources slides createdAt updatedAt')
-      .lean();
-  }
-  if (!lesson) {
-    return res.status(404).json(new ApiResponse(404, null, "Lesson not found"));
-  }
-  // Ensure slides is present; fallback from legacy content if needed
+  const [rows] = await pool.query("SELECT * FROM lessons WHERE id = ? OR slug = ?", [rawLessonId, rawLessonId]);
+  if (rows.length === 0) throw new ApiError("Lesson not found", 404);
+
+  const lesson = rows[0];
+  lesson.slides = parseJSON(lesson.slides);
+
   if (!Array.isArray(lesson.slides) || lesson.slides.length === 0) {
     lesson.slides = lesson.content
-      ? [{ order: 1, contentHtml: String(lesson.content || ''), bgColor: '#ffffff', images: [] }]
+      ? [{ order: 1, contentHtml: String(lesson.content || ''), bgColor: '#ffffff', images: [], _id: `${Date.now()}-legacy` }]
       : [];
   }
-  return res
-    .status(200)
-    .json(new ApiResponse(200, lesson, "Lesson fetched successfully"));
+
+  res.status(200).json(new ApiResponse(200, lesson, "Lesson fetched successfully"));
 });
 
 export const updateLesson = asyncHandler(async (req, res) => {
   const rawLessonId = req.params?.lessonId ?? req.body?.lessonId;
   const { title, content, duration, order, slides } = req.body || {};
 
-  if (!rawLessonId || rawLessonId === 'undefined' || rawLessonId === 'null') {
-    return res.status(400).json(new ApiResponse(400, null, "Lesson ID is required"));
-  }
+  if (!rawLessonId) throw new ApiError("Lesson ID is required", 400);
 
-  if (!mongoose.Types.ObjectId.isValid(rawLessonId)) {
-    return res.status(400).json(new ApiResponse(400, null, "Invalid lesson ID format"));
-  }
+  const [rows] = await pool.query("SELECT * FROM lessons WHERE id = ?", [rawLessonId]);
+  if (rows.length === 0) throw new ApiError("Lesson not found", 404);
+  const existing = rows[0];
 
-  // Only set fields that are explicitly provided to avoid clearing required fields
-  const updateDoc = {};
-  if (typeof title !== 'undefined') updateDoc.title = title;
-  if (typeof content !== 'undefined') updateDoc.content = content;
-  if (typeof duration === 'number') updateDoc.duration = duration;
-  if (typeof order === 'number') updateDoc.order = order;
+  let updateFields = [];
+  let updateValues = [];
+
+  if (typeof title !== 'undefined') { updateFields.push("title = ?"); updateValues.push(title); }
+  if (typeof content !== 'undefined') { updateFields.push("content = ?"); updateValues.push(content); }
+  if (typeof duration !== 'undefined') { updateFields.push("duration = ?"); updateValues.push(duration); }
+  if (typeof order !== 'undefined') { updateFields.push("`order` = ?"); updateValues.push(order); }
 
   if (Array.isArray(slides)) {
     const normalizedSlides = slides.map((s, idx) => ({
+      id: s.id || s._id || `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      _id: s._id || s.id || `${Date.now()}-${Math.random().toString(36).slice(2)}`,
       order: typeof s.order === 'number' ? s.order : idx + 1,
       contentHtml: String(s.contentHtml || ''),
       bgColor: s.bgColor || '#ffffff',
@@ -190,78 +179,65 @@ export const updateLesson = asyncHandler(async (req, res) => {
         aspectRatio: typeof el.aspectRatio === 'number' ? el.aspectRatio : undefined,
       })) : []
     }));
-    updateDoc.slides = normalizedSlides;
-    // Back-compat: update legacy content with first slide html so older clients see something
-    if (!updateDoc.content || updateDoc.content.trim().length === 0) {
-      updateDoc.content = normalizedSlides[0]?.contentHtml || '';
+    updateFields.push("slides = ?");
+    updateValues.push(JSON.stringify(normalizedSlides));
+
+    // Back-compat content update
+    if (!content && (!existing.content || existing.content.trim().length === 0)) {
+      const legacy = normalizedSlides[0]?.contentHtml || '';
+      // Check if content already added to updates
+      const contentIdx = updateFields.indexOf("content = ?");
+      if (contentIdx === -1) {
+        updateFields.push("content = ?");
+        updateValues.push(legacy);
+      } else {
+        updateValues[contentIdx] = legacy;
+      }
     }
   }
 
-  const lesson = await Lesson.findByIdAndUpdate(rawLessonId, updateDoc, {
-    new: true,
-    runValidators: true,
-  });
-
-  if (!lesson) {
-    return res.status(404).json(new ApiResponse(404, null, "Lesson not found"));
+  if (updateFields.length > 0) {
+    updateFields.push("updatedAt = NOW()");
+    await pool.query(`UPDATE lessons SET ${updateFields.join(', ')} WHERE id = ?`, [...updateValues, rawLessonId]);
   }
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, lesson, "Lesson updated successfully"));
+  // Return updated
+  const [updatedRows] = await pool.query("SELECT * FROM lessons WHERE id = ?", [rawLessonId]);
+  const updated = updatedRows[0];
+  updated.slides = parseJSON(updated.slides);
+
+  res.status(200).json(new ApiResponse(200, updated, "Lesson updated successfully"));
 });
 
 export const deleteLesson = asyncHandler(async (req, res) => {
-  const rawModuleId = req.params?.moduleId ?? req.body?.moduleId;
   const rawLessonId = req.params?.lessonId ?? req.body?.lessonId;
 
-  if (!rawModuleId || rawModuleId === 'undefined' || rawModuleId === 'null') {
-    return res.status(400).json(new ApiResponse(400, null, "Module ID is required"));
-  }
-  if (!mongoose.Types.ObjectId.isValid(rawModuleId)) {
-    return res.status(400).json(new ApiResponse(400, null, "Invalid module ID format"));
-  }
+  if (!rawLessonId) throw new ApiError("Lesson ID is required", 400);
 
-  if (!rawLessonId || rawLessonId === 'undefined' || rawLessonId === 'null') {
-    return res.status(400).json(new ApiResponse(400, null, "Lesson ID is required"));
-  }
-  if (!mongoose.Types.ObjectId.isValid(rawLessonId)) {
-    return res.status(400).json(new ApiResponse(400, null, "Invalid lesson ID format"));
-  }
+  const [result] = await pool.query("DELETE FROM lessons WHERE id = ?", [rawLessonId]);
+  if (result.affectedRows === 0) throw new ApiError("Lesson not found", 404);
 
-  const lesson = await Lesson.findByIdAndDelete(rawLessonId);
-  if (!lesson) {
-    return res.status(404).json(new ApiResponse(404, null, "Lesson not found"));
-  }
-
-  await Module.findByIdAndUpdate(rawModuleId, { $pull: { lessons: rawLessonId } });
-
-  return res
-    .status(200)
-    .json(new ApiResponse(200, null, "Lesson deleted successfully"));
+  res.status(200).json(new ApiResponse(200, null, "Lesson deleted successfully"));
 });
 
 // Slide-level operations
+
 export const addSlide = asyncHandler(async (req, res) => {
-  const rawModuleId = req.params?.moduleId ?? req.body?.moduleId;
   const rawLessonId = req.params?.lessonId ?? req.body?.lessonId;
   const { contentHtml = '', bgColor = '#ffffff', images = [], order, elements = [] } = req.body || {};
 
-  if (!rawModuleId || !mongoose.Types.ObjectId.isValid(rawModuleId)) {
-    return res.status(400).json(new ApiResponse(400, null, "Valid module ID is required"));
-  }
-  if (!rawLessonId || !mongoose.Types.ObjectId.isValid(rawLessonId)) {
-    return res.status(400).json(new ApiResponse(400, null, "Valid lesson ID is required"));
-  }
+  if (!rawLessonId) throw new ApiError("Lesson ID is required", 400);
 
-  const lesson = await Lesson.findById(rawLessonId);
-  if (!lesson) return res.status(404).json(new ApiResponse(404, null, "Lesson not found"));
-  if (String(lesson.module) !== String(rawModuleId)) {
-    return res.status(400).json(new ApiResponse(400, null, "Lesson does not belong to module"));
-  }
+  const [rows] = await pool.query("SELECT * FROM lessons WHERE id = ?", [rawLessonId]);
+  if (rows.length === 0) throw new ApiError("Lesson not found", 404);
+  const lesson = rows[0];
 
-  const newOrder = typeof order === 'number' ? order : (lesson.slides?.length || 0) + 1;
+  const currentSlides = parseJSON(lesson.slides);
+
+  const newOrder = typeof order === 'number' ? order : (currentSlides.length || 0) + 1;
   const slide = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    _id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
     order: newOrder,
     contentHtml: String(contentHtml || ''),
     bgColor: bgColor || '#ffffff',
@@ -283,41 +259,36 @@ export const addSlide = asyncHandler(async (req, res) => {
     })) : [],
   };
 
-  lesson.slides = [...(lesson.slides || []), slide].sort((a,b)=> (a.order||0)-(b.order||0)).map((s,i)=>({ ...s, order: i+1 }));
-  await lesson.save();
+  const newSlides = [...currentSlides, slide].sort((a, b) => (a.order || 0) - (b.order || 0)).map((s, i) => ({ ...s, order: i + 1 }));
 
-  return res.status(201).json(new ApiResponse(201, lesson, "Slide added"));
+  await pool.query("UPDATE lessons SET slides = ?, updatedAt = NOW() WHERE id = ?", [JSON.stringify(newSlides), rawLessonId]);
+
+  // Return updated lesson
+  lesson.slides = newSlides;
+  res.status(201).json(new ApiResponse(201, lesson, "Slide added"));
 });
 
 export const updateSlide = asyncHandler(async (req, res) => {
-  const rawModuleId = req.params?.moduleId ?? req.body?.moduleId;
   const rawLessonId = req.params?.lessonId ?? req.body?.lessonId;
   const slideId = req.params?.slideId ?? req.body?.slideId;
   const { contentHtml, bgColor, images, order, elements } = req.body || {};
 
-  if (!rawModuleId || !mongoose.Types.ObjectId.isValid(rawModuleId)) {
-    return res.status(400).json(new ApiResponse(400, null, "Valid module ID is required"));
-  }
-  if (!rawLessonId || !mongoose.Types.ObjectId.isValid(rawLessonId)) {
-    return res.status(400).json(new ApiResponse(400, null, "Valid lesson ID is required"));
-  }
-  if (!slideId || !mongoose.Types.ObjectId.isValid(slideId)) {
-    return res.status(400).json(new ApiResponse(400, null, "Valid slide ID is required"));
-  }
+  if (!rawLessonId) throw new ApiError("Lesson ID is required", 400);
+  if (!slideId) throw new ApiError("Slide ID is required", 400);
 
-  const lesson = await Lesson.findById(rawLessonId);
-  if (!lesson) return res.status(404).json(new ApiResponse(404, null, "Lesson not found"));
-  if (String(lesson.module) !== String(rawModuleId)) {
-    return res.status(400).json(new ApiResponse(400, null, "Lesson does not belong to module"));
-  }
+  const [rows] = await pool.query("SELECT * FROM lessons WHERE id = ?", [rawLessonId]);
+  if (rows.length === 0) throw new ApiError("Lesson not found", 404);
+  const lesson = rows[0];
 
-  const sIdx = (lesson.slides || []).findIndex(s => String(s._id) === String(slideId));
-  if (sIdx === -1) return res.status(404).json(new ApiResponse(404, null, "Slide not found"));
+  let slides = parseJSON(lesson.slides);
+  const sIdx = slides.findIndex(s => String(s._id || s.id) === String(slideId));
 
-  if (typeof contentHtml !== 'undefined') lesson.slides[sIdx].contentHtml = String(contentHtml || '');
-  if (typeof bgColor !== 'undefined') lesson.slides[sIdx].bgColor = bgColor || '#ffffff';
-  if (Array.isArray(images)) lesson.slides[sIdx].images = images.map(img => ({ url: img.url, public_id: img.public_id, alt: img.alt || '' }));
-  if (Array.isArray(elements)) lesson.slides[sIdx].elements = elements.map(el => ({
+  if (sIdx === -1) throw new ApiError("Slide not found", 404);
+
+  if (typeof contentHtml !== 'undefined') slides[sIdx].contentHtml = String(contentHtml || '');
+  if (typeof bgColor !== 'undefined') slides[sIdx].bgColor = bgColor || '#ffffff';
+  if (Array.isArray(images)) slides[sIdx].images = images.map(img => ({ url: img.url, public_id: img.public_id, alt: img.alt || '' }));
+  if (Array.isArray(elements)) slides[sIdx].elements = elements.map(el => ({
     id: String(el.id || `${Date.now()}-${Math.random().toString(36).slice(2)}`),
     type: el.type,
     xPct: Number(el.xPct ?? 10),
@@ -332,80 +303,73 @@ export const updateSlide = asyncHandler(async (req, res) => {
     alt: el.alt,
     aspectRatio: typeof el.aspectRatio === 'number' ? el.aspectRatio : undefined,
   }));
-  if (typeof order === 'number') lesson.slides[sIdx].order = order;
+  if (typeof order === 'number') slides[sIdx].order = order;
 
   // Normalize order
-  lesson.slides = lesson.slides.sort((a,b)=> (a.order||0)-(b.order||0)).map((s,i)=>({ ...s.toObject?.() ? s.toObject() : s, order: i+1 }));
-  await lesson.save();
+  slides = slides.sort((a, b) => (a.order || 0) - (b.order || 0)).map((s, i) => ({ ...s, order: i + 1 }));
 
-  return res.status(200).json(new ApiResponse(200, lesson, "Slide updated"));
+  await pool.query("UPDATE lessons SET slides = ?, updatedAt = NOW() WHERE id = ?", [JSON.stringify(slides), rawLessonId]);
+
+  lesson.slides = slides;
+  res.status(200).json(new ApiResponse(200, lesson, "Slide updated"));
 });
 
 export const deleteSlide = asyncHandler(async (req, res) => {
-  const rawModuleId = req.params?.moduleId ?? req.body?.moduleId;
   const rawLessonId = req.params?.lessonId ?? req.body?.lessonId;
   const slideId = req.params?.slideId ?? req.body?.slideId;
 
-  if (!rawModuleId || !mongoose.Types.ObjectId.isValid(rawModuleId)) {
-    return res.status(400).json(new ApiResponse(400, null, "Valid module ID is required"));
-  }
-  if (!rawLessonId || !mongoose.Types.ObjectId.isValid(rawLessonId)) {
-    return res.status(400).json(new ApiResponse(400, null, "Valid lesson ID is required"));
-  }
-  if (!slideId || !mongoose.Types.ObjectId.isValid(slideId)) {
-    return res.status(400).json(new ApiResponse(400, null, "Valid slide ID is required"));
-  }
+  if (!rawLessonId) throw new ApiError("Lesson ID is required", 400);
+  if (!slideId) throw new ApiError("Slide ID is required", 400);
 
-  const lesson = await Lesson.findById(rawLessonId);
-  if (!lesson) return res.status(404).json(new ApiResponse(404, null, "Lesson not found"));
-  if (String(lesson.module) !== String(rawModuleId)) {
-    return res.status(400).json(new ApiResponse(400, null, "Lesson does not belong to module"));
-  }
+  const [rows] = await pool.query("SELECT * FROM lessons WHERE id = ?", [rawLessonId]);
+  if (rows.length === 0) throw new ApiError("Lesson not found", 404);
+  const lesson = rows[0];
 
-  lesson.slides = (lesson.slides || []).filter(s => String(s._id) !== String(slideId)).map((s,i)=>({ ...(s.toObject?.() ? s.toObject() : s), order: i+1 }));
-  await lesson.save();
+  let slides = parseJSON(lesson.slides);
+  const filtered = slides.filter(s => String(s._id || s.id) !== String(slideId));
+  const reordered = filtered.map((s, i) => ({ ...s, order: i + 1 }));
 
-  return res.status(200).json(new ApiResponse(200, lesson, "Slide deleted"));
+  await pool.query("UPDATE lessons SET slides = ?, updatedAt = NOW() WHERE id = ?", [JSON.stringify(reordered), rawLessonId]);
+
+  lesson.slides = reordered;
+  res.status(200).json(new ApiResponse(200, lesson, "Slide deleted"));
 });
 
 export const reorderSlides = asyncHandler(async (req, res) => {
-  const rawModuleId = req.params?.moduleId ?? req.body?.moduleId;
   const rawLessonId = req.params?.lessonId ?? req.body?.lessonId;
   const { order = [], slides: slidesOrder = [] } = req.body || {};
 
-  if (!rawModuleId || !mongoose.Types.ObjectId.isValid(rawModuleId)) {
-    return res.status(400).json(new ApiResponse(400, null, "Valid module ID is required"));
-  }
-  if (!rawLessonId || !mongoose.Types.ObjectId.isValid(rawLessonId)) {
-    return res.status(400).json(new ApiResponse(400, null, "Valid lesson ID is required"));
-  }
+  if (!rawLessonId) throw new ApiError("Lesson ID is required", 400);
 
-  const lesson = await Lesson.findById(rawLessonId);
-  if (!lesson) return res.status(404).json(new ApiResponse(404, null, "Lesson not found"));
-  if (String(lesson.module) !== String(rawModuleId)) {
-    return res.status(400).json(new ApiResponse(400, null, "Lesson does not belong to module"));
-  }
+  const [rows] = await pool.query("SELECT * FROM lessons WHERE id = ?", [rawLessonId]);
+  if (rows.length === 0) throw new ApiError("Lesson not found", 404);
+  const lesson = rows[0];
 
-  const current = lesson.slides || [];
+  const current = parseJSON(lesson.slides);
   if (!current.length) return res.status(200).json(new ApiResponse(200, lesson, "No slides to reorder"));
 
   let newOrderIds = [];
   if (Array.isArray(order) && order.length) {
     newOrderIds = order.map(id => String(id));
   } else if (Array.isArray(slidesOrder) && slidesOrder.length) {
-    newOrderIds = slidesOrder.sort((a,b)=> (a.order||0)-(b.order||0)).map(s => String(s._id || s.id));
+    newOrderIds = slidesOrder.sort((a, b) => (a.order || 0) - (b.order || 0)).map(s => String(s._id || s.id));
   } else {
-    return res.status(400).json(new ApiResponse(400, null, "Provide 'order' as array of slideIds or 'slides' with {_id, order}"));
+    throw new ApiError("Provide 'order' as array of slideIds or 'slides' with {_id, order}", 400);
   }
 
-  const byId = new Map(current.map(s => [String(s._id), s]));
+  const byId = new Map(current.map(s => [String(s._id || s.id), s]));
   const reordered = newOrderIds.map(id => byId.get(id)).filter(Boolean);
+
   if (reordered.length !== current.length) {
-    return res.status(400).json(new ApiResponse(400, null, "Order does not include all slides"));
+    // Fallback: If partial reordering or mismatches, might want to error, 
+    // but simple logic suggests ignoring invalid IDs or not changing if lengths mismatch
+    throw new ApiError("Order does not include all slides or invalid IDs", 400);
   }
 
-  lesson.slides = reordered.map((s, i) => ({ ...(s.toObject?.() ? s.toObject() : s), order: i + 1 }));
-  await lesson.save();
+  const finalSlides = reordered.map((s, i) => ({ ...s, order: i + 1 }));
 
-  return res.status(200).json(new ApiResponse(200, lesson, "Slides reordered"));
+  await pool.query("UPDATE lessons SET slides = ?, updatedAt = NOW() WHERE id = ?", [JSON.stringify(finalSlides), rawLessonId]);
+
+  lesson.slides = finalSlides;
+  res.status(200).json(new ApiResponse(200, lesson, "Slides reordered"));
 });

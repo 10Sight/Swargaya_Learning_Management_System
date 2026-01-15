@@ -1,4 +1,3 @@
-import mongoose from "mongoose";
 import Progress from "../models/progress.model.js";
 import Module from "../models/module.model.js";
 import Lesson from "../models/lesson.model.js";
@@ -22,18 +21,19 @@ export const isModuleEffectivelyCompleted = async (progress, moduleId, moduleLes
     const moduleIdString = String(moduleId);
 
     // Check if module is explicitly completed
-    const isExplicitlyCompleted = progress.completedModules.some(
+    const isExplicitlyCompleted = (progress.completedModules || []).some(
         module => String(module.moduleId || module) === moduleIdString
     );
-    
+
     if (isExplicitlyCompleted) return true;
 
     // If no lessons provided, fetch them
     if (!moduleLessons) {
         try {
-            const module = await Module.findById(moduleId).populate('lessons');
+            const module = await Module.findById(moduleId);
             if (!module) return false;
-            moduleLessons = module.lessons || [];
+            // Manual fetch instead of .populate()
+            moduleLessons = await Lesson.find({ module: moduleId });
         } catch (error) {
             console.error("Error fetching module lessons:", error);
             return false;
@@ -46,12 +46,12 @@ export const isModuleEffectivelyCompleted = async (progress, moduleId, moduleLes
     }
 
     // Check if all lessons are completed
-    const completedLessonIds = progress.completedLessons.map(lesson => 
+    const completedLessonIds = (progress.completedLessons || []).map(lesson =>
         String(lesson.lessonId || lesson)
     );
 
     const allLessonsCompleted = moduleLessons.every(lesson => {
-        const lessonId = String(lesson._id || lesson.id || lesson);
+        const lessonId = String(lesson.id || lesson._id || lesson);
         return completedLessonIds.includes(lessonId);
     });
 
@@ -62,7 +62,7 @@ export const isModuleEffectivelyCompleted = async (progress, moduleId, moduleLes
         try {
             const Quiz = (await import("../models/quiz.model.js")).default;
             const Assignment = (await import("../models/assignment.model.js")).default;
-            
+
             if (!moduleQuizzes) {
                 moduleQuizzes = await Quiz.find({ module: moduleId }) || [];
             }
@@ -80,9 +80,9 @@ export const isModuleEffectivelyCompleted = async (progress, moduleId, moduleLes
     if (moduleQuizzes && moduleQuizzes.length > 0) {
         const completedQuizzes = progress.quizzes || [];
         const allQuizzesCompleted = moduleQuizzes.every(quiz => {
-            const quizId = String(quiz._id || quiz.id || quiz);
-            return completedQuizzes.some(completedQuiz => 
-                String(completedQuiz.quizId || completedQuiz) === quizId && 
+            const quizId = String(quiz.id || quiz._id || quiz);
+            return completedQuizzes.some(completedQuiz =>
+                String(completedQuiz.quizId || completedQuiz) === quizId &&
                 completedQuiz.passed === true
             );
         });
@@ -93,9 +93,9 @@ export const isModuleEffectivelyCompleted = async (progress, moduleId, moduleLes
     if (moduleAssignments && moduleAssignments.length > 0) {
         const completedAssignments = progress.assignments || [];
         const allAssignmentsCompleted = moduleAssignments.every(assignment => {
-            const assignmentId = String(assignment._id || assignment.id || assignment);
-            return completedAssignments.some(completedAssignment => 
-                String(completedAssignment.assignmentId || completedAssignment) === assignmentId && 
+            const assignmentId = String(assignment.id || assignment._id || assignment);
+            return completedAssignments.some(completedAssignment =>
+                String(completedAssignment.assignmentId || completedAssignment) === assignmentId &&
                 completedAssignment.submitted === true
             );
         });
@@ -116,16 +116,14 @@ export const isModuleEffectivelyCompleted = async (progress, moduleId, moduleLes
  */
 export const checkModuleAccessForAssessments = async (userId, courseId, moduleId) => {
     try {
-        if (!mongoose.Types.ObjectId.isValid(userId) || 
-            !mongoose.Types.ObjectId.isValid(courseId) || 
-            !mongoose.Types.ObjectId.isValid(moduleId)) {
+        if (!userId || !courseId || !moduleId) {
             return { hasAccess: false, reason: "Invalid parameters" };
         }
 
         // Get user's progress for the course
-        const progress = await Progress.findOne({ 
-            student: userId, 
-            course: courseId 
+        const progress = await Progress.findOne({
+            student: userId,
+            course: courseId
         });
 
         if (!progress) {
@@ -134,32 +132,34 @@ export const checkModuleAccessForAssessments = async (userId, courseId, moduleId
 
         // Check if all lessons in module are completed (not the full module)
         try {
-            const module = await Module.findById(moduleId).populate('lessons');
+            const module = await Module.findById(moduleId);
             if (!module) {
                 return { hasAccess: false, reason: "Module not found" };
             }
 
-            const moduleLessons = module.lessons || [];
+            // Manual fetch instead of .populate()
+            const moduleLessons = await Lesson.find({ module: moduleId });
+
             if (moduleLessons.length === 0) {
                 return { hasAccess: true, reason: "No lessons to complete" };
             }
 
             // Check if all lessons are completed
-            const completedLessonIds = progress.completedLessons.map(lesson => 
+            const completedLessonIds = (progress.completedLessons || []).map(lesson =>
                 String(lesson.lessonId || lesson)
             );
 
             const allLessonsCompleted = moduleLessons.every(lesson => {
-                const lessonId = String(lesson._id || lesson.id || lesson);
+                const lessonId = String(lesson.id || lesson._id || lesson);
                 return completedLessonIds.includes(lessonId);
             });
 
             if (allLessonsCompleted) {
                 return { hasAccess: true, reason: "All lessons completed" };
             } else {
-                return { 
-                    hasAccess: false, 
-                    reason: "Complete all lessons first to unlock assessments" 
+                return {
+                    hasAccess: false,
+                    reason: "Complete all lessons first to unlock assessments"
                 };
             }
         } catch (error) {
@@ -176,7 +176,7 @@ export const checkModuleAccessForAssessments = async (userId, courseId, moduleId
  * Get the effective completion status for all modules in a course
  * 
  * @param {Object} progress - The progress record
- * @param {Array} modules - Array of course modules with populated lessons
+ * @param {Array} modules - Array of course modules with lessons (needs manual lesson fetch if not passed)
  * @returns {Promise<Array>} - Array of module IDs that are effectively completed
  */
 export const getEffectivelyCompletedModules = async (progress, modules) => {
@@ -185,9 +185,16 @@ export const getEffectivelyCompletedModules = async (progress, modules) => {
     const effectivelyCompletedModules = [];
 
     for (const module of modules) {
-        const moduleId = module._id || module.id;
-        const isCompleted = await isModuleEffectivelyCompleted(progress, moduleId, module.lessons);
-        
+        const moduleId = module.id || module._id;
+
+        // Ensure module has lessons for completion check, fetch if needed
+        let lessons = module.lessons;
+        if (!lessons) {
+            lessons = await Lesson.find({ module: moduleId });
+        }
+
+        const isCompleted = await isModuleEffectivelyCompleted(progress, moduleId, lessons);
+
         if (isCompleted) {
             effectivelyCompletedModules.push(String(moduleId));
         }

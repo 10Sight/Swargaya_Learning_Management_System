@@ -1,5 +1,4 @@
-import mongoose from "mongoose";
-import User from "../models/auth.model.js";
+import { pool } from "../db/connectDB.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -283,7 +282,7 @@ export const getRolesAndPermissions = asyncHandler(async (req, res) => {
       ]
     };
 
-    // Get roles (in a real implementation, these would come from database)
+    // Get roles from memory default
     const roles = Object.entries(DEFAULT_ROLES).map(([key, role]) => ({
       id: key,
       name: role.name,
@@ -291,13 +290,13 @@ export const getRolesAndPermissions = asyncHandler(async (req, res) => {
       permissions: role.permissions,
       isSystemRole: role.isSystemRole,
       color: role.color,
-      userCount: 0 // This would be calculated from database
+      userCount: 0
     }));
 
-    // Get user count for each role
+    // Get user count for each role via SQL
     for (const role of roles) {
-      const count = await User.countDocuments({ role: role.id });
-      role.userCount = count;
+      const [rows] = await pool.query("SELECT COUNT(*) as cnt FROM users WHERE role = ?", [role.id]);
+      role.userCount = rows[0].cnt;
     }
 
     res.json(new ApiResponse(200, {
@@ -311,56 +310,35 @@ export const getRolesAndPermissions = asyncHandler(async (req, res) => {
   }
 });
 
-// Create custom role
+// Create custom role (STUB - Schema update needed for dynamic roles stored in DB)
 export const createCustomRole = asyncHandler(async (req, res) => {
   try {
     const { name, description, permissions = [], color = "#6B7280" } = req.body;
 
-    if (!name) {
-      throw new ApiError("Role name is required", 400);
-    }
+    if (!name) throw new ApiError("Role name is required", 400);
 
-    // Validate permissions
     const validPermissions = Object.values(SYSTEM_PERMISSIONS);
     const invalidPermissions = permissions.filter(p => !validPermissions.includes(p));
+    if (invalidPermissions.length > 0) throw new ApiError(`Invalid permissions: ${invalidPermissions.join(", ")}`, 400);
 
-    if (invalidPermissions.length > 0) {
-      throw new ApiError(`Invalid permissions: ${invalidPermissions.join(", ")}`, 400);
-    }
+    const roleId = name.toUpperCase().replace(/\\s+/g, '_');
+    if (DEFAULT_ROLES[roleId]) throw new ApiError("Role already exists", 400);
 
-    // Create role ID from name
-    const roleId = name.toUpperCase().replace(/\s+/g, '_');
+    // SQL Insert to 'roles' table if it existed. 
+    // Assuming this controller primarily relied on constants.
+    // We return the object as mock success logic per original file structure.
 
-    // Check if role already exists (in a real implementation, check database)
-    if (DEFAULT_ROLES[roleId]) {
-      throw new ApiError("Role already exists", 400);
-    }
-
-    // In a real implementation, save to database
     const newRole = {
-      id: roleId,
-      name,
-      description,
-      permissions,
-      isSystemRole: false,
-      color,
-      createdBy: req.user._id,
-      createdAt: new Date(),
-      userCount: 0
+      id: roleId, name, description, permissions,
+      isSystemRole: false, color, createdBy: req.user.id, createdAt: new Date(), userCount: 0
     };
 
-    // Log role creation
+    // Audit
     const auditLogger = (await import("../utils/auditLogger.js")).default;
     await auditLogger({
-      action: 'CREATE_ROLE',
-      userId: req.user._id,
-      details: {
-        roleName: name,
-        permissions: permissions.length,
-        roleId
-      },
-      ipAddress: req.ip,
-      userAgent: req.get('User-Agent')
+      action: 'CREATE_ROLE', userId: req.user.id,
+      details: { roleName: name, permissions: permissions.length, roleId },
+      ipAddress: req.ip, userAgent: req.get('User-Agent')
     });
 
     res.json(new ApiResponse(201, newRole, "Role created successfully"));
@@ -370,32 +348,23 @@ export const createCustomRole = asyncHandler(async (req, res) => {
   }
 });
 
-// Update role permissions
+// Update role permissions (STUB)
 export const updateRolePermissions = asyncHandler(async (req, res) => {
   try {
     const { roleId } = req.params;
     const { permissions = [], name, description, color } = req.body;
 
-    // Check if role exists and is not a system role for critical operations
     const existingRole = DEFAULT_ROLES[roleId];
-    if (!existingRole) {
-      throw new ApiError("Role not found", 404);
-    }
+    if (!existingRole) throw new ApiError("Role not found", 404);
 
-    // Prevent modification of system roles (except by SuperAdmin)
     if (existingRole.isSystemRole && req.user.role !== 'SUPERADMIN') {
       throw new ApiError("Cannot modify system roles", 403);
     }
 
-    // Validate permissions
     const validPermissions = Object.values(SYSTEM_PERMISSIONS);
     const invalidPermissions = permissions.filter(p => !validPermissions.includes(p));
+    if (invalidPermissions.length > 0) throw new ApiError(`Invalid: ${invalidPermissions.join(", ")}`, 400);
 
-    if (invalidPermissions.length > 0) {
-      throw new ApiError(`Invalid permissions: ${invalidPermissions.join(", ")}`, 400);
-    }
-
-    // In a real implementation, update in database
     const updatedRole = {
       id: roleId,
       name: name || existingRole.name,
@@ -403,72 +372,44 @@ export const updateRolePermissions = asyncHandler(async (req, res) => {
       permissions,
       isSystemRole: existingRole.isSystemRole,
       color: color || existingRole.color,
-      updatedBy: req.user._id,
+      updatedBy: req.user.id,
       updatedAt: new Date()
     };
 
-    // Log role update
     const auditLogger = (await import("../utils/auditLogger.js")).default;
     await auditLogger({
-      action: 'UPDATE_ROLE',
-      userId: req.user._id,
-      details: {
-        roleId,
-        roleName: updatedRole.name,
-        permissionsChanged: permissions.length,
-        oldPermissionsCount: existingRole.permissions.length
-      },
-      ipAddress: req.ip,
-      userAgent: req.get('User-Agent')
+      action: 'UPDATE_ROLE', userId: req.user.id,
+      details: { roleId, roleName: updatedRole.name, permissionsChanged: permissions.length },
+      ipAddress: req.ip, userAgent: req.get('User-Agent')
     });
 
     res.json(new ApiResponse(200, updatedRole, "Role updated successfully"));
-
   } catch (error) {
     throw new ApiError(error.message || "Failed to update role", error.statusCode || 500);
   }
 });
 
-// Delete custom role
+// Delete custom role (STUB)
 export const deleteCustomRole = asyncHandler(async (req, res) => {
   try {
     const { roleId } = req.params;
-
-    // Check if role exists
     const existingRole = DEFAULT_ROLES[roleId];
-    if (!existingRole) {
-      throw new ApiError("Role not found", 404);
-    }
+    if (!existingRole) throw new ApiError("Role not found", 404);
 
-    // Prevent deletion of system roles
-    if (existingRole.isSystemRole) {
-      throw new ApiError("Cannot delete system roles", 403);
-    }
+    if (existingRole.isSystemRole) throw new ApiError("Cannot delete system roles", 403);
 
-    // Check if any users have this role
-    const usersWithRole = await User.countDocuments({ role: roleId });
-    if (usersWithRole > 0) {
-      throw new ApiError(`Cannot delete role: ${usersWithRole} users still have this role`, 400);
-    }
+    // Check count in SQL
+    const [rows] = await pool.query("SELECT COUNT(*) as cnt FROM users WHERE role = ?", [roleId]);
+    if (rows[0].cnt > 0) throw new ApiError(`Cannot delete role: ${rows[0].cnt} users still have this role`, 400);
 
-    // In a real implementation, delete from database
-    // await Role.findByIdAndDelete(roleId);
-
-    // Log role deletion
     const auditLogger = (await import("../utils/auditLogger.js")).default;
     await auditLogger({
-      action: 'DELETE_ROLE',
-      userId: req.user._id,
-      details: {
-        roleId,
-        roleName: existingRole.name
-      },
-      ipAddress: req.ip,
-      userAgent: req.get('User-Agent')
+      action: 'DELETE_ROLE', userId: req.user.id,
+      details: { roleId, roleName: existingRole.name },
+      ipAddress: req.ip, userAgent: req.get('User-Agent')
     });
 
     res.json(new ApiResponse(200, {}, "Role deleted successfully"));
-
   } catch (error) {
     throw new ApiError(error.message || "Failed to delete role", error.statusCode || 500);
   }
@@ -478,56 +419,32 @@ export const deleteCustomRole = asyncHandler(async (req, res) => {
 export const assignRoleToUser = asyncHandler(async (req, res) => {
   try {
     const { userId, roleId } = req.body;
+    if (!userId || !roleId) throw new ApiError("User ID and Role ID are required", 400);
 
-    if (!userId || !roleId) {
-      throw new ApiError("User ID and Role ID are required", 400);
-    }
+    const [users] = await pool.query("SELECT * FROM users WHERE id = ?", [userId]);
+    if (users.length === 0) throw new ApiError("User not found", 404);
+    const user = users[0];
 
-    // Check if user exists
-    const user = await User.findById(userId);
-    if (!user) {
-      throw new ApiError("User not found", 404);
-    }
-
-    // Check if role exists
     const role = DEFAULT_ROLES[roleId];
-    if (!role) {
-      throw new ApiError("Role not found", 404);
-    }
+    if (!role) throw new ApiError("Role not found", 404);
 
-    // Prevent non-superadmins from assigning superadmin role
     if (roleId === 'SUPERADMIN' && req.user.role !== 'SUPERADMIN') {
       throw new ApiError("Insufficient permissions to assign SuperAdmin role", 403);
     }
 
     const oldRole = user.role;
+    await pool.query("UPDATE users SET role = ? WHERE id = ?", [roleId, userId]);
 
-    // Update user role
-    await User.findByIdAndUpdate(userId, { role: roleId });
-
-    // Log role assignment
     const auditLogger = (await import("../utils/auditLogger.js")).default;
     await auditLogger({
-      action: 'ASSIGN_ROLE',
-      userId: req.user._id,
-      details: {
-        targetUserId: userId,
-        targetUserName: user.fullName,
-        oldRole,
-        newRole: roleId,
-        roleName: role.name
-      },
-      ipAddress: req.ip,
-      userAgent: req.get('User-Agent')
+      action: 'ASSIGN_ROLE', userId: req.user.id,
+      details: { targetUserId: userId, targetUserName: user.fullName, oldRole, newRole: roleId, roleName: role.name },
+      ipAddress: req.ip, userAgent: req.get('User-Agent')
     });
 
     res.json(new ApiResponse(200, {
-      userId,
-      userEmail: user.email,
-      userName: user.fullName,
-      oldRole,
-      newRole: roleId,
-      roleName: role.name
+      userId, userEmail: user.email, userName: user.fullName,
+      oldRole, newRole: roleId, roleName: role.name
     }, "Role assigned successfully"));
 
   } catch (error) {
@@ -540,81 +457,50 @@ export const bulkAssignRoles = asyncHandler(async (req, res) => {
   try {
     const { userIds, roleId } = req.body;
 
-    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
-      throw new ApiError("User IDs array is required", 400);
-    }
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) throw new ApiError("User IDs array is required", 400);
+    if (!roleId) throw new ApiError("Role ID is required", 400);
 
-    if (!roleId) {
-      throw new ApiError("Role ID is required", 400);
-    }
-
-    // Check if role exists
     const role = DEFAULT_ROLES[roleId];
-    if (!role) {
-      throw new ApiError("Role not found", 404);
-    }
+    if (!role) throw new ApiError("Role not found", 404);
 
-    // Prevent non-superadmins from assigning superadmin role
     if (roleId === 'SUPERADMIN' && req.user.role !== 'SUPERADMIN') {
       throw new ApiError("Insufficient permissions to assign SuperAdmin role", 403);
     }
 
-    // Check if users exist
-    const users = await User.find({ _id: { $in: userIds } });
-    if (users.length !== userIds.length) {
-      throw new ApiError("Some users not found", 404);
-    }
+    // Verify users
+    const placeholders = userIds.map(() => '?').join(',');
+    const [users] = await pool.query(`SELECT * FROM users WHERE id IN (${placeholders})`, userIds);
+    if (users.length !== userIds.length) throw new ApiError("Some users not found", 404);
 
-    const results = {
-      successful: [],
-      failed: []
-    };
+    const results = { successful: [], failed: [] };
 
-    // Update user roles
+    // In SQL we can do a bulk update, but we need individual results for the response/audit.
+    // Also need oldRole for audit.
+    // Iteration is acceptable for manageable bulk sizes.
+
     for (const user of users) {
       try {
         const oldRole = user.role;
-        await User.findByIdAndUpdate(user._id, { role: roleId });
+        await pool.query("UPDATE users SET role = ? WHERE id = ?", [roleId, user.id]);
 
         results.successful.push({
-          userId: user._id,
-          userEmail: user.email,
-          userName: user.fullName,
-          oldRole,
-          newRole: roleId
+          userId: user.id, userEmail: user.email, userName: user.fullName,
+          oldRole, newRole: roleId
         });
       } catch (error) {
-        results.failed.push({
-          userId: user._id,
-          userEmail: user.email,
-          error: error.message
-        });
+        results.failed.push({ userId: user.id, userEmail: user.email, error: error.message });
       }
     }
 
-    // Log bulk role assignment
     const auditLogger = (await import("../utils/auditLogger.js")).default;
     await auditLogger({
-      action: 'BULK_ASSIGN_ROLES',
-      userId: req.user._id,
-      details: {
-        roleId,
-        roleName: role.name,
-        totalUsers: userIds.length,
-        successful: results.successful.length,
-        failed: results.failed.length
-      },
-      ipAddress: req.ip,
-      userAgent: req.get('User-Agent')
+      action: 'BULK_ASSIGN_ROLES', userId: req.user.id,
+      details: { roleId, roleName: role.name, totalUsers: userIds.length, successful: results.successful.length, failed: results.failed.length },
+      ipAddress: req.ip, userAgent: req.get('User-Agent')
     });
 
     res.json(new ApiResponse(200, {
-      results,
-      summary: {
-        total: userIds.length,
-        successful: results.successful.length,
-        failed: results.failed.length
-      }
+      results, summary: { total: userIds.length, successful: results.successful.length, failed: results.failed.length }
     }, "Bulk role assignment completed"));
 
   } catch (error) {
@@ -628,33 +514,27 @@ export const getUsersByRole = asyncHandler(async (req, res) => {
     const { roleId } = req.params;
     const { page = 1, limit = 20, search = "" } = req.query;
 
-    // Check if role exists
-    if (!DEFAULT_ROLES[roleId]) {
-      throw new ApiError("Role not found", 404);
+    if (!DEFAULT_ROLES[roleId]) throw new ApiError("Role not found", 404);
+
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    let params = [roleId];
+    let whereSQL = "role = ?";
+
+    if (search) {
+      whereSQL += " AND (fullName LIKE ? OR email LIKE ?)";
+      params.push(`%${search}%`, `%${search}%`);
     }
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const [cntRows] = await pool.query(`SELECT COUNT(*) as cnt FROM users WHERE ${whereSQL}`, params);
+    const totalUsers = cntRows[0].cnt;
 
-    // Build search query
-    const searchQuery = {
-      role: roleId,
-      ...(search && {
-        $or: [
-          { fullName: { $regex: search, $options: 'i' } },
-          { email: { $regex: search, $options: 'i' } }
-        ]
-      })
-    };
-
-    const [users, totalUsers] = await Promise.all([
-      User.find(searchQuery)
-        .select('fullName email createdAt isEmailVerified isActive')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(parseInt(limit))
-        .lean(),
-      User.countDocuments(searchQuery)
-    ]);
+    const [users] = await pool.query(`
+        SELECT id, fullName, email, createdAt, status 
+        FROM users 
+        WHERE ${whereSQL}
+        ORDER BY createdAt DESC 
+        LIMIT ? OFFSET ?
+    `, [...params, parseInt(limit), offset]);
 
     res.json(new ApiResponse(200, {
       users,
@@ -664,10 +544,7 @@ export const getUsersByRole = asyncHandler(async (req, res) => {
         totalUsers,
         limit: parseInt(limit)
       },
-      role: {
-        id: roleId,
-        name: DEFAULT_ROLES[roleId].name
-      }
+      role: { id: roleId, name: DEFAULT_ROLES[roleId].name }
     }, "Users fetched successfully"));
 
   } catch (error) {

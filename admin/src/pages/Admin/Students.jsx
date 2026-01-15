@@ -79,7 +79,8 @@ import { useNavigate } from "react-router-dom";
 import { useLazyExportStudentsQuery } from "@/Redux/AllApi/UserApi";
 
 const normalizeStatus = (status) => {
-  switch (status) {
+  const s = status || "PRESENT";
+  switch (s) {
     case "ACTIVE":
       return "PRESENT";
     case "PENDING":
@@ -88,7 +89,7 @@ const normalizeStatus = (status) => {
     case "BANNED":
       return "LEFT";
     default:
-      return status || "";
+      return s;
   }
 };
 
@@ -1204,7 +1205,7 @@ const Students = () => {
                 <SelectContent>
                   <SelectItem value="PRESENT">Present</SelectItem>
                   <SelectItem value="ON_LEAVE">On Leave</SelectItem>
-                  <SelectItem value="ABSENT">Absent</SelectItem>
+                  <SelectItem value="LEFT">Left</SelectItem>
                 </SelectContent>
               </Select>
             </div>

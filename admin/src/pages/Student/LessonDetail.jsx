@@ -74,11 +74,17 @@ const LessonDetail = () => {
 
         // 1) Get course content (for courseId and completion status)
         const response = await axiosInstance.get('/api/departments/me/course-content');
-        const data = response?.data?.data;
-        if (!data?.course) throw new Error('Course not found');
+        const courseData = response?.data?.data;
+        if (!courseData) throw new Error('Course not found');
+
+        // Structure normalized: courseData IS the course
+        const data = {
+          course: courseData,
+          progress: courseData.progress || {}
+        };
         setCourseData(data);
 
-        const progress = data.progress || {};
+        const progress = data.progress;
         const completedLessons = progress.completedLessons || [];
         const isLessonCompleted = completedLessons.some(lesson => String(lesson.lessonId || lesson._id || lesson) === String(lessonId));
         setIsCompleted(isLessonCompleted);
@@ -96,20 +102,22 @@ const LessonDetail = () => {
         }
 
         // 3) Fallback: locate module and fetch via legacy routes
+        // 3) Fallback: locate module locally since we already have the full course structure including lessons
         let foundLesson = null;
         let foundModuleId = null;
-        for (const module of (data.course.modules || [])) {
+
+        const modules = data.course.modules || [];
+        for (const module of modules) {
           const moduleId = module._id || module.id;
-          try {
-            const lessonsResponse = await axiosInstance.get(`/api/modules/${moduleId}/lessons`);
-            const lessons = lessonsResponse?.data?.data || [];
-            const match = lessons.find(l => String(l._id || l.id) === String(lessonId) || String(l.slug || '') === String(lessonId));
-            if (match) {
-              foundLesson = match;
-              foundModuleId = moduleId;
-              break;
-            }
-          } catch (_) { }
+          // Lessons are already nested in the module from the getDepartmentCourseContent response
+          const lessons = module.lessons || [];
+
+          const match = lessons.find(l => String(l._id || l.id) === String(lessonId) || String(l.slug || '') === String(lessonId));
+          if (match) {
+            foundLesson = match;
+            foundModuleId = moduleId;
+            break;
+          }
         }
         if (!foundLesson || !foundModuleId) {
           throw new Error('Lesson not found');
@@ -624,9 +632,9 @@ const LessonDetail = () => {
                             <Badge
                               variant="outline"
                               className={`text-xs self-start sm:self-auto ${resource.type === 'video' ? 'border-red-200 text-red-700 bg-red-50' :
-                                  resource.type === 'pdf' ? 'border-blue-200 text-blue-700 bg-blue-50' :
-                                    resource.type === 'link' ? 'border-purple-200 text-purple-700 bg-purple-50' :
-                                      'border-gray-200 text-gray-700 bg-gray-50'
+                                resource.type === 'pdf' ? 'border-blue-200 text-blue-700 bg-blue-50' :
+                                  resource.type === 'link' ? 'border-purple-200 text-purple-700 bg-purple-50' :
+                                    'border-gray-200 text-gray-700 bg-gray-50'
                                 }`}
                             >
                               {resource.type?.toUpperCase() || 'FILE'}

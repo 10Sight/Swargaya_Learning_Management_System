@@ -73,36 +73,36 @@ const InstructorCourses = () => {
   const totalCount = coursesData?.data?.total || 0;
 
   const handleCourseClick = (course) => {
-    navigate(`/instructor/courses/${course._id}`);
+    navigate(`/instructor/courses/${course.id || course._id}`);
   };
 
   const getDifficultyBadge = (difficulty) => {
-  const difficultyMapping = {
-    BEGGINER: "BEGINNER", 
-    BEGINNER: "BEGINNER",
-    INTERMEDIATE: "INTERMEDIATE", 
-    ADVANCED: "ADVANCED",
-  };
+    const difficultyMapping = {
+      BEGGINER: "BEGINNER",
+      BEGINNER: "BEGINNER",
+      INTERMEDIATE: "INTERMEDIATE",
+      ADVANCED: "ADVANCED",
+    };
 
-  const normalizedDifficulty = difficultyMapping[difficulty] || difficulty;
-  
-  const difficultyConfig = {
-    BEGINNER: { variant: "success", label: "Beginner" },
-    INTERMEDIATE: { variant: "warning", label: "Intermediate" },
-    ADVANCED: { variant: "destructive", label: "Advanced" },
-  };
+    const normalizedDifficulty = difficultyMapping[difficulty] || difficulty;
 
-  const config = difficultyConfig[normalizedDifficulty] || {
-    variant: "secondary",
-    label: difficulty,
-  };
+    const difficultyConfig = {
+      BEGINNER: { variant: "success", label: "Beginner" },
+      INTERMEDIATE: { variant: "warning", label: "Intermediate" },
+      ADVANCED: { variant: "destructive", label: "Advanced" },
+    };
 
-  return (
-    <Badge variant={config.variant} className="w-fit">
-      {config.label}
-    </Badge>
-  );
-};
+    const config = difficultyConfig[normalizedDifficulty] || {
+      variant: "secondary",
+      label: difficulty,
+    };
+
+    return (
+      <Badge variant={config.variant} className="w-fit">
+        {config.label}
+      </Badge>
+    );
+  };
 
   // Loading state
   if (isLoading) {
@@ -243,7 +243,7 @@ const InstructorCourses = () => {
               onChange={setSearchTerm}
               className="w-full sm:w-96"
             />
-            
+
             <div className="text-sm text-muted-foreground">
               {totalCount} published courses available
             </div>
@@ -264,7 +264,7 @@ const InstructorCourses = () => {
               {courses.length > 0 ? (
                 courses.map((course) => (
                   <TableRow
-                    key={course._id}
+                    key={course.id || course._id}
                     className="group hover:bg-muted/30 cursor-pointer"
                     onClick={() => handleCourseClick(course)}
                   >

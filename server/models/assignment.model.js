@@ -1,149 +1,230 @@
-import { Schema, model } from "mongoose";
+import { pool } from "../db/connectDB.js";
+import logger from "../logger/winston.logger.js";
 
-const assignmentSchema = new Schema(
-    {
-        // Legacy fields - keeping for backward compatibility
-        course: {
-            type: Schema.Types.ObjectId,
-            ref: "Course",
-            required: true,
-            index: true,
-        },
-        module: {
-            type: Schema.Types.ObjectId,
-            ref: "Module",
-            required: false,
-            index: true,
-        },
-        lesson: {
-            type: Schema.Types.ObjectId,
-            ref: "Lesson",
-            required: false, // Make optional
-            default: null,
-        },
-        // New resource-like scoping system
-        courseId: {
-            type: Schema.Types.ObjectId,
-            ref: "Course",
-            default: function() {
-                return this.course; // Use legacy course field as fallback
-            }
-        },
-        moduleId: {
-            type: Schema.Types.ObjectId,
-            ref: "Module",
-            default: function() {
-                return this.module; // Use legacy module field as fallback
-            }
-        },
-        lessonId: {
-            type: Schema.Types.ObjectId,
-            ref: "Lesson",
-            default: function() {
-                return this.lesson; // Use legacy lesson field as fallback
-            }
-        },
-        // Scope - helps identify where assignment belongs
-        scope: {
-            type: String,
-            enum: ["course", "module", "lesson"],
-            default: function() {
-                // Determine scope based on what IDs are provided
-                if (this.lessonId || this.lesson) {
-                    return "lesson";
-                } else if (this.moduleId || this.module) {
-                    return "module";
-                } else {
-                    return "course";
-                }
-            }
-        },
-        instructor: {
-            type: Schema.Types.ObjectId,
-            ref: "User",
-            required: false, // Make optional
-            default: null,
-        },
-        title: {
-            type: String,
-            required: true,
-            trim: true,
-        },
-        description: {
-            type: String,
-            trim: true,
-        },
-        resources: [
-            {
-                type: String,
-            },
-        ],
-        dueDate: {
-            type: Date,
-            required: true,
-        },
-        maxScore: {
-            type: Number,
-            default: 100,
-        },
-        allowResubmission: {
-            type: Boolean,
-            default: true,
-        },
-        status: {
-            type: String,
-            enum: ["ACTIVE", "CLOSED", "ARCHIVED"],
-            default: "ACTIVE",
-        },
-        createdBy: {
-            type: Schema.Types.ObjectId,
-            ref: "User",
-            required: true,
-        },
-    },
-    {
-        timestamps: true
-    }
-);
+class Assignment {
+    constructor(data) {
+        this.id = data.id;
+        this._id = data.id; // Compatibility
+        // Legacy fields mapping
+        this.course = data.course || data.courseId;
+        this.module = data.module || data.moduleId;
+        this.lesson = data.lesson || data.lessonId;
 
-// Pre-save hook to ensure data consistency between new and legacy fields
-assignmentSchema.pre('save', function(next) {
-    const assignment = this;
-    
-    // Sync new fields with legacy fields for backward compatibility
-    if (assignment.courseId && !assignment.course) {
-        assignment.course = assignment.courseId;
-    }
-    if (assignment.course && !assignment.courseId) {
-        assignment.courseId = assignment.course;
-    }
-    
-    if (assignment.moduleId && !assignment.module) {
-        assignment.module = assignment.moduleId;
-    }
-    if (assignment.module && !assignment.moduleId) {
-        assignment.moduleId = assignment.module;
-    }
-    
-    if (assignment.lessonId && !assignment.lesson) {
-        assignment.lesson = assignment.lessonId;
-    }
-    if (assignment.lesson && !assignment.lessonId) {
-        assignment.lessonId = assignment.lesson;
-    }
-    
-    // Validate scope matches provided IDs
-    if (assignment.scope === 'course' && (assignment.moduleId || assignment.lessonId)) {
-        return next(new Error('Course-scoped assignment cannot have module or lesson IDs'));
-    }
-    if (assignment.scope === 'module' && (!assignment.moduleId || assignment.lessonId)) {
-        return next(new Error('Module-scoped assignment must have moduleId and cannot have lessonId'));
-    }
-    if (assignment.scope === 'lesson' && (!assignment.lessonId || !assignment.moduleId)) {
-        return next(new Error('Lesson-scoped assignment must have both moduleId and lessonId'));
-    }
-    
-    next();
-});
+        // New fields
+        this.courseId = data.courseId || data.course; // Sync
+        this.moduleId = data.moduleId || data.module; // Sync
+        this.lessonId = data.lessonId || data.lesson; // Sync
 
-export default model("Assignment", assignmentSchema);
+        this.scope = data.scope || this._determineScope();
+
+        // Foreign keys - keeping as strings to support mixed Mongo/SQL ID types if necessary, though User is int now.
+        this.instructor = data.instructor;
+        this.title = data.title;
+        this.description = data.description;
+        this.resources = typeof data.resources === 'string' ? JSON.parse(data.resources) : (data.resources || []);
+        this.dueDate = data.dueDate ? new Date(data.dueDate) : null;
+        this.maxScore = data.maxScore !== undefined ? data.maxScore : 100;
+        this.allowResubmission = data.allowResubmission !== undefined ? !!data.allowResubmission : true;
+        this.status = data.status || "ACTIVE";
+        this.createdBy = data.createdBy;
+        this.createdAt = data.createdAt;
+        this.updatedAt = data.updatedAt;
+    }
+
+    _determineScope() {
+        if (this.lessonId) return "lesson";
+        if (this.moduleId) return "module";
+        return "course";
+    }
+
+    static async init() {
+        const query = `
+            CREATE TABLE IF NOT EXISTS assignments (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                courseId VARCHAR(255) NOT NULL,
+                moduleId VARCHAR(255),
+                lessonId VARCHAR(255),
+                scope VARCHAR(50) NOT NULL,
+                instructor VARCHAR(255),
+                title VARCHAR(255) NOT NULL,
+                description TEXT,
+                resources TEXT,
+                dueDate DATETIME NOT NULL,
+                maxScore INT DEFAULT 100,
+                allowResubmission BOOLEAN DEFAULT TRUE,
+                status VARCHAR(50) DEFAULT 'ACTIVE',
+                createdBy VARCHAR(255) NOT NULL,
+                createdAt DATETIME,
+                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            )
+        `;
+        try {
+            await pool.query(query);
+        } catch (error) {
+            logger.error("Failed to initialize Assignment table", error);
+        }
+    }
+
+    static async create(data) {
+        // Validation logic from pre-save hook
+        const assignment = new Assignment(data);
+        const { scope, courseId, moduleId, lessonId } = assignment;
+
+        if (scope === 'course' && (moduleId || lessonId)) {
+            throw new Error('Course-scoped assignment cannot have module or lesson IDs');
+        }
+        if (scope === 'module' && (!moduleId || lessonId)) {
+            throw new Error('Module-scoped assignment must have moduleId and cannot have lessonId');
+        }
+        if (scope === 'lesson' && (!lessonId || !moduleId)) {
+            throw new Error('Lesson-scoped assignment must have both moduleId and lessonId');
+        }
+
+        const fields = [
+            "courseId", "moduleId", "lessonId", "scope", "instructor",
+            "title", "description", "resources", "dueDate", "maxScore",
+            "allowResubmission", "status", "createdBy"
+        ];
+
+        const values = fields.map(field => {
+            let val = assignment[field];
+            if (field === 'resources') return JSON.stringify(val);
+            if (val === undefined) return null;
+            return val;
+        });
+
+        const placeholders = fields.map(() => "?").join(",");
+        const query = `INSERT INTO assignments (${fields.join(",")}) VALUES (${placeholders})`;
+
+        const [result] = await pool.query(query, values);
+        return Assignment.findById(result.insertId);
+    }
+
+    static async findById(id) {
+        const [rows] = await pool.query("SELECT * FROM assignments WHERE id = ?", [id]);
+        if (rows.length === 0) return null;
+        return new Assignment(rows[0]);
+    }
+
+    static async findOne(query) {
+        // Map legacy fields
+        const mappedQuery = { ...query };
+        if (mappedQuery.course !== undefined) {
+            mappedQuery.courseId = mappedQuery.course;
+            delete mappedQuery.course;
+        }
+        if (mappedQuery.module !== undefined) {
+            mappedQuery.moduleId = mappedQuery.module;
+            delete mappedQuery.module;
+        }
+        if (mappedQuery.lesson !== undefined) {
+            mappedQuery.lessonId = mappedQuery.lesson;
+            delete mappedQuery.lesson;
+        }
+
+        const keys = Object.keys(mappedQuery).filter(key => mappedQuery[key] !== undefined);
+        if (keys.length === 0) return null;
+
+        const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
+        const values = keys.map(key => mappedQuery[key]);
+
+        const [rows] = await pool.query(`SELECT * FROM assignments WHERE ${whereClause} LIMIT 1`, values);
+        if (rows.length === 0) return null;
+        return new Assignment(rows[0]);
+    }
+
+    static async find(query = {}) {
+        // Map legacy fields
+        const mappedQuery = { ...query };
+        if (mappedQuery.course !== undefined) {
+            mappedQuery.courseId = mappedQuery.course;
+            delete mappedQuery.course;
+        }
+        if (mappedQuery.module !== undefined) {
+            mappedQuery.moduleId = mappedQuery.module;
+            delete mappedQuery.module;
+        }
+        if (mappedQuery.lesson !== undefined) {
+            mappedQuery.lessonId = mappedQuery.lesson;
+            delete mappedQuery.lesson;
+        }
+
+        const keys = Object.keys(mappedQuery).filter(key => mappedQuery[key] !== undefined && key !== 'sort');
+        let sql = "SELECT * FROM assignments";
+        let values = [];
+
+        if (keys.length > 0) {
+            const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
+            sql += ` WHERE ${whereClause}`;
+            values = keys.map(key => mappedQuery[key]);
+        }
+
+        const [rows] = await pool.query(sql, values);
+        return rows.map(row => new Assignment(row));
+    }
+
+    static async countDocuments(query = {}) {
+        // Map legacy fields
+        const mappedQuery = { ...query };
+        if (mappedQuery.course !== undefined) {
+            mappedQuery.courseId = mappedQuery.course;
+            delete mappedQuery.course;
+        }
+        if (mappedQuery.module !== undefined) {
+            mappedQuery.moduleId = mappedQuery.module;
+            delete mappedQuery.module;
+        }
+        if (mappedQuery.lesson !== undefined) {
+            mappedQuery.lessonId = mappedQuery.lesson;
+            delete mappedQuery.lesson;
+        }
+
+        const keys = Object.keys(mappedQuery).filter(key => mappedQuery[key] !== undefined);
+        let sql = "SELECT COUNT(*) as count FROM assignments";
+        let values = [];
+
+        if (keys.length > 0) {
+            const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
+            sql += ` WHERE ${whereClause}`;
+            values = keys.map(key => mappedQuery[key]);
+        }
+
+        const [rows] = await pool.query(sql, values);
+        return rows[0].count;
+    }
+
+    async save() {
+        // Re-validate scope
+        if (this.scope === 'course' && (this.moduleId || this.lessonId)) {
+            throw new Error('Course-scoped assignment cannot have module or lesson IDs');
+        }
+        if (this.scope === 'module' && (!this.moduleId || this.lessonId)) {
+            throw new Error('Module-scoped assignment must have moduleId and cannot have lessonId');
+        }
+        if (this.scope === 'lesson' && (!this.lessonId || !this.moduleId)) {
+            throw new Error('Lesson-scoped assignment must have both moduleId and lessonId');
+        }
+
+        const fields = [
+            "courseId", "moduleId", "lessonId", "scope", "instructor",
+            "title", "description", "resources", "dueDate", "maxScore",
+            "allowResubmission", "status", "createdBy"
+        ];
+
+        const setClause = fields.map(field => `${field} = ?`).join(", ");
+        const values = fields.map(field => {
+            const val = this[field];
+            if (field === 'resources') return JSON.stringify(val);
+            return val;
+        });
+        values.push(this.id);
+
+        await pool.query(`UPDATE assignments SET ${setClause} WHERE id = ?`, values);
+        return this;
+    }
+}
+
+// Initialize table
+Assignment.init();
+
+export default Assignment;

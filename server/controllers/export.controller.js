@@ -1,8 +1,6 @@
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
-import User from '../models/auth.model.js';
-import Course from '../models/course.model.js';
-import Department from '../models/department.model.js';
+import { pool } from '../db/connectDB.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 const sendExcel = async (res, filename, columns, rows) => {
@@ -53,16 +51,30 @@ const sendPDF = (res, filename, title, columns, rows) => {
 export const exportCourses = asyncHandler(async (req, res) => {
   const { format = 'excel', search = '', status = '', category = '' } = req.query;
 
-  const query = { isDeleted: { $ne: true } };
-  if (search) query.$or = [{ title: { $regex: search, $options: 'i' } }, { description: { $regex: search, $options: 'i' } }];
-  if (status) query.status = status;
-  if (category) query.category = category;
+  let sql = `
+    SELECT c.title, c.category, c.difficulty, c.status, c.totalEnrollments, c.createdAt, u.fullName as instructorName 
+    FROM courses c 
+    LEFT JOIN users u ON c.instructor = u.id 
+    WHERE (c.isDeleted IS NULL OR c.isDeleted = 0)
+  `;
+  const params = [];
 
-  const courses = await Course.find(query)
-    .populate('instructor', 'fullName email')
-    .select('title category difficulty status totalEnrollments instructor createdAt')
-    .sort({ createdAt: -1 })
-    .lean();
+  if (search) {
+    sql += " AND (c.title LIKE ? OR c.description LIKE ?)";
+    params.push(`%${search}%`, `%${search}%`);
+  }
+  if (status) {
+    sql += " AND c.status = ?";
+    params.push(status);
+  }
+  if (category) {
+    sql += " AND c.category = ?";
+    params.push(category);
+  }
+
+  sql += " ORDER BY c.createdAt DESC";
+
+  const [courses] = await pool.query(sql, params);
 
   const columns = [
     { header: 'Title', key: 'title', width: 30 },
@@ -79,9 +91,9 @@ export const exportCourses = asyncHandler(async (req, res) => {
     category: c.category,
     difficulty: c.difficulty,
     status: c.status,
-    instructorName: c.instructor?.fullName || '',
+    instructorName: c.instructorName || '',
     totalEnrollments: c.totalEnrollments || 0,
-    createdAt: new Date(c.createdAt).toISOString(),
+    createdAt: c.createdAt ? new Date(c.createdAt).toISOString() : '',
   }));
 
   const filename = `courses_${new Date().toISOString().slice(0, 10)}`;
@@ -91,16 +103,29 @@ export const exportCourses = asyncHandler(async (req, res) => {
 
 export const exportDepartments = asyncHandler(async (req, res) => {
   const { format = 'excel', search = '', status = '' } = req.query;
-  const query = { isDeleted: { $ne: true } };
-  if (search) query.name = { $regex: search, $options: 'i' };
-  if (status) query.status = status;
 
-  const departments = await Department.find(query)
-    .populate('course', 'title')
-    .populate('instructor', 'fullName email')
-    .select('name course instructor status startDate endDate capacity students createdAt')
-    .sort({ createdAt: -1 })
-    .lean();
+  let sql = `
+    SELECT d.name, d.status, d.startDate, d.endDate, d.capacity, d.createdAt, d.students,
+           c.title as courseTitle, u.fullName as instructorName
+    FROM departments d
+    LEFT JOIN courses c ON d.course = c.id
+    LEFT JOIN users u ON d.instructor = u.id
+    WHERE (d.isDeleted IS NULL OR d.isDeleted = 0)
+  `;
+  const params = [];
+
+  if (search) {
+    sql += " AND d.name LIKE ?";
+    params.push(`%${search}%`);
+  }
+  if (status) {
+    sql += " AND d.status = ?";
+    params.push(status);
+  }
+
+  sql += " ORDER BY d.createdAt DESC";
+
+  const [departments] = await pool.query(sql, params);
 
   const columns = [
     { header: 'Department Name', key: 'name', width: 28 },
@@ -114,17 +139,28 @@ export const exportDepartments = asyncHandler(async (req, res) => {
     { header: 'Created At', key: 'createdAt', width: 22 },
   ];
 
-  const rows = departments.map(b => ({
-    name: b.name,
-    courseTitle: b.course?.title || '',
-    instructorName: b.instructor?.fullName || '',
-    status: b.status,
-    startDate: b.startDate ? new Date(b.startDate).toISOString().slice(0, 10) : '',
-    endDate: b.endDate ? new Date(b.endDate).toISOString().slice(0, 10) : '',
-    capacity: b.capacity || 0,
-    studentCount: b.students?.length || 0,
-    createdAt: new Date(b.createdAt).toISOString(),
-  }));
+  const rows = departments.map(b => {
+    // Calculate student count from JSON array if string, or raw if handled by driver (usually string for JSON col in mysql2 unless cast)
+    let studentCount = 0;
+    if (b.students) {
+      try {
+        const parsed = typeof b.students === 'string' ? JSON.parse(b.students) : b.students;
+        if (Array.isArray(parsed)) studentCount = parsed.length;
+      } catch (e) { }
+    }
+
+    return {
+      name: b.name,
+      courseTitle: b.courseTitle || '',
+      instructorName: b.instructorName || '',
+      status: b.status,
+      startDate: b.startDate ? new Date(b.startDate).toISOString().slice(0, 10) : '',
+      endDate: b.endDate ? new Date(b.endDate).toISOString().slice(0, 10) : '',
+      capacity: b.capacity || 0,
+      studentCount: studentCount,
+      createdAt: b.createdAt ? new Date(b.createdAt).toISOString() : '',
+    };
+  });
 
   const filename = `departments_${new Date().toISOString().slice(0, 10)}`;
   if (format === 'pdf') return sendPDF(res, filename, 'Departments Export', columns, rows);
@@ -134,41 +170,52 @@ export const exportDepartments = asyncHandler(async (req, res) => {
 export const exportStudents = asyncHandler(async (req, res) => {
   const { format = 'excel', search = '', status = '', departmentId = '' } = req.query;
 
-  const query = { role: 'STUDENT', isDeleted: { $ne: true } };
-  if (search) query.$or = [
-    { fullName: { $regex: search, $options: 'i' } },
-    { email: { $regex: search, $options: 'i' } },
-    { userName: { $regex: search, $options: 'i' } },
-  ];
-  if (status) query.status = status;
+  let sql = `
+    SELECT u.fullName, u.userName, u.email, u.phoneNumber, u.status, u.createdAt, d.name as departmentName
+    FROM users u
+    LEFT JOIN departments d ON u.department = d.id
+    WHERE u.role = 'STUDENT' AND (u.isDeleted IS NULL OR u.isDeleted = 0)
+  `;
+  const params = [];
 
-  if (req.user.role === 'INSTRUCTOR') {
-    const instructor = await User.findById(req.user._id).select('departments');
-    const allowed = instructor?.departments || [];
-    if (!allowed.length) {
-      const columns = [
-        { header: 'Full Name', key: 'fullName', width: 26 },
-        { header: 'Username', key: 'userName', width: 20 },
-        { header: 'Email', key: 'email', width: 28 },
-        { header: 'Phone', key: 'phoneNumber', width: 16 },
-        { header: 'Status', key: 'status', width: 12 },
-        { header: 'Department', key: 'departmentName', width: 22 },
-        { header: 'Created At', key: 'createdAt', width: 22 },
-      ];
-      const filename = `students_${new Date().toISOString().slice(0, 10)}`;
-      if (format === 'pdf') return sendPDF(res, filename, 'Students Export', columns, []);
-      return sendExcel(res, filename, columns, []);
-    }
-    query.department = { $in: allowed };
-  } else if (departmentId) {
-    query.department = departmentId;
+  if (search) {
+    sql += " AND (u.fullName LIKE ? OR u.userName LIKE ? OR u.email LIKE ?)";
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+  }
+  if (status) {
+    sql += " AND u.status = ?";
+    params.push(status);
   }
 
-  const students = await User.find(query)
-    .select('fullName userName email phoneNumber status department createdAt')
-    .populate('department', 'name')
-    .sort({ createdAt: -1 })
-    .lean();
+  // Instructor Role Logic
+  if (req.user.role === 'INSTRUCTOR') {
+    // Fetch allowed departments for this instructor
+    const [instRows] = await pool.query("SELECT departments FROM users WHERE id = ?", [req.user.id]);
+    let allowed = [];
+    if (instRows.length > 0 && instRows[0].departments) {
+      try {
+        allowed = typeof instRows[0].departments === 'string' ? JSON.parse(instRows[0].departments) : instRows[0].departments;
+      } catch (e) { }
+    }
+
+    if (allowed.length === 0) {
+      // Return empty if no departments
+      // Instead of returning early, we can force False condition usually, 
+      // but earlier implementation returned empty Excel.
+      // Let's force filter to impossible
+      sql += " AND 1=0";
+    } else {
+      sql += ` AND u.department IN (${allowed.map(() => '?').join(',')})`;
+      allowed.forEach(id => params.push(id));
+    }
+  } else if (departmentId) {
+    sql += " AND u.department = ?";
+    params.push(departmentId);
+  }
+
+  sql += " ORDER BY u.createdAt DESC";
+
+  const [students] = await pool.query(sql, params);
 
   const columns = [
     { header: 'Full Name', key: 'fullName', width: 26 },
@@ -186,8 +233,8 @@ export const exportStudents = asyncHandler(async (req, res) => {
     email: s.email,
     phoneNumber: s.phoneNumber,
     status: s.status,
-    departmentName: s.department?.name || '',
-    createdAt: new Date(s.createdAt).toISOString(),
+    departmentName: s.departmentName || '',
+    createdAt: s.createdAt ? new Date(s.createdAt).toISOString() : '',
   }));
 
   const filename = `students_${new Date().toISOString().slice(0, 10)}`;

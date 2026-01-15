@@ -66,6 +66,7 @@ const AddQuizPage = () => {
     title: "",
     description: "",
     scope: "module", // New scope field: course, module, lesson
+    quizType: "MODULE", // Added to fix uncontrolled warning
     moduleId: "", // Module selection (for module and lesson scopes)
     lessonId: "", // Lesson selection (only for lesson scope)
     passingScore: 70,
@@ -296,8 +297,15 @@ const AddQuizPage = () => {
       return;
     }
 
+    // Ensure we are sending a real MongoDB ObjectId for the course
+    const resolvedCourseId = courseData?.data?._id || courseData?.data?.id;
+
+    if (!resolvedCourseId) {
+      toast.error("Course data not fully loaded. Please wait.");
+      return;
+    }
+
     try {
-      const resolvedCourseId = courseData?.data?._id || courseId;
       const quizData = {
         courseId: resolvedCourseId,
         scope: formData.scope,
@@ -370,11 +378,12 @@ const AddQuizPage = () => {
             <div className="grid gap-2">
               <Label htmlFor="quizType">Quiz Type *</Label>
               <Select
-                value={formData.quizType}
+                value={formData.quizType || "MODULE"}
                 onValueChange={(value) => {
                   setFormData((prev) => ({
                     ...prev,
                     quizType: value,
+                    scope: value.toLowerCase(), // sync scope with quizType
                     moduleId: value === "COURSE" ? "" : prev.moduleId // Clear module when switching to course
                   }))
                 }}
@@ -432,7 +441,7 @@ const AddQuizPage = () => {
                       </SelectItem>
                     ) : (
                       modules.map((module) => (
-                        <SelectItem key={module._id} value={module._id}>
+                        <SelectItem key={String(module.id || module._id)} value={String(module.id || module._id)}>
                           {module.title}
                         </SelectItem>
                       ))
@@ -536,7 +545,7 @@ const AddQuizPage = () => {
               <div className="grid gap-2">
                 <Label htmlFor="attemptsAllowed">Attempts Allowed *</Label>
                 <Select
-                  value={formData.attemptsAllowed.toString()}
+                  value={(formData.attemptsAllowed ?? 1).toString()}
                   onValueChange={(value) =>
                     setFormData((prev) => ({
                       ...prev,
@@ -606,7 +615,7 @@ const AddQuizPage = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             {formData.questions.map((question, qIndex) => (
-              <div key={qIndex} className="border rounded-lg p-4 space-y-4">
+              <div key={`q-${qIndex}`} className="border rounded-lg p-4 space-y-4">
                 <div className="flex justify-between items-start">
                   <h3 className="font-semibold">Question {qIndex + 1}</h3>
                   <Button
@@ -702,7 +711,7 @@ const AddQuizPage = () => {
                   </div>
 
                   {question.options.map((option, oIndex) => (
-                    <div key={oIndex} className="flex items-center gap-2">
+                    <div key={`q-${qIndex}-o-${oIndex}`} className="flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() =>

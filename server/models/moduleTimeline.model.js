@@ -1,195 +1,246 @@
-import { Schema, model } from "mongoose";
+import { pool } from "../db/connectDB.js";
+import logger from "../logger/winston.logger.js";
 
-const moduleTimelineSchema = new Schema(
-  {
-    course: {
-      type: Schema.Types.ObjectId,
-      ref: "Course",
-      required: true,
-      index: true,
-    },
-    module: {
-      type: Schema.Types.ObjectId,
-      ref: "Module",
-      required: true,
-      index: true,
-    },
-    department: {
-      type: Schema.Types.ObjectId,
-      ref: "Department",
-      required: true,
-      index: true,
-    },
-    // Deadline for completing this module
-    deadline: {
-      type: Date,
-      required: true,
-      index: true,
-    },
-    // Grace period (in hours) after deadline before demotion occurs
-    gracePeriodHours: {
-      type: Number,
-      default: 24,
-      min: 0,
-    },
-    // Whether timeline enforcement is active for this module
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
-    // Whether to send warnings before deadline
-    enableWarnings: {
-      type: Boolean,
-      default: true,
-    },
-    // Warning periods (in hours before deadline)
-    warningPeriods: {
-      type: [Number],
-      default: [168, 72, 24], // 7 days, 3 days, 1 day
-    },
-    // Admin who set this timeline
-    createdBy: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-    // Admin who last updated this timeline
-    updatedBy: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-    },
-    // Tracking for students who missed deadline
-    missedDeadlineStudents: [{
-      student: {
-        type: Schema.Types.ObjectId,
-        ref: "User",
-        required: true,
-      },
-      missedAt: {
-        type: Date,
-        default: Date.now,
-      },
-      demotedAt: {
-        type: Date,
-      },
-      previousModule: {
-        type: Schema.Types.ObjectId,
-        ref: "Module",
-      },
-      // Whether student was notified about demotion
-      notified: {
-        type: Boolean,
-        default: false,
-      },
-    }],
-    // Tracking for warnings sent
-    warningsSent: [{
-      student: {
-        type: Schema.Types.ObjectId,
-        ref: "User",
-        required: true,
-      },
-      warningType: {
-        type: String,
-        enum: ['7_DAYS', '3_DAYS', '1_DAY', 'OVERDUE'],
-        required: true,
-      },
-      sentAt: {
-        type: Date,
-        default: Date.now,
-      },
-    }],
-    // Optional description for admin reference
-    description: {
-      type: String,
-      trim: true,
-    },
-    // Whether this timeline has been processed for enforcement
-    lastProcessedAt: {
-      type: Date,
-    },
-  },
-  { timestamps: true }
-);
+class ModuleTimeline {
+  constructor(data) {
+    this.id = data.id;
+    this._id = data.id; // Compatibility
 
-// Compound indexes for efficient queries
-moduleTimelineSchema.index({ course: 1, department: 1 });
-moduleTimelineSchema.index({ deadline: 1, isActive: 1 });
-moduleTimelineSchema.index({ department: 1, deadline: 1 });
-moduleTimelineSchema.index({ "missedDeadlineStudents.student": 1 });
-moduleTimelineSchema.index({ lastProcessedAt: 1 });
+    this.course = data.course;
+    this.module = data.module;
+    this.department = data.department;
+    this.deadline = data.deadline ? new Date(data.deadline) : null;
+    this.gracePeriodHours = data.gracePeriodHours !== undefined ? data.gracePeriodHours : 24;
+    this.isActive = data.isActive !== undefined ? !!data.isActive : true;
+    this.enableWarnings = data.enableWarnings !== undefined ? !!data.enableWarnings : true;
+    this.warningPeriods = typeof data.warningPeriods === 'string' ? JSON.parse(data.warningPeriods) : (data.warningPeriods || [168, 72, 24]);
+    this.createdBy = data.createdBy;
+    this.updatedBy = data.updatedBy;
+    this.missedDeadlineStudents = typeof data.missedDeadlineStudents === 'string' ? JSON.parse(data.missedDeadlineStudents) : (data.missedDeadlineStudents || []);
+    this.warningsSent = typeof data.warningsSent === 'string' ? JSON.parse(data.warningsSent) : (data.warningsSent || []);
+    this.description = data.description;
+    this.lastProcessedAt = data.lastProcessedAt ? new Date(data.lastProcessedAt) : null;
 
-// Method to check if a student has missed the deadline
-moduleTimelineSchema.methods.hasStudentMissedDeadline = function (studentId) {
-  return this.missedDeadlineStudents.some(
-    missed => missed.student.toString() === studentId.toString()
-  );
-};
+    this.createdAt = data.createdAt;
+    this.updatedAt = data.updatedAt;
+  }
 
-// Method to add a student to missed deadline list
-moduleTimelineSchema.methods.addMissedDeadlineStudent = function (studentId, previousModuleId) {
-  if (!this.hasStudentMissedDeadline(studentId)) {
-    this.missedDeadlineStudents.push({
+  static async init() {
+    const query = `
+            CREATE TABLE IF NOT EXISTS module_timelines (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                course VARCHAR(255) NOT NULL,
+                module VARCHAR(255) NOT NULL,
+                department VARCHAR(255) NOT NULL,
+                deadline DATETIME NOT NULL,
+                gracePeriodHours INT DEFAULT 24,
+                isActive BOOLEAN DEFAULT TRUE,
+                enableWarnings BOOLEAN DEFAULT TRUE,
+                warningPeriods TEXT,
+                createdBy VARCHAR(255) NOT NULL,
+                updatedBy VARCHAR(255),
+                missedDeadlineStudents TEXT,
+                warningsSent TEXT,
+                description TEXT,
+                lastProcessedAt DATETIME,
+                createdAt DATETIME,
+                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_course_dept (course, department),
+                INDEX idx_deadline_active (deadline, isActive),
+                INDEX idx_dept_deadline (department, deadline),
+                INDEX idx_lastProcessedAt (lastProcessedAt)
+            )
+        `;
+    try {
+      await pool.query(query);
+    } catch (error) {
+      logger.error("Failed to initialize ModuleTimeline table", error);
+    }
+  }
+
+  static async create(data) {
+    const timeline = new ModuleTimeline(data);
+
+    const fields = [
+      "course", "module", "department", "deadline",
+      "gracePeriodHours", "isActive", "enableWarnings", "warningPeriods",
+      "createdBy", "updatedBy", "missedDeadlineStudents", "warningsSent",
+      "description", "lastProcessedAt", "createdAt"
+    ];
+
+    if (!timeline.createdAt) timeline.createdAt = new Date();
+
+    const values = fields.map(field => {
+      let val = timeline[field];
+      if (['warningPeriods', 'missedDeadlineStudents', 'warningsSent'].includes(field)) {
+        return JSON.stringify(val);
+      }
+      if (val === undefined) return null;
+      return val;
+    });
+
+    const placeholders = fields.map(() => "?").join(",");
+    const query = `INSERT INTO module_timelines (${fields.join(",")}) VALUES (${placeholders})`;
+
+    const [result] = await pool.query(query, values);
+    return ModuleTimeline.findById(result.insertId);
+  }
+
+  static async findById(id) {
+    const [rows] = await pool.query("SELECT * FROM module_timelines WHERE id = ?", [id]);
+    if (rows.length === 0) return null;
+    return new ModuleTimeline(rows[0]);
+  }
+
+  static async findOne(query) {
+    const keys = Object.keys(query).filter(key => query[key] !== undefined);
+    if (keys.length === 0) return null;
+
+    const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
+    const values = keys.map(key => query[key]);
+
+    const [rows] = await pool.query(`SELECT * FROM module_timelines WHERE ${whereClause} LIMIT 1`, values);
+    if (rows.length === 0) return null;
+    return new ModuleTimeline(rows[0]);
+  }
+
+  static async find(query = {}) {
+    const keys = Object.keys(query).filter(key => query[key] !== undefined && !['deadline', '$or', 'lastProcessedAt'].includes(key));
+
+    // Basic SELECT
+    let sql = "SELECT * FROM module_timelines";
+    let values = [];
+    let conditions = [];
+
+    // Direct equality
+    if (keys.length > 0) {
+      conditions.push(...keys.map(key => `${key} = ?`));
+      values.push(...keys.map(key => query[key]));
+    }
+
+    // Handle deadline comparisons (e.g. deadline: { $lte: now })
+    if (query.deadline && query.deadline.$lte) {
+      conditions.push("deadline <= ?");
+      values.push(query.deadline.$lte);
+    } else if (query.deadline && query.deadline.$gt) {
+      conditions.push("deadline > ?");
+      values.push(query.deadline.$gt);
+    }
+
+    // Handle OR logic for lastProcessedAt
+    if (query.$or) {
+      const orConditions = query.$or.map(cond => {
+        if (cond.lastProcessedAt && cond.lastProcessedAt.$exists === false) return "lastProcessedAt IS NULL";
+        if (cond.lastProcessedAt && cond.lastProcessedAt.$lte) {
+          values.push(cond.lastProcessedAt.$lte);
+          return "lastProcessedAt <= ?";
+        }
+        return "1=0";
+      });
+      if (orConditions.length > 0) {
+        conditions.push(`(${orConditions.join(" OR ")})`);
+      }
+    }
+
+    if (conditions.length > 0) {
+      sql += ` WHERE ${conditions.join(" AND ")}`;
+    }
+
+    const [rows] = await pool.query(sql, values);
+    return rows.map(row => new ModuleTimeline(row));
+  }
+
+  // Instance Methods
+  hasStudentMissedDeadline(studentId) {
+    return this.missedDeadlineStudents.some(
+      missed => missed.student == studentId // loose equality for string/int IDs
+    );
+  }
+
+  addMissedDeadlineStudent(studentId, previousModuleId) {
+    if (!this.hasStudentMissedDeadline(studentId)) {
+      this.missedDeadlineStudents.push({
+        student: studentId,
+        missedAt: new Date(),
+        previousModule: previousModuleId,
+      });
+    }
+  }
+
+  markStudentDemoted(studentId) {
+    const missedRecord = this.missedDeadlineStudents.find(
+      missed => missed.student == studentId
+    );
+    if (missedRecord) {
+      missedRecord.demotedAt = new Date();
+    }
+  }
+
+  shouldSendWarning(studentId, warningType) {
+    if (!this.enableWarnings) return false;
+    return !this.warningsSent.some(
+      warning => warning.student == studentId && warning.warningType === warningType
+    );
+  }
+
+  recordWarningSent(studentId, warningType) {
+    this.warningsSent.push({
       student: studentId,
-      missedAt: new Date(),
-      previousModule: previousModuleId,
+      warningType: warningType,
+      sentAt: new Date(),
     });
   }
-};
 
-// Method to mark student as demoted
-moduleTimelineSchema.methods.markStudentDemoted = function (studentId) {
-  const missedRecord = this.missedDeadlineStudents.find(
-    missed => missed.student.toString() === studentId.toString()
-  );
-  if (missedRecord) {
-    missedRecord.demotedAt = new Date();
+  async save() {
+    const fields = [
+      "course", "module", "department", "deadline",
+      "gracePeriodHours", "isActive", "enableWarnings", "warningPeriods",
+      "createdBy", "updatedBy", "missedDeadlineStudents", "warningsSent",
+      "description", "lastProcessedAt"
+    ];
+
+    const setClause = fields.map(field => `${field} = ?`).join(", ");
+    const values = fields.map(field => {
+      let val = this[field];
+      if (['warningPeriods', 'missedDeadlineStudents', 'warningsSent'].includes(field)) {
+        return JSON.stringify(val);
+      }
+      return val;
+    });
+    values.push(this.id);
+
+    await pool.query(`UPDATE module_timelines SET ${setClause} WHERE id = ?`, values);
+    return this;
   }
-};
 
-// Method to check if warning should be sent
-moduleTimelineSchema.methods.shouldSendWarning = function (studentId, warningType) {
-  if (!this.enableWarnings) return false;
+  // Static Helpers
+  static async getTimelinesToProcess() {
+    const now = new Date();
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
 
-  return !this.warningsSent.some(
-    warning => warning.student.toString() === studentId.toString() &&
-      warning.warningType === warningType
-  );
-};
+    return this.find({
+      isActive: true,
+      deadline: { $lte: now },
+      $or: [
+        { lastProcessedAt: { $exists: false } }, // handled by find as IS NULL
+        { lastProcessedAt: { $lte: oneHourAgo } }
+      ]
+    });
+    // Note: Population logic removed as it requires SQL joins or separate queries, 
+    // which should be handled by the service layer or by adding specific method with JOINS.
+  }
 
-// Method to record warning sent
-moduleTimelineSchema.methods.recordWarningSent = function (studentId, warningType) {
-  this.warningsSent.push({
-    student: studentId,
-    warningType: warningType,
-    sentAt: new Date(),
-  });
-};
+  static async getUpcomingWarnings() {
+    const now = new Date();
+    return this.find({
+      isActive: true,
+      enableWarnings: true,
+      deadline: { $gt: now },
+    });
+  }
+}
 
-// Static method to get active timelines that need processing
-moduleTimelineSchema.statics.getTimelinesToProcess = function () {
-  const now = new Date();
-  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+// Initialize table
+ModuleTimeline.init();
 
-  return this.find({
-    isActive: true,
-    deadline: { $lte: now },
-    $or: [
-      { lastProcessedAt: { $exists: false } },
-      { lastProcessedAt: { $lte: oneHourAgo } }
-    ]
-  }).populate(['course', 'module', 'department']);
-};
-
-// Static method to get upcoming warnings
-moduleTimelineSchema.statics.getUpcomingWarnings = function () {
-  const now = new Date();
-
-  return this.find({
-    isActive: true,
-    enableWarnings: true,
-    deadline: { $gt: now },
-  }).populate(['course', 'module', 'department']);
-};
-
-export default model("ModuleTimeline", moduleTimelineSchema);
+export default ModuleTimeline;

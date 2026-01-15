@@ -224,7 +224,7 @@ const Departments = () => {
   const totalCount = departmentsData?.data?.totalDepartments || 0;
   const instructors = instructorsData?.data?.users || [];
   const students = studentsData?.data?.users || [];
-  const courses = coursesData?.data?.courses || [];
+  const allCourses = coursesData?.data?.courses || [];
 
   // Filter options
   const statusOptions = [
@@ -430,16 +430,13 @@ const Departments = () => {
     }
 
     try {
-      await Promise.all(
-        validStudentIds.map(studentId => {
-          if (!studentId || studentId === 'undefined') throw new Error("Invalid Student ID");
-          return addStudentToDepartment({
-            departmentId: selectedDepartment._id,
-            studentId: studentId,
-          }).unwrap();
-        })
-      );
-      showToast("success", "Students added successfully");
+      // Single Batch Call
+      const res = await addStudentToDepartment({
+        departmentId: selectedDepartment._id,
+        studentIds: validStudentIds,
+      }).unwrap();
+
+      showToast("success", res.message || "Students added successfully");
       setIsManageStudentsDialogOpen(false);
       setSelectedStudents([]);
       refetch();
@@ -475,14 +472,14 @@ const Departments = () => {
 
   const openEditDialog = (department) => {
     setSelectedDepartment(department);
-    // Handle legacy course vs courses array
+    // Handle legacy course vs courses array - Normalize to strings
     const deptCourses = department.courses && department.courses.length > 0
-      ? department.courses.map(c => c._id)
-      : (department.course ? [department.course._id] : []);
+      ? department.courses.map(c => String(c._id || c.id))
+      : (department.course ? [String(department.course._id || department.course.id)] : []);
 
     setFormData({
       name: department.name,
-      instructorId: department.instructor?._id || "",
+      instructorId: department.instructor?._id ? String(department.instructor._id) : "",
       courseId: "", // Legacy field cleared
       startDate: department.startDate
         ? new Date(department.startDate).toISOString().split("T")[0]
@@ -1205,9 +1202,10 @@ const Departments = () => {
               <Label>Courses (Optional)</Label>
               <div className="space-y-3">
                 <Select
+                  value=""
                   onValueChange={(value) => {
-                    if (value && !selectedCourses.includes(value)) {
-                      setSelectedCourses([...selectedCourses, value]);
+                    if (value && value !== "loading" && value !== "error" && value !== "none" && !selectedCourses.map(String).includes(String(value))) {
+                      setSelectedCourses([...selectedCourses, String(value)]);
                     }
                   }}
                 >
@@ -1226,9 +1224,9 @@ const Departments = () => {
                       <SelectItem value="error" disabled>
                         Error loading courses
                       </SelectItem>
-                    ) : courses.length > 0 ? (
-                      courses.map((course) => (
-                        <SelectItem key={course._id} value={course._id}>
+                    ) : allCourses.length > 0 ? (
+                      allCourses.map((course) => (
+                        <SelectItem key={course._id || course.id} value={String(course._id || course.id)}>
                           {course.title || course.name}
                         </SelectItem>
                       ))
@@ -1243,7 +1241,7 @@ const Departments = () => {
                 {selectedCourses.length > 0 && (
                   <div className="flex flex-wrap gap-2 p-2 border rounded-md bg-muted/20">
                     {selectedCourses.map((courseId) => {
-                      const course = courses.find((c) => c._id === courseId);
+                      const course = allCourses.find((c) => String(c._id || c.id) === String(courseId));
                       return (
                         <Badge key={courseId} variant="secondary" className="flex items-center gap-1 pl-2 pr-1 py-1">
                           {course?.title || course?.name || "Loading..."}
@@ -1267,9 +1265,9 @@ const Departments = () => {
             <div className="grid gap-2">
               <Label htmlFor="instructorId">Instructor (Optional)</Label>
               <Select
-                value={formData.instructorId}
+                value={formData.instructorId ? String(formData.instructorId) : ""}
                 onValueChange={(value) =>
-                  setFormData({ ...formData, instructorId: value })
+                  setFormData({ ...formData, instructorId: value ? Number(value) : "" })
                 }
               >
                 <SelectTrigger>
@@ -1286,7 +1284,7 @@ const Departments = () => {
                     </SelectItem>
                   ) : instructors.length > 0 ? (
                     instructors.map((instructor) => (
-                      <SelectItem key={instructor._id} value={instructor._id}>
+                      <SelectItem key={instructor._id} value={String(instructor._id)}>
                         {instructor.fullName} ({instructor.email})
                       </SelectItem>
                     ))
@@ -1383,9 +1381,10 @@ const Departments = () => {
               <Label>Courses</Label>
               <div className="space-y-3">
                 <Select
+                  value=""
                   onValueChange={(value) => {
-                    if (value && !selectedCourses.includes(value)) {
-                      setSelectedCourses([...selectedCourses, value]);
+                    if (value && value !== "loading" && value !== "error" && value !== "none" && !selectedCourses.map(String).includes(String(value))) {
+                      setSelectedCourses([...selectedCourses, String(value)]);
                     }
                   }}
                 >
@@ -1404,9 +1403,9 @@ const Departments = () => {
                       <SelectItem value="error" disabled>
                         Error loading courses
                       </SelectItem>
-                    ) : courses.length > 0 ? (
-                      courses.map((course) => (
-                        <SelectItem key={course._id} value={course._id}>
+                    ) : allCourses.length > 0 ? (
+                      allCourses.map((course) => (
+                        <SelectItem key={course._id || course.id} value={String(course._id || course.id)}>
                           {course.title || course.name}
                         </SelectItem>
                       ))
@@ -1421,7 +1420,7 @@ const Departments = () => {
                 {selectedCourses.length > 0 && (
                   <div className="flex flex-wrap gap-2 p-2 border rounded-md bg-muted/20">
                     {selectedCourses.map((courseId) => {
-                      const course = courses.find((c) => c._id === courseId);
+                      const course = allCourses.find((c) => String(c._id || c.id) === String(courseId));
                       // Fallback if course not found in list (e.g. pagination limit)
                       // In real app we might need to fetch it or rely on department data if available
                       return (

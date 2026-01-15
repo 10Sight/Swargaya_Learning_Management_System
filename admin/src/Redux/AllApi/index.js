@@ -263,6 +263,46 @@ export {
 // OnJobTraining API exports
 export {
     onJobTrainingApi,
-    useGetOnJobTrainingQuery,
-    useSaveOnJobTrainingMutation,
+    useGetStudentOJTsQuery,
+    useGetOnJobTrainingByIdQuery,
+    useCreateOnJobTrainingMutation,
+    useUpdateOnJobTrainingMutation,
 } from './OnJobTrainingApi';
+
+// Line API exports
+export {
+    LineApi,
+    useCreateLineMutation,
+    useGetLinesByDepartmentQuery,
+    useUpdateLineMutation,
+    useDeleteLineMutation,
+} from './LineApi';
+
+// Machine API exports
+export {
+    MachineApi,
+    useCreateMachineMutation,
+    useGetMachinesByLineQuery,
+    useUpdateMachineMutation,
+    useDeleteMachineMutation,
+} from './MachineApi';
+
+// SkillMatrix API exports
+export {
+    skillMatrixApi,
+    useSaveSkillMatrixMutation,
+    useGetSkillMatrixQuery,
+} from './SkillMatrixApi';
+
+// CourseLevelConfig API exports
+export {
+    useGetActiveConfigQuery,
+    useGetAllConfigsQuery,
+    useGetConfigByIdQuery,
+    useCreateConfigMutation,
+    useUpdateConfigMutation,
+    useDeleteConfigMutation,
+    useSetAsDefaultMutation,
+    useValidateCompatibilityMutation,
+    useMigrateLevelsMutation,
+} from './CourseLevelConfigApi';

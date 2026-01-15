@@ -68,6 +68,7 @@ const InstructorSkillMatrix = lazy(() => import("./pages/Instructor/SkillMatrix"
 // SuperAdmin Pages
 const SuperAdminDashboard = lazy(() => import("./pages/SuperAdmin/Dashboard"));
 const AllUsersManagement = lazy(() => import("./pages/SuperAdmin/AllUsersManagement"));
+const CreateAdmin = lazy(() => import("./pages/SuperAdmin/CreateAdmin")); // Admin creation page
 const SoftDeletedUsersManagement = lazy(() => import("./pages/SuperAdmin/SoftDeletedUsersManagement"));
 const SystemAuditLogs = lazy(() => import("./pages/SuperAdmin/SystemAuditLogs"));
 const SystemSettings = lazy(() => import("./pages/SuperAdmin/SystemSettings"));
@@ -164,6 +165,7 @@ const App = () => {
             <Route path="certificate-templates" element={<CertificateTemplates pageName="Certificate Templates" />} />
             <Route path="module-timelines" element={<ModuleTimelines pageName="Module Timelines" />} />
             <Route path="course-level-settings" element={<CourseLevelSettings />} />
+            <Route path="course-level-setting" element={<CourseLevelSettings />} />
             <Route path="skill-matrix" element={<SkillMatrix />} />
           </Route>
 
@@ -210,6 +212,7 @@ const App = () => {
 
             {/* User Management Routes */}
             <Route path="all-users" element={<AllUsersManagement />} />
+            <Route path="add-admin" element={<CreateAdmin />} />
             <Route path="trainers" element={<Instructor pageName="Instructors" />} />
             <Route path="trainers/:id" element={<InstructorDetail />} />
             <Route path="employees" element={<Students pageName="Employees" />} />
@@ -247,6 +250,7 @@ const App = () => {
             <Route path="student-levels" element={<StudentLevelManagement />} />
             <Route path="certificate-templates" element={<CertificateTemplates pageName="Certificate Templates" />} />
             <Route path="course-level-settings" element={<CourseLevelSettings />} />
+            <Route path="course-level-setting" element={<CourseLevelSettings />} />
           </Route>
 
           {/* Student routes */}

@@ -219,7 +219,7 @@ const AssignmentMonitoring = () => {
               </SelectTrigger>
               <SelectContent>
                 {departments.map((department) => (
-                  <SelectItem key={department._id} value={department._id}>
+                  <SelectItem key={department.id || department._id} value={department.id ? String(department.id) : String(department._id)}>
                     <div className="flex flex-col sm:flex-row sm:justify-between w-full">
                       <span className="font-medium">{department.name}</span>
                       <span className="text-sm text-muted-foreground">

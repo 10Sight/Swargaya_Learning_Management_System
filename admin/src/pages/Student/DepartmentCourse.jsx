@@ -90,20 +90,20 @@ const useCourseData = () => {
 
       // Get department course content
       const response = await axiosInstance.get("/api/departments/me/course-content");
-      const data = response?.data?.data;
+      const courseData = response?.data?.data;
 
-      if (!data) {
+      if (!courseData) {
         throw new Error("No course data available");
       }
 
+      // The API now returns the course object directly
       const department = {
-        ...data.department,
-        course: data.course,
-        status: data.department?.status || 'ACTIVE'
+        course: courseData,
+        status: 'ACTIVE' // Default status since we're viewing content
       };
 
-      const modules = data.course?.modules || [];
-      const progress = data.progress || {};
+      const modules = courseData.modules || [];
+      const progress = courseData.progress || {};
 
       // Extract completed IDs from the nested structure
       const completedModuleIds = progress.completedModules
@@ -152,7 +152,6 @@ const useCourseContent = (courseId, allModulesCompleted) => {
   const {
     data: courseQuizzesData,
     isLoading: courseQuizzesLoading,
-    error: courseQuizzesError,
   } = useGetQuizzesByCourseQuery(courseId, {
     skip: !courseId || !allModulesCompleted,
   });
@@ -160,7 +159,6 @@ const useCourseContent = (courseId, allModulesCompleted) => {
   const {
     data: courseAssignmentsData,
     isLoading: courseAssignmentsLoading,
-    error: courseAssignmentsError,
   } = useGetAssignmentsByCourseQuery(courseId, {
     skip: !courseId || !allModulesCompleted,
   });
@@ -197,7 +195,7 @@ const useModuleContent = () => {
   // Store moduleId and courseId for RTK Query hooks
   const [currentModules, setCurrentModules] = useState({});
 
-  const loadModuleContent = useCallback(async (moduleId, courseId) => {
+  const loadModuleContent = useCallback(async (moduleId, courseId, existingLessons = null) => {
     // Guard against undefined/invalid moduleId
     if (!moduleId) {
       console.warn("DepartmentCourse - Skipping loadModuleContent: missing moduleId", { moduleId, courseId });
@@ -220,11 +218,19 @@ const useModuleContent = () => {
     }));
 
     try {
-      // Load lessons and resources (still using direct API calls as no RTK Query hooks exist for these)
+      // Load resources (always fetch resources as they might not be in courseData)
+      const resourcesPromise = axiosInstance.get(`/api/resources/module/${moduleId}`);
+
+      // Use existing lessons if provided, else fetch
+      const lessonsPromise = (existingLessons && existingLessons.length > 0)
+        ? Promise.resolve({ data: { data: existingLessons } })
+        : axiosInstance.get(`/api/modules/${moduleId}/lessons`);
+
       const [lessonsRes, resourcesRes] = await Promise.allSettled([
-        axiosInstance.get(`/api/modules/${moduleId}/lessons`),
-        axiosInstance.get(`/api/resources/module/${moduleId}`),
+        lessonsPromise,
+        resourcesPromise,
       ]);
+
       if (resourcesRes.status === 'rejected') {
         console.error(`DepartmentCourse - Resources fetch failed for moduleId ${moduleId}:`, resourcesRes.reason);
       }
@@ -282,7 +288,6 @@ const ModuleAssessmentProvider = ({ moduleId, courseId, children, onAssessmentsL
   const {
     data: moduleQuizzesData,
     isLoading: moduleQuizzesLoading,
-    error: moduleQuizzesError,
   } = useGetQuizzesByModuleQuery(moduleId, {
     skip: !courseId || !moduleId,
   });
@@ -290,7 +295,6 @@ const ModuleAssessmentProvider = ({ moduleId, courseId, children, onAssessmentsL
   const {
     data: moduleAssignmentsData,
     isLoading: moduleAssignmentsLoading,
-    error: moduleAssignmentsError,
   } = useGetAssignmentsByModuleQuery(moduleId, {
     skip: !courseId || !moduleId,
   });
@@ -325,11 +329,7 @@ const DepartmentCourse = () => {
     refresh
   } = useCourseData();
 
-  // Extract level lock information from course data
-  const [levelLockInfo, setLevelLockInfo] = useState({
-    isLocked: false,
-    lockedLevel: null
-  });
+
 
   const {
     lessonsByModule,
@@ -363,7 +363,6 @@ const DepartmentCourse = () => {
     courseQuizzes,
     courseAssignments,
     loaded: courseContentLoaded,
-    loadCourseContent
   } = useCourseContent(department?.course?._id || department?.course?.id, allModulesCompleted);
 
   // Fetch student submissions
@@ -604,34 +603,7 @@ const DepartmentCourse = () => {
   };
 
   // Action handlers
-  const handleMarkLessonComplete = async (lesson) => {
-    if (!department?.course || uiState.processingAction) return;
 
-    const courseId = department.course._id || department.course.id;
-    const lessonId = getLessonId(lesson);
-
-    setUiState(prev => ({ ...prev, processingAction: `lesson-${lessonId}` }));
-
-    try {
-      const response = await axiosInstance.patch(`/api/progress/lesson-complete`, {
-        courseId,
-        lessonId
-      });
-
-      if (response.data.success) {
-        toast.success("Lesson completed!");
-        refresh(); // Refresh to get updated state
-      } else {
-        throw new Error(response.data.message || 'Failed to complete lesson');
-      }
-    } catch (error) {
-      console.error("Failed to mark lesson complete:", error);
-      const errorMessage = error.response?.data?.message || error.message || "Failed to mark lesson as complete. Please try again.";
-      toast.error(errorMessage);
-    } finally {
-      setUiState(prev => ({ ...prev, processingAction: null }));
-    }
-  };
 
   // Remove unused handleNextStage function as it's not being used in the current UI
 
@@ -648,6 +620,7 @@ const DepartmentCourse = () => {
   };
 
   const handleAssignmentSubmit = (assignment, submission) => {
+    console.log('🔍 handleAssignmentSubmit called with:', { assignment, submission });
     setAssignmentModals({
       ...assignmentModals,
       submissionModal: { isOpen: true, assignment, submission }
@@ -715,7 +688,7 @@ const DepartmentCourse = () => {
     } else {
       // Show the module panel and load its content
       setUiState(prev => ({ ...prev, activeModule: module, activeTab: 'lessons' }));
-      loadModuleContent(moduleId, department?.course?._id || department?.course?.id);
+      loadModuleContent(moduleId, department?.course?._id || department?.course?.id, module.lessons);
     }
   };
 
@@ -827,7 +800,7 @@ const DepartmentCourse = () => {
 
     if (lastRequestedModuleRef.current !== String(moduleId)) {
       lastRequestedModuleRef.current = String(moduleId);
-      loadModuleContent(moduleId, department?.course?._id || department?.course?.id);
+      loadModuleContent(moduleId, department?.course?._id || department?.course?.id, module.lessons);
     }
   }, [modules, department?.course, getCurrentModuleIndex]);
 
@@ -1082,7 +1055,7 @@ const DepartmentCourse = () => {
   const progress = calculateProgress();
   const currentModuleIndex = getCurrentModuleIndex();
   const currentModule = currentModuleIndex < modules.length ? modules[currentModuleIndex] : null;
-  const currentStage = currentModule ? getCurrentStage(currentModuleIndex) : 'complete';
+
 
   // Filter out module-level items from course-level assessments
   const courseLevelQuizzes = (courseQuizzes || []).filter(q => !q?.module && !q?.moduleId && !(q?.module && (q.module._id || q.module.id)));
@@ -1722,7 +1695,7 @@ const DepartmentCourse = () => {
 
                                   const hasLessons = moduleLessons.length > 0;
                                   const allAssessmentsComplete = allAssignmentsComplete && allQuizzesPassed;
-                                  const canCompleteModule = allLessonsComplete && allAssessmentsComplete;
+
 
                                   if (!isCompleted && isAccessible && allLessonsComplete) {
                                     return (
@@ -1917,6 +1890,49 @@ const DepartmentCourse = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Course-Level Assessments (appear after all modules completed) */}
+        {allModulesCompleted && (courseLevelQuizzes.length > 0 || courseLevelAssignments.length > 0) && (
+          <Card className="border-2 border-yellow-300 bg-gradient-to-br from-yellow-50 to-amber-50">
+            <CardHeader className="bg-gradient-to-r from-yellow-100 to-amber-100">
+              <CardTitle className="flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-yellow-600" />
+                Final Course Assessments
+              </CardTitle>
+              <CardDescription>
+                🎉 Congratulations on completing all modules! Complete these final assessments to finish the course.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-4">
+              {courseLevelQuizzes.length > 0 && (
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold mb-2">Final Quizzes</h3>
+                  <StudentModuleQuizzes
+                    quizzes={courseLevelQuizzes}
+                    attempts={attemptsByQuiz}
+                    isUnlocked={true}
+                    onStart={handleStartQuiz}
+                    extraGrantedQuizIds={extraGrantedQuizIds}
+                    rejectedQuizIds={rejectedQuizIds}
+                  />
+                </div>
+              )}
+
+              {courseLevelAssignments.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold mb-2">Final Assignments</h3>
+                  <StudentModuleAssignments
+                    assignments={courseLevelAssignments}
+                    submissions={submissionsByAssignment}
+                    isUnlocked={true}
+                    onViewDetails={handleAssignmentViewDetails}
+                    onSubmit={handleAssignmentSubmit}
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Course Resources Component */}
         <StudentCourseResources

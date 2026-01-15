@@ -1,5 +1,8 @@
-import mongoose from "mongoose";
+import { pool } from "../db/connectDB.js";
 
+/**
+ * Convert text to a URL-friendly slug
+ */
 export function slugify(text) {
   return String(text || "")
     .toLowerCase()
@@ -10,28 +13,47 @@ export function slugify(text) {
     .replace(/^-+|-+$/g, ""); // trim hyphens
 }
 
-export async function ensureUniqueSlug(Model, baseSlug, scopeFilter = {}, selfId = null) {
+/**
+ * Ensures a slug is unique within a table, appending a suffix if necessary.
+ * 
+ * @param {string} tableName - The SQL table name
+ * @param {string} baseSlug - The preferred slug
+ * @param {Object} scopeFilter - Optional additional filters (e.g. { courseId: 1 })
+ * @param {string|number} selfId - Optional ID to exclude from the check
+ * @returns {Promise<string>} - A unique slug
+ */
+export async function ensureUniqueSlug(tableName, baseSlug, scopeFilter = {}, selfId = null) {
   let slug = baseSlug;
   let suffix = 1;
-  // Build base query with scope and slug
-  const buildQuery = (s) => ({
-    ...scopeFilter,
-    slug: s,
-    ...(selfId ? { _id: { $ne: new mongoose.Types.ObjectId(selfId) } } : {}),
-  });
 
   // If empty, fallback to random
   if (!slug) slug = Math.random().toString(36).slice(2, 8);
 
-  // Try the base slug, then append -2, -3, ... until free
-  let exists = await Model.exists(buildQuery(slug));
+  const checkExists = async (candidate) => {
+    let sql = `SELECT id FROM ${tableName} WHERE slug = ?`;
+    let params = [candidate];
+
+    for (const [key, val] of Object.entries(scopeFilter)) {
+      sql += ` AND ${key} = ?`;
+      params.push(val);
+    }
+
+    if (selfId) {
+      sql += ` AND id != ?`;
+      params.push(selfId);
+    }
+
+    const [rows] = await pool.query(sql, params);
+    return rows.length > 0;
+  };
+
+  let exists = await checkExists(slug);
   while (exists) {
     suffix += 1;
     const candidate = `${baseSlug}-${suffix}`;
-    exists = await Model.exists(buildQuery(candidate));
+    exists = await checkExists(candidate);
     if (!exists) {
-      slug = candidate;
-      break;
+      return candidate;
     }
   }
   return slug;

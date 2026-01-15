@@ -34,11 +34,11 @@ export const departmentApi = createApi({
         }),
 
         addStudentToDepartment: builder.mutation({
-            // Add student to department
-            query: ({ departmentId, studentId }) => ({
+            // Add student(s) to department
+            query: ({ departmentId, studentId, studentIds }) => ({
                 url: "/api/departments/add-student",
                 method: "POST",
-                data: { departmentId, studentId }
+                data: { departmentId, studentId, studentIds }
             }),
             invalidatesTags: ['Department'],
         }),

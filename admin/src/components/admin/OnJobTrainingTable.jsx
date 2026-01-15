@@ -1,14 +1,13 @@
-import React, { useRef, useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useRef, useState, useEffect } from "react";
+// import { useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { IconPrinter, IconDownload, IconDeviceFloppy, IconArrowLeft } from "@tabler/icons-react";
+import { IconPrinter, IconDownload, IconDeviceFloppy, IconArrowLeft } from "@tabler/icons-react"; // cspell:ignore tabler motherson marelli Incharge IATF
 import { toast } from "sonner";
 import { useGetOnJobTrainingByIdQuery, useUpdateOnJobTrainingMutation } from "@/Redux/AllApi/OnJobTrainingApi";
 
 const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model = "Model Name", readOnly = false, onBack }) => {
-    const { studentId } = useParams();
     const componentRef = useRef();
 
     // API Hooks
@@ -103,7 +102,7 @@ const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model = "Mo
                 return prev;
             });
         }
-    }, [summary.totalMarks, summary.totalMarksObtained]);
+    }, [summary.totalMarks, summary.totalMarksObtained, summary.totalPercentage]);
 
     const handlePrint = () => {
         window.print();
@@ -227,7 +226,7 @@ const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model = "Mo
                             <div className="grid grid-cols-1 border border-black text-xs">
                                 <div className="flex border-b border-black">
                                     <span className="p-1 border-r border-black font-semibold bg-gray-100 w-20">Doc. No.</span>
-                                    <span className="p-1 w-32 p-0">
+                                    <span className="p-1 w-32">
                                         <Input disabled={readOnly}
                                             className="h-full w-full border-none p-1 focus-visible:ring-0"
                                             value={docDetails.docNo}
@@ -237,7 +236,7 @@ const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model = "Mo
                                 </div>
                                 <div className="flex border-b border-black">
                                     <span className="p-1 border-r border-black font-semibold bg-gray-100 w-20">Rev. No.</span>
-                                    <span className="p-1 w-32 p-0">
+                                    <span className="p-1 w-32">
                                         <Input disabled={readOnly}
                                             className="h-full w-full border-none p-1 focus-visible:ring-0"
                                             value={docDetails.revNo}
@@ -247,7 +246,7 @@ const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model = "Mo
                                 </div>
                                 <div className="flex">
                                     <span className="p-1 border-r border-black font-semibold bg-gray-100 w-20">Rev. Date</span>
-                                    <span className="p-1 w-32 p-0">
+                                    <span className="p-1 w-32">
                                         <Input disabled={readOnly}
                                             className="h-full w-full border-none p-1 focus-visible:ring-0"
                                             value={docDetails.revDate}
@@ -305,25 +304,25 @@ const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model = "Mo
                                         <tr key={index}>
                                             <td className="border border-black p-0 h-8">
                                                 <Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0"
-                                                    value={row.date?.toString().split('T')[0] || ""}
+                                                    value={row.date?.toString().split('T')[0] ?? ""}
                                                     onChange={e => handleEntryChange(index, 'date', e.target.value)} type="date" />
                                             </td>
-                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.hours || ""} onChange={e => handleEntryChange(index, 'hours', e.target.value)} /></td>
-                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.productionTarget || ""} onChange={e => handleEntryChange(index, 'productionTarget', e.target.value)} /></td>
-                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.totalPartProduction || ""} onChange={e => handleEntryChange(index, 'totalPartProduction', e.target.value)} /></td>
-                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.okParts || ""} onChange={e => handleEntryChange(index, 'okParts', e.target.value)} /></td>
-                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.rejection || ""} onChange={e => handleEntryChange(index, 'rejection', e.target.value)} /></td>
-                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.cycleTimeTarget || ""} onChange={e => handleEntryChange(index, 'cycleTimeTarget', e.target.value)} /></td>
-                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.cycleTimeActual || ""} onChange={e => handleEntryChange(index, 'cycleTimeActual', e.target.value)} /></td>
-                                            <td className="border border-black p-0 bg-gray-50"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 bg-transparent focus-visible:ring-0" value={row.ncTag || ""} onChange={e => handleEntryChange(index, 'ncTag', e.target.value)} /></td>
-                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.escalationSystem || ""} onChange={e => handleEntryChange(index, 'escalationSystem', e.target.value)} /></td>
-                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.sosFollow || ""} onChange={e => handleEntryChange(index, 'sosFollow', e.target.value)} /></td>
-                                            <td className="border border-black p-0 bg-gray-50"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 bg-transparent focus-visible:ring-0" value={row.customerComplaint || ""} onChange={e => handleEntryChange(index, 'customerComplaint', e.target.value)} /></td>
-                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.ppeUses || ""} onChange={e => handleEntryChange(index, 'ppeUses', e.target.value)} /></td>
-                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.associateSign || ""} onChange={e => handleEntryChange(index, 'associateSign', e.target.value)} /></td>
-                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.mtsTrainerSign || ""} onChange={e => handleEntryChange(index, 'mtsTrainerSign', e.target.value)} /></td>
-                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.tlSign || ""} onChange={e => handleEntryChange(index, 'tlSign', e.target.value)} /></td>
-                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.shiftInchargeSign || ""} onChange={e => handleEntryChange(index, 'shiftInchargeSign', e.target.value)} /></td>
+                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.hours ?? ""} onChange={e => handleEntryChange(index, 'hours', e.target.value)} /></td>
+                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.productionTarget ?? ""} onChange={e => handleEntryChange(index, 'productionTarget', e.target.value)} /></td>
+                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.totalPartProduction ?? ""} onChange={e => handleEntryChange(index, 'totalPartProduction', e.target.value)} /></td>
+                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.okParts ?? ""} onChange={e => handleEntryChange(index, 'okParts', e.target.value)} /></td>
+                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.rejection ?? ""} onChange={e => handleEntryChange(index, 'rejection', e.target.value)} /></td>
+                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.cycleTimeTarget ?? ""} onChange={e => handleEntryChange(index, 'cycleTimeTarget', e.target.value)} /></td>
+                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.cycleTimeActual ?? ""} onChange={e => handleEntryChange(index, 'cycleTimeActual', e.target.value)} /></td>
+                                            <td className="border border-black p-0 bg-gray-50"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 bg-transparent focus-visible:ring-0" value={row.ncTag ?? ""} onChange={e => handleEntryChange(index, 'ncTag', e.target.value)} /></td>
+                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.escalationSystem ?? ""} onChange={e => handleEntryChange(index, 'escalationSystem', e.target.value)} /></td>
+                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.sosFollow ?? ""} onChange={e => handleEntryChange(index, 'sosFollow', e.target.value)} /></td>
+                                            <td className="border border-black p-0 bg-gray-50"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 bg-transparent focus-visible:ring-0" value={row.customerComplaint ?? ""} onChange={e => handleEntryChange(index, 'customerComplaint', e.target.value)} /></td>
+                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.ppeUses ?? ""} onChange={e => handleEntryChange(index, 'ppeUses', e.target.value)} /></td>
+                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.associateSign ?? ""} onChange={e => handleEntryChange(index, 'associateSign', e.target.value)} /></td>
+                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.mtsTrainerSign ?? ""} onChange={e => handleEntryChange(index, 'mtsTrainerSign', e.target.value)} /></td>
+                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.tlSign ?? ""} onChange={e => handleEntryChange(index, 'tlSign', e.target.value)} /></td>
+                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.shiftInchargeSign ?? ""} onChange={e => handleEntryChange(index, 'shiftInchargeSign', e.target.value)} /></td>
                                         </tr>
                                     ))}
 

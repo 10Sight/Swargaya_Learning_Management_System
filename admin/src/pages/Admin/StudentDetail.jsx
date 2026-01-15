@@ -348,8 +348,8 @@ const StudentDetail = () => {
         <CardContent>
           {progressList && progressList.length > 0 ? (
             <div className="space-y-4">
-              {progressList.map((p) => (
-                <div key={p._id} className="space-y-1">
+              {progressList.map((p, i) => (
+                <div key={p._id || i} className="space-y-1">
                   <div className="flex justify-between text-sm">
                     <span className="font-medium">{p.course?.title || 'Course'}</span>
                     <span className="text-muted-foreground">{p.progressPercent || 0}%</span>
@@ -503,7 +503,7 @@ const StudentDetail = () => {
                     const progressPercentage = totalModules > 0 ? Math.round((courseProgress / totalModules) * 100) : 0;
 
                     return (
-                      <div key={index} className="space-y-3 p-4 border rounded-lg">
+                      <div key={progress._id || index} className="space-y-3 p-4 border rounded-lg">
                         <div className="flex items-center justify-between">
                           <div>
                             <div className="flex items-center gap-2 mb-1">
@@ -558,8 +558,8 @@ const StudentDetail = () => {
               <CardContent>
                 {submissions.slice(0, 3).length > 0 ? (
                   <div className="space-y-3">
-                    {submissions.slice(0, 3).map((submission) => (
-                      <div key={submission._id} className="flex items-center justify-between p-3 border rounded-lg">
+                    {submissions.slice(0, 3).map((submission, i) => (
+                      <div key={submission._id || i} className="flex items-center justify-between p-3 border rounded-lg">
                         <div>
                           <p className="font-medium text-sm">{submission.assignment?.title || "Assignment"}</p>
                           <p className="text-xs text-muted-foreground">
@@ -602,8 +602,8 @@ const StudentDetail = () => {
               <CardContent>
                 {attempts.slice(0, 3).length > 0 ? (
                   <div className="space-y-3">
-                    {attempts.slice(0, 3).map((attempt) => (
-                      <div key={attempt._id} className="flex items-center justify-between p-3 border rounded-lg">
+                    {attempts.slice(0, 3).map((attempt, i) => (
+                      <div key={attempt._id || i} className="flex items-center justify-between p-3 border rounded-lg">
                         <div>
                           <p className="font-medium text-sm">{attempt.quiz?.title || "Quiz"}</p>
                           <p className="text-xs text-muted-foreground">
@@ -661,7 +661,7 @@ const StudentDetail = () => {
                     const progressPercentage = totalModules > 0 ? Math.round((courseProgress / totalModules) * 100) : 0;
 
                     return (
-                      <div key={index} className="border rounded-lg p-6 space-y-4">
+                      <div key={progress._id || index} className="border rounded-lg p-6 space-y-4">
                         <div className="flex items-center justify-between">
                           <div>
                             <div className="flex items-center gap-3 mb-1">
@@ -709,7 +709,7 @@ const StudentDetail = () => {
                             <p className="text-sm font-medium mb-2">Completed Modules:</p>
                             <div className="flex flex-wrap gap-1">
                               {progress.completedModuleIds.map((moduleId, idx) => (
-                                <Badge key={idx} variant="outline" className="text-xs">
+                                <Badge key={moduleId || idx} variant="outline" className="text-xs">
                                   Module {idx + 1}
                                 </Badge>
                               ))}
@@ -908,7 +908,7 @@ const StudentDetail = () => {
               <CardContent>
                 <OJTList
                   studentId={studentId}
-                  onViewDetails={(ojt) => setSelectedOjtId(ojt._id)}
+                  onViewDetails={(ojt) => setSelectedOjtId(ojt.id || ojt._id)}
                   onAddTraining={() => setCreateOjtOpen(true)}
                 />
               </CardContent>
