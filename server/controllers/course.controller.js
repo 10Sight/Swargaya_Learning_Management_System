@@ -36,24 +36,26 @@ const populateCourse = async (course) => {
     // Let's assume we need to join/select.
     if (Array.isArray(course.modules) && course.modules.length > 0 && typeof course.modules[0] === 'string') {
         // Fetch modules
-        // Be careful with ordering
-        const [mods] = await pool.query("SELECT id, title, `order` FROM modules WHERE id IN (?) ORDER BY `order` ASC", [course.modules]);
+        const placeholders = course.modules.map(() => '?').join(',');
+        const [mods] = await pool.query(`SELECT id, title, [order] FROM modules WHERE id IN (${placeholders}) ORDER BY [order] ASC`, [...course.modules]);
         course.modules = mods;
     } else if (!course.modules || course.modules.length === 0) {
         // Try fetching by foreign key if model structure is relational
-        const [mods] = await pool.query("SELECT id, title, `order` FROM modules WHERE course = ? ORDER BY `order` ASC", [course.id]);
+        const [mods] = await pool.query("SELECT id, title, [order] FROM modules WHERE course = ? ORDER BY [order] ASC", [course.id]);
         course.modules = mods;
     }
 
     // Quizzes (Ids)
     if (Array.isArray(course.quizzes) && course.quizzes.length > 0 && typeof course.quizzes[0] === 'string') {
-        const [qs] = await pool.query("SELECT id, title FROM quizzes WHERE id IN (?)", [course.quizzes]);
+        const placeholders = course.quizzes.map(() => '?').join(',');
+        const [qs] = await pool.query(`SELECT id, title FROM quizzes WHERE id IN (${placeholders})`, [...course.quizzes]);
         course.quizzes = qs;
     }
 
     // Assignments
     if (Array.isArray(course.assignments) && course.assignments.length > 0 && typeof course.assignments[0] === 'string') {
-        const [as] = await pool.query("SELECT id, title FROM assignments WHERE id IN (?)", [course.assignments]);
+        const placeholders = course.assignments.map(() => '?').join(',');
+        const [as] = await pool.query(`SELECT id, title FROM assignments WHERE id IN (${placeholders})`, [...course.assignments]);
         course.assignments = as;
     }
 
@@ -97,7 +99,9 @@ export const createCourse = asyncHandler(async (req, res) => {
 export const getCourses = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, category, level, search, status } = req.query;
 
-    const offset = (Number(page) - 1) * Number(limit);
+    const pageInt = Math.max(parseInt(page) || 1, 1);
+    const limitInt = Math.max(parseInt(limit) || 10, 1);
+    const offset = (pageInt - 1) * limitInt;
     let whereClauses = [];
     let params = [];
 
@@ -129,9 +133,9 @@ export const getCourses = asyncHandler(async (req, res) => {
     const total = countRows[0].total;
 
     // Fetch
-    const query = `SELECT * FROM courses ${whereSql} ORDER BY createdAt DESC LIMIT ? OFFSET ?`;
+    const query = `SELECT * FROM courses ${whereSql} ORDER BY createdAt DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY`;
     // params for limit/offset must be numbers/ints
-    const [rows] = await pool.query(query, [...params, Number(limit), Number(offset)]);
+    const [rows] = await pool.query(query, [...params, offset, limitInt]);
 
     const courses = await Promise.all(rows.map(row => populateCourse(new Course(row))));
 
@@ -165,6 +169,9 @@ export const updatedCourse = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
     let course = await Course.findById(id);
+    if (!course) {
+        course = await Course.findOne({ slug: id });
+    }
     if (!course) throw new ApiError("Course not found", 404);
 
     // Update using model wrapper or raw SQL
@@ -196,11 +203,14 @@ export const deleteCourse = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
     const course = await Course.findById(id);
+    if (!course) {
+        course = await Course.findOne({ slug: id }); // Fallback to slug
+    }
     if (!course) throw new ApiError("Course not found", 404);
 
     if (req.user.role === "SUPERADMIN") {
         // Perm delete
-        await pool.query("DELETE FROM courses WHERE id = ?", [id]);
+        await pool.query("DELETE FROM courses WHERE id = ?", [course.id]);
         await Audit.create({
             user: req.user.id,
             action: "DELETE_COURSE_PERMANENT",
@@ -224,6 +234,9 @@ export const togglePublishCourse = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
     const course = await Course.findById(id);
+    if (!course) {
+        course = await Course.findOne({ slug: id });
+    }
     if (!course) throw new ApiError("Course not found", 404);
 
     course.status = course.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED";
@@ -265,9 +278,10 @@ export const getCourseAnalytics = asyncHandler(async (req, res) => {
     let averageProgress = 0;
 
     if (totalEnrollments > 0) {
+        const placeholders = studentIds.map(() => '?').join(',');
         const [progRows] = await pool.query(
-            "SELECT completedModules FROM progress WHERE course = ? AND student IN (?)",
-            [resolvedCourseId, studentIds]
+            `SELECT completedModules FROM progress WHERE course = ? AND student IN (${placeholders})`,
+            [resolvedCourseId, ...studentIds]
         );
 
         studentsWithProgress = progRows.filter(p => p.completedModules && p.completedModules.length > 0).length;
@@ -289,12 +303,13 @@ export const getCourseAnalytics = asyncHandler(async (req, res) => {
 
     let submissions = [];
     if (assignmentIds.length > 0) {
+        const placeholders = assignmentIds.map(() => '?').join(',');
         const [subRows] = await pool.query(
-            "SELECT s.*, u.fullName, u.email, a.title, a.dueDate FROM submissions s JOIN users u ON s.student = u.id JOIN assignments a ON s.assignment = a.id WHERE s.assignment IN (?) ORDER BY s.submittedAt DESC LIMIT 10",
-            [assignmentIds]
+            `SELECT TOP 10 s.*, u.fullName, u.email, a.title, a.dueDate FROM submissions s JOIN users u ON s.student = u.id JOIN assignments a ON s.assignment = a.id WHERE s.assignment IN (${placeholders}) ORDER BY s.submittedAt DESC`,
+            [...assignmentIds]
         );
         // Also get Totals
-        const [subCount] = await pool.query("SELECT COUNT(*) as total, SUM(CASE WHEN grade IS NOT NULL THEN 1 ELSE 0 END) as graded, AVG(grade) as avgGrade FROM submissions WHERE assignment IN (?)", [assignmentIds]);
+        const [subCount] = await pool.query(`SELECT COUNT(*) as total, SUM(CASE WHEN grade IS NOT NULL THEN 1 ELSE 0 END) as graded, AVG(grade) as avgGrade FROM submissions WHERE assignment IN (${placeholders})`, [...assignmentIds]);
 
         submissions = subRows.map(r => ({
             _id: r.id, grade: r.grade, submittedAt: r.submittedAt,
@@ -322,9 +337,10 @@ export const getCourseAnalytics = asyncHandler(async (req, res) => {
 
     if (quizIds.length > 0) {
         // Recent
+        const placeholders = quizIds.map(() => '?').join(',');
         const [attRows] = await pool.query(
-            "SELECT aq.*, u.fullName, u.email, q.title FROM attempted_quizzes aq JOIN users u ON aq.student = u.id JOIN quizzes q ON aq.quiz = q.id WHERE aq.quiz IN (?) ORDER BY aq.createdAt DESC LIMIT 10",
-            [quizIds]
+            `SELECT TOP 10 aq.*, u.fullName, u.email, q.title FROM attempted_quizzes aq JOIN users u ON aq.student = u.id JOIN quizzes q ON aq.quiz = q.id WHERE aq.quiz IN (${placeholders}) ORDER BY aq.createdAt DESC`,
+            [...quizIds]
         );
 
         // Get question counts/marks for precise score % calc?
@@ -335,8 +351,8 @@ export const getCourseAnalytics = asyncHandler(async (req, res) => {
                 COUNT(*) as total,
                 SUM(CASE WHEN status = 'PASSED' THEN 1 ELSE 0 END) as passed,
                 AVG(score) as avgScore -- Raw score avg for now, typically percent is better
-            FROM attempted_quizzes WHERE quiz IN (?)
-        `, [quizIds]);
+            FROM attempted_quizzes WHERE quiz IN (${placeholders})
+        `, [...quizIds]);
 
         totalQuizAttempts = attStats[0].total;
         passedAttempts = attStats[0].passed;
@@ -419,7 +435,8 @@ export const getCourseStudents = asyncHandler(async (req, res) => {
     // Get Progress
     let progressMap = new Map();
     if (studentIds.length > 0) {
-        const [progRows] = await pool.query("SELECT * FROM progress WHERE course = ? AND student IN (?)", [resolvedCourseId, studentIds]);
+        const placeholders = studentIds.map(() => '?').join(',');
+        const [progRows] = await pool.query(`SELECT * FROM progress WHERE course = ? AND student IN (${placeholders})`, [resolvedCourseId, ...studentIds]);
         progRows.forEach(p => progressMap.set(String(p.student), p));
     }
 
@@ -454,7 +471,9 @@ export const getCourseStudents = asyncHandler(async (req, res) => {
 
 export const getSoftDeletedCourses = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, search } = req.query;
-    const offset = (Number(page) - 1) * Number(limit);
+    const pageInt = Math.max(parseInt(page) || 1, 1);
+    const limitInt = Math.max(parseInt(limit) || 10, 1);
+    const offset = (pageInt - 1) * limitInt;
 
     let whereClauses = ["isDeleted = 1"];
     let params = [];
@@ -469,7 +488,7 @@ export const getSoftDeletedCourses = asyncHandler(async (req, res) => {
     const [countRows] = await pool.query(`SELECT COUNT(*) as total FROM courses ${whereSql}`, params);
     const total = countRows[0].total;
 
-    const [rows] = await pool.query(`SELECT * FROM courses ${whereSql} ORDER BY updatedAt DESC LIMIT ? OFFSET ?`, [...params, Number(limit), Number(offset)]);
+    const [rows] = await pool.query(`SELECT * FROM courses ${whereSql} ORDER BY updatedAt DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY`, [...params, offset, limitInt]);
 
     const courses = await Promise.all(rows.map(row => populateCourse(new Course(row))));
 
@@ -479,11 +498,19 @@ export const getSoftDeletedCourses = asyncHandler(async (req, res) => {
 export const restoreCourse = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
-    // Using raw generic restore would be easier if model has it, but manual here:
-    const [rows] = await pool.query("SELECT * FROM courses WHERE id = ?", [id]);
-    if (rows.length === 0) throw new ApiError("Course not found", 404);
-
-    const course = new Course(rows[0]); // instantiate to use save/helpers
+    // Check standard findById/findOne
+    let course = await Course.findById(id);
+    if (!course) {
+        course = await Course.findOne({ slug: id });
+    }
+    if (!course) {
+        // Since standard find excludes soft-deleted by default check usually?
+        // Actually findById in model selects * without isDeleted check. 
+        // So above should work if the model doesn't filter out deleted.
+        // Let's verify model implementation: `SELECT * FROM courses WHERE id = ?` - doesn't filter isDeleted.
+        // So the above usage is correct.
+        throw new ApiError("Course not found", 404);
+    }
 
     if (!course.isDeleted) throw new ApiError("Not deleted", 400);
 

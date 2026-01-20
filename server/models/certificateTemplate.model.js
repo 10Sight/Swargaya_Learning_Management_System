@@ -22,20 +22,24 @@ class CertificateTemplate {
 
     static async init() {
         const query = `
-            CREATE TABLE IF NOT EXISTS certificate_templates (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(255) NOT NULL UNIQUE,
-                description TEXT,
-                template LONGTEXT NOT NULL,
-                styles LONGTEXT,
-                placeholders TEXT,
-                isDefault BOOLEAN DEFAULT FALSE,
-                isActive BOOLEAN DEFAULT TRUE,
-                createdBy VARCHAR(255) NOT NULL,
-                updatedBy VARCHAR(255) NOT NULL,
-                createdAt DATETIME,
-                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-            )
+            IF OBJECT_ID(N'dbo.certificate_templates', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.certificate_templates (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    description VARCHAR(MAX),
+                    template VARCHAR(MAX) NOT NULL,
+                    styles VARCHAR(MAX),
+                    placeholders VARCHAR(MAX),
+                    isDefault BIT DEFAULT 0,
+                    isActive BIT DEFAULT 1,
+                    createdBy VARCHAR(255) NOT NULL,
+                    updatedBy VARCHAR(255) NOT NULL,
+                    createdAt DATETIME DEFAULT GETDATE(),
+                    updatedAt DATETIME DEFAULT GETDATE(),
+                    CONSTRAINT unique_template_name UNIQUE (name)
+                );
+            END
         `;
         try {
             await pool.query(query);
@@ -47,7 +51,7 @@ class CertificateTemplate {
     static async create(data) {
         // Handle explicit default logic
         if (data.isDefault) {
-            await pool.query("UPDATE certificate_templates SET isDefault = FALSE");
+            await pool.query("UPDATE certificate_templates SET isDefault = 0");
         }
 
         const template = new CertificateTemplate(data);
@@ -68,10 +72,10 @@ class CertificateTemplate {
         });
 
         const placeholders = fields.map(() => "?").join(",");
-        const query = `INSERT INTO certificate_templates (${fields.join(",")}) VALUES (${placeholders})`;
+        const query = `INSERT INTO certificate_templates (${fields.join(",")}) VALUES (${placeholders}); SELECT SCOPE_IDENTITY() AS id;`;
 
         const [result] = await pool.query(query, values);
-        return CertificateTemplate.findById(result.insertId);
+        return CertificateTemplate.findById(result[0].id);
     }
 
     static async findById(id) {
@@ -87,7 +91,7 @@ class CertificateTemplate {
         const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
         const values = keys.map(key => query[key]);
 
-        const [rows] = await pool.query(`SELECT * FROM certificate_templates WHERE ${whereClause} LIMIT 1`, values);
+        const [rows] = await pool.query(`SELECT TOP 1 * FROM certificate_templates WHERE ${whereClause}`, values);
         if (rows.length === 0) return null;
         return new CertificateTemplate(rows[0]);
     }
@@ -125,13 +129,15 @@ class CertificateTemplate {
     async save() {
         // Handle default logic if this is being set to default
         if (this.isDefault) {
-            await pool.query("UPDATE certificate_templates SET isDefault = FALSE WHERE id != ?", [this.id]);
+            await pool.query("UPDATE certificate_templates SET isDefault = 0 WHERE id != ?", [this.id]);
         }
+
+        this.updatedAt = new Date(); // Manually update timestamp
 
         const fields = [
             "name", "description", "template", "styles",
             "placeholders", "isDefault", "isActive",
-            "createdBy", "updatedBy"
+            "createdBy", "updatedBy", "updatedAt"
         ];
 
         const setClause = fields.map(field => `${field} = ?`).join(", ");

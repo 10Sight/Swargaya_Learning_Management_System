@@ -25,26 +25,30 @@ class Submission {
 
     static async init() {
         const query = `
-            CREATE TABLE IF NOT EXISTS submissions (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                assignment VARCHAR(255) NOT NULL,
-                student VARCHAR(255) NOT NULL,
-                fileUrl TEXT,
-                attachments TEXT,
-                grade DECIMAL(5, 2) DEFAULT NULL,
-                feedback TEXT,
-                submittedAt DATETIME,
-                isLate BOOLEAN DEFAULT FALSE,
-                resubmissionCount INT DEFAULT 0,
-                status VARCHAR(50) DEFAULT 'SUBMITTED',
-                gradedAt DATETIME,
-                gradedBy VARCHAR(255),
-                createdAt DATETIME,
-                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                UNIQUE KEY unique_submission (assignment, student),
-                INDEX idx_assignment (assignment),
-                INDEX idx_student (student)
-            )
+            IF OBJECT_ID(N'dbo.submissions', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.submissions (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    assignment VARCHAR(255) NOT NULL,
+                    student VARCHAR(255) NOT NULL,
+                    fileUrl VARCHAR(MAX),
+                    attachments VARCHAR(MAX),
+                    grade DECIMAL(5, 2) DEFAULT NULL,
+                    feedback VARCHAR(MAX),
+                    submittedAt DATETIME,
+                    isLate BIT DEFAULT 0,
+                    resubmissionCount INT DEFAULT 0,
+                    status VARCHAR(50) DEFAULT 'SUBMITTED',
+                    gradedAt DATETIME,
+                    gradedBy VARCHAR(255),
+                    createdAt DATETIME DEFAULT GETDATE(),
+                    updatedAt DATETIME DEFAULT GETDATE(),
+                    CONSTRAINT unique_submission UNIQUE (assignment, student)
+                );
+                
+                CREATE INDEX idx_assignment ON dbo.submissions(assignment);
+                CREATE INDEX idx_student ON dbo.submissions(student);
+            END
         `;
         try {
             await pool.query(query);
@@ -72,10 +76,10 @@ class Submission {
         });
 
         const placeholders = fields.map(() => "?").join(",");
-        const query = `INSERT INTO submissions (${fields.join(",")}) VALUES (${placeholders})`;
+        const query = `INSERT INTO submissions (${fields.join(",")}) VALUES (${placeholders}); SELECT SCOPE_IDENTITY() AS id;`;
 
-        const [result] = await pool.query(query, values);
-        return Submission.findById(result.insertId);
+        const [rows] = await pool.query(query, values);
+        return Submission.findById(rows[0].id);
     }
 
     static async findById(id) {
@@ -91,7 +95,7 @@ class Submission {
         const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
         const values = keys.map(key => query[key]);
 
-        const [rows] = await pool.query(`SELECT * FROM submissions WHERE ${whereClause} LIMIT 1`, values);
+        const [rows] = await pool.query(`SELECT TOP 1 * FROM submissions WHERE ${whereClause}`, values);
         if (rows.length === 0) return null;
         return new Submission(rows[0]);
     }
@@ -127,10 +131,12 @@ class Submission {
     }
 
     async save() {
+        this.updatedAt = new Date(); // Manually update timestamp
+
         const fields = [
             "assignment", "student", "fileUrl", "attachments",
             "grade", "feedback", "submittedAt", "isLate",
-            "resubmissionCount", "status", "gradedAt", "gradedBy"
+            "resubmissionCount", "status", "gradedAt", "gradedBy", "updatedAt"
         ];
 
         const setClause = fields.map(field => `${field} = ?`).join(", ");

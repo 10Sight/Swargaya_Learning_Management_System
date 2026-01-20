@@ -258,10 +258,11 @@ const Departments = () => {
   // Filter departments based on status
   const filteredDepartments = useMemo(() => {
     return departments.filter((department) => {
+      const hasInstructor = (department.instructors && department.instructors.length > 0) || !!department.instructor;
       const statusMatch =
         statusFilter === "ALL" ||
-        (statusFilter === "HAS_INSTRUCTOR" && department.instructor) ||
-        (statusFilter === "NO_INSTRUCTOR" && !department.instructor) ||
+        (statusFilter === "HAS_INSTRUCTOR" && hasInstructor) ||
+        (statusFilter === "NO_INSTRUCTOR" && !hasInstructor) ||
         department.status === statusFilter;
       return statusMatch;
     });
@@ -375,29 +376,35 @@ const Departments = () => {
 
   const handleAssignInstructor = async (instructorId) => {
     try {
-      await assignInstructor({
+      const updatedDept = await assignInstructor({
         departmentId: selectedDepartment._id,
         instructorId,
       }).unwrap();
       showToast("success", "Instructor assigned successfully");
-      setIsAssignInstructorDialogOpen(false);
+      setIsAssignInstructorDialogOpen(false); // Can keep open if multi-select desired? User said "add multiple", so keeping open might be better, or just update state.
+      // If we keep dialog open, we must update state.
+      setSelectedDepartment(updatedDept.data || updatedDept);
       refetch();
     } catch (err) {
       showToast("error", err?.data?.message || "Failed to assign instructor");
     }
   };
 
-  const handleRemoveInstructor = async (e) => {
-    e.stopPropagation();
+  const handleRemoveInstructor = async (instructorId) => {
     try {
-      await removeInstructor(selectedDepartment._id).unwrap();
+      const updatedDept = await removeInstructor({
+        departmentId: selectedDepartment._id,
+        instructorId
+      }).unwrap();
       showToast("success", "Instructor removed successfully");
-      setIsAssignInstructorDialogOpen(false);
+      // Update local state so UI reflects removal immediately
+      setSelectedDepartment(updatedDept.data || updatedDept);
       refetch();
     } catch (err) {
-      showToast("error", err?.data?.message || "Failed to remove instructor");
+      showToast("error", err?.data?.message || err?.message || "Failed to remove instructor");
     }
   };
+
 
   const handleCancelDepartment = async () => {
     if (!selectedDepartment) return;
@@ -518,7 +525,9 @@ const Departments = () => {
   };
 
   const getInstructorInfo = (department) => {
-    if (!department.instructor) {
+    const instructors = department.instructors || (department.instructor ? [department.instructor] : []);
+
+    if (instructors.length === 0) {
       return (
         <Badge variant="secondary" className="flex items-center gap-1">
           No Instructor
@@ -526,20 +535,53 @@ const Departments = () => {
       );
     }
 
-    const instructor = department.instructor;
+    if (instructors.length === 1) {
+      const instructor = instructors[0];
+      return (
+        <div className="flex items-center gap-2">
+          <Avatar className="h-6 w-6">
+            <AvatarImage src={instructor.avatar?.url} alt={instructor.fullName} />
+            <AvatarFallback className="text-xs">
+              {instructor.fullName
+                ?.split(" ")
+                .map((n) => n[0])
+                .join("")}
+            </AvatarFallback>
+          </Avatar>
+          <span className="text-sm">{instructor.fullName}</span>
+        </div>
+      );
+    }
+
     return (
-      <div className="flex items-center gap-2">
-        <Avatar className="h-6 w-6">
-          <AvatarImage src={instructor.avatar?.url} alt={instructor.fullName} />
-          <AvatarFallback className="text-xs">
-            {instructor.fullName
-              ?.split(" ")
-              .map((n) => n[0])
-              .join("")}
-          </AvatarFallback>
-        </Avatar>
-        <span className="text-sm">{instructor.fullName}</span>
-      </div>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger>
+            <div className="flex items-center -space-x-2">
+              {instructors.slice(0, 3).map((inst, i) => (
+                <Avatar key={inst._id || i} className="h-6 w-6 border-2 border-white">
+                  <AvatarImage src={inst.avatar?.url} alt={inst.fullName} />
+                  <AvatarFallback className="text-[10px]">
+                    {inst.fullName?.split(" ").map((n) => n[0]).join("")}
+                  </AvatarFallback>
+                </Avatar>
+              ))}
+              {instructors.length > 3 && (
+                <div className="flex items-center justify-center h-6 w-6 rounded-full border-2 border-white bg-gray-100 text-[10px] font-medium text-gray-600">
+                  +{instructors.length - 3}
+                </div>
+              )}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <div className="flex flex-col gap-1">
+              {instructors.map((inst) => (
+                <span key={inst._id || Math.random()}>{inst.fullName}</span>
+              ))}
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     );
   };
 
@@ -740,7 +782,7 @@ const Departments = () => {
 
         <StatCard
           title="Assigned Departments"
-          value={departments.filter((d) => d.instructor).length}
+          value={departments.filter((d) => (d.instructors && d.instructors.length > 0) || d.instructor).length}
           description="With instructors"
           icon={IconUser}
           iconBgColor="bg-green-100"
@@ -790,7 +832,7 @@ const Departments = () => {
                 setStatusFilter("HAS_INSTRUCTOR");
               }}
             >
-              Assigned ({departments.filter(d => d.instructor).length})
+              Assigned ({departments.filter(d => (d.instructors && d.instructors.length > 0) || d.instructor).length})
             </TabsTrigger>
             <TabsTrigger
               value="unassigned"
@@ -799,7 +841,7 @@ const Departments = () => {
                 setStatusFilter("NO_INSTRUCTOR");
               }}
             >
-              Unassigned ({departments.filter(d => !d.instructor).length})
+              Unassigned ({departments.filter(d => (!d.instructors || d.instructors.length === 0) && !d.instructor).length})
             </TabsTrigger>
           </TabsList>
 
@@ -1573,38 +1615,41 @@ const Departments = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            {selectedDepartment?.instructor && (
-              <div
-                className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors mb-4 ${isRemovingInstructor
-                  ? "bg-gray-100 border-gray-200 cursor-not-allowed"
-                  : "hover:bg-red-50 border-red-200"
-                  }`}
-                onClick={
-                  isRemovingInstructor ? undefined : handleRemoveInstructor
-                }
-              >
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center">
-                    {isRemovingInstructor ? (
-                      <IconLoader className="h-4 w-4 animate-spin text-red-600" />
-                    ) : (
-                      <IconX className="h-5 w-5 text-red-600" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="font-medium text-red-700">
-                      {isRemovingInstructor
-                        ? "Removing Instructor..."
-                        : "Remove Current Instructor"}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Unassign {selectedDepartment.instructor.fullName} from this
-                      department
-                    </p>
-                  </div>
+            {(selectedDepartment?.instructors?.length > 0 || selectedDepartment?.instructor) && (
+              <div className="mb-6">
+                <h4 className="text-sm font-medium text-muted-foreground mb-3">Current Instructors</h4>
+                <div className="space-y-2">
+                  {(selectedDepartment.instructors || [selectedDepartment.instructor]).filter(Boolean).map(inst => (
+                    <div key={inst._id} className="flex items-center justify-between p-3 rounded-lg border bg-blue-50/50 border-blue-100">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={inst.avatar?.url} />
+                          <AvatarFallback>{inst.fullName?.substring(0, 2).toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium text-sm">{inst.fullName}</p>
+                          <p className="text-xs text-muted-foreground">{inst.email}</p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        disabled={isRemovingInstructor}
+                        onClick={() => handleRemoveInstructor(inst._id)}
+                        className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      >
+                        {isRemovingInstructor ? <IconLoader className="h-4 w-4 animate-spin" /> : <IconX className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
+
+            <div className="mb-2">
+              <h4 className="text-sm font-medium text-muted-foreground mb-3">Available Instructors</h4>
+            </div>
+
             {instructorsLoading ? (
               <div className="flex justify-center py-8">
                 <IconLoader className="h-6 w-6 animate-spin" />
@@ -1618,41 +1663,36 @@ const Departments = () => {
                 No instructors available
               </div>
             ) : (
-              <div className="space-y-3 max-h-60 overflow-y-auto">
-                {instructors.map((instructor) => (
-                  <div
-                    key={instructor._id}
-                    className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${selectedDepartment?.instructor?._id === instructor._id
-                      ? "bg-blue-50 border-blue-200"
-                      : "hover:bg-muted"
-                      }`}
-                    onClick={() => handleAssignInstructor(instructor._id)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage
-                          src={instructor.avatar?.url}
-                          alt={instructor.fullName}
-                        />
-                        <AvatarFallback className="text-xs">
-                          {instructor.fullName
-                            ?.split(" ")
-                            .map((n) => n[0])
-                            .join("")}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">{instructor.fullName}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {instructor.email}
-                        </p>
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {instructors.map((instructor) => {
+                  const isAssigned = (selectedDepartment?.instructors || [selectedDepartment?.instructor])
+                    .some(i => i && i._id === instructor._id);
+
+                  return (
+                    <div
+                      key={instructor._id}
+                      className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${isAssigned ? "bg-muted opacity-60" : "cursor-pointer hover:bg-muted"
+                        }`}
+                      onClick={() => !isAssigned && handleAssignInstructor(instructor._id)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={instructor.avatar?.url} alt={instructor.fullName} />
+                          <AvatarFallback className="text-xs">
+                            {instructor.fullName?.split(" ").map((n) => n[0]).join("")}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">{instructor.fullName}</p>
+                          <p className="text-sm text-muted-foreground">{instructor.email}</p>
+                        </div>
                       </div>
+                      {isAssigned && (
+                        <Badge variant="secondary" className="text-xs">Assigned</Badge>
+                      )}
                     </div>
-                    {selectedDepartment?.instructor?._id === instructor._id && (
-                      <Badge variant="default">Current</Badge>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

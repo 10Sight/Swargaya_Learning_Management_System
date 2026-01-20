@@ -1,4 +1,5 @@
 import { pool } from "../db/connectDB.js";
+import { slugify } from "../utils/slugify.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -19,12 +20,24 @@ export const createModule = asyncHandler(async (req, res) => {
         throw new ApiError("Course not found", 404);
     }
 
+    // Generate unique slug
+    let baseSlug = slugify(title);
+    let slug = baseSlug;
+    let suffix = 1;
+
+    while (true) {
+        const [existingSlug] = await pool.query("SELECT id FROM modules WHERE slug = ?", [slug]);
+        if (existingSlug.length === 0) break;
+        suffix++;
+        slug = `${baseSlug}-${suffix}`;
+    }
+
     const [result] = await pool.query(
-        "INSERT INTO modules (course, title, description, `order`, createdAt, updatedAt) VALUES (?, ?, ?, ?, NOW(), NOW())",
-        [courseId, title, description, order || 0]
+        "INSERT INTO modules (course, title, slug, description, [order], createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;",
+        [courseId, title, slug, description, order || 0]
     );
 
-    const [newModule] = await pool.query("SELECT * FROM modules WHERE id = ?", [result.insertId]);
+    const [newModule] = await pool.query("SELECT * FROM modules WHERE id = ?", [result[0].id]);
 
     // Note: We do NOT push to course.modules array anymore as relationships are handled via Foreign Key `module.course`.
     // If the frontend relies on the array in Course object, it should be fetching modules via `getModulesByCourse` or properly populated Course queries.
@@ -39,19 +52,25 @@ export const getModulesByCourse = asyncHandler(async (req, res) => {
     const { courseId } = req.params;
 
     let id = courseId;
-    // Check if valid UUID or similar ID format. If not, assume slug.
-    // For simplicity, we query both ID and Slug or assume passed ID is correct.
-    // However, if strict ID check fails, we look up by slug.
-    const [c] = await pool.query("SELECT id FROM courses WHERE id = ? OR slug = ?", [courseId, courseId]);
-    if (c.length === 0) return res.status(404).json(new ApiResponse(404, [], "Course not found"));
-    id = c[0].id;
 
-    const [modules] = await pool.query("SELECT * FROM modules WHERE course = ? ORDER BY `order` ASC", [id]);
+    // Resolve course ID safely
+    let courses = [];
+    if (/^\d+$/.test(courseId)) {
+        [courses] = await pool.query("SELECT id FROM courses WHERE id = ?", [courseId]);
+    }
+    if (courses.length === 0) {
+        [courses] = await pool.query("SELECT id FROM courses WHERE slug = ?", [courseId]);
+    }
+
+    if (courses.length === 0) return res.status(404).json(new ApiResponse(404, [], "Course not found"));
+    id = courses[0].id;
+
+    const [modules] = await pool.query("SELECT * FROM modules WHERE course = ? ORDER BY [order] ASC", [id]);
 
     // Populate Lessons and Resources
     for (let m of modules) {
         // Lessons
-        const [lessons] = await pool.query("SELECT id, title, duration, `order`, content FROM lessons WHERE module = ? ORDER BY `order` ASC", [m.id]);
+        const [lessons] = await pool.query("SELECT id, title, duration, [order], content FROM lessons WHERE module = ? ORDER BY [order] ASC", [m.id]);
         m.lessons = lessons;
 
         // Resources (Assuming simple 1:N or M:N via link table is not standard here yet, checking context implies simple FK usually)
@@ -91,7 +110,7 @@ export const getModuleById = asyncHandler(async (req, res) => {
     if (courses.length > 0) module.course = courses[0];
 
     // Populate Lessons
-    const [lessons] = await pool.query("SELECT * FROM lessons WHERE module = ? ORDER BY `order` ASC", [moduleId]);
+    const [lessons] = await pool.query("SELECT * FROM lessons WHERE module = ? ORDER BY [order] ASC", [moduleId]);
     module.lessons = lessons;
 
     // Populate Resources
@@ -120,10 +139,10 @@ export const updateModule = asyncHandler(async (req, res) => {
 
     if (typeof title !== 'undefined') { updateFields.push("title = ?"); updateValues.push(title); }
     if (typeof description !== 'undefined') { updateFields.push("description = ?"); updateValues.push(description); }
-    if (typeof order !== 'undefined') { updateFields.push("`order` = ?"); updateValues.push(order); }
+    if (typeof order !== 'undefined') { updateFields.push("[order] = ?"); updateValues.push(order); }
 
     if (updateFields.length > 0) {
-        updateFields.push("updatedAt = NOW()");
+        updateFields.push("updatedAt = GETDATE()");
         await pool.query(`UPDATE modules SET ${updateFields.join(', ')} WHERE id = ?`, [...updateValues, moduleId]);
     }
 

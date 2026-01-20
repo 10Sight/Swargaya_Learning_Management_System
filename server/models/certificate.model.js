@@ -24,24 +24,28 @@ class Certificate {
 
     static async init() {
         const query = `
-            CREATE TABLE IF NOT EXISTS certificates (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                student VARCHAR(255) NOT NULL,
-                course VARCHAR(255) NOT NULL,
-                issuedBy VARCHAR(255) NOT NULL,
-                grade VARCHAR(10) DEFAULT 'PASS',
-                issueDate DATETIME,
-                expiryDate DATETIME,
-                fileUrl TEXT,
-                status VARCHAR(20) DEFAULT 'ACTIVE',
-                type VARCHAR(50) DEFAULT 'COURSE_COMPLETION',
-                level VARCHAR(50),
-                metadata TEXT,
-                createdAt DATETIME,
-                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX idx_student (student),
-                INDEX idx_course (course)
-            )
+            IF OBJECT_ID(N'dbo.certificates', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.certificates (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    student VARCHAR(255) NOT NULL,
+                    course VARCHAR(255) NOT NULL,
+                    issuedBy VARCHAR(255) NOT NULL,
+                    grade VARCHAR(10) DEFAULT 'PASS',
+                    issueDate DATETIME,
+                    expiryDate DATETIME,
+                    fileUrl VARCHAR(MAX),
+                    status VARCHAR(20) DEFAULT 'ACTIVE',
+                    type VARCHAR(50) DEFAULT 'COURSE_COMPLETION',
+                    level VARCHAR(50),
+                    metadata VARCHAR(MAX),
+                    createdAt DATETIME DEFAULT GETDATE(),
+                    updatedAt DATETIME DEFAULT GETDATE()
+                );
+                
+                CREATE INDEX idx_student ON dbo.certificates(student);
+                CREATE INDEX idx_course ON dbo.certificates(course);
+            END
         `;
         try {
             await pool.query(query);
@@ -68,10 +72,10 @@ class Certificate {
         });
 
         const placeholders = fields.map(() => "?").join(",");
-        const query = `INSERT INTO certificates (${fields.join(",")}) VALUES (${placeholders})`;
+        const query = `INSERT INTO certificates (${fields.join(",")}) VALUES (${placeholders}); SELECT SCOPE_IDENTITY() AS id;`;
 
-        const [result] = await pool.query(query, values);
-        return Certificate.findById(result.insertId);
+        const [rows] = await pool.query(query, values);
+        return Certificate.findById(rows[0].id);
     }
 
     static async findById(id) {
@@ -87,7 +91,7 @@ class Certificate {
         const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
         const values = keys.map(key => query[key]);
 
-        const [rows] = await pool.query(`SELECT * FROM certificates WHERE ${whereClause} LIMIT 1`, values);
+        const [rows] = await pool.query(`SELECT TOP 1 * FROM certificates WHERE ${whereClause}`, values);
         if (rows.length === 0) return null;
         return new Certificate(rows[0]);
     }
@@ -123,9 +127,11 @@ class Certificate {
     }
 
     async save() {
+        this.updatedAt = new Date(); // Manually update timestamp
+
         const fields = [
             "student", "course", "issuedBy", "grade", "issueDate",
-            "expiryDate", "fileUrl", "status", "type", "level", "metadata"
+            "expiryDate", "fileUrl", "status", "type", "level", "metadata", "updatedAt"
         ];
 
         const setClause = fields.map(field => `${field} = ?`).join(", ");

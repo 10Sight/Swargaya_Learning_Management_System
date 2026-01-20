@@ -64,63 +64,66 @@ class SystemSettings {
 
   static async init() {
     const query = `
-            CREATE TABLE IF NOT EXISTS system_settings (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                siteName VARCHAR(100) DEFAULT 'Learning Management System',
-                siteDescription VARCHAR(500) DEFAULT 'Advanced Learning Management System',
-                siteUrl VARCHAR(200) DEFAULT 'https://lms.example.com',
-                adminEmail VARCHAR(255) DEFAULT 'admin@example.com',
-                timezone VARCHAR(50) DEFAULT 'UTC',
-                language VARCHAR(10) DEFAULT 'en',
-                dateFormat VARCHAR(20) DEFAULT 'YYYY-MM-DD',
-                timeFormat ENUM('12h', '24h') DEFAULT '24h',
-                
-                sessionTimeout INT DEFAULT 30,
-                maxLoginAttempts INT DEFAULT 5,
-                passwordMinLength INT DEFAULT 8,
-                passwordRequireSpecial BOOLEAN DEFAULT TRUE,
-                passwordRequireNumbers BOOLEAN DEFAULT TRUE,
-                passwordRequireUppercase BOOLEAN DEFAULT TRUE,
-                twoFactorAuth BOOLEAN DEFAULT FALSE,
-                ipWhitelist TEXT,
-                
-                smtpHost VARCHAR(100) DEFAULT '',
-                smtpPort INT DEFAULT 587,
-                smtpUsername VARCHAR(100) DEFAULT '',
-                smtpPassword VARCHAR(200) DEFAULT '',
-                smtpEncryption ENUM('none', 'tls', 'ssl') DEFAULT 'tls',
-                fromEmail VARCHAR(255) DEFAULT '',
-                fromName VARCHAR(100) DEFAULT '',
-                
-                maintenanceMode BOOLEAN DEFAULT FALSE,
-                maintenanceMessage VARCHAR(500) DEFAULT 'System is under maintenance. Please check back later.',
-                maxFileUploadSize INT DEFAULT 10,
-                allowedFileTypes VARCHAR(200) DEFAULT 'jpg,jpeg,png,pdf,doc,docx,txt',
-                autoBackup BOOLEAN DEFAULT TRUE,
-                backupRetention INT DEFAULT 30,
-                
-                emailNotifications BOOLEAN DEFAULT TRUE,
-                systemNotifications BOOLEAN DEFAULT TRUE,
-                notificationRetention INT DEFAULT 90,
-                
-                cacheEnabled BOOLEAN DEFAULT TRUE,
-                compressionEnabled BOOLEAN DEFAULT TRUE,
-                logLevel ENUM('error', 'warn', 'info', 'debug') DEFAULT 'info',
-                maxConcurrentUsers INT DEFAULT 1000,
-                
-                lastModifiedBy VARCHAR(255),
-                version INT DEFAULT 1,
-                
-                createdAt DATETIME,
-                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-            )
+            IF OBJECT_ID(N'dbo.system_settings', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.system_settings (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    siteName VARCHAR(100) DEFAULT 'Learning Management System',
+                    siteDescription VARCHAR(500) DEFAULT 'Advanced Learning Management System',
+                    siteUrl VARCHAR(200) DEFAULT 'https://lms.example.com',
+                    adminEmail VARCHAR(255) DEFAULT 'admin@example.com',
+                    timezone VARCHAR(50) DEFAULT 'UTC',
+                    language VARCHAR(10) DEFAULT 'en',
+                    dateFormat VARCHAR(20) DEFAULT 'YYYY-MM-DD',
+                    timeFormat VARCHAR(20) DEFAULT '24h',
+                    
+                    sessionTimeout INT DEFAULT 30,
+                    maxLoginAttempts INT DEFAULT 5,
+                    passwordMinLength INT DEFAULT 8,
+                    passwordRequireSpecial BIT DEFAULT 1,
+                    passwordRequireNumbers BIT DEFAULT 1,
+                    passwordRequireUppercase BIT DEFAULT 1,
+                    twoFactorAuth BIT DEFAULT 0,
+                    ipWhitelist VARCHAR(MAX),
+                    
+                    smtpHost VARCHAR(100) DEFAULT '',
+                    smtpPort INT DEFAULT 587,
+                    smtpUsername VARCHAR(100) DEFAULT '',
+                    smtpPassword VARCHAR(200) DEFAULT '',
+                    smtpEncryption VARCHAR(10) DEFAULT 'tls',
+                    fromEmail VARCHAR(255) DEFAULT '',
+                    fromName VARCHAR(100) DEFAULT '',
+                    
+                    maintenanceMode BIT DEFAULT 0,
+                    maintenanceMessage VARCHAR(500) DEFAULT 'System is under maintenance. Please check back later.',
+                    maxFileUploadSize INT DEFAULT 10,
+                    allowedFileTypes VARCHAR(200) DEFAULT 'jpg,jpeg,png,pdf,doc,docx,txt',
+                    autoBackup BIT DEFAULT 1,
+                    backupRetention INT DEFAULT 30,
+                    
+                    emailNotifications BIT DEFAULT 1,
+                    systemNotifications BIT DEFAULT 1,
+                    notificationRetention INT DEFAULT 90,
+                    
+                    cacheEnabled BIT DEFAULT 1,
+                    compressionEnabled BIT DEFAULT 1,
+                    logLevel VARCHAR(10) DEFAULT 'info',
+                    maxConcurrentUsers INT DEFAULT 1000,
+                    
+                    lastModifiedBy VARCHAR(255),
+                    version INT DEFAULT 1,
+                    
+                    createdAt DATETIME DEFAULT GETDATE(),
+                    updatedAt DATETIME DEFAULT GETDATE()
+                );
+            END
         `;
     try {
       await pool.query(query);
       // Ensure at least one row exists
       const [rows] = await pool.query("SELECT COUNT(*) as count FROM system_settings");
       if (rows[0].count === 0) {
-        await pool.query("INSERT INTO system_settings () VALUES ()");
+        await pool.query("INSERT INTO system_settings DEFAULT VALUES");
       }
     } catch (error) {
       logger.error("Failed to initialize SystemSettings table", error);
@@ -128,7 +131,7 @@ class SystemSettings {
   }
 
   static async getSettings() {
-    const [rows] = await pool.query("SELECT * FROM system_settings ORDER BY id ASC LIMIT 1");
+    const [rows] = await pool.query("SELECT * FROM system_settings ORDER BY id ASC OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY");
     if (rows.length === 0) return null; // Should not happen due to init logic
     return new SystemSettings(rows[0]);
   }
@@ -175,11 +178,16 @@ class SystemSettings {
     const query = `INSERT INTO system_settings (${fields.join(",")}) VALUES (${placeholders})`;
 
     const [result] = await pool.query(query, values);
+    // In MSSQL result.insertId is not directly available on the result object usually, 
+    // unless using OUTPUT or separate SCOPE_IDENTITY() query. 
+    // But wrapper might handle it. Assuming wrapper returns something usable or we just refetch.
+    // Ideally we should use OUTPUT INSERTED.ID
     return new SystemSettings({ ...data, id: result.insertId });
   }
 
   async save() {
     this.version += 1;
+    this.updatedAt = new Date(); // Manually update timestamp
 
     const fields = [
       "siteName", "siteDescription", "siteUrl", "adminEmail", "timezone", "language", "dateFormat", "timeFormat",
@@ -189,7 +197,7 @@ class SystemSettings {
       "maintenanceMode", "maintenanceMessage", "maxFileUploadSize", "allowedFileTypes", "autoBackup", "backupRetention",
       "emailNotifications", "systemNotifications", "notificationRetention",
       "cacheEnabled", "compressionEnabled", "logLevel", "maxConcurrentUsers",
-      "lastModifiedBy", "version"
+      "lastModifiedBy", "version", "updatedAt"
     ];
 
     const setClause = fields.map(field => `${field} = ?`).join(", ");

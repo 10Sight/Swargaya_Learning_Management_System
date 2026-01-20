@@ -31,17 +31,18 @@ export const SocketProvider = ({ children }) => {
                 const envUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_SERVER_URL;
                 const apiBase = axiosInstance?.defaults?.baseURL;
                 let socketUrl = 'https://swargaya-learning-management-system-3vcz.onrender.com';
-                if (envUrl) {
-                    socketUrl = envUrl;
-                } else if (apiBase) {
-                    try {
-                        socketUrl = new URL(apiBase).origin;
-                    } catch {
-                        socketUrl = apiBase;
+                if (typeof window !== 'undefined') {
+                    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                        socketUrl = 'http://localhost:3000';
+                    } else if (envUrl) {
+                        socketUrl = envUrl;
+                    } else if (apiBase) {
+                        try {
+                            socketUrl = new URL(apiBase).origin;
+                        } catch {
+                            socketUrl = apiBase;
+                        }
                     }
-                } else if (typeof window !== 'undefined') {
-                    const { protocol, hostname } = window.location;
-                    socketUrl = `${protocol}//${hostname}:3000`;
                 }
                 const newSocket = io(socketUrl, {
                     path: import.meta.env.VITE_SOCKET_PATH || '/socket.io',

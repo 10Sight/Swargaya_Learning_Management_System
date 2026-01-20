@@ -22,21 +22,25 @@ class Audit {
 
   static async init() {
     const query = `
-            CREATE TABLE IF NOT EXISTS audits (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                user VARCHAR(255),
-                action VARCHAR(255) NOT NULL,
-                resourceType VARCHAR(255),
-                resourceId VARCHAR(255),
-                severity VARCHAR(50) DEFAULT 'low',
-                status VARCHAR(50) DEFAULT 'success',
-                ip VARCHAR(255),
-                userAgent TEXT,
-                details TEXT,
-                createdAt DATETIME,
-                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX idx_user_created (user, createdAt DESC)
-            )
+            IF OBJECT_ID(N'dbo.audits', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.audits (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    [user] VARCHAR(255),
+                    action VARCHAR(255) NOT NULL,
+                    resourceType VARCHAR(255),
+                    resourceId VARCHAR(255),
+                    severity VARCHAR(50) DEFAULT 'low',
+                    status VARCHAR(50) DEFAULT 'success',
+                    ip VARCHAR(255),
+                    userAgent VARCHAR(MAX),
+                    details VARCHAR(MAX),
+                    createdAt DATETIME DEFAULT GETDATE(),
+                    updatedAt DATETIME DEFAULT GETDATE()
+                );
+                
+                CREATE INDEX idx_user_created ON dbo.audits([user], createdAt DESC);
+            END
         `;
     try {
       await pool.query(query);
@@ -63,10 +67,10 @@ class Audit {
     });
 
     const placeholders = fields.map(() => "?").join(",");
-    const query = `INSERT INTO audits (${fields.join(",")}) VALUES (${placeholders})`;
+    const query = `INSERT INTO audits (${fields.map(f => f === 'user' ? '[user]' : f).join(",")}) VALUES (${placeholders}); SELECT SCOPE_IDENTITY() AS id;`;
 
-    const [result] = await pool.query(query, values);
-    return Audit.findById(result.insertId);
+    const [rows] = await pool.query(query, values);
+    return Audit.findById(rows[0].id);
   }
 
   static async findById(id) {
@@ -79,10 +83,10 @@ class Audit {
     const keys = Object.keys(query).filter(key => query[key] !== undefined);
     if (keys.length === 0) return null;
 
-    const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
+    const whereClause = keys.map(key => `${key === 'user' ? '[user]' : key} = ?`).join(" AND ");
     const values = keys.map(key => query[key]);
 
-    const [rows] = await pool.query(`SELECT * FROM audits WHERE ${whereClause} LIMIT 1`, values);
+    const [rows] = await pool.query(`SELECT TOP 1 * FROM audits WHERE ${whereClause}`, values);
     if (rows.length === 0) return null;
     return new Audit(rows[0]);
   }
@@ -93,7 +97,7 @@ class Audit {
     let values = [];
 
     if (keys.length > 0) {
-      const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
+      const whereClause = keys.map(key => `${key === 'user' ? '[user]' : key} = ?`).join(" AND ");
       sql += ` WHERE ${whereClause}`;
       values = keys.map(key => query[key]);
     }
@@ -111,7 +115,7 @@ class Audit {
     let values = [];
 
     if (keys.length > 0) {
-      const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
+      const whereClause = keys.map(key => `${key === 'user' ? '[user]' : key} = ?`).join(" AND ");
       sql += ` WHERE ${whereClause}`;
       values = keys.map(key => query[key]);
     }
@@ -121,12 +125,14 @@ class Audit {
   }
 
   async save() {
+    this.updatedAt = new Date(); // Manually update timestamp
+
     const fields = [
       "user", "action", "resourceType", "resourceId",
-      "severity", "status", "ip", "userAgent", "details"
+      "severity", "status", "ip", "userAgent", "details", "updatedAt"
     ];
 
-    const setClause = fields.map(field => `${field} = ?`).join(", ");
+    const setClause = fields.map(field => `${field === 'user' ? '[user]' : field} = ?`).join(", ");
     const values = fields.map(field => {
       let val = this[field];
       if (field === 'details') return JSON.stringify(val);

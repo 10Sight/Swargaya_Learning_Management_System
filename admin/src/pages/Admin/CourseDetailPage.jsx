@@ -91,11 +91,7 @@ const CourseDetailPage = () => {
     refetch: refetchAnalytics,
   } = useGetCourseAnalyticsQuery(courseId);
 
-  const {
-    data: studentsData,
-    isLoading: studentsLoading,
-    refetch: refetchStudents,
-  } = useGetCourseStudentsQuery(courseId);
+
 
   const course = courseData?.data || {};
   const modules = modulesData?.data || [];
@@ -279,7 +275,7 @@ const CourseDetailPage = () => {
         <TabsList className="grid grid-cols-3 md:grid-cols-7 mb-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="students">Students</TabsTrigger>
+
           <TabsTrigger value="modules">Modules ({modules.length})</TabsTrigger>
           <TabsTrigger value="quizzes">Quizzes ({quizzes.length})</TabsTrigger>
           <TabsTrigger value="assignments">
@@ -526,110 +522,6 @@ const CourseDetailPage = () => {
                 </Card>
               </div>
             </>
-          )}
-        </TabsContent>
-
-        <TabsContent value="students" className="space-y-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-2xl font-bold">Enrolled Students</h2>
-              <p className="text-sm text-muted-foreground">
-                Track student progress and performance in this course
-              </p>
-            </div>
-            <Button onClick={refetchStudents} variant="outline" disabled={studentsLoading}>
-              <IconRefresh className="h-4 w-4 mr-2" />
-              Refresh
-            </Button>
-          </div>
-
-          {studentsLoading ? (
-            <Card>
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Skeleton className="h-10 w-10 rounded-full" />
-                        <div className="space-y-1">
-                          <Skeleton className="h-4 w-32" />
-                          <Skeleton className="h-3 w-24" />
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <Skeleton className="h-4 w-16" />
-                        <Skeleton className="h-3 w-12" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardContent className="p-6">
-                {studentsData?.data?.students?.length > 0 ? (
-                  <div className="space-y-4">
-                    {studentsData.data.students.map((studentData, index) => {
-                      const progressPercent = studentData.progressPercentage || 0;
-                      return (
-                        <div key={index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/30 transition-colors">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage src={studentData.student.avatar} />
-                              <AvatarFallback>
-                                {studentData.student.fullName?.charAt(0) || 'S'}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="flex items-center gap-2 mb-1">
-                                <p className="font-medium">{studentData.student.fullName}</p>
-                                {getLevelBadge(studentData.currentLevel || "L1")}
-                              </div>
-                              <p className="text-sm text-muted-foreground">{studentData.student.email}</p>
-                              <p className="text-xs text-muted-foreground">
-                                Enrolled: {new Date(studentData.student.enrolledAt).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right space-y-1">
-                            <div className="flex items-center gap-2">
-                              <div className="w-32 bg-gray-200 rounded-full h-2">
-                                <div 
-                                  className={`h-2 rounded-full transition-all ${
-                                    progressPercent >= 75 ? 'bg-green-600' : 
-                                    progressPercent >= 50 ? 'bg-yellow-500' : 
-                                    progressPercent >= 25 ? 'bg-orange-500' : 'bg-red-500'
-                                  }`}
-                                  style={{ width: `${progressPercent}%` }}
-                                ></div>
-                              </div>
-                              <span className="text-sm font-medium w-12 text-right">
-                                {progressPercent}%
-                              </span>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                              {studentData.completedModules}/{studentData.totalModules} modules
-                            </p>
-                            {studentData.lastActivity && (
-                              <p className="text-xs text-muted-foreground">
-                                Last: {new Date(studentData.lastActivity).toLocaleDateString()}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <IconUsers className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg font-medium">No students enrolled yet</p>
-                    <p>Students will appear here once they enroll in this course</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           )}
         </TabsContent>
 

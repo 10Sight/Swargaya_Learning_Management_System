@@ -16,19 +16,22 @@ class Line {
     }
 
     static async init() {
-        // 'lines' is a reserved keyword in MySQL, so it must be escaped
         const query = `
-            CREATE TABLE IF NOT EXISTS \`lines\` (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
-                department VARCHAR(255) NOT NULL,
-                description TEXT,
-                isActive BOOLEAN DEFAULT TRUE,
-                createdAt DATETIME,
-                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                UNIQUE KEY unique_dept_line (name, department),
-                INDEX idx_department (department)
-            )
+            IF OBJECT_ID(N'dbo.lines', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.[lines] (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    department VARCHAR(255) NOT NULL,
+                    description VARCHAR(MAX),
+                    isActive BIT DEFAULT 1,
+                    createdAt DATETIME DEFAULT GETDATE(),
+                    updatedAt DATETIME DEFAULT GETDATE(),
+                    CONSTRAINT unique_dept_line UNIQUE (name, department)
+                );
+                
+                CREATE INDEX idx_department ON dbo.[lines](department);
+            END
         `;
         try {
             await pool.query(query);
@@ -53,14 +56,14 @@ class Line {
         });
 
         const placeholders = fields.map(() => "?").join(",");
-        const query = `INSERT INTO \`lines\` (${fields.join(",")}) VALUES (${placeholders})`;
+        const query = `INSERT INTO [lines] (${fields.join(",")}) VALUES (${placeholders})`;
 
         const [result] = await pool.query(query, values);
         return Line.findById(result.insertId);
     }
 
     static async findById(id) {
-        const [rows] = await pool.query("SELECT * FROM \`lines\` WHERE id = ?", [id]);
+        const [rows] = await pool.query("SELECT * FROM [lines] WHERE id = ?", [id]);
         if (rows.length === 0) return null;
         return new Line(rows[0]);
     }
@@ -72,14 +75,14 @@ class Line {
         const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
         const values = keys.map(key => query[key]);
 
-        const [rows] = await pool.query(`SELECT * FROM \`lines\` WHERE ${whereClause} LIMIT 1`, values);
+        const [rows] = await pool.query(`SELECT TOP 1 * FROM [lines] WHERE ${whereClause}`, values);
         if (rows.length === 0) return null;
         return new Line(rows[0]);
     }
 
     static async find(query = {}) {
         const keys = Object.keys(query).filter(key => query[key] !== undefined);
-        let sql = "SELECT * FROM \`lines\`";
+        let sql = "SELECT * FROM [lines]";
         let values = [];
 
         if (keys.length > 0) {
@@ -94,7 +97,7 @@ class Line {
 
     static async countDocuments(query = {}) {
         const keys = Object.keys(query).filter(key => query[key] !== undefined);
-        let sql = "SELECT COUNT(*) as count FROM \`lines\`";
+        let sql = "SELECT COUNT(*) as count FROM [lines]";
         let values = [];
 
         if (keys.length > 0) {
@@ -108,15 +111,17 @@ class Line {
     }
 
     async save() {
+        this.updatedAt = new Date(); // Manually update timestamp
+
         const fields = [
-            "name", "department", "description", "isActive"
+            "name", "department", "description", "isActive", "updatedAt"
         ];
 
         const setClause = fields.map(field => `${field} = ?`).join(", ");
         const values = fields.map(field => this[field]);
         values.push(this.id);
 
-        await pool.query(`UPDATE \`lines\` SET ${setClause} WHERE id = ?`, values);
+        await pool.query(`UPDATE [lines] SET ${setClause} WHERE id = ?`, values);
         return this;
     }
 }

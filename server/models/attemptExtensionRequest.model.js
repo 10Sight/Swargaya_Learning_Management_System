@@ -20,19 +20,23 @@ class AttemptExtensionRequest {
 
   static async init() {
     const query = `
-            CREATE TABLE IF NOT EXISTS attempt_extension_requests (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                quiz VARCHAR(255) NOT NULL,
-                student VARCHAR(255) NOT NULL,
-                reason TEXT,
-                status VARCHAR(50) DEFAULT 'PENDING',
-                reviewedBy VARCHAR(255),
-                reviewedAt DATETIME,
-                extraAttemptsGranted INT DEFAULT 1,
-                createdAt DATETIME,
-                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX idx_quiz_student_status (quiz, student, status)
-            )
+            IF OBJECT_ID(N'dbo.attempt_extension_requests', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.attempt_extension_requests (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    quiz VARCHAR(255) NOT NULL,
+                    student VARCHAR(255) NOT NULL,
+                    reason VARCHAR(MAX),
+                    status VARCHAR(50) DEFAULT 'PENDING',
+                    reviewedBy VARCHAR(255),
+                    reviewedAt DATETIME,
+                    extraAttemptsGranted INT DEFAULT 1,
+                    createdAt DATETIME DEFAULT GETDATE(),
+                    updatedAt DATETIME DEFAULT GETDATE()
+                );
+                
+                CREATE INDEX idx_quiz_student_status ON dbo.attempt_extension_requests(quiz, student, status);
+            END
         `;
     try {
       await pool.query(query);
@@ -77,7 +81,7 @@ class AttemptExtensionRequest {
     const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
     const values = keys.map(key => query[key]);
 
-    const [rows] = await pool.query(`SELECT * FROM attempt_extension_requests WHERE ${whereClause} LIMIT 1`, values);
+    const [rows] = await pool.query(`SELECT TOP 1 * FROM attempt_extension_requests WHERE ${whereClause}`, values);
     if (rows.length === 0) return null;
     return new AttemptExtensionRequest(rows[0]);
   }
@@ -113,9 +117,11 @@ class AttemptExtensionRequest {
   }
 
   async save() {
+    this.updatedAt = new Date(); // Manually update timestamp
+
     const fields = [
       "quiz", "student", "reason", "status",
-      "reviewedBy", "reviewedAt", "extraAttemptsGranted"
+      "reviewedBy", "reviewedAt", "extraAttemptsGranted", "updatedAt"
     ];
 
     const setClause = fields.map(field => `${field} = ?`).join(", ");

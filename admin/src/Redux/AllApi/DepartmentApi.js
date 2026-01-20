@@ -25,10 +25,10 @@ export const departmentApi = createApi({
         }),
 
         removeInstructor: builder.mutation({
-            query: (departmentId) => ({
+            query: ({ departmentId, instructorId }) => ({
                 url: "/api/departments/remove-instructor",
                 method: "POST",
-                data: { departmentId }
+                data: { departmentId, instructorId }
             }),
             invalidatesTags: ['Department'],
         }),

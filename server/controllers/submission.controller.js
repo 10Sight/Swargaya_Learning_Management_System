@@ -39,14 +39,14 @@ export const createSubmission = asyncHandler(async (req, res) => {
         const [pRows] = await pool.query("SELECT * FROM progress WHERE student = ? AND course = ?", [userId, assignment.courseId]);
         if (pRows.length === 0) {
             // Check if first module
-            const [mods] = await pool.query("SELECT id FROM modules WHERE course = ? ORDER BY `order` ASC LIMIT 1", [assignment.courseId]);
+            const [mods] = await pool.query("SELECT TOP 1 id FROM modules WHERE course = ? ORDER BY [order] ASC", [assignment.courseId]);
             if (mods.length === 0 || String(mods[0].id) !== String(assignment.moduleId)) {
                 throw new ApiError("Access denied. Complete previous modules.", 403);
             }
         } else {
             const progress = pRows[0];
             const completedModules = parseJSON(progress.completedModules, []);
-            const [mods] = await pool.query("SELECT id, `order` FROM modules WHERE course = ? ORDER BY `order` ASC", [assignment.courseId]);
+            const [mods] = await pool.query("SELECT id, [order] FROM modules WHERE course = ? ORDER BY [order] ASC", [assignment.courseId]);
             const modIdx = mods.findIndex(m => String(m.id) === String(assignment.moduleId));
 
             if (modIdx > 0) {
@@ -77,11 +77,11 @@ export const createSubmission = asyncHandler(async (req, res) => {
     // Create
     const [result] = await pool.query(
         `INSERT INTO submissions (assignment, student, fileUrl, isLate, status, submittedAt, createdAt, updatedAt)
-         VALUES (?, ?, ?, ?, 'SUBMITTED', NOW(), NOW(), NOW())`,
+         VALUES (?, ?, ?, ?, 'SUBMITTED', GETDATE(), GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;`,
         [assignmentId, userId, fileUrl, isLate]
     );
 
-    const [sub] = await pool.query("SELECT * FROM submissions WHERE id = ?", [result.insertId]);
+    const [sub] = await pool.query("SELECT * FROM submissions WHERE id = ?", [result[0].id]);
     res.status(201).json(new ApiResponse(201, sub[0], "Submission created successfully"));
 });
 
@@ -98,7 +98,7 @@ export const resubmitAssignment = asyncHandler(async (req, res) => {
 
     await pool.query(
         `UPDATE submissions 
-         SET fileUrl = ?, resubmissionCount = resubmissionCount + 1, submittedAt = NOW(), status = 'SUBMITTED', updatedAt = NOW()
+         SET fileUrl = ?, resubmissionCount = resubmissionCount + 1, submittedAt = GETDATE(), status = 'SUBMITTED', updatedAt = GETDATE()
          WHERE id = ?`,
         [fileUrl, submissionId]
     );
@@ -187,7 +187,7 @@ export const gradeSubmission = asyncHandler(async (req, res) => {
     let values = [feedback || ''];
 
     if (grade !== null && grade !== undefined) {
-        updates.push("grade = ?", "status = 'GRADED'", "gradedAt = NOW()", "gradedBy = ?");
+        updates.push("grade = ?", "status = 'GRADED'", "gradedAt = GETDATE()", "gradedBy = ?");
         values.push(grade, userId);
     }
 

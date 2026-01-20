@@ -21,22 +21,26 @@ class Enrollment {
 
   static async init() {
     const query = `
-            CREATE TABLE IF NOT EXISTS enrollments (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                student VARCHAR(255) NOT NULL,
-                course VARCHAR(255) NOT NULL,
-                enrolledBy VARCHAR(255) NOT NULL,
-                paymentStatus VARCHAR(50) DEFAULT 'PENDING',
-                paymentMethod VARCHAR(50) DEFAULT 'FREE',
-                enrolledAt DATETIME,
-                expiresAt DATETIME,
-                isActive BOOLEAN DEFAULT TRUE,
-                createdAt DATETIME,
-                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                UNIQUE KEY unique_enrollment (student, course),
-                INDEX idx_student (student),
-                INDEX idx_course (course)
-            )
+            IF OBJECT_ID(N'dbo.enrollments', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.enrollments (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    student VARCHAR(255) NOT NULL,
+                    course VARCHAR(255) NOT NULL,
+                    enrolledBy VARCHAR(255) NOT NULL,
+                    paymentStatus VARCHAR(50) DEFAULT 'PENDING',
+                    paymentMethod VARCHAR(50) DEFAULT 'FREE',
+                    enrolledAt DATETIME,
+                    expiresAt DATETIME,
+                    isActive BIT DEFAULT 1,
+                    createdAt DATETIME DEFAULT GETDATE(),
+                    updatedAt DATETIME DEFAULT GETDATE(),
+                    CONSTRAINT unique_enrollment UNIQUE (student, course)
+                );
+                
+                CREATE INDEX idx_student ON dbo.enrollments(student);
+                CREATE INDEX idx_course ON dbo.enrollments(course);
+            END
         `;
     try {
       await pool.query(query);
@@ -81,7 +85,7 @@ class Enrollment {
     const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
     const values = keys.map(key => query[key]);
 
-    const [rows] = await pool.query(`SELECT * FROM enrollments WHERE ${whereClause} LIMIT 1`, values);
+    const [rows] = await pool.query(`SELECT TOP 1 * FROM enrollments WHERE ${whereClause}`, values);
     if (rows.length === 0) return null;
     return new Enrollment(rows[0]);
   }
@@ -117,13 +121,18 @@ class Enrollment {
   }
 
   async save() {
+    this.updatedAt = new Date(); // Manually update timestamp
+
     const fields = [
       "student", "course", "enrolledBy", "paymentStatus",
-      "paymentMethod", "enrolledAt", "expiresAt", "isActive"
+      "paymentMethod", "enrolledAt", "expiresAt", "isActive", "updatedAt"
     ];
 
     const setClause = fields.map(field => `${field} = ?`).join(", ");
-    const values = fields.map(field => this[field]);
+    const values = fields.map(field => {
+      if (field === 'updatedAt') return this.updatedAt;
+      return this[field];
+    });
     values.push(this.id);
 
     await pool.query(`UPDATE enrollments SET ${setClause} WHERE id = ?`, values);

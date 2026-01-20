@@ -5,16 +5,16 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 
 // Helper to ensure settings exist
 const ensureSettingsExist = async (userId = null) => {
-    const [rows] = await pool.query("SELECT * FROM system_settings LIMIT 1");
+    const [rows] = await pool.query("SELECT TOP 1 * FROM system_settings");
     if (rows.length > 0) return rows[0];
 
     // Create default
     const [result] = await pool.query(`
         INSERT INTO system_settings (lastModifiedBy, createdAt, updatedAt)
-        VALUES (?, NOW(), NOW())
+        VALUES (?, GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;
     `, [userId]);
 
-    const [newSettings] = await pool.query("SELECT * FROM system_settings WHERE id = ?", [result.insertId]);
+    const [newSettings] = await pool.query("SELECT * FROM system_settings WHERE id = ?", [result[0].id]);
     return newSettings[0];
 };
 
@@ -103,7 +103,7 @@ export const updateSystemSettings = asyncHandler(async (req, res) => {
         'maxConcurrentUsers', 'timeFormat'
     ];
 
-    let updates = ["updatedAt = NOW()", "lastModifiedBy = ?"];
+    let updates = ["updatedAt = GETDATE()", "lastModifiedBy = ?"];
     let values = [userId];
 
     Object.keys(updateData).forEach(key => {
@@ -154,7 +154,7 @@ export const getSystemSettingsHistory = asyncHandler(async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit) || 10, 50);
     // Since we only have 1 row in singleton design, pagination is trivial/fake here.
 
-    const [rows] = await pool.query("SELECT * FROM system_settings LIMIT 1");
+    const [rows] = await pool.query("SELECT TOP 1 * FROM system_settings");
     const total = rows.length;
 
     // Populate
@@ -183,7 +183,7 @@ export const getSystemSettingsHistory = asyncHandler(async (req, res) => {
 
 // Validate system configuration (useful for system health checks)
 export const validateSystemConfiguration = asyncHandler(async (req, res) => {
-    const [rows] = await pool.query("SELECT * FROM system_settings LIMIT 1");
+    const [rows] = await pool.query("SELECT TOP 1 * FROM system_settings");
 
     if (rows.length === 0) {
         throw new ApiError("System settings not found", 404);

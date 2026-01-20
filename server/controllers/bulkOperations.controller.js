@@ -102,7 +102,7 @@ export const bulkEnrollUsers = asyncHandler(async (req, res) => {
                     };
 
                     const [insertResult] = await connection.query(
-                        `INSERT INTO enrollments (userId, courseId, departmentId, enrolledBy, enrollmentDate, status) VALUES (?, ?, ?, ?, ?, ?)`,
+                        `INSERT INTO enrollments (userId, courseId, departmentId, enrolledBy, enrollmentDate, status) VALUES (?, ?, ?, ?, ?, ?); SELECT SCOPE_IDENTITY() AS id;`,
                         [userId, course.id, enrollmentData.departmentId, enrollmentData.enrolledBy, enrollmentData.enrollmentDate, enrollmentData.status]
                     );
 
@@ -125,7 +125,7 @@ export const bulkEnrollUsers = asyncHandler(async (req, res) => {
                     results.successful.push({
                         userId,
                         courseId: course.id,
-                        enrollmentId: insertResult.insertId
+                        enrollmentId: insertResult[0].id
                     });
 
                 } catch (innerError) {
@@ -494,14 +494,14 @@ export const bulkGenerateCertificates = asyncHandler(async (req, res) => {
 
                 // Insert
                 const [ins] = await connection.query(
-                    `INSERT INTO certificates (student, course, department, issuedBy, issuedDate, certificateNumber, status, type, metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    `INSERT INTO certificates (student, course, department, issuedBy, issuedDate, certificateNumber, status, type, metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?); SELECT SCOPE_IDENTITY() AS id;`,
                     [certData.student, certData.course, certData.department, certData.issuedBy, certData.issuedDate, certData.certificateNumber, certData.status, certData.type, certData.metadata]
                 );
 
                 results.successful.push({
                     userId: user.id,
                     userName: user.fullName,
-                    certificateId: ins.insertId,
+                    certificateId: ins[0].id,
                     certificateNumber: certNum
                 });
 
@@ -585,7 +585,9 @@ export const getBulkOperationHistory = asyncHandler(async (req, res) => {
         order = 'desc'
     } = req.query;
 
-    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const pageInt = Math.max(parseInt(page) || 1, 1);
+    const limitInt = Math.max(parseInt(limit) || 20, 1);
+    const offset = (pageInt - 1) * limitInt;
 
     // Build SQL query
     let sql = "SELECT * FROM audits WHERE action IN ('BULK_ENROLL_USERS', 'BULK_SEND_EMAILS', 'BULK_GENERATE_CERTIFICATES')";
@@ -617,8 +619,8 @@ export const getBulkOperationHistory = asyncHandler(async (req, res) => {
     const totalOperations = countRows[0].count;
 
     // Fetch
-    sql += ` ORDER BY ${sortBy === 'createdAt' ? 'createdAt' : 'createdAt'} ${order === 'asc' ? 'ASC' : 'DESC'} LIMIT ? OFFSET ?`;
-    params.push(parseInt(limit), offset);
+    sql += ` ORDER BY ${sortBy === 'createdAt' ? 'createdAt' : 'createdAt'} ${order === 'asc' ? 'ASC' : 'DESC'} OFFSET ? ROWS FETCH NEXT ? ROWS ONLY`;
+    params.push(offset, limitInt);
 
     const [rows] = await pool.query(sql, params);
 

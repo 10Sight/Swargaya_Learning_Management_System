@@ -33,7 +33,7 @@ export const createOnJobTraining = async (req, res, next) => {
         const [depts] = await pool.query("SELECT id FROM departments WHERE id = ?", [departmentId]);
         if (depts.length === 0) return next(new ApiError("Department not found", 404));
 
-        const [lines] = await pool.query("SELECT id FROM `lines` WHERE id = ?", [lineId]);
+        const [lines] = await pool.query("SELECT id FROM [lines] WHERE id = ?", [lineId]);
         if (lines.length === 0) return next(new ApiError("Line not found", 404));
 
         const [machines] = await pool.query("SELECT id FROM machines WHERE id = ?", [machineId]);
@@ -44,7 +44,7 @@ export const createOnJobTraining = async (req, res, next) => {
         const [result] = await pool.query(
             `INSERT INTO on_job_trainings 
             (student, name, department, line, machine, createdBy, updatedBy, entries, result, createdAt, updatedAt)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;`,
             [userId, ojtName, departmentId, lineId, machineId, req.user.id, req.user.id, JSON.stringify([]), "Pending"]
         );
 
@@ -56,10 +56,10 @@ export const createOnJobTraining = async (req, res, next) => {
                    m.name as machineName, m.name as machineDisplayName
             FROM on_job_trainings ojt
             LEFT JOIN departments d ON ojt.department = d.id
-            LEFT JOIN \`lines\` l ON ojt.line = l.id
+            LEFT JOIN [lines] l ON ojt.line = l.id
             LEFT JOIN machines m ON ojt.machine = m.id
             WHERE ojt.id = ?
-        `, [result.insertId]);
+        `, [result[0].id]);
 
         const ojt = rows[0];
         if (ojt) {
@@ -106,7 +106,7 @@ export const getStudentOnJobTrainings = async (req, res, next) => {
                    m.name as machineName, m.name as machineDisplayName
             FROM on_job_trainings ojt
             LEFT JOIN departments d ON ojt.department = d.id
-            LEFT JOIN \`lines\` l ON ojt.line = l.id
+            LEFT JOIN [lines] l ON ojt.line = l.id
             LEFT JOIN machines m ON ojt.machine = m.id
             WHERE ojt.student = ?
             ORDER BY ojt.createdAt DESC
@@ -150,7 +150,7 @@ export const getOnJobTrainingById = async (req, res, next) => {
                    u.fullName as studentName, u.email as studentEmail, u.avatar as studentAvatar
             FROM on_job_trainings ojt
             LEFT JOIN departments d ON ojt.department = d.id
-            LEFT JOIN \`lines\` l ON ojt.line = l.id
+            LEFT JOIN [lines] l ON ojt.line = l.id
             LEFT JOIN machines m ON ojt.machine = m.id
             LEFT JOIN users u ON ojt.student = u.id
             WHERE ojt.id = ?
@@ -207,7 +207,7 @@ export const updateOnJobTraining = async (req, res, next) => {
         if (remarks !== undefined) { updateFields.push("remarks = ?"); updateValues.push(remarks); }
 
         updateFields.push("updatedBy = ?"); updateValues.push(req.user.id);
-        updateFields.push("updatedAt = NOW()");
+        updateFields.push("updatedAt = GETDATE()");
 
         await pool.query(
             `UPDATE on_job_trainings SET ${updateFields.join(', ')} WHERE id = ?`,

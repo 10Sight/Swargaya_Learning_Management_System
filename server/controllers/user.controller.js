@@ -70,8 +70,8 @@ export const getAllUsers = asyncHandler(async (req, res) => {
         LEFT JOIN departments d ON u.department = d.id
         ${whereSQL}
         ORDER BY ${sortBy} ${order}
-        LIMIT ? OFFSET ?
-    `, [...params, limit, offset]);
+        OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+    `, [...params, offset, limit]);
 
   // Format
   const formatted = users.map(u => ({
@@ -100,11 +100,10 @@ export const getUserById = asyncHandler(async (req, res) => {
   const term = rawId.toLowerCase();
 
   const [rows] = await pool.query(`
-        SELECT u.*, d.name as departmentName
+        SELECT TOP 1 u.*, d.name as departmentName
         FROM users u
         LEFT JOIN departments d ON u.department = d.id
         WHERE u.id = ? OR u.slug = ? OR u.userName = ?
-        LIMIT 1
     `, [rawId, term, term]);
 
   if (rows.length === 0) throw new ApiError("User not found!", 404);
@@ -149,7 +148,7 @@ export const updateProfile = asyncHandler(async (req, res) => {
   if (email) { updates.push("email = ?"); values.push(email); }
 
   if (updates.length > 0) {
-    updates.push("updatedAt = NOW()");
+    updates.push("updatedAt = GETDATE()");
     await pool.query(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`, [...values, userId]);
   }
 
@@ -221,7 +220,7 @@ export const createUser = asyncHandler(async (req, res) => {
   }
   if (!validator.isEmail(email)) throw new ApiError("Invalid email address", 400);
   if (!validator.isMobilePhone(phoneNumber, "any")) throw new ApiError("Invalid phone number", 400);
-  if (!AvailableUserRoles[role]) throw new ApiError("Invalid role", 400);
+  if (!AvailableUserRoles.includes(role)) throw new ApiError("Invalid role", 400);
   if (!AvailableUnits.includes(unit)) throw new ApiError("Invalid unit", 400);
 
   // Check duplicates
@@ -240,10 +239,10 @@ export const createUser = asyncHandler(async (req, res) => {
 
   const [result] = await pool.query(`
         INSERT INTO users (fullName, userName, slug, email, phoneNumber, role, password, unit, status, createdAt, updatedAt)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PRESENT', NOW(), NOW())
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PRESENT', GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;
     `, [fullName, userName.toLowerCase(), slug, email.toLowerCase(), phoneNumber, role, hashedPassword, unit]);
 
-  const newUserId = result.insertId;
+  const newUserId = result[0].id;
   const [newUser] = await pool.query("SELECT * FROM users WHERE id = ?", [newUserId]);
   const u = newUser[0];
   delete u.password;
@@ -276,7 +275,7 @@ export const updateUser = asyncHandler(async (req, res) => {
   if (rows.length === 0) throw new ApiError("User not found", 404);
   const user = rows[0];
 
-  let updates = ["updatedAt = NOW()"];
+  let updates = ["updatedAt = GETDATE()"];
   let values = [];
 
   if (fullName) { updates.push("fullName = ?"); values.push(fullName); }
@@ -295,7 +294,7 @@ export const updateUser = asyncHandler(async (req, res) => {
     if (!validator.isMobilePhone(phoneNumber, "any")) throw new ApiError("Invalid phone", 400);
     updates.push("phoneNumber = ?"); values.push(phoneNumber);
   }
-  if (role && AvailableUserRoles[role]) { updates.push("role = ?"); values.push(role); }
+  if (role && AvailableUserRoles.includes(role)) { updates.push("role = ?"); values.push(role); }
   if (status) { updates.push("status = ?"); values.push(status); }
   if (unit) {
     if (!AvailableUnits.includes(unit)) throw new ApiError("Invalid unit", 400);
@@ -354,8 +353,8 @@ export const getAllInstructors = asyncHandler(async (req, res) => {
         LEFT JOIN departments d ON u.department = d.id
         WHERE ${whereSQL}
         ORDER BY u.createdAt DESC
-        LIMIT ? OFFSET ?
-    `, [...params, limit, offset]);
+        OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+    `, [...params, offset, limit]);
 
   const formatted = instructors.map(u => ({
     _id: u.id, fullName: u.fullName, userName: u.userName, email: u.email,
@@ -412,8 +411,8 @@ export const getAllStudents = asyncHandler(async (req, res) => {
         LEFT JOIN departments d ON u.department = d.id
         WHERE ${whereSQL}
         ORDER BY u.createdAt DESC
-        LIMIT ? OFFSET ?
-    `, [...params, limit, offset]);
+        OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+    `, [...params, offset, limit]);
 
   const formatted = students.map(u => ({
     _id: u.id, fullName: u.fullName, userName: u.userName, email: u.email,
@@ -456,7 +455,7 @@ export const deleteUser = asyncHandler(async (req, res) => {
 export const getSoftDeletedUsers = asyncHandler(async (req, res) => {
   // Basic implementation mirroring getAllUsers but isDeleted=1
   const limit = 20; const offset = 0; // simplified
-  const [users] = await pool.query("SELECT * FROM users WHERE isDeleted = 1 LIMIT ?", [limit]);
+  const [users] = await pool.query("SELECT TOP 20 * FROM users WHERE isDeleted = 1");
   const formatted = users.map(u => ({ ...u, avatar: parseJSON(u.avatar), _id: u.id }));
 
   res.json(new ApiResponse(200, { users: formatted, totalUsers: users.length }, "Soft-deleted users fetched"));

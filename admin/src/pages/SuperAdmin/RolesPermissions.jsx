@@ -1,13 +1,13 @@
 import React, { useState, useMemo } from 'react';
-import { 
-  IconShield, 
-  IconUsers, 
-  IconUserPlus, 
-  IconSettings, 
-  IconEye, 
-  IconPlus, 
-  IconEdit, 
-  IconTrash, 
+import {
+  IconShield,
+  IconUsers,
+  IconUserPlus,
+  IconSettings,
+  IconEye,
+  IconPlus,
+  IconEdit,
+  IconTrash,
   IconUsersGroup,
   IconMatrix,
   IconLock,
@@ -31,18 +31,16 @@ import ConfirmDialog from '@/components/common/ConfirmDialog';
 const TabButton = ({ active, onClick, icon: Icon, label, count }) => (
   <button
     onClick={onClick}
-    className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-colors duration-200 ${
-      active
+    className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-colors duration-200 ${active
         ? 'bg-blue-600 text-white shadow-sm'
         : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
-    }`}
+      }`}
   >
     <Icon size={20} />
     <span>{label}</span>
     {count !== undefined && (
-      <span className={`px-2 py-1 text-xs rounded-full ${
-        active ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-600'
-      }`}>
+      <span className={`px-2 py-1 text-xs rounded-full ${active ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-600'
+        }`}>
         {count}
       </span>
     )}
@@ -87,9 +85,9 @@ const RolesPermissions = () => {
   });
 
   // API hooks
-  const { 
-    data: rolesData, 
-    isLoading: rolesLoading, 
+  const {
+    data: rolesData,
+    isLoading: rolesLoading,
     error: rolesError,
     refetch: refetchRoles
   } = useGetRolesAndPermissionsQuery();

@@ -17,7 +17,7 @@ class Department {
         this.slug = data.slug;
         this.course = data.course;
         this.courses = typeof data.courses === 'string' ? JSON.parse(data.courses) : (data.courses || []);
-        this.instructor = data.instructor;
+        this.instructors = typeof data.instructors === 'string' ? JSON.parse(data.instructors) : (data.instructors || (data.instructor ? [data.instructor] : []));
         this.students = typeof data.students === 'string' ? JSON.parse(data.students) : (data.students || []);
         this.startDate = data.startDate ? new Date(data.startDate) : null;
         this.endDate = data.endDate ? new Date(data.endDate) : null;
@@ -36,30 +36,34 @@ class Department {
 
     static async init() {
         const query = `
-            CREATE TABLE IF NOT EXISTS departments (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
-                slug VARCHAR(255) UNIQUE,
-                course VARCHAR(255),
-                courses TEXT,
-                instructor VARCHAR(255),
-                students TEXT,
-                startDate DATETIME,
-                endDate DATETIME,
-                capacity INT DEFAULT 50,
-                status VARCHAR(50) DEFAULT 'UPCOMING',
-                schedule TEXT,
-                notes TEXT,
-                statusUpdatedAt DATETIME,
-                departmentQuiz VARCHAR(255),
-                departmentAssignment VARCHAR(255),
-                isDeleted BOOLEAN DEFAULT FALSE,
-                createdAt DATETIME,
-                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX idx_status (status),
-                INDEX idx_instructor (instructor),
-                INDEX idx_statusUpdatedAt (statusUpdatedAt)
-            )
+            IF OBJECT_ID(N'dbo.departments', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.departments (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    slug VARCHAR(255),
+                    course VARCHAR(255),
+                    courses VARCHAR(MAX),
+                    instructors VARCHAR(MAX),
+                    students VARCHAR(MAX),
+                    startDate DATETIME,
+                    endDate DATETIME,
+                    capacity INT DEFAULT 50,
+                    status VARCHAR(50) DEFAULT 'UPCOMING',
+                    schedule VARCHAR(MAX),
+                    notes VARCHAR(MAX),
+                    statusUpdatedAt DATETIME,
+                    departmentQuiz VARCHAR(255),
+                    departmentAssignment VARCHAR(255),
+                    isDeleted BIT DEFAULT 0,
+                    createdAt DATETIME DEFAULT GETDATE(),
+                    updatedAt DATETIME DEFAULT GETDATE(),
+                    CONSTRAINT unique_department_slug UNIQUE (slug)
+                );
+                
+                CREATE INDEX idx_status ON dbo.departments(status);
+                CREATE INDEX idx_statusUpdatedAt ON dbo.departments(statusUpdatedAt);
+            END
         `;
         try {
             await pool.query(query);
@@ -125,7 +129,7 @@ class Department {
         }
 
         const fields = [
-            "name", "slug", "course", "courses", "instructor",
+            "name", "slug", "course", "courses", "instructors",
             "students", "startDate", "endDate", "capacity", "status",
             "schedule", "notes", "statusUpdatedAt", "departmentQuiz",
             "departmentAssignment", "isDeleted", "createdAt"
@@ -136,7 +140,7 @@ class Department {
 
         const values = fields.map(field => {
             let val = data[field];
-            if (['courses', 'students', 'schedule'].includes(field)) {
+            if (['courses', 'students', 'schedule', 'instructors'].includes(field)) {
                 return JSON.stringify(val || []);
             }
             if (val === undefined) return null;
@@ -144,10 +148,10 @@ class Department {
         });
 
         const placeholders = fields.map(() => "?").join(",");
-        const query = `INSERT INTO departments (${fields.join(",")}) VALUES (${placeholders})`;
+        const query = `INSERT INTO departments (${fields.join(",")}) VALUES (${placeholders}); SELECT SCOPE_IDENTITY() AS id;`;
 
-        const [result] = await pool.query(query, values);
-        return Department.findById(result.insertId);
+        const [rows] = await pool.query(query, values);
+        return Department.findById(rows[0].id);
     }
 
     static async findById(id) {
@@ -163,7 +167,7 @@ class Department {
         const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
         const values = keys.map(key => query[key]);
 
-        const [rows] = await pool.query(`SELECT * FROM departments WHERE ${whereClause} LIMIT 1`, values);
+        const [rows] = await pool.query(`SELECT TOP 1 * FROM departments WHERE ${whereClause}`, values);
         if (rows.length === 0) return null;
         return new Department(rows[0]);
     }
@@ -252,19 +256,22 @@ class Department {
             this.statusUpdatedAt = new Date();
         }
 
+        this.updatedAt = new Date(); // Manually update timestamp
+
         const fields = [
-            "name", "slug", "course", "courses", "instructor",
+            "name", "slug", "course", "courses", "instructors", "instructor",
             "students", "startDate", "endDate", "capacity", "status",
             "schedule", "notes", "statusUpdatedAt", "departmentQuiz",
-            "departmentAssignment", "isDeleted"
+            "departmentAssignment", "isDeleted", "updatedAt"
         ];
 
         const setClause = fields.map(field => `${field} = ?`).join(", ");
         const values = fields.map(field => {
             let val = this[field];
-            if (['courses', 'students', 'schedule'].includes(field)) {
-                return JSON.stringify(val);
+            if (['courses', 'students', 'schedule', 'instructors'].includes(field)) {
+                return JSON.stringify(val || []);
             }
+            if (val === undefined) return null;
             return val;
         });
         values.push(this.id);

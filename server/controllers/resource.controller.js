@@ -73,7 +73,7 @@ export const createResource = asyncHandler(async (req, res) => {
     const [result] = await pool.query(
         `INSERT INTO resources 
         (courseId, moduleId, lessonId, scope, title, type, description, url, publicId, fileSize, format, fileName, createdBy, createdAt, updatedAt)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;`,
         [
             finalCourseId, finalModuleId, finalLessonId, scope,
             resourceData.title, resourceData.type, resourceData.description,
@@ -82,7 +82,7 @@ export const createResource = asyncHandler(async (req, res) => {
         ]
     );
 
-    const [newRes] = await pool.query("SELECT * FROM resources WHERE id = ?", [result.insertId]);
+    const [newRes] = await pool.query("SELECT * FROM resources WHERE id = ?", [result[0].id]);
     res.status(201).json(new ApiResponse(201, newRes[0], "Resource created successfully"));
 });
 
@@ -237,7 +237,7 @@ export const updateResource = asyncHandler(async (req, res) => {
     }
 
     await pool.query(
-        `UPDATE resources SET title=?, type=?, description=?, url=?, publicId=?, fileSize=?, format=?, updatedAt=NOW() WHERE id=?`,
+        `UPDATE resources SET title=?, type=?, description=?, url=?, publicId=?, fileSize=?, format=?, updatedAt=GETDATE() WHERE id=?`,
         [updateData.title, updateData.type, updateData.description, updateData.url, updateData.publicId, updateData.fileSize, updateData.format, resourceId]
     );
 

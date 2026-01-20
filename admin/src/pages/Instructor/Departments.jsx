@@ -150,10 +150,22 @@ const InstructorDepartments = () => {
                                     <div className="flex items-center space-x-2">
                                         <IconBook className="h-4 w-4 text-muted-foreground" />
                                         <div>
-                                            <p className="text-xs text-muted-foreground">Course</p>
-                                            <p className="font-medium text-sm">
-                                                {department.course?.title || department.courses?.[0]?.title || 'No course assigned'}
-                                            </p>
+                                            <p className="text-xs text-muted-foreground">Course{department.courses?.length > 1 ? 's' : ''}</p>
+                                            <div className="font-medium text-sm">
+                                                {department.courses && department.courses.length > 0 ? (
+                                                    department.courses.map((c, idx) => (
+                                                        <div key={c.id || idx} title={c.title} className="truncate max-w-[150px]">
+                                                            {c.title}
+                                                        </div>
+                                                    ))
+                                                ) : department.course ? (
+                                                    <div title={department.course.title} className="truncate max-w-[150px]">
+                                                        {department.course.title}
+                                                    </div>
+                                                ) : (
+                                                    'No course assigned'
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
 

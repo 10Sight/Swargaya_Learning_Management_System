@@ -20,18 +20,19 @@ export const createLine = asyncHandler(async (req, res) => {
     }
 
     // Check if line with same name exists in this department
-    const [existingLine] = await pool.query("SELECT id FROM `lines` WHERE name = ? AND department = ?", [name, departmentId]);
+    const [existingLine] = await pool.query("SELECT id FROM [lines] WHERE name = ? AND department = ?", [name, departmentId]);
     if (existingLine.length > 0) {
         throw new ApiError(400, "Line with this name already exists in this department");
     }
 
     // Insert
+    // Insert
     const [result] = await pool.query(
-        "INSERT INTO `lines` (name, department, description, isActive, createdAt, updatedAt) VALUES (?, ?, ?, ?, NOW(), NOW())",
+        "INSERT INTO [lines] (name, department, description, isActive, createdAt, updatedAt) VALUES (?, ?, ?, ?, GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;",
         [name, departmentId, description, true]
     );
 
-    const [newLine] = await pool.query("SELECT * FROM `lines` WHERE id = ?", [result.insertId]);
+    const [newLine] = await pool.query("SELECT * FROM [lines] WHERE id = ?", [result[0].id]);
 
     res.status(201).json(
         new ApiResponse(201, newLine[0], "Line created successfully")
@@ -44,7 +45,7 @@ export const createLine = asyncHandler(async (req, res) => {
 export const getLinesByDepartment = asyncHandler(async (req, res) => {
     const { departmentId } = req.params;
 
-    const [lines] = await pool.query("SELECT * FROM `lines` WHERE department = ? ORDER BY createdAt DESC", [departmentId]);
+    const [lines] = await pool.query("SELECT * FROM [lines] WHERE department = ? ORDER BY createdAt DESC", [departmentId]);
 
     res.status(200).json(
         new ApiResponse(200, lines, "Lines fetched successfully")
@@ -58,7 +59,7 @@ export const updateLine = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { name, description, isActive } = req.body;
 
-    const [existing] = await pool.query("SELECT * FROM `lines` WHERE id = ?", [id]);
+    const [existing] = await pool.query("SELECT * FROM [lines] WHERE id = ?", [id]);
     if (existing.length === 0) {
         throw new ApiError(404, "Line not found");
     }
@@ -67,7 +68,7 @@ export const updateLine = asyncHandler(async (req, res) => {
     // If name is being updated, check for duplicates
     if (name && name !== line.name) {
         const [duplicate] = await pool.query(
-            "SELECT id FROM `lines` WHERE name = ? AND department = ? AND id != ?",
+            "SELECT id FROM [lines] WHERE name = ? AND department = ? AND id != ?",
             [name, line.department, id]
         );
 
@@ -84,11 +85,11 @@ export const updateLine = asyncHandler(async (req, res) => {
     if (typeof isActive !== 'undefined') { updateFields.push("isActive = ?"); updateValues.push(isActive); }
 
     if (updateFields.length > 0) {
-        updateFields.push("updatedAt = NOW()");
-        await pool.query(`UPDATE \`lines\` SET ${updateFields.join(', ')} WHERE id = ?`, [...updateValues, id]);
+        updateFields.push("updatedAt = GETDATE()");
+        await pool.query(`UPDATE [lines] SET ${updateFields.join(', ')} WHERE id = ?`, [...updateValues, id]);
     }
 
-    const [updatedLine] = await pool.query("SELECT * FROM `lines` WHERE id = ?", [id]);
+    const [updatedLine] = await pool.query("SELECT * FROM [lines] WHERE id = ?", [id]);
 
     res.status(200).json(
         new ApiResponse(200, updatedLine[0], "Line updated successfully")
@@ -101,7 +102,7 @@ export const updateLine = asyncHandler(async (req, res) => {
 export const deleteLine = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
-    const [result] = await pool.query("DELETE FROM `lines` WHERE id = ?", [id]);
+    const [result] = await pool.query("DELETE FROM [lines] WHERE id = ?", [id]);
 
     if (result.affectedRows === 0) {
         throw new ApiError(404, "Line not found");

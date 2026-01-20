@@ -516,7 +516,9 @@ export const getUsersByRole = asyncHandler(async (req, res) => {
 
     if (!DEFAULT_ROLES[roleId]) throw new ApiError("Role not found", 404);
 
-    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const pageInt = Math.max(parseInt(page) || 1, 1);
+    const limitInt = Math.max(parseInt(limit) || 20, 1);
+    const offset = (pageInt - 1) * limitInt;
     let params = [roleId];
     let whereSQL = "role = ?";
 
@@ -533,8 +535,8 @@ export const getUsersByRole = asyncHandler(async (req, res) => {
         FROM users 
         WHERE ${whereSQL}
         ORDER BY createdAt DESC 
-        LIMIT ? OFFSET ?
-    `, [...params, parseInt(limit), offset]);
+        OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+    `, [...params, offset, limitInt]);
 
     res.json(new ApiResponse(200, {
       users,

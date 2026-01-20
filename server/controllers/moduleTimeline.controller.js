@@ -61,7 +61,7 @@ export const createOrUpdateTimeline = asyncHandler(async (req, res) => {
 
     await pool.query(
       `UPDATE module_timelines SET 
-             deadline = ?, gracePeriodHours = ?, enableWarnings = ?, warningPeriods = ?, description = ?, updatedBy = ?, lastProcessedAt = NULL, updatedAt = NOW()
+             deadline = ?, gracePeriodHours = ?, enableWarnings = ?, warningPeriods = ?, description = ?, updatedBy = ?, lastProcessedAt = NULL, updatedAt = GETDATE()
              WHERE id = ?`,
       [parsedDeadline, gracePeriodHours, enableWarnings, JSON.stringify(normalizedWarningPeriods), description, req.user.id, currentTimelineId]
     );
@@ -78,7 +78,7 @@ export const createOrUpdateTimeline = asyncHandler(async (req, res) => {
       currentTimelineId = existing[0].id;
       await pool.query(
         `UPDATE module_timelines SET 
-                 deadline = ?, gracePeriodHours = ?, enableWarnings = ?, warningPeriods = ?, description = ?, updatedBy = ?, lastProcessedAt = NULL, updatedAt = NOW()
+                 deadline = ?, gracePeriodHours = ?, enableWarnings = ?, warningPeriods = ?, description = ?, updatedBy = ?, lastProcessedAt = NULL, updatedAt = GETDATE()
                  WHERE id = ?`,
         [parsedDeadline, gracePeriodHours, enableWarnings, JSON.stringify(normalizedWarningPeriods), description, req.user.id, currentTimelineId]
       );
@@ -87,10 +87,10 @@ export const createOrUpdateTimeline = asyncHandler(async (req, res) => {
       const [result] = await pool.query(
         `INSERT INTO module_timelines 
                  (course, module, department, deadline, gracePeriodHours, enableWarnings, warningPeriods, description, createdBy, isActive, createdAt, updatedAt)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(), NOW())`,
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;`,
         [courseId, moduleId, departmentId, parsedDeadline, gracePeriodHours, enableWarnings, JSON.stringify(normalizedWarningPeriods), description, req.user.id]
       );
-      currentTimelineId = result.insertId;
+      currentTimelineId = result[0].id;
     }
   }
 
@@ -161,7 +161,7 @@ export const getAllTimelines = asyncHandler(async (req, res) => {
 
   if (req.query.courseId) { whereClauses.push("t.course = ?"); params.push(req.query.courseId); }
   if (req.query.departmentId) { whereClauses.push("t.department = ?"); params.push(req.query.departmentId); }
-  if (req.query.overdue === 'true') { whereClauses.push("t.deadline < NOW()"); }
+  if (req.query.overdue === 'true') { whereClauses.push("t.deadline < GETDATE()"); }
 
   const whereSQL = whereClauses.length ? "WHERE " + whereClauses.join(" AND ") : "";
 
@@ -181,8 +181,8 @@ export const getAllTimelines = asyncHandler(async (req, res) => {
         LEFT JOIN users u ON t.createdBy = u.id
         ${whereSQL}
         ORDER BY t.deadline ASC
-        LIMIT ? OFFSET ?
-    `, [...params, limit, skip]);
+        OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+    `, [...params, skip, limit]);
 
   const timelines = rows.map(t => {
     t.warningPeriods = parseJSON(t.warningPeriods);
@@ -205,7 +205,7 @@ export const getAllTimelines = asyncHandler(async (req, res) => {
 // Delete/deactivate timeline
 export const deleteTimeline = asyncHandler(async (req, res) => {
   const { timelineId } = req.params;
-  const [result] = await pool.query("UPDATE module_timelines SET isActive = 0, updatedBy = ? WHERE id = ?", [req.user.id, timelineId]);
+  const [result] = await pool.query("UPDATE module_timelines SET isActive = 0, updatedBy = ?, updatedAt = GETDATE() WHERE id = ?", [req.user.id, timelineId]);
   if (result.affectedRows === 0) throw new ApiError("Timeline not found", 404);
   res.status(200).json(new ApiResponse(200, null, "Timeline deactivated successfully"));
 });
@@ -394,7 +394,7 @@ export const processTimelineEnforcement = asyncHandler(async (req, res) => {
 
               // Update Progress
               await pool.query(
-                "UPDATE progress SET timelineViolations = ?, timelineNotifications = ?, updatedAt = NOW() WHERE id = ?",
+                "UPDATE progress SET timelineViolations = ?, timelineNotifications = ?, updatedAt = GETDATE() WHERE id = ?",
                 [JSON.stringify(timelineViolations), JSON.stringify(timelineNotifications), p.id]
               );
 
@@ -408,7 +408,7 @@ export const processTimelineEnforcement = asyncHandler(async (req, res) => {
         }
       }
 
-      await pool.query("UPDATE module_timelines SET lastProcessedAt = NOW() WHERE id = ?", [t.id]);
+      await pool.query("UPDATE module_timelines SET lastProcessedAt = GETDATE() WHERE id = ?", [t.id]);
       processedCount++;
 
     } catch (e) {
@@ -422,7 +422,7 @@ export const processTimelineEnforcement = asyncHandler(async (req, res) => {
 // Send timeline warnings
 export const sendTimelineWarnings = asyncHandler(async (req, res) => {
   const now = new Date();
-  const [timelines] = await pool.query(`SELECT t.*, d.students as deptStudents, m.title as mTitle FROM module_timelines t JOIN departments d ON t.department = d.id JOIN modules m ON t.module = m.id WHERE t.isActive = 1 AND t.enableWarnings = 1 AND t.deadline > NOW()`);
+  const [timelines] = await pool.query(`SELECT t.*, d.students as deptStudents, m.title as mTitle FROM module_timelines t JOIN departments d ON t.department = d.id JOIN modules m ON t.module = m.id WHERE t.isActive = 1 AND t.enableWarnings = 1 AND t.deadline > GETDATE()`);
 
   let warningsSent = 0;
   const errors = [];

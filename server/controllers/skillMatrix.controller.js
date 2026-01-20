@@ -15,10 +15,23 @@ const parseJSON = (data, fallback = null) => {
 // @route   POST /api/v1/skill-matrix/save
 // @access  Private (Admin)
 const saveSkillMatrix = asyncHandler(async (req, res) => {
-    const { department, line, entries, headerInfo, footerInfo } = req.body;
+    let { department, line, entries, headerInfo, footerInfo } = req.body;
+    console.log("saveSkillMatrix Request Body:", { department, line, typeD: typeof department, typeL: typeof line });
 
-    if (!department || !line) {
-        throw new ApiError(400, "Department and Line are required");
+    // Sanitize inputs to extract IDs if objects are passed
+    if (department && typeof department === 'object') department = department.id || department._id || null;
+    if (line && typeof line === 'object') line = line.id || line._id || null;
+
+    // Sanitize string 'undefined'
+    if (String(department) === 'undefined') department = null;
+    if (String(line) === 'undefined') line = null;
+
+    // Validation
+    if (!department) {
+        throw new ApiError(`Department is required (Received: '${req.body.department}', type: ${typeof req.body.department})`, 400);
+    }
+    if (!line) {
+        throw new ApiError(`Line is required (Received: '${req.body.line}', type: ${typeof req.body.line})`, 400);
     }
 
     // Prepare JSON strings
@@ -38,7 +51,7 @@ const saveSkillMatrix = asyncHandler(async (req, res) => {
         matrixId = existing[0].id;
         await pool.query(
             `UPDATE skill_matrices 
-             SET entries = ?, headerInfo = ?, footerInfo = ?, updatedAt = NOW() 
+             SET entries = ?, headerInfo = ?, footerInfo = ?, updatedAt = GETDATE() 
              WHERE id = ?`,
             [entriesJson, headerJson, footerJson, matrixId]
         );
@@ -46,10 +59,10 @@ const saveSkillMatrix = asyncHandler(async (req, res) => {
         // Insert
         const [result] = await pool.query(
             `INSERT INTO skill_matrices (department, line, entries, headerInfo, footerInfo, createdAt, updatedAt)
-             VALUES (?, ?, ?, ?, ?, NOW(), NOW())`,
+             VALUES (?, ?, ?, ?, ?, GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;`,
             [department, line, entriesJson, headerJson, footerJson]
         );
-        matrixId = result.insertId;
+        matrixId = result[0].id;
     }
 
     // Fetch updated/created
@@ -73,8 +86,11 @@ const getSkillMatrix = asyncHandler(async (req, res) => {
     const { departmentId, lineId } = req.params;
 
     if (!departmentId || !lineId) {
-        throw new ApiError(400, "Department ID and Line ID are required");
+        throw new ApiError("Department ID and Line ID are required", 400);
     }
+
+    // Auto-cleanup bad data (Fix for "undefined" string issue)
+    await pool.query("DELETE FROM skill_matrices WHERE line = 'undefined' OR department = 'undefined'");
 
     const [rows] = await pool.query(
         "SELECT * FROM skill_matrices WHERE department = ? AND line = ?",

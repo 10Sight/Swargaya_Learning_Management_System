@@ -23,7 +23,7 @@ export async function ensureCertificateIfEligible(studentId, courseId, opts = {}
   // Check for COURSE_COMPLETION or legacy (missing type) certificates
   // We assume anything NOT 'SKILL_UPGRADATION' is a completion certificate
   const [existingRows] = await pool.query(
-    "SELECT * FROM certificates WHERE student = ? AND course = ? AND type != 'SKILL_UPGRADATION' LIMIT 1",
+    "SELECT TOP 1 * FROM certificates WHERE student = ? AND course = ? AND type != 'SKILL_UPGRADATION'",
     [studentId, courseId]
   );
 
@@ -96,7 +96,7 @@ export async function ensureCertificateIfEligible(studentId, courseId, opts = {}
 
       // Fetch Level Config for ordering and total levels
       let levelConfig = null;
-      const [lConfigs] = await pool.query("SELECT * FROM course_level_configs WHERE isActive = 1 LIMIT 1");
+      const [lConfigs] = await pool.query("SELECT TOP 1 * FROM course_level_configs WHERE isActive = 1");
       if (lConfigs.length > 0) {
         const raw = lConfigs[0];
         raw.levels = typeof raw.levels === 'string' ? JSON.parse(raw.levels) : raw.levels;
@@ -174,7 +174,7 @@ export async function ensureCertificateIfEligible(studentId, courseId, opts = {}
         level1Date: formatDate(level1DateObj),
         level2Date: formatDate(level2DateObj),
         level3Date: formatDate(level3DateObj),
-        userImage: student.avatar?.url || 'https://via.placeholder.com/150',
+        userImage: student.avatar?.url || 'https://placehold.co/150',
         pieChart: pieChartCss
       };
 

@@ -39,34 +39,39 @@ class Course {
 
     static async init() {
         const query = `
-            CREATE TABLE IF NOT EXISTS courses (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                title VARCHAR(255) NOT NULL,
-                description TEXT,
-                thumbnail TEXT,
-                category VARCHAR(255) NOT NULL,
-                tags TEXT,
-                instructor VARCHAR(255) NOT NULL,
-                students TEXT,
-                price DECIMAL(10, 2) DEFAULT 0,
-                difficulty VARCHAR(50) DEFAULT 'BEGGINER',
-                status VARCHAR(50) DEFAULT 'DRAFT',
-                modules TEXT,
-                reviews TEXT,
-                totalEnrollments INT DEFAULT 0,
-                averageRating DECIMAL(3, 2) DEFAULT 0,
-                slug VARCHAR(255) UNIQUE,
-                createdBy VARCHAR(255),
-                quizzes TEXT,
-                assignments TEXT,
-                resources TEXT,
-                isDeleted BOOLEAN DEFAULT FALSE,
-                createdAt DATETIME,
-                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX idx_instructor (instructor),
-                INDEX idx_category (category),
-                INDEX idx_status (status)
-            )
+            IF OBJECT_ID(N'dbo.courses', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.courses (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    title VARCHAR(255) NOT NULL,
+                    description VARCHAR(MAX),
+                    thumbnail VARCHAR(MAX),
+                    category VARCHAR(255) NOT NULL,
+                    tags VARCHAR(MAX),
+                    instructor VARCHAR(255) NOT NULL,
+                    students VARCHAR(MAX),
+                    price DECIMAL(10, 2) DEFAULT 0,
+                    difficulty VARCHAR(50) DEFAULT 'BEGGINER',
+                    status VARCHAR(50) DEFAULT 'DRAFT',
+                    modules VARCHAR(MAX),
+                    reviews VARCHAR(MAX),
+                    totalEnrollments INT DEFAULT 0,
+                    averageRating DECIMAL(3, 2) DEFAULT 0,
+                    slug VARCHAR(255),
+                    createdBy VARCHAR(255),
+                    quizzes VARCHAR(MAX),
+                    assignments VARCHAR(MAX),
+                    resources VARCHAR(MAX),
+                    isDeleted BIT DEFAULT 0,
+                    createdAt DATETIME DEFAULT GETDATE(),
+                    updatedAt DATETIME DEFAULT GETDATE(),
+                    CONSTRAINT unique_course_slug UNIQUE (slug)
+                );
+                
+                CREATE INDEX idx_instructor ON dbo.courses(instructor);
+                CREATE INDEX idx_category ON dbo.courses(category);
+                CREATE INDEX idx_status ON dbo.courses(status);
+            END
         `;
         try {
             await pool.query(query);
@@ -109,13 +114,15 @@ class Course {
         });
 
         const placeholders = fields.map(() => "?").join(",");
-        const query = `INSERT INTO courses (${fields.join(",")}) VALUES (${placeholders})`;
+        const query = `INSERT INTO courses (${fields.join(",")}) VALUES (${placeholders}); SELECT SCOPE_IDENTITY() AS id;`;
 
-        const [result] = await pool.query(query, values);
-        return Course.findById(result.insertId);
+        const [rows] = await pool.query(query, values);
+        return Course.findById(rows[0].id);
     }
 
     static async findById(id) {
+        // Strict check for integer ID
+        if (!id || !/^\d+$/.test(String(id))) return null;
         const [rows] = await pool.query("SELECT * FROM courses WHERE id = ?", [id]);
         if (rows.length === 0) return null;
         return new Course(rows[0]);
@@ -128,7 +135,7 @@ class Course {
         const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
         const values = keys.map(key => query[key]);
 
-        const [rows] = await pool.query(`SELECT * FROM courses WHERE ${whereClause} LIMIT 1`, values);
+        const [rows] = await pool.query(`SELECT TOP 1 * FROM courses WHERE ${whereClause}`, values);
         if (rows.length === 0) return null;
         return new Course(rows[0]);
     }
@@ -169,17 +176,13 @@ class Course {
     }
 
     async save() {
-        // Update Slug if title changed (simple check: if current title != stored title from DB? 
-        // But we don't have stored title easily accessible unless we fetch or store it.
-        // For now, let's assume if the slug is empty or we force regen. 
-        // Ideally, standard practice is to regen slug if title changes.
-        // We'll skip complex change tracking for now to keep it simple, but we could add it.
+        this.updatedAt = new Date(); // Manually update timestamp
 
         const fields = [
             "title", "description", "thumbnail", "category", "tags",
             "instructor", "students", "price", "difficulty", "status",
             "modules", "reviews", "totalEnrollments", "averageRating",
-            "slug", "createdBy", "quizzes", "assignments", "resources", "isDeleted"
+            "slug", "createdBy", "quizzes", "assignments", "resources", "isDeleted", "updatedAt"
         ];
 
         const setClause = fields.map(field => `${field} = ?`).join(", ");

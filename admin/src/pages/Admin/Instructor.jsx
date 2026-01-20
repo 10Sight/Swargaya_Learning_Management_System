@@ -171,21 +171,34 @@ const Instructor = () => {
     const map = {};
 
     departments.forEach((department) => {
-      if (!department?.instructor) return;
-
-      const instructorRaw = department.instructor;
-      const instructorId =
-        typeof instructorRaw === "object"
-          ? (instructorRaw?._id || instructorRaw?.id)?.toString()
-          : instructorRaw?.toString();
-
-      if (!instructorId) return;
-
-      if (!map[instructorId]) {
-        map[instructorId] = [];
+      const insts = [];
+      // Check for instructors array first
+      if (department.instructors && Array.isArray(department.instructors)) {
+        insts.push(...department.instructors);
+      }
+      // Fallback to legacy single instructor if array is empty but legacy exists
+      else if (department.instructor) {
+        insts.push(department.instructor);
       }
 
-      map[instructorId].push(department);
+      insts.forEach((instructorRaw) => {
+        const instructorId =
+          typeof instructorRaw === "object"
+            ? (instructorRaw?._id || instructorRaw?.id)?.toString()
+            : instructorRaw?.toString();
+
+        if (!instructorId) return;
+
+        if (!map[instructorId]) {
+          map[instructorId] = [];
+        }
+
+        // Avoid duplicates
+        const deptId = (department._id || department.id)?.toString();
+        if (!map[instructorId].some(d => (d._id || d.id)?.toString() === deptId)) {
+          map[instructorId].push(department);
+        }
+      });
     });
 
     return map;
@@ -1471,28 +1484,26 @@ const Instructor = () => {
               ) : departments.length > 0 ? (
                 departments.map((department) => {
                   const selectedId = selectedInstructor?._id?.toString();
-                  const departmentInstructorRaw = department.instructor;
-                  const departmentInstructorId =
-                    typeof departmentInstructorRaw === "object"
-                      ? departmentInstructorRaw?._id?.toString()
-                      : departmentInstructorRaw?.toString();
 
-                  const isCurrentlyAssigned =
-                    departmentInstructorId && selectedId && departmentInstructorId === selectedId;
-                  const hasInstructor =
-                    departmentInstructorId && (!selectedId || departmentInstructorId !== selectedId);
+                  // Handle multiple instructors logic
+                  const instructors = department.instructors || (department.instructor ? [department.instructor] : []);
+                  const instructorIds = instructors.map(i =>
+                    (typeof i === 'object' ? (i._id || i.id) : i)?.toString()
+                  ).filter(Boolean);
+
+                  const isCurrentlyAssigned = selectedId && instructorIds.includes(selectedId);
+                  const existingCount = instructorIds.length;
+                  const hasOtherInstructors = existingCount > 0 && !isCurrentlyAssigned;
 
                   return (
                     <div
                       key={department._id}
                       className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${isCurrentlyAssigned
                         ? "bg-green-50 border-green-200 cursor-default"
-                        : hasInstructor
-                          ? "bg-red-50 border-red-200 cursor-not-allowed opacity-60"
-                          : "hover:bg-muted/50 cursor-pointer"
+                        : "hover:bg-muted/50 cursor-pointer"
                         }`}
                       onClick={() => {
-                        if (!isCurrentlyAssigned && !hasInstructor) {
+                        if (!isCurrentlyAssigned) {
                           handleAssignToDepartment(department._id);
                         }
                       }}
@@ -1500,15 +1511,11 @@ const Instructor = () => {
                       <div className="flex items-center gap-3">
                         <div className={`p-2 rounded-full ${isCurrentlyAssigned
                           ? "bg-green-100"
-                          : hasInstructor
-                            ? "bg-red-100"
-                            : "bg-blue-100"
+                          : "bg-blue-100"
                           }`}>
                           <IconSchool className={`h-4 w-4 ${isCurrentlyAssigned
                             ? "text-green-600"
-                            : hasInstructor
-                              ? "text-red-600"
-                              : "text-blue-600"
+                            : "text-blue-600"
                             }`} />
                         </div>
                         <div>
@@ -1524,12 +1531,12 @@ const Instructor = () => {
                             Current
                           </Badge>
                         )}
-                        {hasInstructor && (
-                          <Badge variant="destructive" className="ml-2">
-                            Occupied
+                        {hasOtherInstructors && (
+                          <Badge variant="secondary" className="ml-2">
+                            {existingCount} Assigned
                           </Badge>
                         )}
-                        {!isCurrentlyAssigned && !hasInstructor && (
+                        {!isCurrentlyAssigned && (
                           <Badge variant="outline" className="ml-2">
                             Available
                           </Badge>

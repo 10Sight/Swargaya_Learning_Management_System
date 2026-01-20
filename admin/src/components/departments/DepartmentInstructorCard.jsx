@@ -7,16 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import { IconUser, IconMail, IconPhone, IconPencil } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 
-const DepartmentInstructorCard = ({ instructor, departmentId }) => {
+const DepartmentInstructorCard = ({ instructor, instructors, departmentId }) => {
   const navigate = useNavigate();
 
-  if (!instructor) {
+  if (!instructor && (!instructors || instructors.length === 0)) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <IconUser className="h-5 w-5" />
-            Instructor
+            Instructors
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -35,12 +35,14 @@ const DepartmentInstructorCard = ({ instructor, departmentId }) => {
     );
   }
 
+  const instructorList = instructors && instructors.length > 0 ? instructors : [instructor];
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <CardTitle className="flex items-center gap-2">
           <IconUser className="h-5 w-5" />
-          Instructor
+          Instructors
         </CardTitle>
         <Button
           variant="outline"
@@ -48,41 +50,45 @@ const DepartmentInstructorCard = ({ instructor, departmentId }) => {
           onClick={() => navigate(`/departments?assignInstructor=${departmentId}`)}
         >
           <IconPencil className="h-4 w-4 mr-2" />
-          Change
+          Manage
         </Button>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col items-center text-center gap-4">
-          <Avatar className="h-20 w-20">
-            <AvatarImage src={instructor.avatar?.url} alt={instructor.fullName} />
-            <AvatarFallback className="text-xl">
-              {instructor.fullName
-                ?.split(" ")
-                .map((n) => n[0])
-                .join("")}
-            </AvatarFallback>
-          </Avatar>
+        <div className="space-y-6">
+          {instructorList.map(inst => (
+            <div key={inst._id} className="flex flex-col items-center text-center gap-4 pb-4 border-b last:border-0 last:pb-0">
+              <Avatar className="h-20 w-20">
+                <AvatarImage src={inst.avatar?.url} alt={inst.fullName} />
+                <AvatarFallback className="text-xl">
+                  {inst.fullName
+                    ?.split(" ")
+                    .map((n) => n[0])
+                    .join("")}
+                </AvatarFallback>
+              </Avatar>
 
-          <div>
-            <h3 className="text-xl font-semibold">{instructor.fullName}</h3>
-            <Badge variant="outline" className="mt-1">
-              Instructor
-            </Badge>
-          </div>
-
-          <div className="w-full space-y-2">
-            <div className="flex items-center gap-2 text-sm">
-              <IconMail className="h-4 w-4 text-muted-foreground" />
-              <span>{instructor.email}</span>
-            </div>
-
-            {instructor.phone && (
-              <div className="flex items-center gap-2 text-sm">
-                <IconPhone className="h-4 w-4 text-muted-foreground" />
-                <span>{instructor.phone}</span>
+              <div>
+                <h3 className="text-xl font-semibold">{inst.fullName}</h3>
+                <Badge variant="outline" className="mt-1">
+                  Instructor
+                </Badge>
               </div>
-            )}
-          </div>
+
+              <div className="w-full space-y-2">
+                <div className="flex items-center gap-2 text-sm justify-center">
+                  <IconMail className="h-4 w-4 text-muted-foreground" />
+                  <span>{inst.email}</span>
+                </div>
+
+                {inst.phone && (
+                  <div className="flex items-center gap-2 text-sm justify-center">
+                    <IconPhone className="h-4 w-4 text-muted-foreground" />
+                    <span>{inst.phone}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       </CardContent>
     </Card>

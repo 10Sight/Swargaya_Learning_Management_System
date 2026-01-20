@@ -125,7 +125,7 @@ const StudentDetail = () => {
 
     // Fetch machines dependent on selected line
     const { data: machinesData } = useGetMachinesByLineQuery(selectedLine, {
-        skip: !selectedLine
+        skip: !selectedLine || selectedLine === "undefined"
     });
     const machines = machinesData?.data || [];
 
@@ -891,7 +891,7 @@ const StudentDetail = () => {
                                     </TableHeader>
                                     <TableBody>
                                         {attempts.map((attempt) => (
-                                            <TableRow key={attempt._id}>
+                                            <TableRow key={attempt.id || attempt._id}>
                                                 <TableCell className="font-medium">
                                                     {attempt.quiz?.title || "Quiz"}
                                                 </TableCell>
@@ -947,7 +947,7 @@ const StudentDetail = () => {
                             </CardHeader>
                             <CardContent>
                                 <OnJobTrainingTable
-                                    ojtId={selectedOjt._id}
+                                    ojtId={selectedOjt.id || selectedOjt._id}
                                     studentName={student?.fullName}
                                     model={student?.department?.name || "N/A"}
                                     readOnly={false}
@@ -985,7 +985,7 @@ const StudentDetail = () => {
                                         </TableHeader>
                                         <TableBody>
                                             {ojtData.data.map((ojtItem) => (
-                                                <TableRow key={ojtItem._id}>
+                                                <TableRow key={ojtItem.id || ojtItem._id}>
                                                     <TableCell className="font-medium">{ojtItem.name}</TableCell>
                                                     <TableCell>
                                                         {ojtItem.line?.name} / {ojtItem.machine?.name}
@@ -1048,7 +1048,7 @@ const StudentDetail = () => {
                                 </SelectTrigger>
                                 <SelectContent>
                                     {lines.map((line) => (
-                                        <SelectItem key={line._id} value={line._id}>
+                                        <SelectItem key={line.id || line._id} value={line.id || line._id}>
                                             {line.name}
                                         </SelectItem>
                                     ))}
@@ -1063,7 +1063,7 @@ const StudentDetail = () => {
                                 </SelectTrigger>
                                 <SelectContent>
                                     {machines.map((machine) => (
-                                        <SelectItem key={machine._id} value={machine._id}>
+                                        <SelectItem key={machine.id || machine._id} value={machine.id || machine._id}>
                                             {machine.name} {machine.machineName ? `(${machine.machineName})` : ""}
                                         </SelectItem>
                                     ))}

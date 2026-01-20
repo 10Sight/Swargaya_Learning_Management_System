@@ -31,25 +31,28 @@ class QuizAttempt {
 
     static async init() {
         const query = `
-            CREATE TABLE IF NOT EXISTS attempted_quizzes (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                quiz VARCHAR(255) NOT NULL,
-                student VARCHAR(255) NOT NULL,
-                answer TEXT,
-                score INT DEFAULT 0,
-                status VARCHAR(50) DEFAULT 'IN_PROGRESS',
-                startedAt DATETIME,
-                completedAt DATETIME,
-                attemptNumber INT DEFAULT 1,
-                timeTaken INT DEFAULT 0,
-                manuallyAdjusted BOOLEAN DEFAULT FALSE,
-                adjustedBy VARCHAR(255),
-                adjustedAt DATETIME,
-                adjustmentNotes TEXT,
-                createdAt DATETIME,
-                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                UNIQUE KEY unique_attempt (quiz, student, attemptNumber)
-            )
+            IF OBJECT_ID(N'dbo.attempted_quizzes', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.attempted_quizzes (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    quiz VARCHAR(255) NOT NULL,
+                    student VARCHAR(255) NOT NULL,
+                    answer VARCHAR(MAX),
+                    score INT DEFAULT 0,
+                    status VARCHAR(50) DEFAULT 'IN_PROGRESS',
+                    startedAt DATETIME,
+                    completedAt DATETIME,
+                    attemptNumber INT DEFAULT 1,
+                    timeTaken INT DEFAULT 0,
+                    manuallyAdjusted BIT DEFAULT 0,
+                    adjustedBy VARCHAR(255),
+                    adjustedAt DATETIME,
+                    adjustmentNotes VARCHAR(MAX),
+                    createdAt DATETIME DEFAULT GETDATE(),
+                    updatedAt DATETIME DEFAULT GETDATE(),
+                    CONSTRAINT unique_attempt UNIQUE (quiz, student, attemptNumber)
+                );
+            END
         `;
         try {
             await pool.query(query);
@@ -77,10 +80,11 @@ class QuizAttempt {
         });
 
         const placeholders = fields.map(() => "?").join(",");
-        const query = `INSERT INTO attempted_quizzes (${fields.join(",")}) VALUES (${placeholders})`;
+        const query = `INSERT INTO attempted_quizzes (${fields.join(",")}) VALUES (${placeholders}); SELECT SCOPE_IDENTITY() AS id;`;
 
-        const [result] = await pool.query(query, values);
-        return QuizAttempt.findById(result.insertId);
+        const [rows] = await pool.query(query, values);
+        if (!rows || rows.length === 0) return null;
+        return QuizAttempt.findById(rows[0].id);
     }
 
     static async findById(id) {
@@ -96,7 +100,7 @@ class QuizAttempt {
         const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
         const values = keys.map(key => query[key]);
 
-        const [rows] = await pool.query(`SELECT * FROM attempted_quizzes WHERE ${whereClause} LIMIT 1`, values);
+        const [rows] = await pool.query(`SELECT TOP 1 * FROM attempted_quizzes WHERE ${whereClause}`, values);
         if (rows.length === 0) return null;
         return new QuizAttempt(rows[0]);
     }
@@ -132,10 +136,12 @@ class QuizAttempt {
     }
 
     async save() {
+        this.updatedAt = new Date(); // Manually update timestamp
+
         const fields = [
             "quiz", "student", "answer", "score", "status",
             "startedAt", "completedAt", "attemptNumber", "timeTaken",
-            "manuallyAdjusted", "adjustedBy", "adjustedAt", "adjustmentNotes"
+            "manuallyAdjusted", "adjustedBy", "adjustedAt", "adjustmentNotes", "updatedAt"
         ];
 
         const setClause = fields.map(field => `${field} = ?`).join(", ");

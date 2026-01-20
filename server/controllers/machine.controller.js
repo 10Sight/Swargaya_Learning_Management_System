@@ -14,7 +14,7 @@ export const createMachine = asyncHandler(async (req, res) => {
     }
 
     // Check if line exists
-    const [lines] = await pool.query("SELECT id FROM `lines` WHERE id = ?", [lineId]);
+    const [lines] = await pool.query("SELECT id FROM [lines] WHERE id = ?", [lineId]);
     if (lines.length === 0) {
         throw new ApiError(404, "Line not found");
     }
@@ -27,11 +27,11 @@ export const createMachine = asyncHandler(async (req, res) => {
 
     // Insert
     const [result] = await pool.query(
-        "INSERT INTO machines (name, line, description, isActive, createdAt, updatedAt) VALUES (?, ?, ?, ?, NOW(), NOW())",
+        "INSERT INTO machines (name, line, description, isActive, createdAt, updatedAt) VALUES (?, ?, ?, ?, GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;",
         [name, lineId, description, true]
     );
 
-    const [newMachine] = await pool.query("SELECT * FROM machines WHERE id = ?", [result.insertId]);
+    const [newMachine] = await pool.query("SELECT * FROM machines WHERE id = ?", [result[0].id]);
 
     res.status(201).json(
         new ApiResponse(201, newMachine[0], "Machine created successfully")
@@ -84,7 +84,7 @@ export const updateMachine = asyncHandler(async (req, res) => {
     if (typeof isActive !== 'undefined') { updateFields.push("isActive = ?"); updateValues.push(isActive); }
 
     if (updateFields.length > 0) {
-        updateFields.push("updatedAt = NOW()");
+        updateFields.push("updatedAt = GETDATE()");
         await pool.query(`UPDATE machines SET ${updateFields.join(', ')} WHERE id = ?`, [...updateValues, id]);
     }
 

@@ -24,33 +24,42 @@ export const createQuiz = asyncHandler(async (req, res) => {
         throw new ApiError("Scope must be 'course', 'module', or 'lesson'", 400);
     }
 
-    const actualScope = scope || (lessonId ? 'lesson' : moduleId ? 'module' : 'course');
+    // Cast IDs to string to prevent object/array parameter validation errors
+    const sanitizedCourseId = String(courseId);
+    const sanitizedModuleId = moduleId ? String(moduleId) : null;
+    const sanitizedLessonId = lessonId ? String(lessonId) : null;
+    const sanitizedScope = scope ? String(scope) : null;
 
-    if (!courseId) throw new ApiError("Course ID is required", 400);
+    console.log('[DEBUG] createQuiz - Sanitized Inputs:', { sanitizedCourseId, sanitizedModuleId, sanitizedLessonId, sanitizedScope });
+
+    const actualScope = sanitizedScope || (sanitizedLessonId ? 'lesson' : sanitizedModuleId ? 'module' : 'course');
+
+    if (!sanitizedCourseId) throw new ApiError("Course ID is required", 400);
 
     // Validate relations
-    const [courses] = await pool.query("SELECT id FROM courses WHERE id = ?", [courseId]);
+    console.log('[DEBUG] createQuiz - Validating Course ID:', sanitizedCourseId);
+    const [courses] = await pool.query("SELECT id FROM courses WHERE id = ?", [sanitizedCourseId]);
     if (courses.length === 0) throw new ApiError("Course not found", 404);
 
     let finalModuleId = null;
     let finalLessonId = null;
 
     if (actualScope === 'module' || actualScope === 'lesson') {
-        if (!moduleId) throw new ApiError(`Module ID required for ${actualScope} scope`, 400);
-        const [mods] = await pool.query("SELECT id, course FROM modules WHERE id = ?", [moduleId]);
+        if (!sanitizedModuleId) throw new ApiError(`Module ID required for ${actualScope} scope`, 400);
+        const [mods] = await pool.query("SELECT id, course FROM modules WHERE id = ?", [sanitizedModuleId]);
         if (mods.length === 0) throw new ApiError("Module not found", 404);
 
-        if (String(mods[0].course) !== String(courseId)) {
-            console.error(`Quiz Creation Mismatch: Module ${moduleId} has course ${mods[0].course}, but request has courseId ${courseId}`);
-            throw new ApiError(`Module mismatch: Module belongs to course ${mods[0].course} but you asked for ${courseId}`, 400);
+        if (String(mods[0].course) !== String(sanitizedCourseId)) {
+            console.error(`Quiz Creation Mismatch: Module ${sanitizedModuleId} has course ${mods[0].course}, but request has courseId ${sanitizedCourseId}`);
+            throw new ApiError(`Module mismatch: Module belongs to course ${mods[0].course} but you asked for ${sanitizedCourseId}`, 400);
         }
-        finalModuleId = moduleId;
+        finalModuleId = sanitizedModuleId;
 
         if (actualScope === 'lesson') {
-            if (!lessonId) throw new ApiError("Lesson ID required for lesson scope", 400);
-            const [lessons] = await pool.query("SELECT id FROM lessons WHERE id = ? AND module = ?", [lessonId, moduleId]);
+            if (!sanitizedLessonId) throw new ApiError("Lesson ID required for lesson scope", 400);
+            const [lessons] = await pool.query("SELECT id FROM lessons WHERE id = ? AND module = ?", [sanitizedLessonId, sanitizedModuleId]);
             if (lessons.length === 0) throw new ApiError("Lesson not found or mismatch", 404);
-            finalLessonId = lessonId;
+            finalLessonId = sanitizedLessonId;
         }
     }
 
@@ -65,18 +74,21 @@ export const createQuiz = asyncHandler(async (req, res) => {
         slug = `${baseSlug}-${suffix}`;
     }
 
+    const queryParams = [
+        sanitizedCourseId, finalModuleId, finalLessonId, actualScope, title, slug, description || "",
+        JSON.stringify(questions), passingScore || 0, timeLimit || 0, attemptsAllowed || 1,
+        JSON.stringify(skillUpgradation ?? false), req.user.id
+    ];
+    console.log('[DEBUG] createQuiz - Insert Parameters:', queryParams);
+
     const [result] = await pool.query(
         `INSERT INTO quizzes 
-        (course, module, lesson, scope, title, slug, description, questions, passingScore, timeLimit, attemptsAllowed, skillUpgradation, createdBy, createdAt, updatedAt)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-        [
-            courseId, finalModuleId, finalLessonId, actualScope, title, slug, description,
-            JSON.stringify(questions), passingScore, timeLimit, attemptsAllowed,
-            JSON.stringify(skillUpgradation ?? false), req.user.id
-        ]
+        (course, module, lessonId, scope, title, slug, description, questions, passingScore, timeLimit, attemptsAllowed, skillUpgradation, createdBy, createdAt, updatedAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;`,
+        queryParams
     );
 
-    const [newQuiz] = await pool.query("SELECT * FROM quizzes WHERE id = ?", [result.insertId]);
+    const [newQuiz] = await pool.query("SELECT * FROM quizzes WHERE id = ?", [result[0].id]);
     const quiz = newQuiz[0];
     if (quiz) {
         quiz._id = quiz.id; // Map for frontend
@@ -118,8 +130,8 @@ export const getAllQuizzes = asyncHandler(async (req, res) => {
         LEFT JOIN users u ON q.createdBy = u.id
         WHERE ${whereSQL}
         ORDER BY q.createdAt DESC
-        LIMIT ? OFFSET ?
-    `, [...params, limit, skip]);
+        OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+    `, [...params, skip, limit]);
 
     const quizzes = rows.map(q => {
         q._id = q.id; // Map for frontend
@@ -152,23 +164,30 @@ export const getQuizById = asyncHandler(async (req, res) => {
     // Assuming ID is standard int/uuid. If string, assume slug.
     // Simplifying: Checks ID first.
 
-    let [rows] = await pool.query(`
-        SELECT q.*, c.title as cTitle, u.fullName, u.email 
-        FROM quizzes q 
-        LEFT JOIN courses c ON q.course = c.id 
-        LEFT JOIN users u ON q.createdBy = u.id 
-        WHERE q.id = ?
-    `, [id]);
+    let rows = [];
+
+    // Check if numeric ID
+    if (/^\d+$/.test(id)) {
+        const [r] = await pool.query(`
+            SELECT q.*, c.title as cTitle, u.fullName, u.email 
+            FROM quizzes q 
+            LEFT JOIN courses c ON q.course = c.id 
+            LEFT JOIN users u ON q.createdBy = u.id 
+            WHERE q.id = ?
+        `, [id]);
+        rows = r;
+    }
 
     if (rows.length === 0) {
-        // Try slug if supported
-        [rows] = await pool.query(`
+        // Try slug
+        const [r] = await pool.query(`
             SELECT q.*, c.title as cTitle, u.fullName, u.email 
             FROM quizzes q 
             LEFT JOIN courses c ON q.course = c.id 
             LEFT JOIN users u ON q.createdBy = u.id 
             WHERE q.slug = ?
         `, [id]);
+        rows = r;
     }
 
     if (rows.length === 0) throw new ApiError("Quiz not found", 404);
@@ -204,7 +223,7 @@ export const updateQuiz = asyncHandler(async (req, res) => {
     if (skillUpgradation !== undefined) { updates.push("skillUpgradation = ?"); values.push(JSON.stringify(skillUpgradation)); }
 
     if (updates.length > 0) {
-        updates.push("updatedAt = NOW()");
+        updates.push("updatedAt = GETDATE()");
         await pool.query(`UPDATE quizzes SET ${updates.join(', ')} WHERE id = ?`, [...values, id]);
     }
 
@@ -245,14 +264,14 @@ export const getAccessibleQuizzes = asyncHandler(async (req, res) => {
     const [pRows] = await pool.query("SELECT * FROM progress WHERE student = ? AND course = ?", [userId, courseId]);
     if (pRows.length === 0) {
         // Check if first module
-        const [mods] = await pool.query("SELECT id FROM modules WHERE course = ? ORDER BY `order` ASC LIMIT 1", [courseId]);
+        const [mods] = await pool.query("SELECT TOP 1 id FROM modules WHERE course = ? ORDER BY [order] ASC", [courseId]);
         if (mods.length > 0 && String(mods[0].id) === String(moduleId)) {
             hasAccess = true; reason = "First module";
         }
     } else {
         const progress = pRows[0];
         const completedModules = parseJSON(progress.completedModules, []);
-        const [mods] = await pool.query("SELECT id, `order` FROM modules WHERE course = ? ORDER BY `order` ASC", [courseId]);
+        const [mods] = await pool.query("SELECT id, [order] FROM modules WHERE course = ? ORDER BY [order] ASC", [courseId]);
         const modIdx = mods.findIndex(m => String(m.id) === String(moduleId));
 
         if (modIdx !== -1) {
@@ -374,7 +393,13 @@ export const getQuizzesByCourse = asyncHandler(async (req, res) => {
     if (!rawCourseId) throw new ApiError("Course ID required", 400);
 
     // Resolve course ID if slug
-    const [courses] = await pool.query("SELECT id FROM courses WHERE id = ? OR slug = ?", [rawCourseId, rawCourseId]);
+    let courses = [];
+    if (/^\d+$/.test(rawCourseId)) {
+        [courses] = await pool.query("SELECT id FROM courses WHERE id = ?", [rawCourseId]);
+    }
+    if (courses.length === 0) {
+        [courses] = await pool.query("SELECT id FROM courses WHERE slug = ?", [rawCourseId]);
+    }
     if (courses.length === 0) return res.status(200).json(new ApiResponse(200, [], "Course not found"));
     const courseId = courses[0].id;
 
@@ -408,7 +433,13 @@ export const getQuizzesByModule = asyncHandler(async (req, res) => {
     if (!rawModuleId) throw new ApiError("Module ID required", 400);
 
     // Resolve module ID
-    const [mods] = await pool.query("SELECT id FROM modules WHERE id = ? OR slug = ?", [rawModuleId, rawModuleId]);
+    let mods = [];
+    if (/^\d+$/.test(rawModuleId)) {
+        [mods] = await pool.query("SELECT id FROM modules WHERE id = ?", [rawModuleId]);
+    }
+    if (mods.length === 0) {
+        [mods] = await pool.query("SELECT id FROM modules WHERE slug = ?", [rawModuleId]);
+    }
     if (mods.length === 0) return res.status(200).json(new ApiResponse(200, [], "Module not found"));
     const moduleId = mods[0].id;
 
@@ -442,7 +473,13 @@ export const getQuizzesByLesson = asyncHandler(async (req, res) => {
     if (!rawLessonId) throw new ApiError("Lesson ID required", 400);
 
     // Resolve lesson ID
-    const [lessons] = await pool.query("SELECT id FROM lessons WHERE id = ? OR slug = ?", [rawLessonId, rawLessonId]);
+    let lessons = [];
+    if (/^\d+$/.test(rawLessonId)) {
+        [lessons] = await pool.query("SELECT id FROM lessons WHERE id = ?", [rawLessonId]);
+    }
+    if (lessons.length === 0) {
+        [lessons] = await pool.query("SELECT id FROM lessons WHERE slug = ?", [rawLessonId]);
+    }
     if (lessons.length === 0) return res.status(200).json(new ApiResponse(200, [], "Lesson not found"));
     const lessonId = lessons[0].id;
 
@@ -452,7 +489,7 @@ export const getQuizzesByLesson = asyncHandler(async (req, res) => {
         LEFT JOIN courses c ON q.course = c.id
         LEFT JOIN modules m ON q.module = m.id
         LEFT JOIN users u ON q.createdBy = u.id
-        WHERE q.lesson = ? AND q.scope = 'lesson'
+        WHERE q.lessonId = ? AND q.scope = 'lesson'
         ORDER BY q.createdAt DESC
     `, [lessonId]);
 

@@ -18,19 +18,35 @@ async function resolveDepartmentId(idOrSlug) {
 }
 
 // Helper to manual populate
+// Helper to manual populate
 const populateDepartment = async (dept, fields = []) => {
     if (!dept) return null;
 
-    if (fields.includes('instructor') && dept.instructor) {
-        if (typeof dept.instructor !== 'object') {
-            const u = await User.findById(dept.instructor);
+    if (fields.includes('instructors') && dept.instructors && dept.instructors.length > 0) {
+        // Ensure it's an array of IDs
+        const instructorIds = Array.isArray(dept.instructors) ? dept.instructors : [];
+        if (instructorIds.length > 0) {
+            // Fetch instructor details
+            const placeholders = instructorIds.map(() => '?').join(',');
+            const [users] = await pool.query(`SELECT id, fullName, email, slug, createdAt FROM users WHERE id IN (${placeholders})`, instructorIds);
+            dept.instructors = users.map(u => ({ ...u, _id: u.id }));
+        }
+    }
+    // Backward compatibility populate for single 'instructor' field request, defaulting to first one
+    if (fields.includes('instructor') && !dept.instructor && dept.instructors && dept.instructors.length > 0) {
+        // If we populated instructors already, pick first
+        if (typeof dept.instructors[0] === 'object') {
+            dept.instructor = dept.instructors[0];
+        } else {
+            const u = await User.findById(dept.instructors[0]);
             if (u) dept.instructor = { id: u.id, _id: u.id, fullName: u.fullName, email: u.email, slug: u.slug, createdAt: u.createdAt };
         }
     }
 
     if (fields.includes('courses') && dept.courses && dept.courses.length > 0) {
         if (typeof dept.courses[0] !== 'object') {
-            const [rows] = await pool.query("SELECT id, title, slug, description, difficulty, status FROM courses WHERE id IN (?)", [dept.courses]);
+            const placeholders = dept.courses.map(() => '?').join(',');
+            const [rows] = await pool.query(`SELECT id, title, slug, description, difficulty, status FROM courses WHERE id IN (${placeholders})`, dept.courses);
             const courses = rows.map(c => ({ ...c, _id: c.id }));
             dept.courses = courses;
             if (!dept.course && courses.length > 0) dept.course = courses[0];
@@ -44,7 +60,8 @@ const populateDepartment = async (dept, fields = []) => {
 
     if (fields.includes('students') && dept.students && dept.students.length > 0) {
         if (typeof dept.students[0] !== 'object') {
-            const [students] = await pool.query("SELECT id, fullName, email, slug, createdAt, avatar FROM users WHERE id IN (?)", [dept.students]);
+            const placeholders = dept.students.map(() => '?').join(',');
+            const [students] = await pool.query(`SELECT id, fullName, email, slug, createdAt, avatar FROM users WHERE id IN (${placeholders})`, dept.students);
             dept.students = students.map(s => ({ ...s, _id: s.id }));
         }
     }
@@ -56,7 +73,7 @@ export const getMyDepartment = asyncHandler(async (req, res) => {
     const deptId = req.user.department;
     let department = await Department.findById(deptId);
     if (!department) return res.json(new ApiResponse(200, null, "No department assigned"));
-    department = await populateDepartment(department, ['instructor', 'courses', 'course']);
+    department = await populateDepartment(department, ['instructors', 'instructor', 'courses', 'course']);
     const responseDept = {
         name: department.name,
         status: department.status,
@@ -65,7 +82,8 @@ export const getMyDepartment = asyncHandler(async (req, res) => {
         capacity: department.capacity,
         schedule: department.schedule,
         courses: department.courses,
-        course: department.course
+        course: department.course,
+        instructors: department.instructors
     };
     return res.json(new ApiResponse(200, responseDept, "My department fetched successfully"));
 });
@@ -75,13 +93,22 @@ export const getMyDepartments = asyncHandler(async (req, res) => {
     const userRole = req.user.role;
     let departments = [];
     if (userRole === "INSTRUCTOR") {
-        const rows = await Department.find({ instructor: userId });
-        departments = await Promise.all(rows.map(d => populateDepartment(d, ['courses', 'course', 'students'])));
+        // Find departments where instructors array contains userId
+        // Since it's stored as JSON string "[1, 2]", we can use LIKE or parse. 
+        // Safer to fetch all and filter in JS or specific LIKE query if JSON_VALUE not available on older SQL server
+        const [allDepts] = await pool.query("SELECT * FROM departments");
+        departments = allDepts.filter(d => {
+            let insts = [];
+            try { insts = JSON.parse(d.instructors || '[]'); } catch (e) { }
+            return insts.map(String).includes(String(userId));
+        }).map(d => new Department(d));
+
+        departments = await Promise.all(departments.map(d => populateDepartment(d, ['courses', 'course', 'students', 'instructors'])));
     } else if (userRole === "STUDENT") {
         if (!req.user.department) return res.json(new ApiResponse(200, [], "No department assigned"));
         let dept = await Department.findById(req.user.department);
         if (dept) {
-            dept = await populateDepartment(dept, ['instructor', 'courses']);
+            dept = await populateDepartment(dept, ['instructors', 'courses']);
             departments = [dept];
         }
     }
@@ -89,13 +116,23 @@ export const getMyDepartments = asyncHandler(async (req, res) => {
 });
 
 export const createDepartment = asyncHandler(async (req, res) => {
-    const { name, instructorId, courseIds, startDate, endDate, capacity } = req.body;
+    const { name, instructorId, instructorIds, courseIds, startDate, endDate, capacity } = req.body;
     if (!name) throw new ApiError("Department name is required", 400);
+
+    // Handle Instructors
+    let instructors = [];
+    if (instructorIds && Array.isArray(instructorIds)) {
+        instructors = [...new Set(instructorIds)];
+    } else if (instructorId) {
+        instructors = [instructorId];
+    }
+
     let courses = [];
     if (courseIds && Array.isArray(courseIds) && courseIds.length > 0) {
         const uniqueIds = [...new Set(courseIds.map(id => parseInt(id)).filter(id => !isNaN(id)))];
         if (uniqueIds.length === 0) throw new ApiError("No valid course IDs provided", 400);
-        const [rows] = await pool.query("SELECT id FROM courses WHERE id IN (?)", [uniqueIds]);
+        const placeholders = uniqueIds.map(() => '?').join(',');
+        const [rows] = await pool.query(`SELECT id FROM courses WHERE id IN (${placeholders})`, uniqueIds);
         if (rows.length !== uniqueIds.length) throw new ApiError("One or more invalid course IDs provided", 400);
         courses = uniqueIds;
     } else if (req.body.courseId) {
@@ -105,7 +142,7 @@ export const createDepartment = asyncHandler(async (req, res) => {
     }
     const departmentData = {
         name,
-        instructor: instructorId || null,
+        instructors,
         courses,
         course: courses.length > 0 ? courses[0] : null,
         students: [],
@@ -114,7 +151,7 @@ export const createDepartment = asyncHandler(async (req, res) => {
         capacity: capacity ? parseInt(capacity) : null
     };
     let department = await Department.create(departmentData);
-    department = await populateDepartment(department, ['instructor', 'courses', 'course']);
+    department = await populateDepartment(department, ['instructors', 'courses', 'course']);
     res.status(201).json(new ApiResponse(201, department, "Department created successfully"));
 });
 
@@ -122,11 +159,25 @@ export const assignInstructor = asyncHandler(async (req, res) => {
     const { departmentId, instructorId } = req.body;
     const department = await Department.findById(departmentId);
     if (!department) throw new ApiError("Department not found", 404);
+
+    // Check if new instructor exists
     const instructor = await User.findById(instructorId);
     if (!instructor || instructor.role !== "INSTRUCTOR") throw new ApiError("Invalid instructor", 400);
-    if (department.instructor && String(department.instructor) === String(instructorId)) throw new ApiError("Instructor is already assigned", 400);
-    department.instructor = instructorId;
+
+    // Add to Department.instructors
+    const currentInstructors = department.instructors || [];
+    if (currentInstructors.map(String).includes(String(instructorId))) {
+        throw new ApiError("Instructor is already assigned to this department", 400);
+    }
+
+    department.instructors = [...currentInstructors, instructorId];
+
+    // Also, update legacy field if it was empty, just in case
+    if (!department.instructor) department.instructor = instructorId;
+
     await department.save();
+
+    // Add Dept to Instructor.departments
     let currentDepts = instructor.departments || [];
     if (typeof currentDepts === 'string') try { currentDepts = JSON.parse(currentDepts); } catch (e) { currentDepts = []; }
     if (!currentDepts.map(String).includes(String(departmentId))) {
@@ -134,24 +185,72 @@ export const assignInstructor = asyncHandler(async (req, res) => {
         instructor.departments = currentDepts;
         await instructor.save();
     }
-    const updated = await populateDepartment(department, ['instructor']);
+
+    const updated = await populateDepartment(department, ['instructors']);
     res.json(new ApiResponse(200, updated, "Instructor assigned successfully"));
 });
 
 export const removeInstructor = asyncHandler(async (req, res) => {
-    const { departmentId } = req.body;
-    const department = await Department.findById(departmentId);
+    const { departmentId, instructorId } = req.body;
+    console.log("removeInstructor payload:", { departmentId, instructorId, typeOfInstId: typeof instructorId, typeOfDeptId: typeof departmentId });
+
+    let finalDepartmentId = departmentId;
+    if (typeof departmentId === 'object' && departmentId !== null) {
+        finalDepartmentId = departmentId.id || departmentId._id || undefined;
+    }
+    if (!finalDepartmentId) throw new ApiError("Department ID is required", 400);
+
+    const department = await Department.findById(finalDepartmentId);
     if (!department) throw new ApiError("Department not found", 404);
-    if (!department.instructor) throw new ApiError("No instructor assigned", 400);
-    const instructorId = department.instructor;
-    department.instructor = null;
-    await department.save();
-    const instructor = await User.findById(instructorId);
+
+    let finalInstructorId = instructorId;
+    if (typeof instructorId === 'object' && instructorId !== null) {
+        // Handle case where object might be passed by mistake
+        finalInstructorId = instructorId.id || instructorId._id || undefined;
+    }
+
+    if (!finalInstructorId) throw new ApiError("Instructor ID is required", 400);
+
+    // Remove from Department.instructors
+    let currentInstructors = department.instructors || [];
+    const initialLength = currentInstructors.length;
+    department.instructors = currentInstructors.filter(id => String(id) !== String(finalInstructorId));
+
+    if (department.instructors.length === initialLength) {
+        throw new ApiError("Instructor not found in this department", 404);
+    }
+
+    // Clear legacy field if matching
+    if (String(department.instructor) === String(finalInstructorId)) {
+        // Ensure we assign a primitive ID (string/int), not an object
+        const firstInst = department.instructors.length > 0 ? department.instructors[0] : null;
+        department.instructor = (firstInst && typeof firstInst === 'object') ? (firstInst._id || firstInst.id) : firstInst;
+    }
+
+    try {
+        await department.save();
+    } catch (error) {
+        console.error("Error saving department in removeInstructor:", error);
+        throw new ApiError(`Failed to save department: ${error.message}`, 500);
+    }
+
+    // Remove Dept from Instructor.departments
+    const instructor = await User.findById(finalInstructorId);
     if (instructor) {
         let currentDepts = instructor.departments || [];
         if (typeof currentDepts === 'string') try { currentDepts = JSON.parse(currentDepts); } catch (e) { currentDepts = []; }
-        instructor.departments = currentDepts.filter(d => String(d) !== String(departmentId));
-        await instructor.save();
+
+        // Ensure parsing worked and we have an array
+        if (!Array.isArray(currentDepts)) currentDepts = [];
+
+        instructor.departments = currentDepts.filter(d => String(d) !== String(finalDepartmentId));
+
+        try {
+            await instructor.save();
+        } catch (error) {
+            console.error("Error saving instructor in removeInstructor:", error);
+            // Don't fail the whole request if just updating instructor ref fails, but log it
+        }
     }
     res.json(new ApiResponse(200, department, "Instructor removed successfully"));
 });
@@ -195,7 +294,8 @@ export const addStudentToDepartment = asyncHandler(async (req, res) => {
 
     // Verify students exist and are STUDENT role
     // Verify students exist and are STUDENT role
-    const [userRows] = await pool.query("SELECT * FROM users WHERE id IN (?) AND role = 'STUDENT'", [newStudents]);
+    const placeholders = newStudents.map(() => '?').join(',');
+    const [userRows] = await pool.query(`SELECT * FROM users WHERE id IN (${placeholders}) AND role = 'STUDENT'`, [...newStudents]);
     const validStudents = userRows.map(row => new User(row));
 
     if (validStudents.length === 0) {
@@ -258,10 +358,10 @@ export const getAllDepartments = asyncHandler(async (req, res) => {
     }
     const [countRows] = await pool.query(`SELECT COUNT(*) as total FROM departments ${whereSql}`, params);
     const total = countRows[0].total;
-    const [rows] = await pool.query(`SELECT * FROM departments ${whereSql} ORDER BY createdAt DESC LIMIT ? OFFSET ?`, [...params, limit, offset]);
+    const [rows] = await pool.query(`SELECT * FROM departments ${whereSql} ORDER BY createdAt DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY`, [...params, offset, limit]);
     const departments = await Promise.all(rows.map(d => {
         const dept = new Department(d);
-        return populateDepartment(dept, ['instructor', 'courses', 'course', 'students']);
+        return populateDepartment(dept, ['instructors', 'courses', 'course', 'students']);
     }));
     res.json(new ApiResponse(200, { departments, totalDepartments: total, totalPages: Math.ceil(total / limit), currentPage: page, limit }, "Departments fetched successfully"));
 });
@@ -271,7 +371,7 @@ export const getDepartmentById = asyncHandler(async (req, res) => {
     if (!id) throw new ApiError("Invalid ID", 400);
     let department = await Department.findById(id);
     if (!department) throw new ApiError("Department not found", 404);
-    department = await populateDepartment(department, ['instructor', 'students', 'courses', 'course']);
+    department = await populateDepartment(department, ['instructors', 'students', 'courses', 'course']);
     res.json(new ApiResponse(200, department, "Fetched"));
 });
 
@@ -286,7 +386,8 @@ export const updateDepartment = asyncHandler(async (req, res) => {
     if (req.body.courseIds && Array.isArray(req.body.courseIds)) {
         const uniqueIds = [...new Set(req.body.courseIds.map(id => parseInt(id)).filter(id => !isNaN(id)))];
         if (uniqueIds.length > 0) {
-            const [rows] = await pool.query("SELECT id FROM courses WHERE id IN (?)", [uniqueIds]);
+            const placeholders = uniqueIds.map(() => '?').join(',');
+            const [rows] = await pool.query(`SELECT id FROM courses WHERE id IN (${placeholders})`, uniqueIds);
             if (rows.length !== uniqueIds.length) throw new ApiError("Invalid course IDs", 400);
             department.courses = uniqueIds;
             department.course = uniqueIds[0];
@@ -303,7 +404,7 @@ export const updateDepartment = asyncHandler(async (req, res) => {
     if (endDate) department.endDate = new Date(endDate);
     if (capacity) department.capacity = parseInt(capacity);
     await department.save();
-    const updated = await populateDepartment(department, ['instructor', 'courses', 'course']);
+    const updated = await populateDepartment(department, ['instructors', 'courses', 'course']);
     res.json(new ApiResponse(200, updated, "Updated"));
 });
 
@@ -327,7 +428,8 @@ export const getDepartmentProgress = asyncHandler(async (req, res) => {
     if (!department) throw new ApiError("Not found", 404);
     const courses = [];
     if (department.courses && department.courses.length > 0) {
-        const [cRows] = await pool.query("SELECT id, title FROM courses WHERE id IN (?)", [department.courses]);
+        const placeholders = department.courses.map(() => '?').join(',');
+        const [cRows] = await pool.query(`SELECT id, title FROM courses WHERE id IN (${placeholders})`, department.courses);
         for (let c of cRows) {
             const [mRows] = await pool.query("SELECT COUNT(*) as count FROM modules WHERE course = ?", [c.id]);
             c.totalModules = mRows[0].count;
@@ -337,11 +439,14 @@ export const getDepartmentProgress = asyncHandler(async (req, res) => {
     if (courses.length === 0) return res.json(new ApiResponse(200, { departmentProgress: [], overallStats: {} }, "No courses"));
     const studentIds = department.students || [];
     if (studentIds.length === 0) return res.json(new ApiResponse(200, { departmentProgress: [], overallStats: {} }, "No students"));
-    const [students] = await pool.query("SELECT id, fullName, email, avatar FROM users WHERE id IN (?)", [studentIds]);
+    const placeholders = studentIds.map(() => '?').join(',');
+    const [students] = await pool.query(`SELECT id, fullName, email, avatar FROM users WHERE id IN (${placeholders})`, studentIds);
     let departmentProgress = [];
     const courseIds = courses.map(c => c.id);
     if (courseIds.length > 0 && studentIds.length > 0) {
-        const [progressRows] = await pool.query("SELECT * FROM progress WHERE student IN (?) AND course IN (?)", [studentIds, courseIds]);
+        const studentPlaceholders = studentIds.map(() => '?').join(',');
+        const coursePlaceholders = courseIds.map(() => '?').join(',');
+        const [progressRows] = await pool.query(`SELECT * FROM progress WHERE student IN (${studentPlaceholders}) AND course IN (${coursePlaceholders})`, [...studentIds, ...courseIds]);
         for (const course of courses) {
             for (const student of students) {
                 const prog = progressRows.find(p => p.student == student.id && p.course == course.id);
@@ -378,7 +483,8 @@ export const getDepartmentSubmissions = asyncHandler(async (req, res) => {
     if (!department) throw new ApiError("Not found", 404);
     const studentIds = department.students || [];
     if (studentIds.length === 0) return res.json(new ApiResponse(200, { submissions: [], stats: {} }, "Empty"));
-    const [rows] = await pool.query(`SELECT s.*, u.fullName, u.email, u.avatar, a.title as aTitle, a.dueDate, a.maxScore, c.title as cTitle FROM submissions s JOIN users u ON s.student = u.id JOIN assignments a ON s.assignment = a.id JOIN courses c ON a.courseId = c.id WHERE s.student IN (?) ORDER BY s.submittedAt DESC`, [studentIds]);
+    const placeholders = studentIds.map(() => '?').join(',');
+    const [rows] = await pool.query(`SELECT s.*, u.fullName, u.email, u.avatar, a.title as aTitle, a.dueDate, a.maxScore, c.title as cTitle FROM submissions s JOIN users u ON s.student = u.id JOIN assignments a ON s.assignment = a.id JOIN courses c ON a.courseId = c.id WHERE s.student IN (${placeholders}) ORDER BY s.submittedAt DESC`, studentIds);
     const submissions = rows.map(r => ({ _id: r.id, grade: r.grade, isLate: r.isLate, submittedAt: r.submittedAt, student: { fullName: r.fullName, email: r.email, avatar: r.avatar }, assignment: { title: r.aTitle, dueDate: r.dueDate, maxScore: r.maxScore, course: { title: r.cTitle } } }));
     const total = submissions.length;
     const graded = submissions.filter(s => s.grade != null).length;
@@ -393,7 +499,8 @@ export const getDepartmentAttempts = asyncHandler(async (req, res) => {
     if (!department) throw new ApiError("Not found", 404);
     const studentIds = department.students || [];
     if (studentIds.length === 0) return res.json(new ApiResponse(200, { attempts: [], stats: {} }, "Empty"));
-    const [rows] = await pool.query(`SELECT aq.*, u.fullName, u.email, u.avatar, q.title as qTitle, q.passingScore, q.questions, c.title as cTitle FROM attempted_quizzes aq JOIN users u ON aq.student = u.id JOIN quizzes q ON aq.quiz = q.id JOIN courses c ON q.courseId = c.id WHERE aq.student IN (?) ORDER BY aq.createdAt DESC`, [studentIds]);
+    const placeholders = studentIds.map(() => '?').join(',');
+    const [rows] = await pool.query(`SELECT aq.*, u.fullName, u.email, u.avatar, q.title as qTitle, q.passingScore, q.questions, c.title as cTitle FROM attempted_quizzes aq JOIN users u ON aq.student = u.id JOIN quizzes q ON aq.quiz = q.id JOIN courses c ON q.courseId = c.id WHERE aq.student IN (${placeholders}) ORDER BY aq.createdAt DESC`, studentIds);
     const attempts = rows.map(r => {
         let maxScore = 0;
         let questions = [];
@@ -481,11 +588,11 @@ export const getDepartmentCourseContent = asyncHandler(async (req, res) => {
     const course = c[0];
 
     // Fetch Modules
-    const [modules] = await pool.query("SELECT * FROM modules WHERE course = ? ORDER BY `order` ASC, id ASC", [courseId]);
+    const [modules] = await pool.query("SELECT * FROM modules WHERE course = ? ORDER BY [order] ASC, id ASC", [courseId]);
 
     // Fetch Lessons for each module
     for (let m of modules) {
-        const [lessons] = await pool.query("SELECT id, title, duration, `order`, resources FROM lessons WHERE module = ? ORDER BY `order` ASC, id ASC", [m.id]);
+        const [lessons] = await pool.query("SELECT id, title, duration, [order], resources FROM lessons WHERE module = ? ORDER BY [order] ASC, id ASC", [m.id]);
         m.lessons = lessons;
     }
 
@@ -536,7 +643,7 @@ export const updateDepartmentStatus = asyncHandler(async (req, res) => {
 
 export const cancelDepartment = asyncHandler(async (req, res) => {
     const id = await resolveDepartmentId(req.params.id);
-    await pool.query("UPDATE departments SET status = 'CANCELLED', statusUpdatedAt = NOW() WHERE id = ?", [id]);
+    await pool.query("UPDATE departments SET status = 'CANCELLED', statusUpdatedAt = GETDATE() WHERE id = ?", [id]);
     res.json(new ApiResponse(200, null, "Department Cancelled"));
 });
 

@@ -28,28 +28,32 @@ class OnJobTraining {
 
     static async init() {
         const query = `
-            CREATE TABLE IF NOT EXISTS on_job_trainings (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                student VARCHAR(255) NOT NULL,
-                name VARCHAR(255) DEFAULT 'Level-1 Practical Evaluation of On the Job Training',
-                department VARCHAR(255) NOT NULL,
-                line VARCHAR(255) NOT NULL,
-                machine VARCHAR(255) NOT NULL,
-                entries TEXT,
-                scoring TEXT,
-                totalMarks DECIMAL(10, 2) DEFAULT 36,
-                totalMarksObtained DECIMAL(10, 2),
-                totalPercentage DECIMAL(5, 2),
-                result VARCHAR(50) DEFAULT 'Pending',
-                guidelines TEXT,
-                remarks TEXT,
-                createdBy VARCHAR(255),
-                updatedBy VARCHAR(255),
-                createdAt DATETIME,
-                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX idx_student (student),
-                INDEX idx_department (department)
-            )
+            IF OBJECT_ID(N'dbo.on_job_trainings', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.on_job_trainings (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    student VARCHAR(255) NOT NULL,
+                    name VARCHAR(255) DEFAULT 'Level-1 Practical Evaluation of On the Job Training',
+                    department VARCHAR(255) NOT NULL,
+                    line VARCHAR(255) NOT NULL,
+                    machine VARCHAR(255) NOT NULL,
+                    entries VARCHAR(MAX),
+                    scoring VARCHAR(MAX),
+                    totalMarks DECIMAL(10, 2) DEFAULT 36,
+                    totalMarksObtained DECIMAL(10, 2),
+                    totalPercentage DECIMAL(5, 2),
+                    result VARCHAR(50) DEFAULT 'Pending',
+                    guidelines VARCHAR(MAX),
+                    remarks VARCHAR(MAX),
+                    createdBy VARCHAR(255),
+                    updatedBy VARCHAR(255),
+                    createdAt DATETIME DEFAULT GETDATE(),
+                    updatedAt DATETIME DEFAULT GETDATE()
+                );
+                
+                CREATE INDEX idx_student ON dbo.on_job_trainings(student);
+                CREATE INDEX idx_department ON dbo.on_job_trainings(department);
+            END
         `;
         try {
             await pool.query(query);
@@ -99,7 +103,7 @@ class OnJobTraining {
         const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
         const values = keys.map(key => query[key]);
 
-        const [rows] = await pool.query(`SELECT * FROM on_job_trainings WHERE ${whereClause} LIMIT 1`, values);
+        const [rows] = await pool.query(`SELECT TOP 1 * FROM on_job_trainings WHERE ${whereClause}`, values);
         if (rows.length === 0) return null;
         return new OnJobTraining(rows[0]);
     }
@@ -135,11 +139,13 @@ class OnJobTraining {
     }
 
     async save() {
+        this.updatedAt = new Date(); // Manually update timestamp
+
         const fields = [
             "student", "name", "department", "line", "machine",
             "entries", "scoring", "totalMarks", "totalMarksObtained",
             "totalPercentage", "result", "guidelines", "remarks",
-            "createdBy", "updatedBy"
+            "createdBy", "updatedBy", "updatedAt"
         ];
 
         const setClause = fields.map(field => `${field} = ?`).join(", ");

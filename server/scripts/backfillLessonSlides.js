@@ -6,7 +6,7 @@ import Lesson from '../models/lesson.model.js';
     console.log('Starting backfill for lesson slides (SQL)...');
 
     // Find lessons where slides are missing or empty
-    const [lessons] = await pool.query("SELECT * FROM lessons WHERE slides IS NULL OR JSON_LENGTH(slides) = 0");
+    const [lessons] = await pool.query("SELECT * FROM lessons WHERE slides IS NULL OR slides = '[]' OR slides = ''");
 
     let updated = 0;
     for (const row of lessons) {

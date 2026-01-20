@@ -40,35 +40,44 @@ class User {
 
     static async init() {
         const query = `
-            CREATE TABLE IF NOT EXISTS users (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                fullName VARCHAR(255) NOT NULL,
-                userName VARCHAR(255) NOT NULL UNIQUE,
-                slug VARCHAR(255) UNIQUE,
-                email VARCHAR(255) NOT NULL UNIQUE,
-                phoneNumber VARCHAR(50) NOT NULL,
-                password VARCHAR(255) NOT NULL,
-                avatar TEXT,
-                refreshToken TEXT,
-                resetPasswordToken VARCHAR(255),
-                resetPasswordExpiry DATETIME,
-                role VARCHAR(50) DEFAULT 'STUDENT',
-                currentLevel VARCHAR(50) DEFAULT 'L1',
-                status VARCHAR(50) DEFAULT 'PRESENT',
-                isVerified BOOLEAN DEFAULT FALSE,
-                enrolledCourses TEXT,
-                createdCourses TEXT,
-                lastLogin DATETIME,
-                loginHistory TEXT,
-                isDeleted BOOLEAN DEFAULT FALSE,
-                department VARCHAR(255),
-                departments TEXT,
-                unit VARCHAR(50) NOT NULL,
-                createdAt DATETIME,
-                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-            )
+            IF OBJECT_ID(N'dbo.users', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.users (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    fullName VARCHAR(255) NOT NULL,
+                    userName VARCHAR(255) NOT NULL,
+                    slug VARCHAR(255),
+                    email VARCHAR(255) NOT NULL,
+                    phoneNumber VARCHAR(50) NOT NULL,
+                    password VARCHAR(255) NOT NULL,
+                    avatar VARCHAR(MAX),
+                    refreshToken VARCHAR(MAX),
+                    resetPasswordExpiry DATETIME,
+                    role VARCHAR(50) DEFAULT 'STUDENT',
+                    currentLevel VARCHAR(50) DEFAULT 'L1',
+                    status VARCHAR(50) DEFAULT 'PRESENT',
+                    isVerified BIT DEFAULT 0,
+                    enrolledCourses VARCHAR(MAX),
+                    createdCourses VARCHAR(MAX),
+                    lastLogin DATETIME,
+                    loginHistory VARCHAR(MAX),
+                    isDeleted BIT DEFAULT 0,
+                    department VARCHAR(255),
+                    departments VARCHAR(MAX),
+                    unit VARCHAR(50) NOT NULL,
+                    createdAt DATETIME DEFAULT GETDATE(),
+                    updatedAt DATETIME DEFAULT GETDATE(),
+                    CONSTRAINT unique_username UNIQUE (userName),
+                    CONSTRAINT unique_slug UNIQUE (slug),
+                    CONSTRAINT unique_email UNIQUE (email)
+                );
+            END
         `;
-        await pool.query(query);
+        try {
+            await pool.query(query);
+        } catch (error) {
+            logger.error("Failed to initialize User table", error);
+        }
     }
 
     static async create(userData) {
@@ -113,10 +122,10 @@ class User {
         });
 
         const placeholders = fields.map(() => "?").join(",");
-        const query = `INSERT INTO users (${fields.join(",")}) VALUES (${placeholders})`;
+        const query = `INSERT INTO users (${fields.join(",")}) VALUES (${placeholders}); SELECT SCOPE_IDENTITY() AS id;`;
 
-        const [result] = await pool.query(query, values);
-        return User.findById(result.insertId);
+        const [rows] = await pool.query(query, values);
+        return User.findById(rows[0].id);
     }
 
     static async findOne(query) {
@@ -126,7 +135,7 @@ class User {
         const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
         const values = keys.map(key => query[key]);
 
-        const [rows] = await pool.query(`SELECT * FROM users WHERE ${whereClause} LIMIT 1`, values);
+        const [rows] = await pool.query(`SELECT TOP 1 * FROM users WHERE ${whereClause}`, values);
         if (rows.length === 0) return null;
         return new User(rows[0]);
     }
@@ -183,11 +192,13 @@ class User {
             this.password = await bcrypt.hash(this.password, 10);
         }
 
+        this.updatedAt = new Date(); // Manually update timestamp
+
         const fields = [
             "fullName", "userName", "slug", "email", "phoneNumber", "password",
             "avatar", "refreshToken", "role", "currentLevel", "status", "isVerified",
             "enrolledCourses", "createdCourses", "lastLogin", "loginHistory",
-            "isDeleted", "department", "departments", "unit", "resetPasswordToken", "resetPasswordExpiry"
+            "isDeleted", "department", "departments", "unit", "resetPasswordToken", "resetPasswordExpiry", "updatedAt"
         ];
 
         // Only update fields that are defined on the instance
@@ -196,8 +207,9 @@ class User {
         const values = definedFields.map(field => {
             const val = this[field];
             if (['avatar', 'enrolledCourses', 'createdCourses', 'loginHistory', 'departments'].includes(field)) {
-                return typeof val === 'object' ? JSON.stringify(val) : val;
+                return typeof val === 'object' ? JSON.stringify(val || (field === 'avatar' ? {} : [])) : val;
             }
+            if (val === undefined) return null;
             if (val instanceof Date) return val;
             return val;
         });

@@ -176,7 +176,7 @@ export const getUserStats = asyncHandler(async (req, res) => {
         // Group by DATE(createdAt)
         const [userRegistrations] = await pool.query(`
             SELECT 
-                DATE_FORMAT(createdAt, '%Y-%m-%d') as date,
+                FORMAT(createdAt, 'yyyy-MM-dd') as date,
                 role,
                 COUNT(*) as count
             FROM users
@@ -270,7 +270,7 @@ export const getEngagementStats = asyncHandler(async (req, res) => {
         // Group by DATE(createdAt)
         const [quizAttemptsOverTimeResults] = await pool.query(`
             SELECT 
-                DATE_FORMAT(createdAt, '%Y-%m-%d') as date,
+                FORMAT(createdAt, 'yyyy-MM-dd') as date,
                 COUNT(*) as attempts,
                 SUM(CASE WHEN status = 'PASSED' THEN 1 ELSE 0 END) as passed
             FROM attempted_quizzes
@@ -789,7 +789,7 @@ export const generateCustomReport = asyncHandler(async (req, res) => {
     }
 
     if (reportType === 'USER_ACTIVITY') {
-        const [rows] = await pool.query(`SELECT * FROM audits WHERE 1=1 ${dateSql} LIMIT 1000`, params);
+        const [rows] = await pool.query(`SELECT TOP 1000 * FROM audits WHERE 1=1 ${dateSql}`, params);
         data = rows;
     } else if (reportType === 'COURSE_PERFORMANCE') {
         // Aggregate course stats

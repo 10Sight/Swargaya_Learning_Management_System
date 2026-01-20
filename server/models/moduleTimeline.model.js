@@ -27,29 +27,33 @@ class ModuleTimeline {
 
   static async init() {
     const query = `
-            CREATE TABLE IF NOT EXISTS module_timelines (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                course VARCHAR(255) NOT NULL,
-                module VARCHAR(255) NOT NULL,
-                department VARCHAR(255) NOT NULL,
-                deadline DATETIME NOT NULL,
-                gracePeriodHours INT DEFAULT 24,
-                isActive BOOLEAN DEFAULT TRUE,
-                enableWarnings BOOLEAN DEFAULT TRUE,
-                warningPeriods TEXT,
-                createdBy VARCHAR(255) NOT NULL,
-                updatedBy VARCHAR(255),
-                missedDeadlineStudents TEXT,
-                warningsSent TEXT,
-                description TEXT,
-                lastProcessedAt DATETIME,
-                createdAt DATETIME,
-                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX idx_course_dept (course, department),
-                INDEX idx_deadline_active (deadline, isActive),
-                INDEX idx_dept_deadline (department, deadline),
-                INDEX idx_lastProcessedAt (lastProcessedAt)
-            )
+            IF OBJECT_ID(N'dbo.module_timelines', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.module_timelines (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    course VARCHAR(255) NOT NULL,
+                    module VARCHAR(255) NOT NULL,
+                    department VARCHAR(255) NOT NULL,
+                    deadline DATETIME NOT NULL,
+                    gracePeriodHours INT DEFAULT 24,
+                    isActive BIT DEFAULT 1,
+                    enableWarnings BIT DEFAULT 1,
+                    warningPeriods VARCHAR(MAX),
+                    createdBy VARCHAR(255) NOT NULL,
+                    updatedBy VARCHAR(255),
+                    missedDeadlineStudents VARCHAR(MAX),
+                    warningsSent VARCHAR(MAX),
+                    description VARCHAR(MAX),
+                    lastProcessedAt DATETIME,
+                    createdAt DATETIME DEFAULT GETDATE(),
+                    updatedAt DATETIME DEFAULT GETDATE()
+                );
+                
+                CREATE INDEX idx_course_dept ON dbo.module_timelines(course, department);
+                CREATE INDEX idx_deadline_active ON dbo.module_timelines(deadline, isActive);
+                CREATE INDEX idx_dept_deadline ON dbo.module_timelines(department, deadline);
+                CREATE INDEX idx_lastProcessedAt ON dbo.module_timelines(lastProcessedAt);
+            END
         `;
     try {
       await pool.query(query);
@@ -99,7 +103,7 @@ class ModuleTimeline {
     const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
     const values = keys.map(key => query[key]);
 
-    const [rows] = await pool.query(`SELECT * FROM module_timelines WHERE ${whereClause} LIMIT 1`, values);
+    const [rows] = await pool.query(`SELECT TOP 1 * FROM module_timelines WHERE ${whereClause}`, values);
     if (rows.length === 0) return null;
     return new ModuleTimeline(rows[0]);
   }
@@ -192,11 +196,13 @@ class ModuleTimeline {
   }
 
   async save() {
+    this.updatedAt = new Date(); // Manually update timestamp
+
     const fields = [
       "course", "module", "department", "deadline",
       "gracePeriodHours", "isActive", "enableWarnings", "warningPeriods",
       "createdBy", "updatedBy", "missedDeadlineStudents", "warningsSent",
-      "description", "lastProcessedAt"
+      "description", "lastProcessedAt", "updatedAt"
     ];
 
     const setClause = fields.map(field => `${field} = ?`).join(", ");

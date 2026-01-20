@@ -46,7 +46,7 @@ export const getAllAudits = asyncHandler(async (req, res) => {
             if (req.user && req.user.role === 'ADMIN' && superAdminIds.includes(targetId)) {
                 filters.push("1=0"); // Block access
             } else {
-                filters.push("user = ?");
+                filters.push("[user] = ?");
                 params.push(targetId);
             }
         } else {
@@ -62,25 +62,28 @@ export const getAllAudits = asyncHandler(async (req, res) => {
             }
 
             if (allowedUserIds.length > 0) {
-                filters.push(`user IN (${allowedUserIds.join(',')})`);
+                filters.push(`[user] IN (${allowedUserIds.join(',')})`);
             } else {
                 filters.push("1=0");
             }
         }
     } else if (req.user && req.user.role === 'ADMIN' && superAdminIds.length > 0) {
         // Exclude SuperAdmins
-        filters.push(`(user NOT IN (${superAdminIds.join(',')}) OR user IS NULL)`);
+        filters.push(`([user] NOT IN (${superAdminIds.join(',')}) OR [user] IS NULL)`);
     }
 
     // Additional filtering for Admin - sensitive ops
     if (req.user && req.user.role === 'ADMIN') {
         // Complex logic: (user exists) OR (user null AND action NOT SENSITIVE)
         // In SQL: (user IS NOT NULL) OR (user IS NULL AND action NOT REGEXP ...)
-        const sensitiveParams = 'SYSTEM_ADMIN|SUPERADMIN|PRIVILEGE|ROLE_CHANGE|SYSTEM_SETTINGS';
+        // Check sensitive actions using LIKE instead of REGEXP (T-SQL)
+        const sensitiveActions = ['SYSTEM_ADMIN', 'SUPERADMIN', 'PRIVILEGE', 'ROLE_CHANGE', 'SYSTEM_SETTINGS'];
+        const sensitiveChecks = sensitiveActions.map(act => `action NOT LIKE '%${act}%'`).join(' AND ');
+
         filters.push(`(
-            user IS NOT NULL 
+            [user] IS NOT NULL 
             OR 
-            (user IS NULL AND action NOT REGEXP '${sensitiveParams}')
+            ([user] IS NULL AND (${sensitiveChecks}))
         )`);
     }
 
@@ -134,13 +137,15 @@ export const getAllAudits = asyncHandler(async (req, res) => {
     // Sorting
     const sortBy = req.query.sortBy || 'createdAt';
     // Validate sort column to prevent SQL injection
+    // Validate sort column to prevent SQL injection
     const allowedSorts = ['createdAt', 'action', 'severity', 'user', 'ip'];
-    const safeSortBy = allowedSorts.includes(sortBy) ? sortBy : 'createdAt';
+    let safeSortBy = allowedSorts.includes(sortBy) ? sortBy : 'createdAt';
+    if (safeSortBy === 'user') safeSortBy = '[user]';
     const order = req.query.order === 'asc' ? 'ASC' : 'DESC';
 
     const [rows] = await pool.query(
-        `SELECT * FROM audits ${whereClause} ORDER BY ${safeSortBy} ${order} LIMIT ? OFFSET ?`,
-        [...params, limit, offset]
+        `SELECT * FROM audits ${whereClause} ORDER BY ${safeSortBy} ${order} OFFSET ? ROWS FETCH NEXT ? ROWS ONLY`,
+        [...params, offset, limit]
     );
 
     let audits = rows.map(r => new Audit(r));

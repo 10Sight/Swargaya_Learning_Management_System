@@ -17,17 +17,21 @@ class Machine {
 
     static async init() {
         const query = `
-            CREATE TABLE IF NOT EXISTS machines (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
-                line VARCHAR(255) NOT NULL,
-                description TEXT,
-                isActive BOOLEAN DEFAULT TRUE,
-                createdAt DATETIME,
-                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                UNIQUE KEY unique_line_machine (name, line),
-                INDEX idx_line (line)
-            )
+            IF OBJECT_ID(N'dbo.machines', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.machines (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    line VARCHAR(255) NOT NULL,
+                    description VARCHAR(MAX),
+                    isActive BIT DEFAULT 1,
+                    createdAt DATETIME DEFAULT GETDATE(),
+                    updatedAt DATETIME DEFAULT GETDATE(),
+                    CONSTRAINT unique_line_machine UNIQUE (name, line)
+                );
+                
+                CREATE INDEX idx_line ON dbo.machines(line);
+            END
         `;
         try {
             await pool.query(query);
@@ -71,7 +75,7 @@ class Machine {
         const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
         const values = keys.map(key => query[key]);
 
-        const [rows] = await pool.query(`SELECT * FROM machines WHERE ${whereClause} LIMIT 1`, values);
+        const [rows] = await pool.query(`SELECT TOP 1 * FROM machines WHERE ${whereClause}`, values);
         if (rows.length === 0) return null;
         return new Machine(rows[0]);
     }
@@ -107,8 +111,10 @@ class Machine {
     }
 
     async save() {
+        this.updatedAt = new Date(); // Manually update timestamp
+
         const fields = [
-            "name", "line", "description", "isActive"
+            "name", "line", "description", "isActive", "updatedAt"
         ];
 
         const setClause = fields.map(field => `${field} = ?`).join(", ");

@@ -21,9 +21,9 @@ const AssignRoleModal = ({ open, onClose, roles, users, onSuccess }) => {
   // Filter users based on search term
   const filteredUsers = useMemo(() => {
     if (!searchTerm) return users;
-    
+
     const lowerSearchTerm = searchTerm.toLowerCase();
-    return users.filter(user => 
+    return users.filter(user =>
       user.fullName?.toLowerCase().includes(lowerSearchTerm) ||
       user.userName?.toLowerCase().includes(lowerSearchTerm) ||
       user.email?.toLowerCase().includes(lowerSearchTerm) ||
@@ -33,7 +33,7 @@ const AssignRoleModal = ({ open, onClose, roles, users, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!selectedUser) {
       toast.error('Please select a user');
       return;
@@ -78,8 +78,8 @@ const AssignRoleModal = ({ open, onClose, roles, users, onSuccess }) => {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1300] p-4 text-left">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center space-x-3">
@@ -102,12 +102,12 @@ const AssignRoleModal = ({ open, onClose, roles, users, onSuccess }) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col h-full">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {/* User Selection */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900">Select User</h3>
-              
+
               {/* Search */}
               <div className="relative">
                 <IconSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
@@ -125,11 +125,10 @@ const AssignRoleModal = ({ open, onClose, roles, users, onSuccess }) => {
                 {filteredUsers.length > 0 ? (
                   <div className="divide-y divide-gray-200">
                     {filteredUsers.map((user) => (
-                      <label 
-                        key={user.id} 
-                        className={`flex items-center space-x-3 p-4 cursor-pointer hover:bg-gray-50 ${
-                          selectedUser?.id === user.id ? 'bg-blue-50 border-blue-200' : ''
-                        }`}
+                      <label
+                        key={user.id}
+                        className={`flex items-center space-x-3 p-4 cursor-pointer hover:bg-gray-50 ${selectedUser?.id === user.id ? 'bg-blue-50 border-blue-200' : ''
+                          }`}
                       >
                         <input
                           type="radio"
@@ -174,16 +173,15 @@ const AssignRoleModal = ({ open, onClose, roles, users, onSuccess }) => {
             {/* Role Selection */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900">Select Role</h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {roles.map((role) => (
-                  <label 
+                  <label
                     key={role.id}
-                    className={`flex items-center space-x-3 p-4 border rounded-lg cursor-pointer transition-colors ${
-                      selectedRole === role.id 
-                        ? 'border-blue-500 bg-blue-50' 
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
+                    className={`flex items-center space-x-3 p-4 border rounded-lg cursor-pointer transition-colors ${selectedRole === role.id
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
                   >
                     <input
                       type="radio"
@@ -217,7 +215,7 @@ const AssignRoleModal = ({ open, onClose, roles, users, onSuccess }) => {
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <h4 className="font-medium text-blue-900 mb-2">Current Assignment</h4>
                 <p className="text-blue-800">
-                  <strong>{selectedUser.fullName || selectedUser.userName}</strong> currently has the role: 
+                  <strong>{selectedUser.fullName || selectedUser.userName}</strong> currently has the role:
                   <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(selectedUser.role)}`}>
                     {selectedUser.role}
                   </span>

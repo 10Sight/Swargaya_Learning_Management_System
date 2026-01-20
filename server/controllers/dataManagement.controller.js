@@ -506,7 +506,7 @@ export const getDataStatistics = asyncHandler(async (req, res) => {
         // Requires checking schema or wrapping try catch
         let recent = 0;
         try {
-            const [recRows] = await pool.query(`SELECT COUNT(*) as c FROM ${tableName} WHERE createdAt >= DATE_SUB(NOW(), INTERVAL 7 DAY)`);
+            const [recRows] = await pool.query(`SELECT COUNT(*) as c FROM ${tableName} WHERE createdAt >= DATEADD(day, -7, GETDATE())`);
             recent = recRows[0].c;
         } catch (e) { }
 
@@ -539,12 +539,12 @@ export const cleanupOldData = asyncHandler(async (req, res) => {
     const results = {};
 
     if (cleanupAuditLogs) {
-        const sql = "SELECT COUNT(*) as count FROM audits WHERE createdAt < DATE_SUB(NOW(), INTERVAL ? DAY)";
+        const sql = "SELECT COUNT(*) as count FROM audits WHERE createdAt < DATEADD(day, -?, GETDATE())";
         const [rows] = await pool.query(sql, [auditLogRetentionDays]);
         results.auditLogs = { toDelete: rows[0].count };
 
         if (!dryRun) {
-            await pool.query("DELETE FROM audits WHERE createdAt < DATE_SUB(NOW(), INTERVAL ? DAY)", [auditLogRetentionDays]);
+            await pool.query("DELETE FROM audits WHERE createdAt < DATEADD(day, -?, GETDATE())", [auditLogRetentionDays]);
             results.auditLogs.deleted = rows[0].count;
         }
     }

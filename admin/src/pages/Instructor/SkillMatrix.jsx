@@ -29,7 +29,7 @@ const InstructorSkillMatrix = () => {
         departmentId: selectedDepartment,
         lineId: selectedLine
     }, {
-        skip: !selectedDepartment || !selectedLine
+        skip: !selectedDepartment || !selectedLine || selectedDepartment === "undefined" || selectedLine === "undefined"
     });
 
     const [saveSkillMatrix, { isLoading: isSaving }] = useSaveSkillMatrixMutation();
@@ -46,7 +46,7 @@ const InstructorSkillMatrix = () => {
 
     // 3. Machines for Table Columns (Dependent on Line)
     const { data: machinesData, isLoading: isMachinesLoading } = useGetMachinesByLineQuery(selectedLine, {
-        skip: !selectedLine
+        skip: !selectedLine || selectedLine === "undefined"
     });
 
     // 4. Users (Instructors & Students) - Filtered by Department client-side or assume API supports it
@@ -71,14 +71,24 @@ const InstructorSkillMatrix = () => {
     const departmentUsers = React.useMemo(() => {
         if (!selectedDepartment || !departmentsData?.data?.departments) return [];
 
-        const selectedDept = departmentsData.data.departments.find(d => String(d._id) === String(selectedDepartment));
+        const selectedDept = departmentsData.data.departments.find(d => String(d.id || d._id) === String(selectedDepartment));
         if (!selectedDept) return [];
 
         const users = [];
 
         // Add Instructor (TNR)
         // Access nested properties if needed, usually passed as object
-        if (selectedDept.instructor) {
+        // Add Instructors (TNR)
+        if (selectedDept.instructors && Array.isArray(selectedDept.instructors)) {
+            selectedDept.instructors.forEach(inst => {
+                users.push({
+                    ...inst,
+                    type: 'TNR',
+                    level: 'L-5'
+                });
+            });
+        } else if (selectedDept.instructor && typeof selectedDept.instructor === 'object') {
+            // Fallback for legacy single instructor
             users.push({
                 ...selectedDept.instructor,
                 type: 'TNR',
@@ -114,7 +124,7 @@ const InstructorSkillMatrix = () => {
 
                 // Default stations (New User)
                 const defaultStations = activeMachines.map(machine => ({
-                    _id: machine._id,
+                    _id: machine.id || machine._id,
                     name: machine.name,
                     critical: "Non-Critical",
                     min: "L-1",
@@ -125,9 +135,9 @@ const InstructorSkillMatrix = () => {
                 // We map over ACTIVE machines to ensure if a machine was removed, it's gone, 
                 // and if added, it appears (with default)
                 const mergedStations = activeMachines.map(machine => {
-                    const savedStation = savedUserEntry?.stations?.find(s => s.machineId === machine._id);
+                    const savedStation = savedUserEntry?.stations?.find(s => s.machineId === (machine.id || machine._id));
                     return {
-                        _id: machine._id,
+                        _id: machine.id || machine._id,
                         name: machine.name,
                         critical: savedStation?.critical || "Non-Critical",
                         min: savedStation?.min || "L-1",
@@ -143,7 +153,7 @@ const InstructorSkillMatrix = () => {
                 }
 
                 // Assigned Station
-                const firstMachineId = activeMachines.length > 0 ? activeMachines[0]._id : "";
+                const firstMachineId = activeMachines.length > 0 ? (activeMachines[0].id || activeMachines[0]._id) : "";
                 const assignedStationId = savedUserEntry?.assignedStationId || firstMachineId;
 
                 return {
@@ -164,9 +174,9 @@ const InstructorSkillMatrix = () => {
             const manualRows = savedEntries.filter(e => e.isManual).map((entry, idx) => {
                 // Re-map stations to current active machines
                 const mergedStations = activeMachines.map(machine => {
-                    const savedStation = entry.stations?.find(s => s.machineId === machine._id);
+                    const savedStation = entry.stations?.find(s => s.machineId === (machine.id || machine._id));
                     return {
-                        _id: machine._id,
+                        _id: machine.id || machine._id,
                         name: machine.name,
                         critical: savedStation?.critical || "Non-Critical",
                         min: savedStation?.min || "L-1",
@@ -199,7 +209,7 @@ const InstructorSkillMatrix = () => {
     }, [selectedLine, machinesData, departmentUsers, savedMatrixData]);
 
     const handleSave = async () => {
-        if (!selectedDepartment || !selectedLine) {
+        if (!selectedDepartment || !selectedLine || selectedLine === "undefined" || selectedDepartment === "undefined") {
             toast.error("Please select Department and Line first");
             return;
         }
@@ -252,14 +262,14 @@ const InstructorSkillMatrix = () => {
         const activeMachines = machinesData.data;
 
         const stations = activeMachines.map(machine => ({
-            _id: machine._id,
+            _id: machine.id || machine._id,
             name: machine.name,
             critical: "Non-Critical",
             min: "L-1",
             curr: "L-1",
         }));
 
-        const firstMachineId = activeMachines.length > 0 ? activeMachines[0]._id : "";
+        const firstMachineId = activeMachines.length > 0 ? (activeMachines[0].id || activeMachines[0]._id) : "";
 
         setMatrixEntries(prev => [
             ...prev,
@@ -478,12 +488,12 @@ const InstructorSkillMatrix = () => {
                 entry.department,
                 entry.type,
                 entry.doj,
-                entry.assignedStationId ? machines.find(m => m._id === entry.assignedStationId)?.name || "-" : "-"
+                entry.assignedStationId ? machines.find(m => (m.id || m._id) === entry.assignedStationId)?.name || "-" : "-"
             ];
 
             // Machine Skills (Icons in UI -> Text in Excel)
             machines.forEach((machine) => {
-                const station = entry.stations.find(s => s._id === machine._id);
+                const station = entry.stations.find(s => s._id === (machine.id || machine._id));
                 // In UI it shows icon. In Excel we can show Level No (e.g. 4)
                 if (station) {
                     const levelNum = station.curr ? parseInt(station.curr.replace('L-', '')) || 0 : 0;
@@ -659,7 +669,7 @@ const InstructorSkillMatrix = () => {
     };
 
     const selectedDeptName = departmentsData?.data?.departments?.find(d => String(d._id) === String(selectedDepartment))?.name || "Select Department";
-    const selectedLineDetail = linesData?.data?.find(l => String(l._id) === String(selectedLine));
+    const selectedLineDetail = linesData?.data?.find(l => String(l.id || l._id) === String(selectedLine));
     const lineName = selectedLineDetail?.name || "Select Line";
 
     return (
@@ -700,7 +710,7 @@ const InstructorSkillMatrix = () => {
                             </SelectTrigger>
                             <SelectContent>
                                 {departmentsData?.data?.departments?.map(dept => (
-                                    <SelectItem key={String(dept._id)} value={String(dept._id)}>{dept.name}</SelectItem>
+                                    <SelectItem key={String(dept.id || dept._id)} value={String(dept.id || dept._id)}>{dept.name}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -713,7 +723,7 @@ const InstructorSkillMatrix = () => {
                             </SelectTrigger>
                             <SelectContent>
                                 {linesData?.data?.map(line => (
-                                    <SelectItem key={String(line._id)} value={String(line._id)}>{line.name}</SelectItem>
+                                    <SelectItem key={String(line.id || line._id)} value={String(line.id || line._id)}>{line.name}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>

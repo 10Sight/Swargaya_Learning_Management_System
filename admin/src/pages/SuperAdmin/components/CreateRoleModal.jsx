@@ -4,7 +4,8 @@ import {
   IconShield,
   IconCheck,
   IconLoader,
-  IconAlertTriangle
+  IconAlertTriangle,
+  IconChevronDown
 } from '@tabler/icons-react';
 import { toast } from 'react-toastify';
 import { useCreateRoleMutation } from '@/Redux/AllApi/SuperAdminApi';
@@ -43,26 +44,27 @@ const CreateRoleModal = ({ open, onClose, permissions, onSuccess }) => {
   };
 
   const handleCategoryToggle = (category, categoryPermissions) => {
-    const allSelected = categoryPermissions.every(p => formData.permissions.includes(p));
-    
+    const categoryPermissionIds = categoryPermissions.map(p => p.id);
+    const allSelected = categoryPermissionIds.every(id => formData.permissions.includes(id));
+
     if (allSelected) {
       // Remove all permissions from this category
       setFormData(prev => ({
         ...prev,
-        permissions: prev.permissions.filter(p => !categoryPermissions.includes(p))
+        permissions: prev.permissions.filter(id => !categoryPermissionIds.includes(id))
       }));
     } else {
       // Add all permissions from this category
       setFormData(prev => ({
         ...prev,
-        permissions: [...new Set([...prev.permissions, ...categoryPermissions])]
+        permissions: [...new Set([...prev.permissions, ...categoryPermissionIds])]
       }));
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.name.trim()) {
       toast.error('Role name is required');
       return;
@@ -97,8 +99,8 @@ const CreateRoleModal = ({ open, onClose, permissions, onSuccess }) => {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1300] p-4 text-left">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center space-x-3">
@@ -121,12 +123,12 @@ const CreateRoleModal = ({ open, onClose, permissions, onSuccess }) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col h-full">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {/* Basic Information */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900">Basic Information</h3>
-              
+
               <div>
                 <label htmlFor="roleName" className="block text-sm font-medium text-gray-700 mb-2">
                   Role Name *
@@ -168,7 +170,8 @@ const CreateRoleModal = ({ open, onClose, permissions, onSuccess }) => {
 
               {Object.entries(permissions).map(([category, categoryPermissions]) => {
                 const isExpanded = expandedCategories[category];
-                const selectedCount = categoryPermissions.filter(p => formData.permissions.includes(p)).length;
+                // categoryPermissions are objects {id, name, description}
+                const selectedCount = categoryPermissions.filter(p => formData.permissions.includes(p.id)).length;
                 const allSelected = selectedCount === categoryPermissions.length;
 
                 return (
@@ -197,9 +200,9 @@ const CreateRoleModal = ({ open, onClose, permissions, onSuccess }) => {
                           onClick={() => toggleCategory(category)}
                           className="text-gray-400 hover:text-gray-600"
                         >
-                          <IconCheck 
-                            size={16} 
-                            className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+                          <IconChevronDown
+                            size={16}
+                            className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                           />
                         </button>
                       </div>
@@ -209,14 +212,14 @@ const CreateRoleModal = ({ open, onClose, permissions, onSuccess }) => {
                     {isExpanded && (
                       <div className="p-4 space-y-2">
                         {categoryPermissions.map((permission) => (
-                          <label key={permission} className="flex items-center space-x-2">
+                          <label key={permission.id} className="flex items-center space-x-2">
                             <input
                               type="checkbox"
-                              checked={formData.permissions.includes(permission)}
-                              onChange={() => handlePermissionToggle(permission)}
+                              checked={formData.permissions.includes(permission.id)}
+                              onChange={() => handlePermissionToggle(permission.id)}
                               className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                             />
-                            <span className="text-sm text-gray-700">{permission}</span>
+                            <span className="text-sm text-gray-700">{permission.name}</span>
                           </label>
                         ))}
                       </div>

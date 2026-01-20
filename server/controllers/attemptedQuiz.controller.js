@@ -521,7 +521,7 @@ export const submitQuiz = asyncHandler(async (req, res) => {
         const progress = await Progress.findOne({ student: userId, course: quiz.course.id });
         if (progress) {
             // Find modules in order
-            const [allModules] = await pool.query("SELECT * FROM modules WHERE course = ? ORDER BY `order` ASC", [quiz.course.id]);
+            const [allModules] = await pool.query("SELECT * FROM modules WHERE course = ? ORDER BY [order] ASC", [quiz.course.id]);
 
             const currentModuleIndex = allModules.findIndex(m => String(m.id) === String(quiz.module.id));
 
@@ -566,6 +566,19 @@ export const submitQuiz = asyncHandler(async (req, res) => {
                     progress.currentLevel = nextLevel.name;
                     levelUpgraded = true;
                     newLevel = nextLevel.name;
+
+                    // Record level completion history
+                    if (!progress.levelHistory) progress.levelHistory = [];
+                    // Check if already recorded (idempotency)
+                    const normalizedLevel = String(newLevel).toUpperCase();
+                    const existingEntry = progress.levelHistory.find(h => String(h.level).toUpperCase() === normalizedLevel);
+                    if (!existingEntry) {
+                        progress.levelHistory.push({
+                            level: newLevel,
+                            achievedAt: new Date()
+                        });
+                    }
+
                     await progress.save();
 
                     // Sync to Users table
@@ -589,7 +602,7 @@ export const submitQuiz = asyncHandler(async (req, res) => {
                             let template = await CertificateTemplate.findOne({ isDefault: 1, isActive: 1 });
                             if (!template) {
                                 // Find one active
-                                const [temps] = await pool.query("SELECT * FROM certificate_templates WHERE isActive = 1 ORDER BY createdAt ASC LIMIT 1");
+                                const [temps] = await pool.query("SELECT TOP 1 * FROM certificate_templates WHERE isActive = 1 ORDER BY createdAt ASC");
                                 if (temps.length > 0) template = new CertificateTemplate(temps[0]);
                             }
 

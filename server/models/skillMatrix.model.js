@@ -29,19 +29,23 @@ class SkillMatrix {
 
     static async init() {
         const query = `
-            CREATE TABLE IF NOT EXISTS skill_matrices (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                department VARCHAR(255) NOT NULL,
-                line VARCHAR(255) NOT NULL,
-                entries TEXT,
-                headerInfo TEXT,
-                footerInfo TEXT,
-                createdAt DATETIME,
-                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                UNIQUE KEY unique_dept_line (department, line),
-                INDEX idx_department (department),
-                INDEX idx_line (line)
-            )
+            IF OBJECT_ID(N'dbo.skill_matrices', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.skill_matrices (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    department VARCHAR(255) NOT NULL,
+                    line VARCHAR(255) NOT NULL,
+                    entries VARCHAR(MAX),
+                    headerInfo VARCHAR(MAX),
+                    footerInfo VARCHAR(MAX),
+                    createdAt DATETIME DEFAULT GETDATE(),
+                    updatedAt DATETIME DEFAULT GETDATE(),
+                    CONSTRAINT unique_matrix_dept_line UNIQUE (department, line)
+                );
+                
+                CREATE INDEX idx_department ON dbo.skill_matrices(department);
+                CREATE INDEX idx_line ON dbo.skill_matrices(line);
+            END
         `;
         try {
             await pool.query(query);
@@ -88,7 +92,7 @@ class SkillMatrix {
         const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
         const values = keys.map(key => query[key]);
 
-        const [rows] = await pool.query(`SELECT * FROM skill_matrices WHERE ${whereClause} LIMIT 1`, values);
+        const [rows] = await pool.query(`SELECT TOP 1 * FROM skill_matrices WHERE ${whereClause}`, values);
         if (rows.length === 0) return null;
         return new SkillMatrix(rows[0]);
     }
@@ -124,8 +128,10 @@ class SkillMatrix {
     }
 
     async save() {
+        this.updatedAt = new Date(); // Manually update timestamp
+
         const fields = [
-            "department", "line", "entries", "headerInfo", "footerInfo"
+            "department", "line", "entries", "headerInfo", "footerInfo", "updatedAt"
         ];
 
         const setClause = fields.map(field => `${field} = ?`).join(", ");

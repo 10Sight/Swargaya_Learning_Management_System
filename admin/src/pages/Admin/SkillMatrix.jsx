@@ -29,7 +29,7 @@ const SkillMatrix = () => {
         departmentId: selectedDepartment,
         lineId: selectedLine
     }, {
-        skip: !selectedDepartment || !selectedLine
+        skip: !selectedDepartment || !selectedLine || selectedDepartment === "undefined" || selectedLine === "undefined"
     });
 
     const [saveSkillMatrix, { isLoading: isSaving }] = useSaveSkillMatrixMutation();
@@ -46,7 +46,7 @@ const SkillMatrix = () => {
 
     // 3. Machines for Table Columns (Dependent on Line)
     const { data: machinesData, isLoading: isMachinesLoading } = useGetMachinesByLineQuery(selectedLine, {
-        skip: !selectedLine
+        skip: !selectedLine || selectedLine === "undefined"
     });
 
     // 4. Users (Instructors & Students) - Filtered by Department client-side or assume API supports it
@@ -69,16 +69,32 @@ const SkillMatrix = () => {
 
     // Memoize Department Users for Dropdown and Initial Population
     const departmentUsers = React.useMemo(() => {
-        if (!selectedDepartment || !departmentsData?.data?.departments) return [];
+        if (!selectedDepartment || !departmentsData?.data?.departments) {
+            console.log("No Dept Selected or No Dept Data");
+            return [];
+        }
 
         const selectedDept = departmentsData.data.departments.find(d => String(d._id) === String(selectedDepartment));
-        if (!selectedDept) return [];
+        if (!selectedDept) {
+            console.log("Selected Dept Not Found in Data:", selectedDepartment);
+            return [];
+        }
 
         const users = [];
 
         // Add Instructor (TNR)
         // Access nested properties if needed, usually passed as object
-        if (selectedDept.instructor) {
+        // Add Instructors (TNR)
+        if (selectedDept.instructors && Array.isArray(selectedDept.instructors)) {
+            selectedDept.instructors.forEach(inst => {
+                users.push({
+                    ...inst,
+                    type: 'TNR',
+                    level: 'L-5'
+                });
+            });
+        } else if (selectedDept.instructor && typeof selectedDept.instructor === 'object') {
+            // Fallback for legacy single instructor
             users.push({
                 ...selectedDept.instructor,
                 type: 'TNR',
@@ -103,7 +119,15 @@ const SkillMatrix = () => {
 
     // Initialize Matrix on Line Selection (Merge Logic)
     useEffect(() => {
-        if (selectedLine && machinesData?.data) {
+        console.log("SkillMatrix Effect Triggered:", {
+            selectedLine,
+            hasMachinesData: !!machinesData?.data,
+            machinesCount: machinesData?.data?.length,
+            usersCount: departmentUsers.length,
+            savedEntriesCount: savedMatrixData?.data?.entries?.length
+        });
+
+        if (selectedLine && selectedLine !== "undefined" && machinesData?.data) {
             const activeMachines = machinesData.data;
             const savedEntries = savedMatrixData?.data?.entries || [];
 
@@ -199,7 +223,7 @@ const SkillMatrix = () => {
     }, [selectedLine, machinesData, departmentUsers, savedMatrixData]);
 
     const handleSave = async () => {
-        if (!selectedDepartment || !selectedLine) {
+        if (!selectedDepartment || !selectedLine || selectedLine === "undefined") {
             toast.error("Please select Department and Line first");
             return;
         }
@@ -311,27 +335,43 @@ const SkillMatrix = () => {
     };
 
     const handleLevelChange = (rowIdx, stationIdx, newLevel) => {
-        const updatedEntries = [...matrixEntries];
-        updatedEntries[rowIdx].stations[stationIdx].curr = newLevel;
-        setMatrixEntries(updatedEntries);
+        setMatrixEntries(prev => {
+            const updated = [...prev];
+            const row = { ...updated[rowIdx] };
+            const stations = [...row.stations];
+            stations[stationIdx] = { ...stations[stationIdx], curr: newLevel };
+            row.stations = stations;
+            updated[rowIdx] = row;
+            return updated;
+        });
     };
 
     const handleCriticalityChange = (rowIdx, stationIdx, value) => {
-        const updatedEntries = [...matrixEntries];
-        updatedEntries[rowIdx].stations[stationIdx].critical = value;
-        setMatrixEntries(updatedEntries);
+        setMatrixEntries(prev => {
+            const updated = [...prev];
+            const row = { ...updated[rowIdx] };
+            const stations = [...row.stations];
+            stations[stationIdx] = { ...stations[stationIdx], critical: value };
+            row.stations = stations;
+            updated[rowIdx] = row;
+            return updated;
+        });
     };
 
     const handleDetCasChange = (index, value) => {
-        const updatedEntries = [...matrixEntries];
-        updatedEntries[index].detCas = value;
-        setMatrixEntries(updatedEntries);
+        setMatrixEntries(prev => {
+            const updated = [...prev];
+            updated[index] = { ...updated[index], detCas: value };
+            return updated;
+        });
     };
 
     const handleAssignedStationChange = (index, value) => {
-        const updatedEntries = [...matrixEntries];
-        updatedEntries[index].assignedStationId = value;
-        setMatrixEntries(updatedEntries);
+        setMatrixEntries(prev => {
+            const updated = [...prev];
+            updated[index] = { ...updated[index], assignedStationId: value };
+            return updated;
+        });
     };
 
     // Header Info State
@@ -659,7 +699,7 @@ const SkillMatrix = () => {
     };
 
     const selectedDeptName = departmentsData?.data?.departments?.find(d => String(d._id) === String(selectedDepartment))?.name || "Select Department";
-    const selectedLineDetail = linesData?.data?.find(l => String(l._id) === String(selectedLine));
+    const selectedLineDetail = linesData?.data?.find(l => String(l.id || l._id) === String(selectedLine));
     const lineName = selectedLineDetail?.name || "Select Line";
 
     return (
@@ -713,7 +753,7 @@ const SkillMatrix = () => {
                             </SelectTrigger>
                             <SelectContent>
                                 {linesData?.data?.map(line => (
-                                    <SelectItem key={String(line._id)} value={String(line._id)}>{line.name}</SelectItem>
+                                    <SelectItem key={String(line.id || line._id)} value={String(line.id || line._id)}>{line.name}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -841,7 +881,7 @@ const SkillMatrix = () => {
 
                             {/* Assigned Station Details */}
                             {(() => {
-                                const assignedStation = row.stations.find(s => s._id === row.assignedStationId) || row.stations[0];
+                                const assignedStation = row.stations.find(s => String(s._id) === String(row.assignedStationId)) || row.stations[0];
                                 return (
                                     <>
                                         <div className="w-32 border-r border-black p-1 flex items-center justify-center">
@@ -864,13 +904,16 @@ const SkillMatrix = () => {
                                             {row.type === 'TNR' ? (
                                                 <span className="text-[9px] font-bold">Not Applicable</span>
                                             ) : (
-                                                <Select value={assignedStation?.critical || ""} onValueChange={(val) => {
+                                                <Select value={String(assignedStation?.critical || "")} onValueChange={(val) => {
                                                     // Find the index of the assigned station in the stations array
-                                                    const sIdx = row.stations.findIndex(s => String(s._id) === String(row.assignedStationId));
+                                                    let sIdx = row.stations.findIndex(s => String(s._id) === String(row.assignedStationId));
+                                                    // Fallback to 0 if not found, matching the display '|| row.stations[0]' logic
+                                                    if (sIdx === -1 && row.stations.length > 0) sIdx = 0;
+
                                                     if (sIdx !== -1) handleCriticalityChange(idx, sIdx, val);
                                                 }}>
                                                     <SelectTrigger className="w-full h-full border-none p-0 text-[9px] font-bold bg-transparent">
-                                                        <div className="truncate">{assignedStation?.critical || "-"}</div>
+                                                        <SelectValue placeholder="-" />
                                                     </SelectTrigger>
                                                     <SelectContent>
                                                         <SelectItem value="Critical">Critical</SelectItem>

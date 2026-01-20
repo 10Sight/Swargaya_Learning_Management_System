@@ -21,7 +21,7 @@ const getActiveLevelConfig = async () => {
     // If CourseLevelConfig model has SQL method, use it. Otherwise query.
     // Assuming model is refactored to export helper. If not, we query.
     // Let's assume we can query 'course_level_configs' table.
-    const [rows] = await pool.query("SELECT * FROM course_level_configs WHERE isActive = 1 LIMIT 1");
+    const [rows] = await pool.query("SELECT TOP 1 * FROM course_level_configs WHERE isActive = 1");
     if (rows.length === 0) return null;
     rows[0].levels = parseJSON(rows[0].levels, []);
     return rows[0]; // with levels parsed
@@ -45,12 +45,12 @@ export const initializeProgress = asyncHandler(async (req, res) => {
     const [result] = await pool.query(
         `INSERT INTO progress 
         (student, course, currentLevel, completedLessons, completedModules, quizzes, assignments, progressPercent, createdAt, updatedAt)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;`,
         [userId, courseId, firstLevel, JSON.stringify([]), JSON.stringify([]), JSON.stringify([]), JSON.stringify([]), 0]
     );
 
     // Fetch created
-    const [rows] = await pool.query("SELECT * FROM progress WHERE id = ?", [result.insertId]);
+    const [rows] = await pool.query("SELECT * FROM progress WHERE id = ?", [result[0].id]);
     const progress = rows[0];
     if (progress) {
         progress.completedLessons = parseJSON(progress.completedLessons);
@@ -69,7 +69,7 @@ export const updateProgress = asyncHandler(async (req, res) => {
     const [rows] = await pool.query("SELECT * FROM progress WHERE student = ? AND course = ?", [userId, courseId]);
     if (rows.length === 0) throw new ApiError("Progress not found", 404);
 
-    await pool.query("UPDATE progress SET lastAccessed = NOW() WHERE id = ?", [rows[0].id]);
+    await pool.query("UPDATE progress SET lastAccessed = GETDATE() WHERE id = ?", [rows[0].id]);
 
     // Return updated
     rows[0].lastAccessed = new Date();
@@ -91,7 +91,7 @@ export const markLessonComplete = asyncHandler(async (req, res) => {
     if (modules.length === 0) throw new ApiError("Module not found", 404);
 
     // Get all lessons in module for sequence check
-    const [moduleLessons] = await pool.query("SELECT id, `order` FROM lessons WHERE module = ? ORDER BY `order` ASC", [lesson.module]);
+    const [moduleLessons] = await pool.query("SELECT id, [order] FROM lessons WHERE module = ? ORDER BY [order] ASC", [lesson.module]);
     const lessonIndex = moduleLessons.findIndex(l => String(l.id) === String(lessonId));
     if (lessonIndex === -1) throw new ApiError("Lesson not found in module", 404);
 
@@ -103,10 +103,10 @@ export const markLessonComplete = asyncHandler(async (req, res) => {
         const levelConfig = await getActiveLevelConfig();
         const firstLevel = levelConfig && levelConfig.levels.length > 0 ? levelConfig.levels[0].name : "L1";
         const [result] = await pool.query(
-            `INSERT INTO progress (student, course, currentLevel, completedLessons, completedModules, quizzes, assignments, progressPercent, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+            `INSERT INTO progress (student, course, currentLevel, completedLessons, completedModules, quizzes, assignments, progressPercent, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;`,
             [userId, courseId, firstLevel, '[]', '[]', '[]', '[]', 0]
         );
-        const [newP] = await pool.query("SELECT * FROM progress WHERE id = ?", [result.insertId]);
+        const [newP] = await pool.query("SELECT * FROM progress WHERE id = ?", [result[0].id]);
         progress = newP[0];
     } else {
         progress = pRows[0];
@@ -125,10 +125,10 @@ export const markLessonComplete = asyncHandler(async (req, res) => {
     const isAlreadyCompleted = completedLessons.some(cl => String(cl.lessonId) === String(lessonId));
     if (!isAlreadyCompleted) {
         completedLessons.push({ lessonId, completedAt: new Date() });
-        await pool.query("UPDATE progress SET completedLessons = ?, lastAccessed = NOW() WHERE id = ?", [JSON.stringify(completedLessons), progress.id]);
+        await pool.query("UPDATE progress SET completedLessons = ?, lastAccessed = GETDATE() WHERE id = ?", [JSON.stringify(completedLessons), progress.id]);
         progress.completedLessons = JSON.stringify(completedLessons); // Update local for response
     } else {
-        await pool.query("UPDATE progress SET lastAccessed = NOW() WHERE id = ?", [progress.id]);
+        await pool.query("UPDATE progress SET lastAccessed = GETDATE() WHERE id = ?", [progress.id]);
     }
 
     // Format response
@@ -147,7 +147,7 @@ export const markModuleComplete = asyncHandler(async (req, res) => {
     const [courses] = await pool.query("SELECT * FROM courses WHERE id = ?", [courseId]);
     if (courses.length === 0) throw new ApiError("Course not found", 404);
 
-    const [courseModules] = await pool.query("SELECT id, `order` FROM modules WHERE course = ? ORDER BY `order` ASC", [courseId]);
+    const [courseModules] = await pool.query("SELECT id, [order] FROM modules WHERE course = ? ORDER BY [order] ASC", [courseId]);
     const modIndex = courseModules.findIndex(m => String(m.id) === String(moduleId));
     if (modIndex === -1) throw new ApiError("Module not found in course", 404);
 
@@ -158,10 +158,10 @@ export const markModuleComplete = asyncHandler(async (req, res) => {
         const levelConfig = await getActiveLevelConfig();
         const firstLevel = levelConfig && levelConfig.levels.length > 0 ? levelConfig.levels[0].name : "L1";
         const [result] = await pool.query(
-            `INSERT INTO progress (student, course, currentLevel, completedLessons, completedModules, quizzes, assignments, progressPercent, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+            `INSERT INTO progress (student, course, currentLevel, completedLessons, completedModules, quizzes, assignments, progressPercent, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;`,
             [userId, courseId, firstLevel, '[]', '[]', '[]', '[]', 0]
         );
-        const [newP] = await pool.query("SELECT * FROM progress WHERE id = ?", [result.insertId]);
+        const [newP] = await pool.query("SELECT * FROM progress WHERE id = ?", [result[0].id]);
         progress = newP[0];
     } else {
         progress = pRows[0];
@@ -201,7 +201,7 @@ export const markModuleComplete = asyncHandler(async (req, res) => {
         }
 
         await pool.query(
-            "UPDATE progress SET completedModules = ?, progressPercent = ?, currentLevel = ?, lastAccessed = NOW() WHERE id = ?",
+            "UPDATE progress SET completedModules = ?, progressPercent = ?, currentLevel = ?, lastAccessed = GETDATE() WHERE id = ?",
             [JSON.stringify(completedModules), percent, currentLevel, progress.id]
         );
         progress.completedModules = completedModules;
@@ -213,7 +213,7 @@ export const markModuleComplete = asyncHandler(async (req, res) => {
         }
         progress.currentLevel = currentLevel;
     } else {
-        await pool.query("UPDATE progress SET lastAccessed = NOW() WHERE id = ?", [progress.id]);
+        await pool.query("UPDATE progress SET lastAccessed = GETDATE() WHERE id = ?", [progress.id]);
     }
 
     // Check certificate
@@ -345,7 +345,7 @@ export const upgradeLevel = asyncHandler(async (req, res) => {
                     level1Date: formatDate(level1DateObj),
                     level2Date: formatDate(level2DateObj),
                     level3Date: formatDate(level3DateObj),
-                    userImage: student.avatar?.url || 'https://via.placeholder.com/150',
+                    userImage: student.avatar?.url || 'https://placehold.co/150',
                     pieChart: pieChartCss
                 };
 
@@ -444,11 +444,11 @@ export const getOrInitializeProgress = asyncHandler(async (req, res) => {
         const levelConfig = await getActiveLevelConfig();
         const firstLevel = levelConfig && levelConfig.levels.length > 0 ? levelConfig.levels[0].name : "L1";
         const [resP] = await pool.query(
-            `INSERT INTO progress (student, course, currentLevel, completedLessons, completedModules, quizzes, assignments, progressPercent, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+            `INSERT INTO progress (student, course, currentLevel, completedLessons, completedModules, quizzes, assignments, progressPercent, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;`,
             [userId, courseId, firstLevel, '[]', '[]', '[]', '[]', 0]
         );
         progress = {
-            id: resP.insertId, student: userId, course: courseId, currentLevel: firstLevel,
+            id: resP[0].id, student: userId, course: courseId, currentLevel: firstLevel,
             completedLessons: [], completedModules: [],
             quizzes: [], assignments: [], progressPercent: 0
         };
@@ -493,10 +493,10 @@ export const setStudentLevel = asyncHandler(async (req, res) => {
         const levelConfig = await getActiveLevelConfig();
         const firstLevel = levelConfig && levelConfig.levels.length > 0 ? levelConfig.levels[0].name : "L1";
         const [resP] = await pool.query(
-            `INSERT INTO progress (student, course, currentLevel, completedLessons, completedModules, quizzes, assignments, progressPercent, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+            `INSERT INTO progress (student, course, currentLevel, completedLessons, completedModules, quizzes, assignments, progressPercent, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;`,
             [studentId, courseId, level || firstLevel, '[]', '[]', '[]', '[]', 0]
         );
-        const [newP] = await pool.query("SELECT * FROM progress WHERE id = ?", [resP.insertId]);
+        const [newP] = await pool.query("SELECT * FROM progress WHERE id = ?", [resP[0].id]);
         progress = newP[0];
     } else {
         progress = rows[0];

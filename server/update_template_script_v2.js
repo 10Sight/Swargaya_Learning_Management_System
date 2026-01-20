@@ -65,7 +65,7 @@ const newTemplate = `<!DOCTYPE html>
                 <div style="margin-bottom: 20px;">
                     <!-- User Image Square -->
                     <div style="width: 100px; height: 100px; border-radius: 12px; overflow: hidden; border: 2px solid #333; background: #fff; margin: 0 auto;">
-                        <img src="{{userImage}}" alt="User" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='https://via.placeholder.com/150'"/>
+                        <img src="{{userImage}}" alt="User" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='https://placehold.co/150'"/>
                     </div>
                 </div>
                 

@@ -26,6 +26,7 @@ class Progress {
 
     this.timelineViolations = typeof data.timelineViolations === 'string' ? JSON.parse(data.timelineViolations) : (data.timelineViolations || []);
     this.timelineNotifications = typeof data.timelineNotifications === 'string' ? JSON.parse(data.timelineNotifications) : (data.timelineNotifications || []);
+    this.levelHistory = typeof data.levelHistory === 'string' ? JSON.parse(data.levelHistory) : (data.levelHistory || []);
 
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
@@ -33,28 +34,33 @@ class Progress {
 
   static async init() {
     const query = `
-            CREATE TABLE IF NOT EXISTS progress (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                student VARCHAR(255) NOT NULL,
-                course VARCHAR(255) NOT NULL,
-                completedLessons TEXT,
-                completedModules TEXT,
-                quizzes TEXT,
-                assignments TEXT,
-                currentLevel VARCHAR(50) DEFAULT 'L1',
-                levelLockEnabled BOOLEAN DEFAULT FALSE,
-                lockedLevel VARCHAR(50),
-                progressPercent DECIMAL(5, 2) DEFAULT 0,
-                lastAccessed DATETIME,
-                currentAccessibleModule VARCHAR(255),
-                timelineViolations TEXT,
-                timelineNotifications TEXT,
-                createdAt DATETIME,
-                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                UNIQUE KEY unique_student_course (student, course),
-                INDEX idx_student (student),
-                INDEX idx_course (course)
-            )
+            IF OBJECT_ID(N'dbo.progress', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.progress (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    student VARCHAR(255) NOT NULL,
+                    course VARCHAR(255) NOT NULL,
+                    completedLessons VARCHAR(MAX),
+                    completedModules VARCHAR(MAX),
+                    quizzes VARCHAR(MAX),
+                    assignments VARCHAR(MAX),
+                    currentLevel VARCHAR(50) DEFAULT 'L1',
+                    levelLockEnabled BIT DEFAULT 0,
+                    lockedLevel VARCHAR(50),
+                    progressPercent DECIMAL(5, 2) DEFAULT 0,
+                    lastAccessed DATETIME,
+                    currentAccessibleModule VARCHAR(255),
+                    timelineViolations VARCHAR(MAX),
+                    timelineNotifications VARCHAR(MAX),
+                    levelHistory VARCHAR(MAX),
+                    createdAt DATETIME DEFAULT GETDATE(),
+                    updatedAt DATETIME DEFAULT GETDATE(),
+                    CONSTRAINT unique_student_course UNIQUE (student, course)
+                );
+                
+                CREATE INDEX idx_student ON dbo.progress(student);
+                CREATE INDEX idx_course ON dbo.progress(course);
+            END
         `;
     try {
       await pool.query(query);
@@ -74,14 +80,14 @@ class Progress {
       "student", "course", "completedLessons", "completedModules",
       "quizzes", "assignments", "currentLevel", "levelLockEnabled",
       "lockedLevel", "progressPercent", "lastAccessed", "currentAccessibleModule",
-      "timelineViolations", "timelineNotifications", "createdAt"
+      "timelineViolations", "timelineNotifications", "levelHistory", "createdAt"
     ];
 
     if (!progress.createdAt) progress.createdAt = new Date();
 
     const values = fields.map(field => {
       let val = progress[field];
-      if (['completedLessons', 'completedModules', 'quizzes', 'assignments', 'timelineViolations', 'timelineNotifications'].includes(field)) {
+      if (['completedLessons', 'completedModules', 'quizzes', 'assignments', 'timelineViolations', 'timelineNotifications', 'levelHistory'].includes(field)) {
         return JSON.stringify(val);
       }
       if (val === undefined) return null;
@@ -89,10 +95,10 @@ class Progress {
     });
 
     const placeholders = fields.map(() => "?").join(",");
-    const query = `INSERT INTO progress (${fields.join(",")}) VALUES (${placeholders})`;
+    const query = `INSERT INTO progress (${fields.join(",")}) VALUES (${placeholders}); SELECT SCOPE_IDENTITY() AS id;`;
 
-    const [result] = await pool.query(query, values);
-    return Progress.findById(result.insertId);
+    const [rows] = await pool.query(query, values);
+    return Progress.findById(rows[0].id);
   }
 
   static async findById(id) {
@@ -108,7 +114,7 @@ class Progress {
     const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
     const values = keys.map(key => query[key]);
 
-    const [rows] = await pool.query(`SELECT * FROM progress WHERE ${whereClause} LIMIT 1`, values);
+    const [rows] = await pool.query(`SELECT TOP 1 * FROM progress WHERE ${whereClause}`, values);
     if (rows.length === 0) return null;
     return new Progress(rows[0]);
   }
@@ -249,6 +255,9 @@ class Progress {
 
       // Fetch full module objects to get 'order'
       const placeholders = moduleIds.map(() => '?').join(',');
+      // Fix: Escape [order] just in case, though modules table definition handled it.
+      // SQL queries in code might be safe if using * or standard. 
+      // But sort order here is manual in JS.
       const [modulesData] = await pool.query(`SELECT * FROM modules WHERE id IN (${placeholders})`, moduleIds);
 
       // Map SQL rows to Module instances if needed, or just use raw data
@@ -371,17 +380,19 @@ class Progress {
     // We'll just always update accessible module on save for correctness.
     await this.updateCurrentAccessibleModule();
 
+    this.updatedAt = new Date(); // Manually update timestamp
+
     const fields = [
       "student", "course", "completedLessons", "completedModules",
       "quizzes", "assignments", "currentLevel", "levelLockEnabled",
       "lockedLevel", "progressPercent", "lastAccessed", "currentAccessibleModule",
-      "timelineViolations", "timelineNotifications"
+      "timelineViolations", "timelineNotifications", "levelHistory", "updatedAt"
     ];
 
     const setClause = fields.map(field => `${field} = ?`).join(", ");
     const values = fields.map(field => {
       let val = this[field];
-      if (['completedLessons', 'completedModules', 'quizzes', 'assignments', 'timelineViolations', 'timelineNotifications'].includes(field)) {
+      if (['completedLessons', 'completedModules', 'quizzes', 'assignments', 'timelineViolations', 'timelineNotifications', 'levelHistory'].includes(field)) {
         return JSON.stringify(val);
       }
       return val;

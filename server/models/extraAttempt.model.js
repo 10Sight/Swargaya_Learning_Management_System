@@ -18,17 +18,21 @@ class ExtraAttemptAllowance {
 
   static async init() {
     const query = `
-            CREATE TABLE IF NOT EXISTS extra_attempt_allowances (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                quiz VARCHAR(255) NOT NULL,
-                student VARCHAR(255) NOT NULL,
-                extraAttemptsGranted INT DEFAULT 1,
-                grantedBy VARCHAR(255),
-                approvedAt DATETIME,
-                createdAt DATETIME,
-                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX idx_quiz_student (quiz, student)
-            )
+            IF OBJECT_ID(N'dbo.extra_attempt_allowances', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.extra_attempt_allowances (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    quiz VARCHAR(255) NOT NULL,
+                    student VARCHAR(255) NOT NULL,
+                    extraAttemptsGranted INT DEFAULT 1,
+                    grantedBy VARCHAR(255),
+                    approvedAt DATETIME,
+                    createdAt DATETIME DEFAULT GETDATE(),
+                    updatedAt DATETIME DEFAULT GETDATE()
+                );
+                
+                CREATE INDEX idx_quiz_student ON dbo.extra_attempt_allowances(quiz, student);
+            END
         `;
     try {
       await pool.query(query);
@@ -73,7 +77,7 @@ class ExtraAttemptAllowance {
     const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
     const values = keys.map(key => query[key]);
 
-    const [rows] = await pool.query(`SELECT * FROM extra_attempt_allowances WHERE ${whereClause} LIMIT 1`, values);
+    const [rows] = await pool.query(`SELECT TOP 1 * FROM extra_attempt_allowances WHERE ${whereClause}`, values);
     if (rows.length === 0) return null;
     return new ExtraAttemptAllowance(rows[0]);
   }
@@ -109,13 +113,18 @@ class ExtraAttemptAllowance {
   }
 
   async save() {
+    this.updatedAt = new Date(); // Manually update timestamp
+
     const fields = [
       "quiz", "student", "extraAttemptsGranted",
-      "grantedBy", "approvedAt"
+      "grantedBy", "approvedAt", "updatedAt"
     ];
 
     const setClause = fields.map(field => `${field} = ?`).join(", ");
-    const values = fields.map(field => this[field]);
+    const values = fields.map(field => {
+      if (field === 'updatedAt') return this.updatedAt;
+      return this[field];
+    });
     values.push(this.id);
 
     await pool.query(`UPDATE extra_attempt_allowances SET ${setClause} WHERE id = ?`, values);

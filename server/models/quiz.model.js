@@ -63,32 +63,37 @@ class Quiz {
 
     static async init() {
         const query = `
-            CREATE TABLE IF NOT EXISTS quizzes (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                title VARCHAR(255) NOT NULL,
-                slug VARCHAR(255) UNIQUE,
-                description TEXT,
-                questions TEXT,
-                passingScore INT NOT NULL,
-                timeLimit INT,
-                createdBy VARCHAR(255) NOT NULL,
-                isPublished BOOLEAN DEFAULT FALSE,
-                attemptsAllowed INT DEFAULT 1,
-                skillUpgradation TEXT,
-                courseId VARCHAR(255),
-                course VARCHAR(255),
-                moduleId VARCHAR(255),
-                module VARCHAR(255),
-                lesson VARCHAR(255),
-                type VARCHAR(50),
-                scope VARCHAR(50),
-                createdAt DATETIME,
-                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX idx_course (course),
-                INDEX idx_module (module),
-                INDEX idx_type (type),
-                INDEX idx_scope (scope)
-            )
+            IF OBJECT_ID(N'dbo.quizzes', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.quizzes (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    title VARCHAR(255) NOT NULL,
+                    slug VARCHAR(255),
+                    description VARCHAR(MAX),
+                    questions VARCHAR(MAX),
+                    passingScore INT NOT NULL,
+                    timeLimit INT,
+                    createdBy VARCHAR(255) NOT NULL,
+                    isPublished BIT DEFAULT 0,
+                    attemptsAllowed INT DEFAULT 1,
+                    skillUpgradation VARCHAR(MAX),
+                    courseId VARCHAR(255),
+                    course VARCHAR(255),
+                    moduleId VARCHAR(255),
+                    module VARCHAR(255),
+                    lessonId VARCHAR(255),
+                    type VARCHAR(50),
+                    scope VARCHAR(50),
+                    createdAt DATETIME DEFAULT GETDATE(),
+                    updatedAt DATETIME DEFAULT GETDATE(),
+                    CONSTRAINT unique_quiz_slug UNIQUE (slug)
+                );
+
+                CREATE INDEX idx_course ON dbo.quizzes(course);
+                CREATE INDEX idx_module ON dbo.quizzes(module);
+                CREATE INDEX idx_type ON dbo.quizzes(type);
+                CREATE INDEX idx_scope ON dbo.quizzes(scope);
+            END
         `;
         try {
             await pool.query(query);
@@ -130,10 +135,10 @@ class Quiz {
         });
 
         const placeholders = fields.map(() => "?").join(",");
-        const query = `INSERT INTO quizzes (${fields.join(",")}) VALUES (${placeholders})`;
+        const query = `INSERT INTO quizzes (${fields.map(f => f === 'index' ? '[index]' : f).join(",")}) VALUES (${placeholders}); SELECT SCOPE_IDENTITY() AS id;`;
 
-        const [result] = await pool.query(query, values);
-        return Quiz.findById(result.insertId);
+        const [rows] = await pool.query(query, values);
+        return Quiz.findById(rows[0].id);
     }
 
     static async findById(id) {
@@ -149,7 +154,7 @@ class Quiz {
         const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
         const values = keys.map(key => query[key]);
 
-        const [rows] = await pool.query(`SELECT * FROM quizzes WHERE ${whereClause} LIMIT 1`, values);
+        const [rows] = await pool.query(`SELECT TOP 1 * FROM quizzes WHERE ${whereClause}`, values);
         if (rows.length === 0) return null;
         return new Quiz(rows[0]);
     }
@@ -201,11 +206,13 @@ class Quiz {
         this.type = this.calculateType();
         this.validateScope();
 
+        this.updatedAt = new Date(); // Manually update timestamp
+
         const fields = [
             "title", "slug", "description", "questions", "passingScore",
             "timeLimit", "createdBy", "isPublished", "attemptsAllowed",
             "skillUpgradation", "courseId", "course", "moduleId", "module",
-            "lessonId", "type", "scope"
+            "lessonId", "type", "scope", "updatedAt"
         ];
 
         const setClause = fields.map(field => `${field} = ?`).join(", ");

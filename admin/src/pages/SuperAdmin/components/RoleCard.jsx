@@ -23,8 +23,8 @@ const RoleCard = ({ role, onEdit, onDelete, onViewUsers }) => {
 
   const getPermissionCount = () => {
     if (!role.permissions) return 0;
-    return Array.isArray(role.permissions) 
-      ? role.permissions.length 
+    return Array.isArray(role.permissions)
+      ? role.permissions.length
       : Object.values(role.permissions).reduce((acc, perms) => acc + perms.length, 0);
   };
 
@@ -45,7 +45,7 @@ const RoleCard = ({ role, onEdit, onDelete, onViewUsers }) => {
             </div>
           </div>
         </div>
-        
+
         {/* Actions Menu */}
         <div className="flex items-center space-x-1">
           <button
@@ -112,23 +112,23 @@ const RoleCard = ({ role, onEdit, onDelete, onViewUsers }) => {
       {role.permissions && (
         <div className="mt-3 pt-3 border-t border-gray-100">
           <div className="flex flex-wrap gap-1">
-            {Array.isArray(role.permissions) 
+            {Array.isArray(role.permissions)
               ? role.permissions.slice(0, 3).map((permission, index) => (
-                  <span 
-                    key={index}
-                    className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-md"
-                  >
-                    {permission}
-                  </span>
-                ))
+                <span
+                  key={index}
+                  className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-md"
+                >
+                  {permission}
+                </span>
+              ))
               : Object.keys(role.permissions).slice(0, 3).map((category, index) => (
-                  <span 
-                    key={index}
-                    className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-md"
-                  >
-                    {category}
-                  </span>
-                ))
+                <span
+                  key={index}
+                  className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-md"
+                >
+                  {category}
+                </span>
+              ))
             }
             {getPermissionCount() > 3 && (
               <span className="px-2 py-1 bg-gray-200 text-gray-500 text-xs rounded-md">

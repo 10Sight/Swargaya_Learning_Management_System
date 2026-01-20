@@ -25,19 +25,24 @@ class CourseLevelConfig {
 
   static async init() {
     const query = `
-            CREATE TABLE IF NOT EXISTS course_level_configs (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(255) NOT NULL UNIQUE,
-                description TEXT,
-                levels TEXT NOT NULL,
-                isActive BOOLEAN DEFAULT TRUE,
-                isDefault BOOLEAN DEFAULT FALSE,
-                createdBy VARCHAR(255),
-                lastModifiedBy VARCHAR(255),
-                createdAt DATETIME,
-                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX idx_status (isActive, isDefault)
-            )
+            IF OBJECT_ID(N'dbo.course_level_configs', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.course_level_configs (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    description VARCHAR(MAX),
+                    levels VARCHAR(MAX) NOT NULL,
+                    isActive BIT DEFAULT 1,
+                    isDefault BIT DEFAULT 0,
+                    createdBy VARCHAR(255),
+                    lastModifiedBy VARCHAR(255),
+                    createdAt DATETIME DEFAULT GETDATE(),
+                    updatedAt DATETIME DEFAULT GETDATE(),
+                    CONSTRAINT unique_config_name UNIQUE (name)
+                );
+                
+                CREATE INDEX idx_status ON dbo.course_level_configs(isActive, isDefault);
+            END
         `;
     try {
       await pool.query(query);
@@ -53,7 +58,7 @@ class CourseLevelConfig {
 
     // Ensure explicit default logic
     if (data.isDefault) {
-      await pool.query("UPDATE course_level_configs SET isDefault = FALSE");
+      await pool.query("UPDATE course_level_configs SET isDefault = 0");
     }
 
     // Sort levels
@@ -76,10 +81,10 @@ class CourseLevelConfig {
     });
 
     const placeholders = fields.map(() => "?").join(",");
-    const query = `INSERT INTO course_level_configs (${fields.join(",")}) VALUES (${placeholders})`;
+    const query = `INSERT INTO course_level_configs (${fields.join(",")}) VALUES (${placeholders}); SELECT SCOPE_IDENTITY() AS id;`;
 
-    const [result] = await pool.query(query, values);
-    return CourseLevelConfig.findById(result.insertId);
+    const [rows] = await pool.query(query, values);
+    return CourseLevelConfig.findById(rows[0].id);
   }
 
   static async findById(id) {
@@ -90,7 +95,7 @@ class CourseLevelConfig {
 
   static async findOne(query) {
     const keys = Object.keys(query).filter(key => query[key] !== undefined);
-    let sql = "SELECT * FROM course_level_configs";
+    let sql = "SELECT TOP 1 * FROM course_level_configs";
     let values = [];
 
     if (keys.length > 0) {
@@ -98,8 +103,6 @@ class CourseLevelConfig {
       sql += ` WHERE ${whereClause}`;
       values = keys.map(key => query[key]);
     }
-
-    sql += " LIMIT 1";
 
     const [rows] = await pool.query(sql, values);
     if (rows.length === 0) return null;
@@ -130,7 +133,7 @@ class CourseLevelConfig {
 
   async save() {
     if (this.isDefault) {
-      await pool.query("UPDATE course_level_configs SET isDefault = FALSE WHERE id != ?", [this.id]);
+      await pool.query("UPDATE course_level_configs SET isDefault = 0 WHERE id != ?", [this.id]);
     }
 
     // Sort levels
@@ -138,9 +141,11 @@ class CourseLevelConfig {
       this.levels.sort((a, b) => a.order - b.order);
     }
 
+    this.updatedAt = new Date(); // Manually update timestamp
+
     const fields = [
       "name", "description", "levels", "isActive", "isDefault",
-      "createdBy", "lastModifiedBy"
+      "createdBy", "lastModifiedBy", "updatedAt"
     ];
 
     const setClause = fields.map(field => `${field} = ?`).join(", ");
@@ -157,10 +162,10 @@ class CourseLevelConfig {
 
   // Helper: Get Active Config
   static async getActiveConfig() {
-    let [rows] = await pool.query("SELECT * FROM course_level_configs WHERE isActive = TRUE AND isDefault = TRUE LIMIT 1");
+    let [rows] = await pool.query("SELECT TOP 1 * FROM course_level_configs WHERE isActive = 1 AND isDefault = 1");
 
     if (rows.length === 0) {
-      [rows] = await pool.query("SELECT * FROM course_level_configs WHERE isActive = TRUE ORDER BY createdAt DESC LIMIT 1");
+      [rows] = await pool.query("SELECT TOP 1 * FROM course_level_configs WHERE isActive = 1 ORDER BY createdAt DESC");
     }
 
     if (rows.length === 0) {

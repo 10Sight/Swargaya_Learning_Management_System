@@ -64,9 +64,10 @@ const checkEligibilityAndCreate = async (studentId, courseId, opts = {}) => {
     if (quizzes.length > 0) {
         const quizIds = quizzes.map(q => q.id);
         // Find passed attempts
+        const placeholders = quizIds.map(() => '?').join(',');
         const [attempts] = await pool.query(
-            "SELECT DISTINCT quiz FROM attempted_quizzes WHERE student = ? AND status = 'PASSED' AND quiz IN (?)",
-            [studentId, quizIds]
+            `SELECT DISTINCT quiz FROM attempted_quizzes WHERE student = ? AND status = 'PASSED' AND quiz IN (${placeholders})`,
+            [studentId, ...quizIds]
         );
         const passedSet = new Set(attempts.map(a => String(a.quiz)));
         quizzesOk = quizIds.every(qid => passedSet.has(String(qid)));
@@ -100,7 +101,7 @@ const checkEligibilityAndCreate = async (studentId, courseId, opts = {}) => {
 
     let template = await CertificateTemplate.findOne({ isDefault: 1, isActive: 1 });
     if (!template) {
-        const [temps] = await pool.query("SELECT * FROM certificate_templates WHERE isActive = 1 ORDER BY createdAt ASC LIMIT 1");
+        const [temps] = await pool.query("SELECT TOP 1 * FROM certificate_templates WHERE isActive = 1 ORDER BY createdAt ASC");
         if (temps.length > 0) template = new CertificateTemplate(temps[0]);
     }
 
@@ -114,7 +115,7 @@ const checkEligibilityAndCreate = async (studentId, courseId, opts = {}) => {
 
         // Fetch Level Config for ordering and total levels
         let levelConfig = null;
-        const [lConfigs] = await pool.query("SELECT * FROM course_level_configs WHERE isActive = 1 LIMIT 1");
+        const [lConfigs] = await pool.query("SELECT TOP 1 * FROM course_level_configs WHERE isActive = 1");
         if (lConfigs.length > 0) {
             const raw = lConfigs[0];
             raw.levels = typeof raw.levels === 'string' ? JSON.parse(raw.levels) : raw.levels;
@@ -146,19 +147,30 @@ const checkEligibilityAndCreate = async (studentId, courseId, opts = {}) => {
             return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '.');
         };
 
-        let level1DateObj = null;
-        let level2DateObj = null;
-        let level3DateObj = null;
+        // Logic for Level Dates using History or Heuristic
+        const getHistoryDate = (levelName) => {
+            if (!progress.levelHistory || !Array.isArray(progress.levelHistory)) return null;
+            const entry = progress.levelHistory.find(h => String(h.level).toUpperCase() === String(levelName).toUpperCase());
+            return entry ? new Date(entry.achievedAt) : null;
+        };
 
-        if (currentLevelName === 'L3') {
-            level1DateObj = getHeuristicDate(0.33);
-            level2DateObj = getHeuristicDate(0.66);
-            level3DateObj = getHeuristicDate(1.0);
-        } else if (currentLevelName === 'L2') {
-            level1DateObj = getHeuristicDate(0.5);
-            level2DateObj = getHeuristicDate(1.0);
-        } else {
-            level1DateObj = getHeuristicDate(1.0);
+        // Try to get real dates first
+        let level1DateObj = getHistoryDate('L1') || getHistoryDate('Level 1') || getHistoryDate('Beginner');
+        let level2DateObj = getHistoryDate('L2') || getHistoryDate('Level 2') || getHistoryDate('Intermediate');
+        let level3DateObj = getHistoryDate('L3') || getHistoryDate('Level 3') || getHistoryDate('Advanced');
+
+        // Fallback to heuristic if no history (legacy support)
+        if (!level1DateObj && !level2DateObj && !level3DateObj) {
+            if (currentLevelName === 'L3') {
+                level1DateObj = getHeuristicDate(0.33);
+                level2DateObj = getHeuristicDate(0.66);
+                level3DateObj = getHeuristicDate(1.0);
+            } else if (currentLevelName === 'L2') {
+                level1DateObj = getHeuristicDate(0.5);
+                level2DateObj = getHeuristicDate(1.0);
+            } else {
+                level1DateObj = getHeuristicDate(1.0);
+            }
         }
 
         // Logic for Start Date & Completion Date
@@ -204,7 +216,7 @@ const checkEligibilityAndCreate = async (studentId, courseId, opts = {}) => {
             level1Date: formatDate(level1DateObj),
             level2Date: formatDate(level2DateObj),
             level3Date: formatDate(level3DateObj),
-            userImage: student.avatar?.url || 'https://via.placeholder.com/150', // User image
+            userImage: student.avatar?.url || 'https://placehold.co/150', // User image
             pieChart: pieChartCss // Intended for style attribute
         };
 
@@ -319,7 +331,7 @@ export const issueCertificateWithTemplate = asyncHandler(async (req, res) => {
         // Find default or first active
         template = await CertificateTemplate.findOne({ isDefault: 1, isActive: 1 });
         if (!template) {
-            const [temps] = await pool.query("SELECT * FROM certificate_templates WHERE isActive = 1 ORDER BY createdAt ASC LIMIT 1");
+            const [temps] = await pool.query("SELECT TOP 1 * FROM certificate_templates WHERE isActive = 1 ORDER BY createdAt ASC");
             if (temps.length > 0) template = new CertificateTemplate(temps[0]);
         }
         if (!template) throw new ApiError("No template available", 404);
@@ -426,7 +438,7 @@ export const generateCertificatePreview = asyncHandler(async (req, res) => {
     } else {
         template = await CertificateTemplate.findOne({ isDefault: 1, isActive: 1 });
         if (!template) {
-            const [temps] = await pool.query("SELECT * FROM certificate_templates WHERE isActive = 1 ORDER BY createdAt ASC LIMIT 1");
+            const [temps] = await pool.query("SELECT TOP 1 * FROM certificate_templates WHERE isActive = 1 ORDER BY createdAt ASC");
             if (temps.length > 0) template = new CertificateTemplate(temps[0]);
         }
     }
@@ -434,7 +446,7 @@ export const generateCertificatePreview = asyncHandler(async (req, res) => {
 
     // Fetch Level Config for ordering and total levels
     let levelConfig = null;
-    const [lConfigs] = await pool.query("SELECT * FROM course_level_configs WHERE isActive = 1 LIMIT 1");
+    const [lConfigs] = await pool.query("SELECT TOP 1 * FROM course_level_configs WHERE isActive = 1");
     if (lConfigs.length > 0) {
         const raw = lConfigs[0];
         raw.levels = typeof raw.levels === 'string' ? JSON.parse(raw.levels) : raw.levels;
@@ -466,19 +478,28 @@ export const generateCertificatePreview = asyncHandler(async (req, res) => {
         return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '.');
     };
 
-    let level1DateObj = null;
-    let level2DateObj = null;
-    let level3DateObj = null;
+    // Logic for Level Dates using History or Heuristic
+    const getHistoryDate = (levelName) => {
+        if (!prog || !prog.levelHistory || !Array.isArray(prog.levelHistory)) return null;
+        const entry = prog.levelHistory.find(h => String(h.level).toUpperCase() === String(levelName).toUpperCase());
+        return entry ? new Date(entry.achievedAt) : null;
+    };
 
-    if (currentLevelName === 'L3') {
-        level1DateObj = getHeuristicDate(0.33);
-        level2DateObj = getHeuristicDate(0.66);
-        level3DateObj = getHeuristicDate(1.0);
-    } else if (currentLevelName === 'L2') {
-        level1DateObj = getHeuristicDate(0.5);
-        level2DateObj = getHeuristicDate(1.0);
-    } else {
-        level1DateObj = getHeuristicDate(1.0);
+    let level1DateObj = getHistoryDate('L1') || getHistoryDate('Level 1') || getHistoryDate('Beginner');
+    let level2DateObj = getHistoryDate('L2') || getHistoryDate('Level 2') || getHistoryDate('Intermediate');
+    let level3DateObj = getHistoryDate('L3') || getHistoryDate('Level 3') || getHistoryDate('Advanced');
+
+    if (!level1DateObj && !level2DateObj && !level3DateObj) {
+        if (currentLevelName === 'L3') {
+            level1DateObj = getHeuristicDate(0.33);
+            level2DateObj = getHeuristicDate(0.66);
+            level3DateObj = getHeuristicDate(1.0);
+        } else if (currentLevelName === 'L2') {
+            level1DateObj = getHeuristicDate(0.5);
+            level2DateObj = getHeuristicDate(1.0);
+        } else {
+            level1DateObj = getHeuristicDate(1.0);
+        }
     }
 
     let startDateObj;
@@ -508,7 +529,7 @@ export const generateCertificatePreview = asyncHandler(async (req, res) => {
         level1Date: formatDate(level1DateObj),
         level2Date: formatDate(level2DateObj),
         level3Date: formatDate(level3DateObj),
-        userImage: student?.avatar?.url || 'https://via.placeholder.com/150',
+        userImage: student?.avatar?.url || 'https://placehold.co/150',
         pieChart: pieChartCss
     };
 
@@ -556,14 +577,16 @@ export const getStudentCertificates = asyncHandler(async (req, res) => {
     let courseMap = new Map();
     if (courseIds.length > 0) {
         const { pool } = await import("../db/connectDB.js");
-        const [courses] = await pool.query("SELECT id, title, description FROM courses WHERE id IN (?)", [courseIds]);
+        const placeholders = courseIds.map(() => '?').join(',');
+        const [courses] = await pool.query(`SELECT id, title, description FROM courses WHERE id IN (${placeholders})`, courseIds);
         courses.forEach(c => courseMap.set(String(c.id), c));
     }
 
     let issuerMap = new Map();
     if (issuerIds.length > 0) {
         const { pool } = await import("../db/connectDB.js");
-        const [issuers] = await pool.query("SELECT id, fullName, email FROM users WHERE id IN (?)", [issuerIds]);
+        const placeholders = issuerIds.map(() => '?').join(',');
+        const [issuers] = await pool.query(`SELECT id, fullName, email FROM users WHERE id IN (${placeholders})`, issuerIds);
         issuers.forEach(u => issuerMap.set(String(u.id), u));
     }
 
@@ -666,9 +689,11 @@ export const checkCertificateEligibility = asyncHandler(async (req, res) => {
     const [allQuizzes] = await pool.query("SELECT id, title, passingScore FROM quizzes WHERE course = ?", [courseId]);
     let passedAttempts = [];
     if (allQuizzes.length > 0) {
+        const quizIds = allQuizzes.map(q => q.id);
+        const placeholders = quizIds.map(() => '?').join(',');
         [passedAttempts] = await pool.query(
-            "SELECT DISTINCT quiz FROM attempted_quizzes WHERE student = ? AND status = 'PASSED' AND quiz IN (?)",
-            [studentId, allQuizzes.map(q => q.id)]
+            `SELECT DISTINCT quiz FROM attempted_quizzes WHERE student = ? AND status = 'PASSED' AND quiz IN (${placeholders})`,
+            [studentId, ...quizIds]
         );
     }
     const passedSet = new Set(passedAttempts.map(a => String(a.quiz)));
@@ -681,9 +706,11 @@ export const checkCertificateEligibility = asyncHandler(async (req, res) => {
     let assignmentDetails = [];
 
     if (assignments.length > 0) {
+        const assignIds = assignments.map(a => a.id);
+        const placeholders = assignIds.map(() => '?').join(',');
         const [subs] = await pool.query(
-            "SELECT * FROM submissions WHERE student = ? AND assignment IN (?)",
-            [studentId, assignments.map(a => a.id)]
+            `SELECT * FROM submissions WHERE student = ? AND assignment IN (${placeholders})`,
+            [studentId, ...assignIds]
         );
 
         // Map subs

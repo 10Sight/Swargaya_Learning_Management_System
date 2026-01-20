@@ -59,10 +59,10 @@ export const enrollStudent = asyncHandler(async (req, res) => {
 
         // 3. Create Enrollment
         const [result] = await conn.query(
-            "INSERT INTO enrollments (course, student, enrolledBy, status, enrolledAt) VALUES (?, ?, ?, ?, NOW())",
+            "INSERT INTO enrollments (course, student, enrolledBy, status, enrolledAt) VALUES (?, ?, ?, ?, GETDATE()); SELECT SCOPE_IDENTITY() AS id;",
             [courseId, studentId, req.user.id, 'ACTIVE']
         );
-        const enrollmentId = result.insertId;
+        const enrollmentId = result[0].id;
 
         // 4. Update Course (students array count)
         // Check if students is JSON column

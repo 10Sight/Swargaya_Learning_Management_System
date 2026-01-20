@@ -24,10 +24,10 @@ const BulkAssignRoles = ({ open, onClose, roles, users, onSuccess }) => {
   // Filter users based on search term and role filter
   const filteredUsers = useMemo(() => {
     let filtered = users;
-    
+
     if (searchTerm) {
       const lowerSearchTerm = searchTerm.toLowerCase();
-      filtered = filtered.filter(user => 
+      filtered = filtered.filter(user =>
         user.fullName?.toLowerCase().includes(lowerSearchTerm) ||
         user.userName?.toLowerCase().includes(lowerSearchTerm) ||
         user.email?.toLowerCase().includes(lowerSearchTerm)
@@ -37,12 +37,12 @@ const BulkAssignRoles = ({ open, onClose, roles, users, onSuccess }) => {
     if (roleFilter) {
       filtered = filtered.filter(user => user.role === roleFilter);
     }
-    
+
     return filtered;
   }, [users, searchTerm, roleFilter]);
 
   const handleUserToggle = (user) => {
-    setSelectedUsers(prev => 
+    setSelectedUsers(prev =>
       prev.find(u => u.id === user.id)
         ? prev.filter(u => u.id !== user.id)
         : [...prev, user]
@@ -59,7 +59,7 @@ const BulkAssignRoles = ({ open, onClose, roles, users, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (selectedUsers.length === 0) {
       toast.error('Please select at least one user');
       return;
@@ -107,8 +107,8 @@ const BulkAssignRoles = ({ open, onClose, roles, users, onSuccess }) => {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1300] p-4 text-left">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center space-x-3">
@@ -131,7 +131,7 @@ const BulkAssignRoles = ({ open, onClose, roles, users, onSuccess }) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col h-full">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {/* Filters */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -186,11 +186,10 @@ const BulkAssignRoles = ({ open, onClose, roles, users, onSuccess }) => {
                 {filteredUsers.length > 0 ? (
                   <div className="divide-y divide-gray-200">
                     {filteredUsers.map((user) => (
-                      <label 
-                        key={user.id} 
-                        className={`flex items-center space-x-3 p-4 cursor-pointer hover:bg-gray-50 ${
-                          selectedUsers.find(u => u.id === user.id) ? 'bg-blue-50' : ''
-                        }`}
+                      <label
+                        key={user.id}
+                        className={`flex items-center space-x-3 p-4 cursor-pointer hover:bg-gray-50 ${selectedUsers.find(u => u.id === user.id) ? 'bg-blue-50' : ''
+                          }`}
                       >
                         <input
                           type="checkbox"
@@ -233,16 +232,15 @@ const BulkAssignRoles = ({ open, onClose, roles, users, onSuccess }) => {
             {/* Role Selection */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900">Select Target Role</h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {roles.map((role) => (
-                  <label 
+                  <label
                     key={role.id}
-                    className={`flex items-center space-x-3 p-4 border rounded-lg cursor-pointer transition-colors ${
-                      selectedRole === role.id 
-                        ? 'border-blue-500 bg-blue-50' 
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
+                    className={`flex items-center space-x-3 p-4 border rounded-lg cursor-pointer transition-colors ${selectedRole === role.id
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
                   >
                     <input
                       type="radio"
@@ -281,7 +279,7 @@ const BulkAssignRoles = ({ open, onClose, roles, users, onSuccess }) => {
                 </p>
                 <div className="mt-2 flex flex-wrap gap-1">
                   {selectedUsers.slice(0, 5).map((user) => (
-                    <span 
+                    <span
                       key={user.id}
                       className="px-2 py-1 bg-blue-200 text-blue-800 text-xs rounded-md"
                     >

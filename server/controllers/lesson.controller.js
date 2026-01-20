@@ -2,6 +2,7 @@ import { pool } from "../db/connectDB.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
+import { slugify } from "../utils/slugify.js";
 
 // Helper to normalize slides (moved logic inside respective functions or kept simple)
 // Helper to parse JSON safely
@@ -60,12 +61,24 @@ export const createLesson = asyncHandler(async (req, res) => {
     ? content
     : (normalizedSlides[0]?.contentHtml || '');
 
+  // Generate unique slug
+  let baseSlug = slugify(title);
+  let slug = baseSlug;
+  let suffix = 1;
+
+  while (true) {
+    const [existingSlug] = await pool.query("SELECT id FROM lessons WHERE slug = ?", [slug]);
+    if (existingSlug.length === 0) break;
+    suffix++;
+    slug = `${baseSlug}-${suffix}`;
+  }
+
   const [result] = await pool.query(
-    "INSERT INTO lessons (module, title, content, duration, `order`, slides, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())",
-    [rawModuleId, title, legacyContent, duration || 0, order || 0, JSON.stringify(normalizedSlides)]
+    "INSERT INTO lessons (module, title, slug, content, duration, [order], slides, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;",
+    [rawModuleId, title, slug, legacyContent, duration || 0, order || 0, JSON.stringify(normalizedSlides)]
   );
 
-  const newLessonId = result.insertId;
+  const newLessonId = result[0].id;
   const [rows] = await pool.query("SELECT * FROM lessons WHERE id = ?", [newLessonId]);
 
   // Parse slides for response
@@ -87,11 +100,17 @@ export const getLessonsByModule = asyncHandler(async (req, res) => {
   // If we support slugs for modules here:
   let moduleId = rawModuleId;
   // Check if module exists by ID or Slug
-  const [mRows] = await pool.query("SELECT id FROM modules WHERE id = ? OR slug = ?", [rawModuleId, rawModuleId]);
+  let mRows = [];
+  if (/^\d+$/.test(rawModuleId)) {
+    [mRows] = await pool.query("SELECT id FROM modules WHERE id = ?", [rawModuleId]);
+  }
+  if (mRows.length === 0) {
+    [mRows] = await pool.query("SELECT id FROM modules WHERE slug = ?", [rawModuleId]);
+  }
   if (mRows.length === 0) throw new ApiError("Module not found", 400);
   moduleId = mRows[0].id;
 
-  const [lessons] = await pool.query("SELECT * FROM lessons WHERE module = ? ORDER BY `order` ASC", [moduleId]);
+  const [lessons] = await pool.query("SELECT * FROM lessons WHERE module = ? ORDER BY [order] ASC", [moduleId]);
 
   // Normalize
   const normalized = lessons.map(l => {
@@ -118,7 +137,13 @@ export const getLessonById = asyncHandler(async (req, res) => {
     throw new ApiError("Lesson ID is required", 400);
   }
 
-  const [rows] = await pool.query("SELECT * FROM lessons WHERE id = ? OR slug = ?", [rawLessonId, rawLessonId]);
+  let rows = [];
+  if (/^\d+$/.test(rawLessonId)) {
+    [rows] = await pool.query("SELECT * FROM lessons WHERE id = ?", [rawLessonId]);
+  }
+  if (rows.length === 0) {
+    [rows] = await pool.query("SELECT * FROM lessons WHERE slug = ?", [rawLessonId]);
+  }
   if (rows.length === 0) throw new ApiError("Lesson not found", 404);
 
   const lesson = rows[0];
@@ -149,7 +174,7 @@ export const updateLesson = asyncHandler(async (req, res) => {
   if (typeof title !== 'undefined') { updateFields.push("title = ?"); updateValues.push(title); }
   if (typeof content !== 'undefined') { updateFields.push("content = ?"); updateValues.push(content); }
   if (typeof duration !== 'undefined') { updateFields.push("duration = ?"); updateValues.push(duration); }
-  if (typeof order !== 'undefined') { updateFields.push("`order` = ?"); updateValues.push(order); }
+  if (typeof order !== 'undefined') { updateFields.push("[order] = ?"); updateValues.push(order); }
 
   if (Array.isArray(slides)) {
     const normalizedSlides = slides.map((s, idx) => ({
@@ -197,7 +222,7 @@ export const updateLesson = asyncHandler(async (req, res) => {
   }
 
   if (updateFields.length > 0) {
-    updateFields.push("updatedAt = NOW()");
+    updateFields.push("updatedAt = GETDATE()");
     await pool.query(`UPDATE lessons SET ${updateFields.join(', ')} WHERE id = ?`, [...updateValues, rawLessonId]);
   }
 
@@ -261,7 +286,7 @@ export const addSlide = asyncHandler(async (req, res) => {
 
   const newSlides = [...currentSlides, slide].sort((a, b) => (a.order || 0) - (b.order || 0)).map((s, i) => ({ ...s, order: i + 1 }));
 
-  await pool.query("UPDATE lessons SET slides = ?, updatedAt = NOW() WHERE id = ?", [JSON.stringify(newSlides), rawLessonId]);
+  await pool.query("UPDATE lessons SET slides = ?, updatedAt = GETDATE() WHERE id = ?", [JSON.stringify(newSlides), rawLessonId]);
 
   // Return updated lesson
   lesson.slides = newSlides;
@@ -308,7 +333,7 @@ export const updateSlide = asyncHandler(async (req, res) => {
   // Normalize order
   slides = slides.sort((a, b) => (a.order || 0) - (b.order || 0)).map((s, i) => ({ ...s, order: i + 1 }));
 
-  await pool.query("UPDATE lessons SET slides = ?, updatedAt = NOW() WHERE id = ?", [JSON.stringify(slides), rawLessonId]);
+  await pool.query("UPDATE lessons SET slides = ?, updatedAt = GETDATE() WHERE id = ?", [JSON.stringify(slides), rawLessonId]);
 
   lesson.slides = slides;
   res.status(200).json(new ApiResponse(200, lesson, "Slide updated"));
@@ -329,7 +354,7 @@ export const deleteSlide = asyncHandler(async (req, res) => {
   const filtered = slides.filter(s => String(s._id || s.id) !== String(slideId));
   const reordered = filtered.map((s, i) => ({ ...s, order: i + 1 }));
 
-  await pool.query("UPDATE lessons SET slides = ?, updatedAt = NOW() WHERE id = ?", [JSON.stringify(reordered), rawLessonId]);
+  await pool.query("UPDATE lessons SET slides = ?, updatedAt = GETDATE() WHERE id = ?", [JSON.stringify(reordered), rawLessonId]);
 
   lesson.slides = reordered;
   res.status(200).json(new ApiResponse(200, lesson, "Slide deleted"));
@@ -368,7 +393,7 @@ export const reorderSlides = asyncHandler(async (req, res) => {
 
   const finalSlides = reordered.map((s, i) => ({ ...s, order: i + 1 }));
 
-  await pool.query("UPDATE lessons SET slides = ?, updatedAt = NOW() WHERE id = ?", [JSON.stringify(finalSlides), rawLessonId]);
+  await pool.query("UPDATE lessons SET slides = ?, updatedAt = GETDATE() WHERE id = ?", [JSON.stringify(finalSlides), rawLessonId]);
 
   lesson.slides = finalSlides;
   res.status(200).json(new ApiResponse(200, lesson, "Slides reordered"));

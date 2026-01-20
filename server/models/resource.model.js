@@ -51,28 +51,32 @@ class Resource {
 
     static async init() {
         const query = `
-            CREATE TABLE IF NOT EXISTS resources (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                courseId VARCHAR(255),
-                moduleId VARCHAR(255),
-                lessonId VARCHAR(255),
-                scope VARCHAR(50) NOT NULL,
-                title VARCHAR(255) NOT NULL,
-                type VARCHAR(50) NOT NULL,
-                description TEXT,
-                url VARCHAR(500) NOT NULL,
-                publicId VARCHAR(255),
-                fileSize INT,
-                format VARCHAR(50),
-                fileName VARCHAR(255),
-                createdBy VARCHAR(255) NOT NULL,
-                createdAt DATETIME,
-                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX idx_scope (scope),
-                INDEX idx_courseId (courseId),
-                INDEX idx_moduleId (moduleId),
-                INDEX idx_lessonId (lessonId)
-            )
+            IF OBJECT_ID(N'dbo.resources', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.resources (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    courseId VARCHAR(255),
+                    moduleId VARCHAR(255),
+                    lessonId VARCHAR(255),
+                    scope VARCHAR(50) NOT NULL,
+                    title VARCHAR(255) NOT NULL,
+                    type VARCHAR(50) NOT NULL,
+                    description VARCHAR(MAX),
+                    url VARCHAR(500) NOT NULL,
+                    publicId VARCHAR(255),
+                    fileSize INT,
+                    format VARCHAR(50),
+                    fileName VARCHAR(255),
+                    createdBy VARCHAR(255) NOT NULL,
+                    createdAt DATETIME DEFAULT GETDATE(),
+                    updatedAt DATETIME DEFAULT GETDATE()
+                );
+
+                CREATE INDEX idx_scope ON dbo.resources(scope);
+                CREATE INDEX idx_courseId ON dbo.resources(courseId);
+                CREATE INDEX idx_moduleId ON dbo.resources(moduleId);
+                CREATE INDEX idx_lessonId ON dbo.resources(lessonId);
+            END
         `;
         try {
             await pool.query(query);
@@ -119,7 +123,7 @@ class Resource {
         const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
         const values = keys.map(key => query[key]);
 
-        const [rows] = await pool.query(`SELECT * FROM resources WHERE ${whereClause} LIMIT 1`, values);
+        const [rows] = await pool.query(`SELECT TOP 1 * FROM resources WHERE ${whereClause}`, values);
         if (rows.length === 0) return null;
         return new Resource(rows[0]);
     }
@@ -159,10 +163,12 @@ class Resource {
         this.type = this.type ? this.type.toLowerCase() : this.type;
         this.validateScope();
 
+        this.updatedAt = new Date(); // Manually update timestamp
+
         const fields = [
             "courseId", "moduleId", "lessonId", "scope", "title",
             "type", "description", "url", "publicId", "fileSize",
-            "format", "fileName", "createdBy"
+            "format", "fileName", "createdBy", "updatedAt"
         ];
 
         const setClause = fields.map(field => `${field} = ?`).join(", ");

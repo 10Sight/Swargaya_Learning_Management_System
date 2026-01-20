@@ -22,20 +22,23 @@ class Lesson {
 
   static async init() {
     const query = `
-            CREATE TABLE IF NOT EXISTS lessons (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                module VARCHAR(255) NOT NULL,
-                title VARCHAR(255) NOT NULL,
-                content TEXT,
-                slides TEXT,
-                duration INT DEFAULT 0,
-                \`order\` INT DEFAULT 1,
-                slug VARCHAR(255),
-                resources TEXT,
-                createdAt DATETIME,
-                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                UNIQUE KEY unique_module_slug (module, slug)
-            )
+            IF OBJECT_ID(N'dbo.lessons', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.lessons (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    module VARCHAR(255) NOT NULL,
+                    title VARCHAR(255) NOT NULL,
+                    content VARCHAR(MAX),
+                    slides VARCHAR(MAX),
+                    duration INT DEFAULT 0,
+                    [order] INT DEFAULT 1,
+                    slug VARCHAR(255),
+                    resources VARCHAR(MAX),
+                    createdAt DATETIME DEFAULT GETDATE(),
+                    updatedAt DATETIME DEFAULT GETDATE(),
+                    CONSTRAINT unique_lesson_module_slug UNIQUE (module, slug)
+                );
+            END
         `;
     try {
       await pool.query(query);
@@ -78,15 +81,12 @@ class Lesson {
       return val;
     });
 
-    // specific handling for "order" keyword in SQL usually requires backticks, 
-    // but parameters (?) don't need them. The column name in the INSERT clause needs them if it conflicts.
-    // "order" is a reserved word.
-    const escapedFields = fields.map(f => f === 'order' ? '`order`' : f);
+    const escapedFields = fields.map(f => f === 'order' ? '[order]' : f);
     const placeholders = fields.map(() => "?").join(",");
-    const query = `INSERT INTO lessons (${escapedFields.join(",")}) VALUES (${placeholders})`;
+    const query = `INSERT INTO lessons (${escapedFields.join(",")}) VALUES (${placeholders}); SELECT SCOPE_IDENTITY() AS id;`;
 
-    const [result] = await pool.query(query, values);
-    return Lesson.findById(result.insertId);
+    const [rows] = await pool.query(query, values);
+    return Lesson.findById(rows[0].id);
   }
 
   static async findById(id) {
@@ -100,12 +100,12 @@ class Lesson {
     if (keys.length === 0) return null;
 
     const whereClause = keys.map(key => {
-      if (key === 'order') return "`order` = ?";
+      if (key === 'order') return "[order] = ?";
       return `${key} = ?`;
     }).join(" AND ");
     const values = keys.map(key => query[key]);
 
-    const [rows] = await pool.query(`SELECT * FROM lessons WHERE ${whereClause} LIMIT 1`, values);
+    const [rows] = await pool.query(`SELECT TOP 1 * FROM lessons WHERE ${whereClause}`, values);
     if (rows.length === 0) return null;
     return new Lesson(rows[0]);
   }
@@ -117,7 +117,7 @@ class Lesson {
 
     if (keys.length > 0) {
       const whereClause = keys.map(key => {
-        if (key === 'order') return "`order` = ?";
+        if (key === 'order') return "[order] = ?";
         return `${key} = ?`;
       }).join(" AND ");
       sql += ` WHERE ${whereClause}`;
@@ -127,7 +127,7 @@ class Lesson {
     if (query.sort) {
       const sortKey = Object.keys(query.sort)[0];
       const sortOrder = query.sort[sortKey] === -1 ? 'DESC' : 'ASC';
-      const escapedSortKey = sortKey === 'order' ? '`order`' : sortKey;
+      const escapedSortKey = sortKey === 'order' ? '[order]' : sortKey;
       sql += ` ORDER BY ${escapedSortKey} ${sortOrder}`;
     }
 
@@ -142,7 +142,7 @@ class Lesson {
 
     if (keys.length > 0) {
       const whereClause = keys.map(key => {
-        if (key === 'order') return "`order` = ?";
+        if (key === 'order') return "[order] = ?";
         return `${key} = ?`;
       }).join(" AND ");
       sql += ` WHERE ${whereClause}`;
@@ -154,15 +154,15 @@ class Lesson {
   }
 
   async save() {
-    // Slug update logic (simplified: if title changed, ideally regen, but keeping it simple for now)
+    this.updatedAt = new Date(); // Manually update timestamp
 
     const fields = [
       "module", "title", "content", "slides",
-      "duration", "order", "slug", "resources"
+      "duration", "order", "slug", "resources", "updatedAt"
     ];
 
     const setClause = fields.map(field => {
-      const col = field === 'order' ? '`order`' : field;
+      const col = field === 'order' ? '[order]' : field;
       return `${col} = ?`;
     }).join(", ");
 

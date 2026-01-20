@@ -60,7 +60,7 @@ const baseTabs = [
   { link: "/admin/employees", labelKey: "nav.trainees", icon: IconUsers },
   { link: "/admin/quiz-monitoring", labelKey: "nav.quizMonitoring", icon: IconClock },
   { link: "/admin/attempt-requests", labelKey: "nav.attemptRequests", icon: IconBell },
-  { link: "/admin/module-timelines", labelKey: "nav.moduleTimelines", icon: IconClock },
+
   { link: "/admin/course-level-settings", labelKey: "nav.courseLevelSettings", icon: IconLayersIntersect },
   { link: "/admin/student-levels", labelKey: "nav.studentLevels", icon: IconSettings },
   { link: "/admin/certificate-templates", labelKey: "nav.certificateTemplates", icon: IconTemplate },

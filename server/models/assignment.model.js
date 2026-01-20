@@ -39,24 +39,27 @@ class Assignment {
 
     static async init() {
         const query = `
-            CREATE TABLE IF NOT EXISTS assignments (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                courseId VARCHAR(255) NOT NULL,
-                moduleId VARCHAR(255),
-                lessonId VARCHAR(255),
-                scope VARCHAR(50) NOT NULL,
-                instructor VARCHAR(255),
-                title VARCHAR(255) NOT NULL,
-                description TEXT,
-                resources TEXT,
-                dueDate DATETIME NOT NULL,
-                maxScore INT DEFAULT 100,
-                allowResubmission BOOLEAN DEFAULT TRUE,
-                status VARCHAR(50) DEFAULT 'ACTIVE',
-                createdBy VARCHAR(255) NOT NULL,
-                createdAt DATETIME,
-                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-            )
+            IF OBJECT_ID(N'dbo.assignments', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.assignments (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    courseId VARCHAR(255) NOT NULL,
+                    moduleId VARCHAR(255),
+                    lessonId VARCHAR(255),
+                    scope VARCHAR(50) NOT NULL,
+                    instructor VARCHAR(255),
+                    title VARCHAR(255) NOT NULL,
+                    description VARCHAR(MAX),
+                    resources VARCHAR(MAX),
+                    dueDate DATETIME NOT NULL,
+                    maxScore INT DEFAULT 100,
+                    allowResubmission BIT DEFAULT 1,
+                    status VARCHAR(50) DEFAULT 'ACTIVE',
+                    createdBy VARCHAR(255) NOT NULL,
+                    createdAt DATETIME DEFAULT GETDATE(),
+                    updatedAt DATETIME DEFAULT GETDATE()
+                );
+            END
         `;
         try {
             await pool.query(query);
@@ -83,8 +86,10 @@ class Assignment {
         const fields = [
             "courseId", "moduleId", "lessonId", "scope", "instructor",
             "title", "description", "resources", "dueDate", "maxScore",
-            "allowResubmission", "status", "createdBy"
+            "allowResubmission", "status", "createdBy", "createdAt"
         ];
+
+        if (!assignment.createdAt) assignment.createdAt = new Date();
 
         const values = fields.map(field => {
             let val = assignment[field];
@@ -94,10 +99,10 @@ class Assignment {
         });
 
         const placeholders = fields.map(() => "?").join(",");
-        const query = `INSERT INTO assignments (${fields.join(",")}) VALUES (${placeholders})`;
+        const query = `INSERT INTO assignments (${fields.join(",")}) VALUES (${placeholders}); SELECT SCOPE_IDENTITY() AS id;`;
 
-        const [result] = await pool.query(query, values);
-        return Assignment.findById(result.insertId);
+        const [rows] = await pool.query(query, values);
+        return Assignment.findById(rows[0].id);
     }
 
     static async findById(id) {
@@ -128,7 +133,7 @@ class Assignment {
         const whereClause = keys.map(key => `${key} = ?`).join(" AND ");
         const values = keys.map(key => mappedQuery[key]);
 
-        const [rows] = await pool.query(`SELECT * FROM assignments WHERE ${whereClause} LIMIT 1`, values);
+        const [rows] = await pool.query(`SELECT TOP 1 * FROM assignments WHERE ${whereClause}`, values);
         if (rows.length === 0) return null;
         return new Assignment(rows[0]);
     }
@@ -205,10 +210,12 @@ class Assignment {
             throw new Error('Lesson-scoped assignment must have both moduleId and lessonId');
         }
 
+        this.updatedAt = new Date(); // Manually update timestamp
+
         const fields = [
             "courseId", "moduleId", "lessonId", "scope", "instructor",
             "title", "description", "resources", "dueDate", "maxScore",
-            "allowResubmission", "status", "createdBy"
+            "allowResubmission", "status", "createdBy", "updatedAt"
         ];
 
         const setClause = fields.map(field => `${field} = ?`).join(", ");

@@ -31,6 +31,12 @@ export const createCertificateTemplate = asyncHandler(async (req, res) => {
         throw new ApiError("Placeholders must be an array", 400);
     }
 
+    // Check if duplicate name
+    const existingTemplate = await CertificateTemplate.findOne({ name });
+    if (existingTemplate) {
+        throw new ApiError("Certificate template with this name already exists", 409);
+    }
+
     const templateData = {
         name,
         description,
