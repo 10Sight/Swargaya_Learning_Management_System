@@ -21,10 +21,10 @@ const ENV = {
     SMTP_PASSWORD: process.env.SMTP_PASSWORD,
 
     // Frontend URLs
-    DB_HOST: process.env.DB_HOST || "MMMPUNDBSER"
-    DB_USER: process.env.DB_USER || "CMS_Admin",
-    DB_PASSWORD: process.env.DB_PASSWORD || "Mind@1234",
-    DB_NAME: process.env.DB_NAME || "LMS_Dashboard",
+    DB_HOST: process.env.DB_HOST || "localhost",
+    DB_USER: process.env.DB_USER || "LMS_USER",
+    DB_PASSWORD: process.env.DB_PASSWORD || "LMS@12345",
+    DB_NAME: process.env.DB_NAME || "LMS",
 
     FRONTEND_URL: process.env.FRONTEND_URL || "http://localhost:5173",
     ADMIN_URL: process.env.ADMIN_URL || "http://localhost:5174",
