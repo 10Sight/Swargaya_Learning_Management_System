@@ -28,9 +28,10 @@ const ENV = {
 
     FRONTEND_URL: process.env.FRONTEND_URL || "http://localhost:5173",
     ADMIN_URL: process.env.ADMIN_URL || "http://localhost:5174",
-    INSTRUCTOR_URL: process.env.INSTRUCTOR_URL,
-    STUDENT_URL: process.env.STUDENT_URL,
-    SUPERADMIN_URL: process.env.SUPERADMIN_URL,
+    INSTRUCTOR_URL: process.env.INSTRUCTOR_URL || "http://localhost:5175",
+    STUDENT_URL: process.env.STUDENT_URL || "http://localhost:5176",
+    SUPERADMIN_URL: process.env.SUPERADMIN_URL || "http://localhost:5177",
+    ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176", "http://localhost:5177"]
 }
 
 export default ENV;

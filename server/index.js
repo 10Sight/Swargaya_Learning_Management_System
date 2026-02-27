@@ -58,20 +58,10 @@ const server = createServer(app);
 const io = new Server(server, {
     cors: {
         origin: (origin, callback) => {
-            const allowedOrigins = [
-                "https://swargaya-learning-management-system-3vcz.onrender.com",
-                "https://swargaya-learning-management-system.onrender.com",
-                "https://learning-management-system-avwu.onrender.com"
-            ];
             // Allow requests with no origin (like mobile apps or curl requests)
             if (!origin) return callback(null, true);
 
-            // Allow any localhost/127.0.0.1 origin
-            if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
-                return callback(null, true);
-            }
-
-            if (allowedOrigins.indexOf(origin) !== -1) {
+            if (ENV.ALLOWED_ORIGINS.indexOf(origin) !== -1 || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
                 return callback(null, true);
             } else {
                 return callback(new Error('Not allowed by CORS'));
@@ -92,7 +82,7 @@ app.use(cookieParser()); // Add cookie parser middleware
 
 // CORS with caching for preflight
 const corsOptions = {
-    origin: ["https://swargaya-learning-management-system-3vcz.onrender.com", "https://swargaya-learning-management-system.onrender.com", "https://learning-management-system-avwu.onrender.com", "http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176", "http://localhost:5177", "http://10.240.98.9:5173"],
+    origin: ENV.ALLOWED_ORIGINS,
     credentials: true,
     optionsSuccessStatus: 200, // For legacy browser support
     maxAge: 86400, // Cache preflight for 24 hours

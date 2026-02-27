@@ -253,10 +253,10 @@ export const createUser = asyncHandler(async (req, res) => {
 
   // Email logic
   try {
-    let loginUrl = ENV.FRONTEND_URL || 'https://swargaya-learning-management-system-3vcz.onrender.com';
-    if (role === 'ADMIN' || role === 'SUPERADMIN') loginUrl = ENV.ADMIN_URL || 'http://localhost:5173';
-    else if (role === 'INSTRUCTOR') loginUrl = ENV.INSTRUCTOR_URL || 'http://localhost:5174';
-    else if (role === 'STUDENT') loginUrl = ENV.STUDENT_URL || 'http://localhost:5175';
+    let loginUrl = ENV.FRONTEND_URL;
+    if (role === 'ADMIN' || role === 'SUPERADMIN') loginUrl = ENV.ADMIN_URL;
+    else if (role === 'INSTRUCTOR') loginUrl = ENV.INSTRUCTOR_URL;
+    else if (role === 'STUDENT') loginUrl = ENV.STUDENT_URL;
 
     const userData = { fullName, email, userName, phoneNumber, password: plainTextPassword, role };
     const emailHtml = generateWelcomeEmail(userData, loginUrl);

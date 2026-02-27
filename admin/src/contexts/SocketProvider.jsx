@@ -1,17 +1,8 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { toast } from 'sonner';
 import axiosInstance from '@/Helper/axiosInstance';
-
-export const SocketContext = createContext();
-
-export const useSocket = () => {
-    const context = useContext(SocketContext);
-    if (!context) {
-        throw new Error('useSocket must be used within a SocketProvider');
-    }
-    return context;
-};
+import { SocketContext } from './SocketContext';
 
 export const SocketProvider = ({ children }) => {
     const [socket, setSocket] = useState(null);
@@ -28,22 +19,7 @@ export const SocketProvider = ({ children }) => {
             if (isLoggedIn && user) {
                 const { io } = await import('socket.io-client');
                 // Prefer explicit env, fall back to API base URL, then localhost
-                const envUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_SERVER_URL;
-                const apiBase = axiosInstance?.defaults?.baseURL;
-                let socketUrl = 'https://swargaya-learning-management-system-3vcz.onrender.com';
-                if (typeof window !== 'undefined') {
-                    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                        socketUrl = 'http://localhost:3000';
-                    } else if (envUrl) {
-                        socketUrl = envUrl;
-                    } else if (apiBase) {
-                        try {
-                            socketUrl = new URL(apiBase).origin;
-                        } catch {
-                            socketUrl = apiBase;
-                        }
-                    }
-                }
+                const socketUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_SERVER_URL || '';
                 const newSocket = io(socketUrl, {
                     path: import.meta.env.VITE_SOCKET_PATH || '/socket.io',
                     transports: ['websocket'], // avoid xhr polling issues

@@ -179,7 +179,7 @@ export const bulkEnrollUsers = asyncHandler(async (req, res) => {
                             userName: user.fullName,
                             courses: userCourses,
                             departmentName: department?.name || null,
-                            loginUrl: process.env.FRONTEND_URL || 'http://localhost:3000'
+                            loginUrl: process.env.FRONTEND_URL || 'http://localhost:5173'
                         }
                     });
                 }
@@ -535,7 +535,7 @@ export const bulkGenerateCertificates = asyncHandler(async (req, res) => {
                         userName: user.fullName,
                         courseName: course.title,
                         certificateNumber: success.certificateNumber,
-                        downloadUrl: `${process.env.FRONTEND_URL}/certificates/${success.certificateId}`
+                        downloadUrl: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/certificates/${success.certificateId}`
                     }
                 });
             }
