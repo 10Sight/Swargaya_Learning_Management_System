@@ -3,7 +3,7 @@ import path from "path";
 import fs from "fs";
 
 const uploadDir = "uploads";
-if(!fs.existsSync(uploadDir)) {
+if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
 
@@ -35,7 +35,7 @@ const fileFilter = (req, file, cb) => {
         "application/x-rar-compressed"
     ];
 
-    if(allowedTypes.includes(file.mimetype)) {
+    if (allowedTypes.includes(file.mimetype)) {
         cb(null, true);
     } else {
         cb(new Error("Invalid file type. Allowed: images, PDFs, videos, documents, presentations, and archives"), false);
@@ -45,7 +45,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
     storage,
     fileFilter,
-    limits: { fileSize: 50 * 1024 * 1024 },
+    limits: { fileSize: 500 * 1024 * 1024 },
 });
 
 export default upload;
