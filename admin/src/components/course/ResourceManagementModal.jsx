@@ -34,18 +34,18 @@ const resourceTypeOptions = [
   { value: "text", label: "Text Document", icon: IconFileText },
 ];
 
-export const ResourceManagementModal = ({ 
-  isOpen, 
-  onClose, 
-  scope, 
-  courseId, 
-  moduleId, 
+export const ResourceManagementModal = ({
+  isOpen,
+  onClose,
+  scope,
+  courseId,
+  moduleId,
   lessonId,
-  entityName = "" 
+  entityName = ""
 }) => {
   const fileInputRef = useRef(null);
   const [createResource, { isLoading: isCreatingResource }] = useCreateResourceMutation();
-  
+
   const [formData, setFormData] = useState({
     title: "",
     type: "",
@@ -135,12 +135,12 @@ export const ResourceManagementModal = ({
 
     try {
       const formDataToSend = new FormData();
-      
+
       // Add required fields
       formDataToSend.append("title", formData.title.trim());
       formDataToSend.append("type", formData.type);
       formDataToSend.append("scope", scope);
-      
+
       if (formData.description.trim()) {
         formDataToSend.append("description", formData.description.trim());
       }
@@ -162,7 +162,7 @@ export const ResourceManagementModal = ({
       }
 
       await createResource(formDataToSend).unwrap();
-      
+
       toast.success(`Resource added to ${scope} successfully!`);
       resetForm();
       onClose();
@@ -185,7 +185,7 @@ export const ResourceManagementModal = ({
   const getScopeDisplayName = () => {
     switch (scope) {
       case "course": return "Course";
-      case "module": return "Module"; 
+      case "module": return "Module";
       case "lesson": return "Lesson";
       default: return scope;
     }
@@ -197,7 +197,7 @@ export const ResourceManagementModal = ({
         <DialogHeader>
           <DialogTitle>Add Resource to {getScopeDisplayName()}</DialogTitle>
           <DialogDescription>
-            Add a new resource to {entityName ? `"${entityName}"` : `this ${scope}`}. 
+            Add a new resource to {entityName ? `"${entityName}"` : `this ${scope}`}.
             Resources can be files uploaded to Cloudinary or external links.
           </DialogDescription>
         </DialogHeader>
@@ -240,9 +240,9 @@ export const ResourceManagementModal = ({
           {/* File Upload Section */}
           <div className="space-y-4">
             <Label>Resource Content</Label>
-            
+
             {/* File Upload Option */}
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+            <div className="border-2 border-dashed border-[#d1d5db] rounded-lg p-6 text-center hover:border-[#60a5fa] transition-colors">
               <input
                 type="file"
                 ref={fileInputRef}
@@ -250,14 +250,14 @@ export const ResourceManagementModal = ({
                 className="hidden"
                 accept={getFileAccept()}
               />
-              
+
               {formData.file ? (
-                <div className="flex items-center justify-between bg-blue-50 p-4 rounded-md">
+                <div className="flex items-center justify-between bg-[#eff6ff] p-4 rounded-md">
                   <div className="flex items-center gap-3">
-                    <IconFile className="h-6 w-6 text-blue-600" />
+                    <IconFile className="h-6 w-6 text-[#2563eb]" />
                     <div className="text-left">
                       <p className="text-sm font-medium truncate">{formData.file.name}</p>
-                      <p className="text-xs text-gray-600">
+                      <p className="text-xs text-[#4b5563]">
                         {(formData.file.size / (1024 * 1024)).toFixed(2)} MB
                       </p>
                     </div>
@@ -267,26 +267,26 @@ export const ResourceManagementModal = ({
                     variant="ghost"
                     size="sm"
                     onClick={removeFile}
-                    className="h-8 w-8 p-0 text-gray-500 hover:text-red-600"
+                    className="h-8 w-8 p-0 text-[#6b7280] hover:text-[#dc2626]"
                   >
                     <IconX className="h-4 w-4" />
                   </Button>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <IconUpload className="h-12 w-12 text-gray-400 mx-auto" />
+                  <IconUpload className="h-12 w-12 text-[#9ca3af] mx-auto" />
                   <div>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-[#4b5563]">
                       Drop a file here or{" "}
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="text-blue-600 hover:text-blue-800 font-medium"
+                        className="text-[#2563eb] hover:text-[#1e40af] font-medium"
                       >
                         browse files
                       </button>
                     </p>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-[#6b7280] mt-1">
                       File will be uploaded to Cloudinary
                     </p>
                   </div>
@@ -296,9 +296,9 @@ export const ResourceManagementModal = ({
 
             {/* OR separator */}
             <div className="relative flex items-center">
-              <div className="flex-grow border-t border-gray-300"></div>
-              <span className="mx-4 text-sm text-gray-500 bg-white px-2">OR</span>
-              <div className="flex-grow border-t border-gray-300"></div>
+              <div className="flex-grow border-t border-[#d1d5db]"></div>
+              <span className="mx-4 text-sm text-[#6b7280] bg-white px-2">OR</span>
+              <div className="flex-grow border-t border-[#d1d5db]"></div>
             </div>
 
             {/* URL Input */}
@@ -311,8 +311,8 @@ export const ResourceManagementModal = ({
                 placeholder="https://example.com/resource"
                 disabled={!!formData.file}
               />
-              <p className="text-xs text-gray-500">
-                {formData.file 
+              <p className="text-xs text-[#6b7280]">
+                {formData.file
                   ? "URL input is disabled when a file is selected"
                   : "Provide a URL to an external resource"
                 }
@@ -322,9 +322,9 @@ export const ResourceManagementModal = ({
         </div>
 
         <DialogFooter>
-          <Button 
-            type="button" 
-            variant="outline" 
+          <Button
+            type="button"
+            variant="outline"
             onClick={() => {
               resetForm();
               onClose();
@@ -333,7 +333,7 @@ export const ResourceManagementModal = ({
           >
             Cancel
           </Button>
-          <Button 
+          <Button
             onClick={handleSubmit}
             disabled={isCreatingResource}
             className="gap-2"

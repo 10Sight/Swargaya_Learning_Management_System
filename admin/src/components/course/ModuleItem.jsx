@@ -89,14 +89,14 @@ const ModuleItem = ({ module, onRefetch, isDeletingModule }) => {
     if (!content || content.trim() === "") {
       return <span className="text-muted-foreground italic">No content available</span>;
     }
-    
+
     // Remove HTML tags if present and truncate
     const plainText = content.replace(/<[^>]*>/g, '');
-    
+
     if (plainText.length > 100) {
       return <span>{plainText.substring(0, 100)}...</span>;
     }
-    
+
     return <span>{plainText}</span>;
   };
 
@@ -109,8 +109,8 @@ const ModuleItem = ({ module, onRefetch, isDeletingModule }) => {
       <CardHeader className="pb-3 bg-muted/30">
         <div className="flex justify-between items-start">
           <div className="flex-1">
-            <div 
-              className="flex items-center gap-2 cursor-pointer" 
+            <div
+              className="flex items-center gap-2 cursor-pointer"
               onClick={toggleExpanded}
             >
               <CardTitle className="flex items-center gap-2">
@@ -140,7 +140,7 @@ const ModuleItem = ({ module, onRefetch, isDeletingModule }) => {
             <Button
               variant="outline"
               size="sm"
-              className="text-red-600 hover:text-red-800 hover:bg-red-50"
+              className="text-[#dc2626] hover:text-[#991b1b] hover:bg-[#fef2f2]"
               onClick={handleDeleteModule}
               disabled={isDeletingModule}
             >
@@ -152,7 +152,7 @@ const ModuleItem = ({ module, onRefetch, isDeletingModule }) => {
             </Button>
           </div>
         </div>
-        
+
         <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mt-2">
           <div className="flex items-center gap-1">
             <IconFileText className="h-4 w-4" />
@@ -169,27 +169,27 @@ const ModuleItem = ({ module, onRefetch, isDeletingModule }) => {
           )}
         </div>
       </CardHeader>
-      
+
       {/* Lessons accordion content */}
       {isExpanded && (
         <CardContent className="pt-4">
           <div className="flex justify-between items-center mb-4">
             <h4 className="text-lg font-semibold">Lessons in this module</h4>
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               onClick={() => navigate(`${basePath}/add-lesson/${moduleId}`)}
             >
               <IconPlus className="h-4 w-4 mr-1" />
               Add Lesson
             </Button>
           </div>
-          
+
           {lessonsLoading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="border rounded-lg p-4 animate-pulse">
-                  <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-4 bg-[#e5e7eb] rounded mb-2"></div>
+                  <div className="h-3 bg-[#e5e7eb] rounded w-3/4"></div>
                 </div>
               ))}
             </div>
@@ -219,7 +219,7 @@ const ModuleItem = ({ module, onRefetch, isDeletingModule }) => {
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
@@ -231,7 +231,7 @@ const ModuleItem = ({ module, onRefetch, isDeletingModule }) => {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                      className="text-[#dc2626] hover:text-[#991b1b] hover:bg-[#fef2f2]"
                       onClick={() => handleDeleteLesson(lesson._id || lesson.id)}
                       disabled={isDeletingLesson}
                     >
@@ -252,8 +252,8 @@ const ModuleItem = ({ module, onRefetch, isDeletingModule }) => {
               <p className="text-sm text-muted-foreground mt-1 mb-3">
                 Add lessons to this module to get started
               </p>
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 onClick={() => navigate(`${basePath}/add-lesson/${moduleId}`)}
               >
                 <IconPlus className="h-4 w-4 mr-1" />

@@ -76,8 +76,8 @@ export const FormTextarea = ({
       <div className={cn("group space-y-2", className)}>
         {label && (
           <div className="flex items-center justify-between">
-            <Label 
-              htmlFor={id} 
+            <Label
+              htmlFor={id}
               className={cn(
                 "flex items-center gap-2 font-medium transition-colors",
                 "group-focus-within:text-primary",
@@ -121,7 +121,7 @@ export const FormTextarea = ({
             </div>
           </div>
         )}
-        
+
         <div className={cn(
           "relative transition-all duration-200 rounded-lg",
           "focus-within:ring-2 focus-within:ring-primary/20",
@@ -149,14 +149,14 @@ export const FormTextarea = ({
               sizeClasses[size],
               resizeClasses[resize],
               error && "text-destructive placeholder:text-destructive/50",
-              success && "text-green-700",
+              success && "text-[#15803d]",
               isFocused && "placeholder:text-muted-foreground/60",
               disabled && "cursor-not-allowed",
               autoResize && "overflow-hidden"
             )}
             {...props}
           />
-          
+
           {/* Status indicators */}
           {(error || success) && (
             <div className="absolute top-3 right-3">
@@ -164,11 +164,11 @@ export const FormTextarea = ({
                 <IconAlertCircle className="h-4 w-4 text-destructive" />
               )}
               {success && !error && (
-                <IconCheck className="h-4 w-4 text-green-500" />
+                <IconCheck className="h-4 w-4 text-[#22c55e]" />
               )}
             </div>
           )}
-          
+
           {/* Focus indicator for minimal variant */}
           {variant === "minimal" && (
             <div className={cn(
@@ -177,7 +177,7 @@ export const FormTextarea = ({
             )} />
           )}
         </div>
-        
+
         {/* Helper Text */}
         {helperText && !error && (
           <div className="flex items-start gap-2 text-sm text-muted-foreground">
@@ -185,7 +185,7 @@ export const FormTextarea = ({
             <p>{helperText}</p>
           </div>
         )}
-        
+
         {/* Error Message */}
         {error && (
           <div className="flex items-start gap-2 text-sm text-destructive animate-in slide-in-from-left-2 duration-200">
@@ -198,10 +198,10 @@ export const FormTextarea = ({
             </div>
           </div>
         )}
-        
+
         {/* Success Message */}
         {success && !error && (
-          <div className="flex items-start gap-2 text-sm text-green-600 animate-in slide-in-from-left-2 duration-200">
+          <div className="flex items-start gap-2 text-sm text-[#16a34a] animate-in slide-in-from-left-2 duration-200">
             <IconCheck className="h-4 w-4 flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-medium">{success}</p>
@@ -212,7 +212,7 @@ export const FormTextarea = ({
           </div>
         )}
       </div>
-      
+
       {/* Fullscreen Modal */}
       {isFullscreen && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">

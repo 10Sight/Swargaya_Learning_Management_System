@@ -567,7 +567,7 @@ const Departments = () => {
                 </Avatar>
               ))}
               {instructors.length > 3 && (
-                <div className="flex items-center justify-center h-6 w-6 rounded-full border-2 border-white bg-gray-100 text-[10px] font-medium text-gray-600">
+                <div className="flex items-center justify-center h-6 w-6 rounded-full border-2 border-white bg-[#f3f4f6] text-[10px] font-medium text-[#4b5563]">
                   +{instructors.length - 3}
                 </div>
               )}
@@ -649,29 +649,29 @@ const Departments = () => {
       UPCOMING: {
         variant: "secondary",
         label: "Upcoming",
-        className: "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200"
+        className: "bg-[#dbeafe] text-[#1e40af] border-[#bfdbfe] hover:bg-[#bfdbfe]"
       },
       ONGOING: {
         variant: "default",
         label: "Ongoing",
-        className: "bg-green-100 text-green-800 border-green-200 hover:bg-green-200"
+        className: "bg-[#dcfce7] text-[#166534] border-[#bbf7d0] hover:bg-[#bbf7d0]"
       },
       COMPLETED: {
         variant: "outline",
         label: "Completed",
-        className: "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200"
+        className: "bg-[#f3f4f6] text-[#374151] border-[#d1d5db] hover:bg-[#e5e7eb]"
       },
       CANCELLED: {
         variant: "destructive",
         label: "Cancelled",
-        className: "bg-red-100 text-red-800 border-red-200 hover:bg-red-200 font-medium"
+        className: "bg-[#fee2e2] text-[#991b1b] border-[#fecaca] hover:bg-[#fecaca] font-medium"
       },
     };
 
     const config = statusConfig[status] || {
       variant: "outline",
       label: status || 'Unknown',
-      className: "bg-yellow-100 text-yellow-800 border-yellow-200"
+      className: "bg-[#fef9c3] text-[#854d0e] border-[#fde047]"
     };
 
     return (
@@ -730,10 +730,10 @@ const Departments = () => {
     if (departmentsError.status === 401) {
       return (
         <div className="flex flex-col justify-center items-center h-64 space-y-4 p-4">
-          <div className="text-red-600 text-lg font-medium">
+          <div className="text-[#dc2626] text-lg font-medium">
             Authentication Required
           </div>
-          <p className="text-gray-600 text-center">
+          <p className="text-[#4b5563] text-center">
             Please log in as an admin to view departments
           </p>
           <Button
@@ -748,10 +748,10 @@ const Departments = () => {
 
     return (
       <div className="flex flex-col justify-center items-center h-64 space-y-4 p-4">
-        <div className="text-red-600 text-lg font-medium">
+        <div className="text-[#dc2626] text-lg font-medium">
           Error loading departments
         </div>
-        <p className="text-gray-600 text-center">
+        <p className="text-[#4b5563] text-center">
           {departmentsError?.message || "Failed to fetch departments"}
         </p>
         <Button onClick={() => refetch()} variant="outline" className="gap-2">
@@ -771,13 +771,13 @@ const Departments = () => {
           value={totalCount}
           description="All created departments"
           icon={IconSchool}
-          iconBgColor="bg-blue-100"
-          iconColor="text-blue-600"
-          gradientFrom="from-blue-50"
-          gradientTo="to-blue-100"
-          borderColor="border-blue-200"
-          textColor="text-blue-800"
-          valueColor="text-blue-900"
+          iconBgColor="bg-[#dbeafe]"
+          iconColor="text-[#2563eb]"
+          gradientFrom="from-[#eff6ff]"
+          gradientTo="to-[#dbeafe]"
+          borderColor="border-[#bfdbfe]"
+          textColor="text-[#1e40af]"
+          valueColor="text-[#1e3a8a]"
         />
 
         <StatCard
@@ -785,13 +785,13 @@ const Departments = () => {
           value={departments.filter((d) => (d.instructors && d.instructors.length > 0) || d.instructor).length}
           description="With instructors"
           icon={IconUser}
-          iconBgColor="bg-green-100"
-          iconColor="text-green-600"
-          gradientFrom="from-green-50"
-          gradientTo="to-green-100"
-          borderColor="border-green-200"
-          textColor="text-green-800"
-          valueColor="text-green-900"
+          iconBgColor="bg-[#dcfce7]"
+          iconColor="text-[#16a34a]"
+          gradientFrom="from-[#f0fdf4]"
+          gradientTo="to-[#dcfce7]"
+          borderColor="border-[#bbf7d0]"
+          textColor="text-[#166534]"
+          valueColor="text-[#14532d]"
         />
 
         <StatCard
@@ -802,13 +802,13 @@ const Departments = () => {
           )}
           description="Across all departments"
           icon={IconUsers}
-          iconBgColor="bg-purple-100"
-          iconColor="text-purple-600"
-          gradientFrom="from-purple-50"
-          gradientTo="to-purple-100"
-          borderColor="border-purple-200"
-          textColor="text-purple-800"
-          valueColor="text-purple-900"
+          iconBgColor="bg-[#f3e8ff]"
+          iconColor="text-[#9333ea]"
+          gradientFrom="from-[#faf5ff]"
+          gradientTo="to-[#f3e8ff]"
+          borderColor="border-[#e9d5ff]"
+          textColor="text-[#6b21a8]"
+          valueColor="text-[#581c87]"
         />
       </div>
 
@@ -847,7 +847,7 @@ const Departments = () => {
 
           <Button
             onClick={() => setIsAddDialogOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+            className="bg-[#2563eb] hover:bg-[#1d4ed8] text-[#ffffff] shadow-sm"
           >
             <IconPlus className="h-4 w-4 mr-2" />
             Create Department
@@ -971,8 +971,8 @@ const Departments = () => {
                   >
                     <TableCell>
                       <div className="flex items-center space-x-3">
-                        <div className="p-2 rounded-full bg-blue-100">
-                          <IconSchool className="h-5 w-5 text-blue-600" />
+                        <div className="p-2 rounded-full bg-[#dbeafe]">
+                          <IconSchool className="h-5 w-5 text-[#2563eb]" />
                         </div>
                         <div>
                           <p className="font-medium text-foreground">
@@ -1054,7 +1054,7 @@ const Departments = () => {
                                         e.stopPropagation();
                                         handleRemoveStudent({ departmentId: department._id, studentId: student._id, studentName: student.fullName });
                                       }}
-                                      className="text-red-600 focus:text-red-600"
+                                      className="text-[#dc2626] focus:text-[#dc2626]"
                                     >
                                       <IconTrash className="h-4 w-4 mr-2" />
                                       Remove {student.fullName}
@@ -1113,7 +1113,7 @@ const Departments = () => {
                                     setSelectedDepartment(department);
                                     setIsCancelDepartmentDialogOpen(true);
                                   }}
-                                  className="h-8 w-8 p-0 text-orange-600 hover:text-orange-800 hover:bg-orange-50"
+                                  className="h-8 w-8 p-0 text-[#ea580c] hover:text-[#9a3412] hover:bg-[#fff7ed]"
                                 >
                                   <IconX className="h-4 w-4" />
                                 </Button>
@@ -1135,7 +1135,7 @@ const Departments = () => {
                                   e.stopPropagation();
                                   openDeleteDialog(department);
                                 }}
-                                className="h-8 w-8 p-0 text-red-600 hover:text-red-800 hover:bg-red-50"
+                                className="h-8 w-8 p-0 text-[#dc2626] hover:text-[#991b1b] hover:bg-[#fef2f2]"
                               >
                                 <IconTrash className="h-4 w-4" />
                               </Button>
@@ -1232,11 +1232,11 @@ const Departments = () => {
                 onChange={handleInputChange}
                 placeholder="Enter department name"
                 className={
-                  formErrors.name ? "border-red-500 focus:border-red-500" : ""
+                  formErrors.name ? "border-[#ef4444] focus:border-[#ef4444]" : ""
                 }
               />
               {formErrors.name && (
-                <p className="text-sm text-red-600">{formErrors.name}</p>
+                <p className="text-sm text-[#dc2626]">{formErrors.name}</p>
               )}
             </div>
 
@@ -1288,13 +1288,13 @@ const Departments = () => {
                         <Badge key={courseId} variant="secondary" className="flex items-center gap-1 pl-2 pr-1 py-1">
                           {course?.title || course?.name || "Loading..."}
                           <div
-                            className="ml-1 hover:bg-red-200 rounded-full p-0.5 cursor-pointer transition-colors"
+                            className="ml-1 hover:bg-[#fecaca] rounded-full p-0.5 cursor-pointer transition-colors"
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedCourses(prev => prev.filter(id => id !== courseId));
                             }}
                           >
-                            <IconX className="h-3 w-3 text-red-600" />
+                            <IconX className="h-3 w-3 text-[#dc2626]" />
                           </div>
                         </Badge>
                       );
@@ -1469,13 +1469,13 @@ const Departments = () => {
                         <Badge key={courseId} variant="secondary" className="flex items-center gap-1 pl-2 pr-1 py-1">
                           {course?.title || course?.name || "Unknown Course"}
                           <div
-                            className="ml-1 hover:bg-red-200 rounded-full p-0.5 cursor-pointer transition-colors"
+                            className="ml-1 hover:bg-[#fecaca] rounded-full p-0.5 cursor-pointer transition-colors"
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedCourses(prev => prev.filter(id => id !== courseId));
                             }}
                           >
-                            <IconX className="h-3 w-3 text-red-600" />
+                            <IconX className="h-3 w-3 text-[#dc2626]" />
                           </div>
                         </Badge>
                       );
@@ -1567,7 +1567,7 @@ const Departments = () => {
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-600">
+            <DialogTitle className="flex items-center gap-2 text-[#dc2626]">
               <IconTrash className="h-5 w-5" />
               Delete Department
             </DialogTitle>
@@ -1620,7 +1620,7 @@ const Departments = () => {
                 <h4 className="text-sm font-medium text-muted-foreground mb-3">Current Instructors</h4>
                 <div className="space-y-2">
                   {(selectedDepartment.instructors || [selectedDepartment.instructor]).filter(Boolean).map(inst => (
-                    <div key={inst._id} className="flex items-center justify-between p-3 rounded-lg border bg-blue-50/50 border-blue-100">
+                    <div key={inst._id} className="flex items-center justify-between p-3 rounded-lg border bg-[#eff6ff]/50 border-[#dbeafe]">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
                           <AvatarImage src={inst.avatar?.url} />
@@ -1636,7 +1636,7 @@ const Departments = () => {
                         size="icon"
                         disabled={isRemovingInstructor}
                         onClick={() => handleRemoveInstructor(inst._id)}
-                        className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        className="h-8 w-8 text-[#ef4444] hover:text-[#b91c1c] hover:bg-[#fef2f2]"
                       >
                         {isRemovingInstructor ? <IconLoader className="h-4 w-4 animate-spin" /> : <IconX className="h-4 w-4" />}
                       </Button>
@@ -1655,7 +1655,7 @@ const Departments = () => {
                 <IconLoader className="h-6 w-6 animate-spin" />
               </div>
             ) : instructorsError ? (
-              <div className="text-center text-red-600 py-4">
+              <div className="text-center text-[#dc2626] py-4">
                 Error loading instructors
               </div>
             ) : instructors.length === 0 ? (
@@ -1739,7 +1739,7 @@ const Departments = () => {
                     <IconLoader className="h-6 w-6 animate-spin" />
                   </div>
                 ) : studentsError ? (
-                  <div className="text-center text-red-600 py-4">
+                  <div className="text-center text-[#dc2626] py-4">
                     Error loading trainees
                   </div>
                 ) : students.length === 0 ? (
@@ -1765,7 +1765,7 @@ const Departments = () => {
                           <div
                             key={sId}
                             className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${isSelected
-                              ? "bg-blue-50 border-blue-200"
+                              ? "bg-[#eff6ff] border-[#bfdbfe]"
                               : "hover:bg-muted"
                               }`}
                             onClick={() => toggleStudentSelection(sId)}
@@ -1896,7 +1896,7 @@ const Departments = () => {
       <Dialog open={isCancelDepartmentDialogOpen} onOpenChange={setIsCancelDepartmentDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-orange-600">
+            <DialogTitle className="flex items-center gap-2 text-[#ea580c]">
               <IconX className="h-5 w-5" />
               Cancel Department
             </DialogTitle>

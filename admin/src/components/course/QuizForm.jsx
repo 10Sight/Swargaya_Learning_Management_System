@@ -49,14 +49,14 @@ export const QuizForm = ({
           type="button"
           variant="ghost"
           onClick={() => onRemove(quiz.id)}
-          className="text-red-600 hover:text-red-800 ml-4"
+          className="text-[#dc2626] hover:text-[#991b1b] ml-4"
         >
           <IconTrash className="h-4 w-4" />
         </Button>
       </div>
 
       {errors[`quiz-${quiz.id}-questions`] && (
-        <p className="text-sm text-red-600">
+        <p className="text-sm text-[#dc2626]">
           {errors[`quiz-${quiz.id}-questions`]}
         </p>
       )}

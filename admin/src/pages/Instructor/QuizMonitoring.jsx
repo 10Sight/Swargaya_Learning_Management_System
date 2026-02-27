@@ -30,11 +30,11 @@ const QuizMonitoring = () => {
   const departments = departmentsData?.data?.departments || []
 
   const getScoreColor = (score, totalScore) => {
-    if (!totalScore || totalScore === 0) return 'text-gray-500'
+    if (!totalScore || totalScore === 0) return 'text-[#6b7280]'
     const percentage = (score / totalScore) * 100
-    if (percentage >= 80) return 'text-green-600'
-    if (percentage >= 60) return 'text-yellow-600'
-    return 'text-red-600'
+    if (percentage >= 80) return 'text-[#16a34a]'
+    if (percentage >= 60) return 'text-[#ca8a04]'
+    return 'text-[#dc2626]'
   }
 
   const getStatusBadge = (status) => {
@@ -67,15 +67,15 @@ const QuizMonitoring = () => {
         </Badge>
       </div>
 
-      <Card className="bg-amber-50 border-amber-200">
+      <Card className="bg-[#fffbeb] border-[#fde68a]">
         <CardContent className="pt-6">
           <div className="flex items-start space-x-3">
-            <div className="w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center mt-0.5">
+            <div className="w-5 h-5 bg-[#fffbeb] rounded-full flex items-center justify-center mt-0.5">
               <IconClipboardList className="h-3 w-3 text-white" />
             </div>
             <div>
-              <h3 className="font-medium text-amber-900">Quiz Monitoring</h3>
-              <p className="text-sm text-amber-700 mt-1">
+              <h3 className="font-medium text-[#78350f]">Quiz Monitoring</h3>
+              <p className="text-sm text-[#b45309] mt-1">
                 You can view quiz results, attempts, and student performance but cannot create,
                 edit, or grade quizzes. Select a department to view quiz data.
               </p>
@@ -130,7 +130,7 @@ const QuizMonitoring = () => {
             ) : error ? (
               <div className="text-center py-8">
                 <IconClipboardList className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2 text-red-600">Error Loading Data</h3>
+                <h3 className="text-lg font-medium mb-2 text-[#dc2626]">Error Loading Data</h3>
                 <p className="text-muted-foreground">
                   {error?.data?.message || 'Failed to load quiz attempts. Please try again.'}
                 </p>

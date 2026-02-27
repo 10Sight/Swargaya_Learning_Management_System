@@ -32,8 +32,8 @@ const LineDetail = () => {
                         <IconArrowLeft className="h-5 w-5" />
                     </Button>
                     <div>
-                        <h1 className="text-xl font-bold text-gray-800">Line Detail</h1>
-                        <p className="text-sm text-gray-500">Department: {departmentName} &gt; Line: {lineName}</p>
+                        <h1 className="text-xl font-bold text-[#1f2937]">Line Detail</h1>
+                        <p className="text-sm text-[#6b7280]">Department: {departmentName} &gt; Line: {lineName}</p>
                     </div>
                 </div>
             </div>

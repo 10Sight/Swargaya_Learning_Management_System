@@ -11,10 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
-export const FormCard = ({ 
-  title, 
-  description, 
-  children, 
+export const FormCard = ({
+  title,
+  description,
+  children,
   actionButton,
   footerActions,
   status,
@@ -47,13 +47,13 @@ export const FormCard = ({
 
   const statusColors = {
     default: "border-l-primary",
-    success: "border-l-green-500",
-    warning: "border-l-yellow-500",
-    destructive: "border-l-red-500"
+    success: "border-l-[#22c55e]",
+    warning: "border-l-[#eab308]",
+    destructive: "border-l-[#ef4444]"
   };
 
   return (
-    <Card 
+    <Card
       className={cn(
         variantClasses[variant],
         sizeClasses[size],
@@ -72,9 +72,9 @@ export const FormCard = ({
                 <div className="flex-shrink-0 mt-1">
                   <div className={cn(
                     "p-2 rounded-lg",
-                    status === "success" && "bg-green-100 text-green-600",
-                    status === "warning" && "bg-yellow-100 text-yellow-600",
-                    status === "destructive" && "bg-red-100 text-red-600",
+                    status === "success" && "bg-[#dcfce7] text-[#16a34a]",
+                    status === "warning" && "bg-[#fef9c3] text-[#ca8a04]",
+                    status === "destructive" && "bg-[#fee2e2] text-[#dc2626]",
                     (!status || status === "default") && "bg-primary/10 text-primary"
                   )}>
                     {icon}
@@ -92,8 +92,8 @@ export const FormCard = ({
                       {title}
                     </CardTitle>
                     {status && (
-                      <Badge 
-                        variant={statusVariant} 
+                      <Badge
+                        variant={statusVariant}
                         className="text-xs px-2 py-0 h-5"
                       >
                         {status}
@@ -121,13 +121,13 @@ export const FormCard = ({
                   className="p-1 rounded hover:bg-muted transition-colors"
                   aria-label={isCollapsed ? "Expand" : "Collapse"}
                 >
-                  <svg 
+                  <svg
                     className={cn(
                       "h-4 w-4 transition-transform duration-200",
                       isCollapsed ? "rotate-180" : ""
-                    )} 
-                    fill="none" 
-                    stroke="currentColor" 
+                    )}
+                    fill="none"
+                    stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -138,7 +138,7 @@ export const FormCard = ({
           </div>
         </CardHeader>
       )}
-      
+
       {(!collapsible || !isCollapsed) && children && (
         <>
           {(title || description || actionButton || icon) && <Separator />}
@@ -150,7 +150,7 @@ export const FormCard = ({
           </CardContent>
         </>
       )}
-      
+
       {footerActions && (!collapsible || !isCollapsed) && (
         <>
           <Separator />

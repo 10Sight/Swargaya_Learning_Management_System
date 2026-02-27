@@ -13,22 +13,22 @@ const InstructorStats = ({ stats }) => {
       title: "Total Courses",
       value: stats.coursesCount || 0,
       icon: IconBook,
-      color: "text-blue-600",
-      bgColor: "bg-blue-100"
+      color: "text-[#2563eb]",
+      bgColor: "bg-[#dbeafe]"
     },
     {
       title: "Active Departments",
       value: stats.departmentsCount || 0,
       icon: IconSchool,
-      color: "text-green-600",
-      bgColor: "bg-green-100"
+      color: "text-[#16a34a]",
+      bgColor: "bg-[#dcfce7]"
     },
     {
       title: "Average Rating",
       value: stats.averageRating ? `${stats.averageRating}/5` : "N/A",
       icon: IconStar,
-      color: "text-amber-600",
-      bgColor: "bg-amber-100"
+      color: "text-[#d97706]",
+      bgColor: "bg-[#fef3c7]"
     }
   ];
 

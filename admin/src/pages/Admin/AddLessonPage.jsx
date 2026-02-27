@@ -13,7 +13,7 @@ import DraggableCanvas from "@/components/common/DraggableCanvas";
 const AddLessonPage = () => {
   const { moduleId } = useParams();
   const navigate = useNavigate();
-  
+
   const [formData, setFormData] = useState({
     title: "",
     duration: 10,
@@ -24,11 +24,11 @@ const AddLessonPage = () => {
     { id: `${Date.now()}-1`, order: 1, contentHtml: "", bgColor: "#ffffff", images: [] },
   ]);
   const [activeIndex, setActiveIndex] = useState(0);
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileRef = React.useRef(null);
   const activeSlide = slides[activeIndex];
-  const patchActiveSlide = (patch) => setSlides((prev) => prev.map((s,i)=> i===activeIndex ? { ...s, ...patch } : s));
+  const patchActiveSlide = (patch) => setSlides((prev) => prev.map((s, i) => i === activeIndex ? { ...s, ...patch } : s));
   const addElement = (el) => patchActiveSlide({ elements: [...(activeSlide?.elements || []), el] });
   const addTextBox = () => addElement({ id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, type: 'text', xPct: 10, yPct: 10, wPct: 30, hPct: 12, text: 'Text' });
   const addRect = () => addElement({ id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, type: 'rect', xPct: 15, yPct: 15, wPct: 20, hPct: 12, fill: '#e5e7eb', stroke: '#d1d5db' });
@@ -74,7 +74,7 @@ const AddLessonPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.title.trim()) {
       toast.error("Please enter a lesson title");
       return;
@@ -106,8 +106,8 @@ const AddLessonPage = () => {
       }
     } catch (error) {
       console.error("Error creating lesson:", error);
-      const errorMessage = 
-        error.response?.data?.message || 
+      const errorMessage =
+        error.response?.data?.message ||
         "Failed to create lesson. Please try again.";
       toast.error(errorMessage);
     } finally {
@@ -189,10 +189,10 @@ const AddLessonPage = () => {
                       key={s.id}
                       className={
                         "group border rounded-md p-2 flex items-center gap-2 transition-colors " +
-                        (i === activeIndex ? "border-blue-500 bg-blue-50/40" : "border-[hsl(var(--border))] hover:bg-[hsl(var(--muted))]")
+                        (i === activeIndex ? "border-[#3b82f6] bg-[#eff6ff]/40" : "border-[hsl(var(--border))] hover:bg-[hsl(var(--muted))]")
                       }
                     >
-                      <div className="h-8 w-12 rounded-sm border bg-white shadow-sm shrink-0" style={{ backgroundColor: s.bgColor }} />
+                      <div className="h-8 w-12 rounded-sm border bg-[#ffffff] shadow-sm shrink-0" style={{ backgroundColor: s.bgColor }} />
                       <button type="button" className="flex-1 text-left text-sm font-medium truncate" onClick={() => setActiveIndex(i)}>
                         Slide {i + 1}
                       </button>
@@ -258,7 +258,7 @@ const AddLessonPage = () => {
                         const res = await axiosInstance.post('/api/upload/single', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
                         const url = res?.data?.data?.url;
                         if (url) addElement({ id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, type: 'image', url, xPct: 20, yPct: 20, wPct: 30, hPct: 20, alt: file.name });
-                      } catch {}
+                      } catch { }
                     }} />
                   </div>
                 </SlideStage>
@@ -283,7 +283,7 @@ const AddLessonPage = () => {
                   disabled={isSubmitting}
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <label htmlFor="order" className="text-sm font-medium">
                   Lesson Order

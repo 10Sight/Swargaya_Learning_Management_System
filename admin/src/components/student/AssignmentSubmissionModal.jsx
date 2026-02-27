@@ -10,11 +10,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  FileText, 
-  Upload, 
-  X, 
-  CheckCircle, 
+import {
+  FileText,
+  Upload,
+  X,
+  CheckCircle,
   AlertCircle,
   Clock,
   Award
@@ -22,17 +22,17 @@ import {
 import useFileUpload from '@/hooks/useFileUpload';
 import { useCreateSubmissionMutation, useResubmitAssignmentMutation } from '@/Redux/AllApi/SubmissionApi';
 
-const AssignmentSubmissionModal = ({ 
-  assignment, 
-  submission = null, 
-  isOpen, 
-  onClose, 
-  onSuccess 
+const AssignmentSubmissionModal = ({
+  assignment,
+  submission = null,
+  isOpen,
+  onClose,
+  onSuccess
 }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
-  
+
   const { uploadFile, isUploading, uploadProgress, error: uploadError } = useFileUpload();
   const [createSubmission, { isLoading: isCreating }] = useCreateSubmissionMutation();
   const [resubmitAssignment, { isLoading: isResubmitting }] = useResubmitAssignmentMutation();
@@ -55,15 +55,15 @@ const AssignmentSubmissionModal = ({
 
   const validateFile = (file) => {
     const fileExtension = file.name.split('.').pop().toLowerCase();
-    
+
     if (!allowedExtensions.includes(fileExtension)) {
       return `File type not allowed. Allowed: ${allowedExtensions.join(', ')}`;
     }
-    
+
     if (file.size > maxSizeBytes) {
       return `File too large. Maximum size: ${formatFileSize(maxSizeBytes)}`;
     }
-    
+
     return null;
   };
 
@@ -81,7 +81,7 @@ const AssignmentSubmissionModal = ({
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
       const error = validateFile(file);
@@ -130,7 +130,7 @@ const AssignmentSubmissionModal = ({
       if (!assignmentId) {
         throw new Error('Assignment ID not found');
       }
-      
+
       // Submit assignment
       const submissionData = {
         assignmentId: assignmentId,
@@ -150,7 +150,7 @@ const AssignmentSubmissionModal = ({
       } else {
         result = await createSubmission(submissionData);
       }
-      
+
       if (result.error) {
         console.error('Submission API error:', result.error);
         throw new Error(result.error.data?.message || result.error.message || 'Submission failed');
@@ -172,11 +172,11 @@ const AssignmentSubmissionModal = ({
 
   const getDueDateStatus = () => {
     if (!assignment.dueDate) return null;
-    
+
     const now = new Date();
     const dueDate = new Date(assignment.dueDate);
     const timeDiff = dueDate - now;
-    
+
     if (timeDiff < 0) {
       return { message: 'Overdue', color: 'destructive' };
     } else if (timeDiff < 24 * 60 * 60 * 1000) {
@@ -194,7 +194,7 @@ const AssignmentSubmissionModal = ({
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <div className="flex items-start gap-3">
-            <Upload className="h-6 w-6 text-blue-600 mt-1 flex-shrink-0" />
+            <Upload className="h-6 w-6 text-[#2563eb] mt-1 flex-shrink-0" />
             <div className="flex-1">
               <DialogTitle className="text-xl font-semibold">
                 {isResubmission ? 'Resubmit Assignment' : 'Submit Assignment'}
@@ -209,11 +209,11 @@ const AssignmentSubmissionModal = ({
         <div className="space-y-6">
           {/* Status Info */}
           <div className="flex flex-wrap gap-2">
-            <Badge variant="outline" className="bg-orange-50 text-orange-800 border-orange-200">
+            <Badge variant="outline" className="bg-[#fff7ed] text-[#9a3412] border-[#fed7aa]">
               <Award className="h-3 w-3 mr-1" />
               {assignment.maxScore || 100} points
             </Badge>
-            
+
             {dueDateStatus && (
               <Badge variant={dueDateStatus.color}>
                 <Clock className="h-3 w-3 mr-1" />
@@ -240,14 +240,13 @@ const AssignmentSubmissionModal = ({
           {/* File Upload Area */}
           <div className="space-y-4">
             <div className="text-sm font-medium">Upload your assignment file</div>
-            
+
             {!selectedFile ? (
               <div
-                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
-                  dragActive 
-                    ? 'border-blue-500 bg-blue-50' 
-                    : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
-                }`}
+                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${dragActive
+                    ? 'border-[#3b82f6] bg-[#eff6ff]'
+                    : 'border-[#d1d5db] hover:border-[#60a5fa] hover:bg-[#f9fafb]'
+                  }`}
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
                 onDragOver={handleDrag}
@@ -261,26 +260,26 @@ const AssignmentSubmissionModal = ({
                   onChange={handleFileSelect}
                   accept={allowedExtensions.map(ext => `.${ext}`).join(',')}
                 />
-                
-                <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+
+                <Upload className="h-12 w-12 text-[#9ca3af] mx-auto mb-4" />
                 <p className="text-lg font-medium mb-2">
-                  Drop your file here or <span className="text-blue-600">browse</span>
+                  Drop your file here or <span className="text-[#2563eb]">browse</span>
                 </p>
-                <p className="text-sm text-gray-500 mb-2">
+                <p className="text-sm text-[#6b7280] mb-2">
                   Maximum file size: {formatFileSize(maxSizeBytes)}
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-[#9ca3af]">
                   Supported formats: {allowedExtensions.join(', ').toUpperCase()}
                 </p>
               </div>
             ) : (
-              <div className="border rounded-lg p-4 bg-gray-50">
+              <div className="border rounded-lg p-4 bg-[#f9fafb]">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <FileText className="h-8 w-8 text-blue-600" />
+                    <FileText className="h-8 w-8 text-[#2563eb]" />
                     <div>
                       <p className="font-medium">{selectedFile.name}</p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-[#6b7280]">
                         {formatFileSize(selectedFile.size)}
                       </p>
                     </div>
@@ -290,7 +289,7 @@ const AssignmentSubmissionModal = ({
                     size="sm"
                     onClick={removeFile}
                     disabled={isProcessing}
-                    className="text-gray-500 hover:text-red-600"
+                    className="text-[#6b7280] hover:text-[#dc2626]"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -313,8 +312,8 @@ const AssignmentSubmissionModal = ({
           {/* Submit Progress */}
           {(isCreating || isResubmitting) && (
             <div className="flex items-center justify-center py-4">
-              <div className="flex items-center gap-2 text-sm text-blue-600">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              <div className="flex items-center gap-2 text-sm text-[#2563eb]">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#2563eb]"></div>
                 {isResubmission ? 'Resubmitting assignment...' : 'Submitting assignment...'}
               </div>
             </div>
@@ -332,15 +331,15 @@ const AssignmentSubmissionModal = ({
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={onClose}
               disabled={isProcessing}
             >
               Cancel
             </Button>
-            <Button 
-              onClick={handleSubmit} 
+            <Button
+              onClick={handleSubmit}
               disabled={!selectedFile || isProcessing}
             >
               {isProcessing ? (

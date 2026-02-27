@@ -8,7 +8,7 @@ const AccountStatusWrapper = ({ children, allowPending = false, pageName = '' })
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2563eb]"></div>
       </div>
     );
   }
@@ -49,12 +49,12 @@ const AccountStatusWrapper = ({ children, allowPending = false, pageName = '' })
       // Unknown status, allow access but show warning
       return (
         <>
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+          <div className="bg-[#fefce8] border border-[#fef08a] rounded-lg p-4 mb-6">
             <div className="flex items-start space-x-3">
-              <div className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0">⚠</div>
+              <div className="w-5 h-5 text-[#ca8a04] mt-0.5 flex-shrink-0">⚠</div>
               <div className="flex-1">
-                <h3 className="font-medium text-yellow-800 mb-1">Unknown Account Status</h3>
-                <p className="text-sm text-yellow-700">
+                <h3 className="font-medium text-[#854d0e] mb-1">Unknown Account Status</h3>
+                <p className="text-sm text-[#a16207]">
                   Your account status is unrecognized. Please contact your administrator.
                 </p>
               </div>

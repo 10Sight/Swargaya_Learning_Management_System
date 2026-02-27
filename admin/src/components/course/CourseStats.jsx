@@ -30,35 +30,35 @@ const CourseStats = ({ course, modules, quizzes, assignments }) => {
         value={modules.length}
         description="Learning sections"
         icon={IconBook}
-        iconBgColor="bg-blue-100"
-        iconColor="text-blue-600"
+        iconBgColor="bg-[#dbeafe]"
+        iconColor="text-[#2563eb]"
       />
-      
+
       <StatCard
         title="Quizzes"
         value={quizzes.length}
         description="Knowledge checks"
         icon={IconHelpCircle}
-        iconBgColor="bg-purple-100"
-        iconColor="text-purple-600"
+        iconBgColor="bg-[#f3e8ff]"
+        iconColor="text-[#9333ea]"
       />
-      
+
       <StatCard
         title="Assignments"
         value={assignments.length}
         description="Practical tasks"
         icon={IconClipboardList}
-        iconBgColor="bg-amber-100"
-        iconColor="text-amber-600"
+        iconBgColor="bg-[#fef3c7]"
+        iconColor="text-[#d97706]"
       />
-      
+
       <StatCard
         title="Lessons"
         value={modules.reduce((total, module) => total + (module.lessons?.length || 0), 0)}
         description="Learning units"
         icon={IconFileText}
-        iconBgColor="bg-emerald-100"
-        iconColor="text-emerald-600"
+        iconBgColor="bg-[#d1fae5]"
+        iconColor="text-[#059669]"
       />
     </div>
   );

@@ -237,7 +237,7 @@ const AddAssignmentPage = () => {
 
                 {/* Show error message if no modules */}
                 {modules.length === 0 && (
-                  <div className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-md p-3">
+                  <div className="text-sm text-[#d97706] bg-[#fffbeb] border border-[#fde68a] rounded-md p-3">
                     <p className="font-medium">No modules found for this course.</p>
                     <p className="text-xs mt-1">
                       You need to create modules first before adding assignments.

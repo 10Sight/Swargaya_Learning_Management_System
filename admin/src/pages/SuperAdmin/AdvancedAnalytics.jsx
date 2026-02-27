@@ -164,7 +164,7 @@ const AdvancedAnalytics = () => {
   // Calculate key metrics
   const keyMetrics = useMemo(() => {
     if (!analyticsData) return [];
-    
+
     const totalStudents = analyticsData.topStudents?.length || 0;
     const totalInstructors = analyticsData.instructorPerformance?.length || 0;
     const totalCourses = analyticsData.coursePerformance?.length || 0;
@@ -219,13 +219,13 @@ const AdvancedAnalytics = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Advanced Analytics & Reports</h1>
-            <p className="text-gray-600 mt-1">Comprehensive analytics dashboard with custom reporting</p>
+            <h1 className="text-2xl font-bold text-[#111827]">Advanced Analytics & Reports</h1>
+            <p className="text-[#4b5563] mt-1">Comprehensive analytics dashboard with custom reporting</p>
           </div>
         </div>
-        
+
         <div className="flex justify-center items-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2563eb]"></div>
         </div>
       </div>
     );
@@ -236,32 +236,32 @@ const AdvancedAnalytics = () => {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Advanced Analytics & Reports</h1>
-          <p className="text-gray-600 mt-1">Comprehensive analytics dashboard with custom reporting</p>
+          <h1 className="text-2xl font-bold text-[#111827]">Advanced Analytics & Reports</h1>
+          <p className="text-[#4b5563] mt-1">Comprehensive analytics dashboard with custom reporting</p>
         </div>
-        
+
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex items-center gap-2">
-            <IconCalendar className="w-4 h-4 text-gray-500" />
+            <IconCalendar className="w-4 h-4 text-[#6b7280]" />
             <input
               type="date"
               value={dateRange.startDate}
               onChange={(e) => setDateRange(prev => ({ ...prev, startDate: e.target.value }))}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border border-[#d1d5db] rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
             />
-            <span className="text-gray-500">to</span>
+            <span className="text-[#6b7280]">to</span>
             <input
               type="date"
               value={dateRange.endDate}
               onChange={(e) => setDateRange(prev => ({ ...prev, endDate: e.target.value }))}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border border-[#d1d5db] rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
             />
           </div>
-          
+
           <button
             onClick={() => refetch()}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-[#2563eb] text-[#ffffff] rounded-md hover:bg-[#1d4ed8] transition-colors disabled:opacity-50"
           >
             <IconRefresh className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
@@ -274,30 +274,30 @@ const AdvancedAnalytics = () => {
         {keyMetrics.map((metric, index) => {
           const Icon = metric.icon;
           const colorClasses = {
-            blue: "bg-blue-100 text-blue-600",
-            green: "bg-green-100 text-green-600",
-            purple: "bg-purple-100 text-purple-600",
-            orange: "bg-orange-100 text-orange-600"
+            blue: "bg-[#dbeafe] text-[#2563eb]",
+            green: "bg-[#dcfce7] text-[#16a34a]",
+            purple: "bg-[#f3e8ff] text-[#9333ea]",
+            orange: "bg-[#ffedd5] text-[#ea580c]"
           };
-          
+
           return (
-            <div key={index} className="bg-white rounded-lg border border-gray-200 p-6">
+            <div key={index} className="bg-white rounded-lg border border-[#e5e7eb] p-6">
               <div className="flex items-center justify-between">
                 <div className={`p-3 rounded-lg ${colorClasses[metric.color]}`}>
                   <Icon className="w-6 h-6" />
                 </div>
                 <div className="flex items-center text-sm font-medium">
-                  {metric.trend === 'up' && <IconArrowUp className="w-4 h-4 text-green-500 mr-1" />}
-                  {metric.trend === 'down' && <IconArrowDown className="w-4 h-4 text-red-500 mr-1" />}
-                  {metric.trend === 'neutral' && <IconMinus className="w-4 h-4 text-gray-500 mr-1" />}
-                  <span className={metric.trend === 'up' ? 'text-green-600' : metric.trend === 'down' ? 'text-red-600' : 'text-gray-600'}>
+                  {metric.trend === 'up' && <IconArrowUp className="w-4 h-4 text-[#22c55e] mr-1" />}
+                  {metric.trend === 'down' && <IconArrowDown className="w-4 h-4 text-[#ef4444] mr-1" />}
+                  {metric.trend === 'neutral' && <IconMinus className="w-4 h-4 text-[#6b7280] mr-1" />}
+                  <span className={metric.trend === 'up' ? 'text-[#16a34a]' : metric.trend === 'down' ? 'text-[#dc2626]' : 'text-[#4b5563]'}>
                     {metric.change}
                   </span>
                 </div>
               </div>
               <div className="mt-4">
-                <h3 className="text-sm font-medium text-gray-600">{metric.title}</h3>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{metric.value}</p>
+                <h3 className="text-sm font-medium text-[#4b5563]">{metric.title}</h3>
+                <p className="text-2xl font-bold text-[#111827] mt-1">{metric.value}</p>
               </div>
             </div>
           );
@@ -305,8 +305,8 @@ const AdvancedAnalytics = () => {
       </div>
 
       {/* Tabs Navigation */}
-      <div className="bg-white rounded-lg border border-gray-200">
-        <div className="border-b border-gray-200">
+      <div className="bg-white rounded-lg border border-[#e5e7eb]">
+        <div className="border-b border-[#e5e7eb]">
           <div className="flex space-x-8 px-6">
             {tabs.map((tab) => {
               const Icon = tab.icon;
@@ -314,11 +314,10 @@ const AdvancedAnalytics = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 py-4 border-b-2 font-medium text-sm transition-colors ${
-                    activeTab === tab.id
-                      ? "border-blue-500 text-blue-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                  }`}
+                  className={`flex items-center space-x-2 py-4 border-b-2 font-medium text-sm transition-colors ${activeTab === tab.id
+                    ? "border-[#3b82f6] text-[#2563eb]"
+                    : "border-transparent text-[#6b7280] hover:text-[#374151] hover:border-[#d1d5db]"
+                    }`}
                 >
                   <Icon className="w-4 h-4" />
                   <span>{tab.label}</span>
@@ -335,7 +334,7 @@ const AdvancedAnalytics = () => {
             <div className="space-y-8">
               {/* User Registration Trends */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">User Registration Trends</h3>
+                <h3 className="text-lg font-semibold text-[#111827] mb-4">User Registration Trends</h3>
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={processedData.userTrends}>
@@ -354,7 +353,7 @@ const AdvancedAnalytics = () => {
               {/* Engagement Overview */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Quiz Performance Trends</h3>
+                  <h3 className="text-lg font-semibold text-[#111827] mb-4">Quiz Performance Trends</h3>
                   <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={processedData.engagementData}>
@@ -369,7 +368,7 @@ const AdvancedAnalytics = () => {
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Course Enrollment Distribution</h3>
+                  <h3 className="text-lg font-semibold text-[#111827] mb-4">Course Enrollment Distribution</h3>
                   <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
@@ -399,26 +398,26 @@ const AdvancedAnalytics = () => {
           {/* User Analytics Tab */}
           {activeTab === "users" && (
             <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-900">Top Performing Students</h3>
+              <h3 className="text-lg font-semibold text-[#111827]">Top Performing Students</h3>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-[#f9fafb]">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Score</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quiz Attempts</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">Student</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">Email</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">Avg Score</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">Quiz Attempts</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">Progress</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {analyticsData?.topStudents?.map((student, index) => (
                       <tr key={index}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{student.fullName}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.email}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{Math.round(student.averageQuizScore || 0)}%</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{student.totalQuizAttempts}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{Math.round(student.averageProgress || 0)}%</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#111827]">{student.fullName}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#6b7280]">{student.email}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#111827]">{Math.round(student.averageQuizScore || 0)}%</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#111827]">{student.totalQuizAttempts}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#111827]">{Math.round(student.averageProgress || 0)}%</td>
                       </tr>
                     ))}
                   </tbody>
@@ -430,22 +429,22 @@ const AdvancedAnalytics = () => {
           {/* Course Performance Tab */}
           {activeTab === "courses" && (
             <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-900">Course Performance Analytics</h3>
+              <h3 className="text-lg font-semibold text-[#111827]">Course Performance Analytics</h3>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {analyticsData?.coursePerformance?.map((course, index) => (
-                  <div key={index} className="bg-gray-50 rounded-lg p-6">
-                    <h4 className="font-semibold text-gray-900 mb-4">{course.title}</h4>
+                  <div key={index} className="bg-[#f9fafb] rounded-lg p-6">
+                    <h4 className="font-semibold text-[#111827] mb-4">{course.title}</h4>
                     <div className="space-y-3">
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Enrolled Students:</span>
+                        <span className="text-[#4b5563]">Enrolled Students:</span>
                         <span className="font-medium">{course.totalEnrolledStudents}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Avg Quiz Score:</span>
+                        <span className="text-[#4b5563]">Avg Quiz Score:</span>
                         <span className="font-medium">{Math.round(course.averageQuizScore || 0)}%</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Avg Progress:</span>
+                        <span className="text-[#4b5563]">Avg Progress:</span>
                         <span className="font-medium">{Math.round(course.averageProgress || 0)}%</span>
                       </div>
                     </div>
@@ -458,7 +457,7 @@ const AdvancedAnalytics = () => {
           {/* Engagement Tab */}
           {activeTab === "engagement" && (
             <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-900">Learning Engagement Metrics</h3>
+              <h3 className="text-lg font-semibold text-[#111827]">Learning Engagement Metrics</h3>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={processedData.engagementData}>
@@ -478,18 +477,18 @@ const AdvancedAnalytics = () => {
           {/* Custom Reports Tab */}
           {activeTab === "reports" && (
             <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-900">Custom Reports & Data Export</h3>
-              
+              <h3 className="text-lg font-semibold text-[#111827]">Custom Reports & Data Export</h3>
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-gray-50 rounded-lg p-6">
-                  <h4 className="font-semibold text-gray-900 mb-4">Generate Custom Report</h4>
+                <div className="bg-[#f9fafb] rounded-lg p-6">
+                  <h4 className="font-semibold text-[#111827] mb-4">Generate Custom Report</h4>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Report Type</label>
+                      <label className="block text-sm font-medium text-[#374151] mb-2">Report Type</label>
                       <select
                         value={reportType}
                         onChange={(e) => setReportType(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                       >
                         <option value="user_activity">User Activity Report</option>
                         <option value="course_completion">Course Completion Report</option>
@@ -497,11 +496,11 @@ const AdvancedAnalytics = () => {
                         <option value="instructor_effectiveness">Instructor Effectiveness Report</option>
                       </select>
                     </div>
-                    
+
                     <button
                       onClick={handleGenerateReport}
                       disabled={isGeneratingReport}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#2563eb] text-[#ffffff] rounded-md hover:bg-[#1d4ed8] transition-colors disabled:opacity-50"
                     >
                       <IconFileText className="w-4 h-4" />
                       {isGeneratingReport ? 'Generating...' : 'Generate Report'}
@@ -509,26 +508,26 @@ const AdvancedAnalytics = () => {
                   </div>
                 </div>
 
-                <div className="bg-gray-50 rounded-lg p-6">
-                  <h4 className="font-semibold text-gray-900 mb-4">Export Analytics Data</h4>
+                <div className="bg-[#f9fafb] rounded-lg p-6">
+                  <h4 className="font-semibold text-[#111827] mb-4">Export Analytics Data</h4>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Export Format</label>
+                      <label className="block text-sm font-medium text-[#374151] mb-2">Export Format</label>
                       <select
                         value={exportFormat}
                         onChange={(e) => setExportFormat(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                       >
                         <option value="json">JSON</option>
                         <option value="csv">CSV</option>
                         <option value="xlsx">Excel (XLSX)</option>
                       </select>
                     </div>
-                    
+
                     <button
                       onClick={handleExportData}
                       disabled={isExporting}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#16a34a] text-[#ffffff] rounded-md hover:bg-[#15803d] transition-colors disabled:opacity-50"
                     >
                       <IconDownload className="w-4 h-4" />
                       {isExporting ? 'Exporting...' : 'Export Data'}

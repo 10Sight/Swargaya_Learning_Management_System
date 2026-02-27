@@ -240,7 +240,7 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
 
                 {/* Status Badges */}
                 <div className="flex flex-wrap gap-2 mt-2 items-center">
-                  <Badge className="bg-orange-100 text-orange-800 text-xs border-orange-200">
+                  <Badge className="bg-[#ffedd5] text-[#9a3412] text-xs border-[#fed7aa]">
                     MODULE LEVEL
                   </Badge>
 
@@ -274,7 +274,7 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
               <CardContent>
                 {/* Rejection banner */}
                 {(rejectedQuizIds && rejectedQuizIds.has(String(quizId))) && (
-                  <div className="mb-3 p-3 rounded-md border border-red-200 bg-red-50 text-red-700 text-xs">
+                  <div className="mb-3 p-3 rounded-md border border-[#fecaca] bg-[#fef2f2] text-[#b91c1c] text-xs">
                     This quiz request was rejected by your instructor/admin. No further attempts are available.
                   </div>
                 )}
@@ -306,8 +306,8 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
                         <div key={idx} className="flex justify-between text-xs">
                           <span>Attempt {idx + 1}:</span>
                           <span className={`${attempt.score >= (quiz.passingScore || 70)
-                            ? 'text-green-600'
-                            : 'text-red-600'
+                            ? 'text-[#16a34a]'
+                            : 'text-[#dc2626]'
                             } font-medium`}>
                             {attempt.score}%
                           </span>
@@ -319,8 +319,8 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
                         <span className="font-medium">
                           Best Score:
                           <span className={`ml-1 ${quizStatus.score >= (quiz.passingScore || 70)
-                            ? 'text-green-600'
-                            : 'text-red-600'
+                            ? 'text-[#16a34a]'
+                            : 'text-[#dc2626]'
                             }`}>
                             {quizStatus.score}%
                           </span>
@@ -333,7 +333,7 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
                 {/* If passed, show only View Results button */}
                 {isUnlocked && (quizStatus.status === 'passed_no_attempts') ? (
                   <Button
-                    className="w-full bg-green-100 text-green-700 hover:bg-green-200"
+                    className="w-full bg-[#dcfce7] text-[#15803d] hover:bg-[#bbf7d0]"
                     variant="outline"
                     onClick={() => {
                       const best = (attempts[String(quizId)] || []).reduce((b, c) => (c.score > b.score ? c : b), (attempts[String(quizId)] || [])[0]);
@@ -369,7 +369,7 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
                     quizStatus.status === 'rejected' ? null : (
                       <Button
                         className={`w-full ${quizStatus.status === 'no_attempts_left'
-                          ? 'bg-gray-400 hover:bg-gray-400 cursor-not-allowed'
+                          ? 'bg-[#9ca3af] hover:bg-[#9ca3af] cursor-not-allowed'
                           : ''
                           }`}
                         disabled={!isUnlocked || quizStatus.buttonDisabled}

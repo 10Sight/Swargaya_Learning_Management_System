@@ -177,13 +177,13 @@ const TakeQuiz = () => {
         <div className="animate-pulse">
           <Card>
             <CardHeader>
-              <div className="h-6 bg-gray-200 rounded w-1/2 mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              <div className="h-6 bg-[#e5e7eb] rounded w-1/2 mb-2"></div>
+              <div className="h-4 bg-[#e5e7eb] rounded w-3/4"></div>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {[1, 2, 3].map(i => (
-                  <div key={i} className="h-20 bg-gray-200 rounded"></div>
+                  <div key={i} className="h-20 bg-[#e5e7eb] rounded"></div>
                 ))}
               </div>
             </CardContent>
@@ -197,13 +197,13 @@ const TakeQuiz = () => {
   if (result) {
     return (
       <div className="max-w-4xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
-        <Card className={`${result.passed ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
+        <Card className={`${result.passed ? 'border-[#bbf7d0] bg-[#f0fdf4]' : 'border-[#fecaca] bg-[#fef2f2]'}`}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               {result.passed ? (
-                <CheckCircle2 className="h-6 w-6 text-green-600" />
+                <CheckCircle2 className="h-6 w-6 text-[#16a34a]" />
               ) : (
-                <AlertCircle className="h-6 w-6 text-red-600" />
+                <AlertCircle className="h-6 w-6 text-[#dc2626]" />
               )}
               Quiz {result.passed ? 'Passed!' : 'Failed'}
             </CardTitle>
@@ -215,33 +215,33 @@ const TakeQuiz = () => {
             {/* Score Display */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="text-center p-4 bg-white rounded-lg border">
-                <div className="text-2xl font-bold text-gray-900">{result.scorePercent}%</div>
-                <div className="text-sm text-gray-600">Your Score</div>
+                <div className="text-2xl font-bold text-[#111827]">{result.scorePercent}%</div>
+                <div className="text-sm text-[#4b5563]">Your Score</div>
               </div>
               <div className="text-center p-4 bg-white rounded-lg border">
-                <div className="text-2xl font-bold text-gray-900">{result.score}/{result.totalMarks}</div>
-                <div className="text-sm text-gray-600">Points Earned</div>
+                <div className="text-2xl font-bold text-[#111827]">{result.score}/{result.totalMarks}</div>
+                <div className="text-sm text-[#4b5563]">Points Earned</div>
               </div>
               <div className="text-center p-4 bg-white rounded-lg border">
-                <div className="text-2xl font-bold text-gray-900">{result.quiz.passingScore}%</div>
-                <div className="text-sm text-gray-600">Passing Score</div>
+                <div className="text-2xl font-bold text-[#111827]">{result.quiz.passingScore}%</div>
+                <div className="text-sm text-[#4b5563]">Passing Score</div>
               </div>
             </div>
 
             {/* Progress Messages */}
             {result.nextModuleUnlocked && (
-              <Alert className="bg-blue-50 border-blue-200">
-                <Unlock className="h-4 w-4 text-blue-600" />
-                <AlertDescription className="text-blue-800">
+              <Alert className="bg-[#eff6ff] border-[#bfdbfe]">
+                <Unlock className="h-4 w-4 text-[#2563eb]" />
+                <AlertDescription className="text-[#1e40af]">
                   🎉 Congratulations! The next module has been unlocked.
                 </AlertDescription>
               </Alert>
             )}
 
             {result.levelUpgraded && (
-              <Alert className="bg-purple-50 border-purple-200">
-                <Trophy className="h-4 w-4 text-purple-600" />
-                <AlertDescription className="text-purple-800">
+              <Alert className="bg-[#faf5ff] border-[#e9d5ff]">
+                <Trophy className="h-4 w-4 text-[#9333ea]" />
+                <AlertDescription className="text-[#6b21a8]">
                   🏆 Level Up! You've been promoted to {result.newLevel}!
                 </AlertDescription>
               </Alert>
@@ -251,7 +251,7 @@ const TakeQuiz = () => {
             <div className="flex items-center justify-between p-4 bg-white rounded-lg border">
               <div>
                 <div className="font-medium">Attempts Used</div>
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-[#4b5563]">
                   {result.attemptsAllowed === 0
                     ? `${result.attemptsUsed} of Unlimited attempts`
                     : `${result.attemptsUsed} of ${result.attemptsAllowed} attempts`}
@@ -294,26 +294,26 @@ const TakeQuiz = () => {
                 <h3 className="font-semibold">Review Answers:</h3>
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {result.detailedAnswers.map((answer, index) => (
-                    <div key={index} className={`p-3 rounded-lg border ${answer.isCorrect ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                    <div key={index} className={`p-3 rounded-lg border ${answer.isCorrect ? 'bg-[#f0fdf4] border-[#bbf7d0]' : 'bg-[#fef2f2] border-[#fecaca]'}`}>
                       <div className="flex items-start gap-2 mb-2">
                         {answer.isCorrect ? (
-                          <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" />
+                          <CheckCircle2 className="h-4 w-4 text-[#16a34a] mt-0.5" />
                         ) : (
-                          <AlertCircle className="h-4 w-4 text-red-600 mt-0.5" />
+                          <AlertCircle className="h-4 w-4 text-[#dc2626] mt-0.5" />
                         )}
                         <div className="flex-1">
                           <div className="font-medium text-sm">Question {answer.questionNumber}</div>
-                          <div className="text-xs text-gray-600 mb-1">{answer.questionText}</div>
+                          <div className="text-xs text-[#4b5563] mb-1">{answer.questionText}</div>
                           <div className="text-xs">
                             <span className="font-medium">Your answer:</span> {answer.userAnswer || "Not answered"}
                           </div>
                           {!answer.isCorrect && (
-                            <div className="text-xs text-green-700">
+                            <div className="text-xs text-[#15803d]">
                               <span className="font-medium">Correct answer:</span> {answer.correctAnswer}
                             </div>
                           )}
                         </div>
-                        <div className="text-xs text-gray-600">
+                        <div className="text-xs text-[#4b5563]">
                           {answer.marksObtained}/{answer.totalMarks}
                         </div>
                       </div>
@@ -370,18 +370,18 @@ const TakeQuiz = () => {
   return (
     <div className="max-w-4xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
       {/* Quiz Header */}
-      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+      <Card className="bg-gradient-to-r from-[#eff6ff] to-[#eef2ff] border-[#bfdbfe]">
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
             <div className="flex-1">
               <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                <BarChart3 className="h-5 w-5 text-blue-600" />
+                <BarChart3 className="h-5 w-5 text-[#2563eb]" />
                 <span className="break-words">{quiz.title}</span>
               </CardTitle>
               {quiz.description && (
                 <CardDescription className="mt-2 text-sm">{quiz.description}</CardDescription>
               )}
-              <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-3 text-xs sm:text-sm text-gray-600">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-3 text-xs sm:text-sm text-[#4b5563]">
                 <span>Module: {quiz.module?.title}</span>
                 <span className="hidden sm:inline">•</span>
                 <span>Passing: {quiz.passingScore}%</span>
@@ -394,12 +394,12 @@ const TakeQuiz = () => {
             {timeRemaining !== null && (
               <div className="text-right flex-shrink-0">
                 <div className="flex items-center gap-2 text-base sm:text-lg font-bold">
-                  <Clock className={`h-4 w-4 sm:h-5 sm:w-5 ${timeRemaining <= 300 ? 'text-red-600' : 'text-blue-600'}`} />
-                  <span className={timeRemaining <= 300 ? 'text-red-600' : 'text-blue-600'}>
+                  <Clock className={`h-4 w-4 sm:h-5 sm:w-5 ${timeRemaining <= 300 ? 'text-[#dc2626]' : 'text-[#2563eb]'}`} />
+                  <span className={timeRemaining <= 300 ? 'text-[#dc2626]' : 'text-[#2563eb]'}>
                     {formatTime(timeRemaining)}
                   </span>
                 </div>
-                <div className="text-xs text-gray-600">Time Remaining</div>
+                <div className="text-xs text-[#4b5563]">Time Remaining</div>
               </div>
             )}
           </div>
@@ -408,7 +408,7 @@ const TakeQuiz = () => {
           <div className="mt-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1">
               <span className="text-sm font-medium">Progress</span>
-              <span className="text-xs sm:text-sm text-gray-600">
+              <span className="text-xs sm:text-sm text-[#4b5563]">
                 {getAnsweredCount()} of {quiz.questions.length} answered
               </span>
             </div>
@@ -423,7 +423,7 @@ const TakeQuiz = () => {
       {/* Questions */}
       <div className="space-y-6">
         {quiz.questions.map((question, questionIndex) => (
-          <Card key={questionIndex} className="border-l-4 border-l-blue-500">
+          <Card key={questionIndex} className="border-l-4 border-l-[#3b82f6]">
             <CardHeader className="pb-4">
               <CardTitle className="text-base">
                 Question {question.questionNumber}
@@ -431,7 +431,7 @@ const TakeQuiz = () => {
                   {question.marks} {question.marks === 1 ? 'mark' : 'marks'}
                 </Badge>
               </CardTitle>
-              <CardDescription className="text-base text-gray-800">
+              <CardDescription className="text-base text-[#1f2937]">
                 {question.questionText}
               </CardDescription>
             </CardHeader>
@@ -450,15 +450,15 @@ const TakeQuiz = () => {
                   <div
                     key={optionIndex}
                     className={`p-3 rounded-lg border cursor-pointer transition-colors ${answers[questionIndex]?.text === option.text
-                        ? 'bg-blue-50 border-blue-300'
-                        : 'hover:bg-gray-50 border-gray-200'
+                      ? 'bg-[#eff6ff] border-[#93c5fd]'
+                      : 'hover:bg-[#f9fafb] border-[#e5e7eb]'
                       }`}
                     onClick={() => handleAnswerChange(questionIndex, option)}
                   >
                     <div className="flex items-center gap-3">
                       <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${answers[questionIndex]?.text === option.text
-                          ? 'border-blue-500 bg-blue-500'
-                          : 'border-gray-300'
+                        ? 'border-[#3b82f6] bg-[#3b82f6]'
+                        : 'border-[#d1d5db]'
                         }`}>
                         {answers[questionIndex]?.text === option.text && (
                           <div className="w-2 h-2 bg-white rounded-full"></div>
@@ -475,12 +475,12 @@ const TakeQuiz = () => {
       </div>
 
       {/* Submit Section */}
-      <Card className="bg-gray-50">
+      <Card className="bg-[#f9fafb]">
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <div className="font-medium">Ready to submit?</div>
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-[#4b5563]">
                 {getAnsweredCount() === quiz.questions.length
                   ? "All questions answered"
                   : `${quiz.questions.length - getAnsweredCount()} questions remaining`}
@@ -494,7 +494,7 @@ const TakeQuiz = () => {
               <Button
                 onClick={() => handleSubmit()}
                 disabled={submitting}
-                className="bg-green-600 hover:bg-green-700 text-sm"
+                className="bg-[#16a34a] hover:bg-[#15803d] text-sm"
               >
                 {submitting ? (
                   <>

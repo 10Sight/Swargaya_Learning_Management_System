@@ -36,7 +36,7 @@ const SearchInput = ({
 
   return (
     <div className={`relative ${className}`}>
-      <IconSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+      <IconSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#9ca3af] h-4 w-4" />
       <Input
         placeholder={effectivePlaceholder}
         value={searchTerm}
@@ -47,7 +47,7 @@ const SearchInput = ({
       {searchTerm && (
         <button
           onClick={handleClear}
-          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#9ca3af] hover:text-[#4b5563]"
         >
           <IconX className="h-4 w-4" />
         </button>

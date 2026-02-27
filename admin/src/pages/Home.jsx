@@ -38,9 +38,9 @@ const StatCard = ({ title, value, description, icon: Icon, iconBgColor, iconColo
 
   return (
     <CardWrapper {...cardProps}>
-      <Card className={`border border-gray-200 shadow-sm transition-all hover:shadow-md ${linkTo ? 'hover:border-blue-200 cursor-pointer' : ''}`}>
+      <Card className={`border border-[#e5e7eb] shadow-sm transition-all hover:shadow-md ${linkTo ? 'hover:border-[#bfdbfe] cursor-pointer' : ''}`}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-gray-600">
+          <CardTitle className="text-sm font-medium text-[#4b5563]">
             {title}
           </CardTitle>
           <div className={`h-8 w-8 rounded-full ${iconBgColor} flex items-center justify-center`}>
@@ -52,9 +52,9 @@ const StatCard = ({ title, value, description, icon: Icon, iconBgColor, iconColo
             <Skeleton className="h-8 w-16" />
           ) : (
             <div className="flex items-baseline justify-between">
-              <div className="text-2xl font-bold text-gray-900">{value}</div>
+              <div className="text-2xl font-bold text-[#111827]">{value}</div>
               {trend && (
-                <div className={`flex items-center text-xs ${trend.type === 'positive' ? 'text-green-600' : trend.type === 'negative' ? 'text-red-600' : 'text-gray-500'
+                <div className={`flex items-center text-xs ${trend.type === 'positive' ? 'text-[#16a34a]' : trend.type === 'negative' ? 'text-[#dc2626]' : 'text-[#6b7280]'
                   }`}>
                   <IconTrendingUp className="h-3 w-3 mr-1" />
                   {trend.value}
@@ -74,11 +74,11 @@ const StatCard = ({ title, value, description, icon: Icon, iconBgColor, iconColo
 // Quick Action Card component
 const QuickActionCard = ({ title, description, icon: Icon, linkTo, color = "blue" }) => {
   const colorClasses = {
-    blue: { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-200' },
-    green: { bg: 'bg-green-50', text: 'text-green-600', border: 'border-green-200' },
-    purple: { bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-200' },
-    orange: { bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-200' },
-    red: { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-200' }
+    blue: { bg: 'bg-[#eff6ff]', text: 'text-[#2563eb]', border: 'border-[#bfdbfe]' },
+    green: { bg: 'bg-[#f0fdf4]', text: 'text-[#16a34a]', border: 'border-[#bbf7d0]' },
+    purple: { bg: 'bg-[#faf5ff]', text: 'text-[#9333ea]', border: 'border-[#e9d5ff]' },
+    orange: { bg: 'bg-[#fff7ed]', text: 'text-[#ea580c]', border: 'border-[#fed7aa]' },
+    red: { bg: 'bg-[#fef2f2]', text: 'text-[#dc2626]', border: 'border-[#fecaca]' }
   };
 
   return (
@@ -90,8 +90,8 @@ const QuickActionCard = ({ title, description, icon: Icon, linkTo, color = "blue
               <Icon className={`h-5 w-5 ${colorClasses[color].text}`} />
             </div>
             <div className="flex-1">
-              <h3 className="font-medium text-gray-900 group-hover:text-gray-700">{title}</h3>
-              <p className="text-sm text-gray-500">{description}</p>
+              <h3 className="font-medium text-[#111827] group-hover:text-[#374151]">{title}</h3>
+              <p className="text-sm text-[#6b7280]">{description}</p>
             </div>
           </div>
         </CardContent>
@@ -148,9 +148,9 @@ const Home = () => {
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6 rounded-lg shadow-lg">
+      <div className="bg-gradient-to-r from-[#2563eb] to-[#1e40af] text-white p-6 rounded-lg shadow-lg">
         <h1 className="text-2xl font-bold mb-2">Welcome to Admin Dashboard</h1>
-        <p className="text-blue-100">Manage your learning management system efficiently</p>
+        <p className="text-[#dbeafe]">Manage your learning management system efficiently</p>
       </div>
 
       {/* Main Statistics */}
@@ -160,8 +160,8 @@ const Home = () => {
           value={totalStudents}
           description="All registered employees"
           icon={IconUsers}
-          iconBgColor="bg-blue-100"
-          iconColor="text-blue-600"
+          iconBgColor="bg-[#dbeafe]"
+          iconColor="text-[#2563eb]"
           isLoading={studentsLoading}
           linkTo="/admin/employees"
           trend={{ type: 'positive', value: `${activeStudents} active` }}
@@ -172,8 +172,8 @@ const Home = () => {
           value={totalInstructors}
           description="Teaching staff members"
           icon={IconSchool}
-          iconBgColor="bg-green-100"
-          iconColor="text-green-600"
+          iconBgColor="bg-[#dcfce7]"
+          iconColor="text-[#16a34a]"
           isLoading={instructorsLoading}
           linkTo="/admin/trainers"
         />
@@ -183,8 +183,8 @@ const Home = () => {
           value={totalDepartments}
           description="Learning groups"
           icon={IconCalendar}
-          iconBgColor="bg-purple-100"
-          iconColor="text-purple-600"
+          iconBgColor="bg-[#f3e8ff]"
+          iconColor="text-[#9333ea]"
           isLoading={departmentsLoading}
           linkTo="/admin/departments"
           trend={{ type: 'positive', value: `${activeDepartments} active` }}
@@ -195,8 +195,8 @@ const Home = () => {
           value={totalCourses}
           description="Available courses"
           icon={IconBook}
-          iconBgColor="bg-orange-100"
-          iconColor="text-orange-600"
+          iconBgColor="bg-[#ffedd5]"
+          iconColor="text-[#ea580c]"
           isLoading={coursesLoading}
           linkTo="/admin/courses"
           trend={{ type: 'positive', value: `${publishedCourses} published` }}
@@ -207,43 +207,43 @@ const Home = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Employee Engagement</CardTitle>
+            <CardTitle className="text-sm font-medium text-[#4b5563]">Employee Engagement</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-2xl font-bold text-gray-900">{studentEngagement}%</span>
-              <IconUserCheck className="h-5 w-5 text-blue-600" />
+              <span className="text-2xl font-bold text-[#111827]">{studentEngagement}%</span>
+              <IconUserCheck className="h-5 w-5 text-[#2563eb]" />
             </div>
             <Progress value={studentEngagement} className="mb-2" />
-            <p className="text-xs text-gray-500">Active employees participating</p>
+            <p className="text-xs text-[#6b7280]">Active employees participating</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Department Utilization</CardTitle>
+            <CardTitle className="text-sm font-medium text-[#4b5563]">Department Utilization</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-2xl font-bold text-gray-900">{departmentUtilization}%</span>
-              <IconSchool className="h-5 w-5 text-purple-600" />
+              <span className="text-2xl font-bold text-[#111827]">{departmentUtilization}%</span>
+              <IconSchool className="h-5 w-5 text-[#9333ea]" />
             </div>
             <Progress value={departmentUtilization} className="mb-2" />
-            <p className="text-xs text-gray-500">Active learning groups</p>
+            <p className="text-xs text-[#6b7280]">Active learning groups</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Course Status</CardTitle>
+            <CardTitle className="text-sm font-medium text-[#4b5563]">Course Status</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-2xl font-bold text-gray-900">{courseCompletion}%</span>
-              <IconBook2 className="h-5 w-5 text-green-600" />
+              <span className="text-2xl font-bold text-[#111827]">{courseCompletion}%</span>
+              <IconBook2 className="h-5 w-5 text-[#16a34a]" />
             </div>
             <Progress value={courseCompletion} className="mb-2" />
-            <p className="text-xs text-gray-500">Published and available</p>
+            <p className="text-xs text-[#6b7280]">Published and available</p>
           </CardContent>
         </Card>
       </div>
@@ -281,12 +281,12 @@ const Home = () => {
               <div className="space-y-4">
                 {recentActivities.slice(0, 5).map((activity, index) => (
                   <div key={activity._id || index} className="flex items-start space-x-3">
-                    <div className="h-2 w-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
+                    <div className="h-2 w-2 bg-[#2563eb] rounded-full mt-2 flex-shrink-0"></div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-900 truncate">
+                      <p className="text-sm text-[#111827] truncate">
                         {activity.action || 'System activity'}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-[#6b7280]">
                         {activity.user?.fullName || 'System'} • {new Date(activity.createdAt).toLocaleDateString()}
                       </p>
                     </div>
@@ -297,8 +297,8 @@ const Home = () => {
                 ))}
               </div>
             ) : (
-              <div className="text-center text-gray-500 py-8">
-                <IconActivity className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+              <div className="text-center text-[#6b7280] py-8">
+                <IconActivity className="h-8 w-8 mx-auto mb-2 text-[#9ca3af]" />
                 <p>No recent activity</p>
               </div>
             )}
@@ -364,20 +364,20 @@ const Home = () => {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="text-center">
-              <div className="text-lg font-bold text-green-600">{activeStudents}</div>
-              <div className="text-sm text-gray-500">Active Employees</div>
+              <div className="text-lg font-bold text-[#16a34a]">{activeStudents}</div>
+              <div className="text-sm text-[#6b7280]">Active Employees</div>
             </div>
             <div className="text-center">
-              <div className="text-lg font-bold text-blue-600">{activeDepartments}</div>
-              <div className="text-sm text-gray-500">Running Departments</div>
+              <div className="text-lg font-bold text-[#2563eb]">{activeDepartments}</div>
+              <div className="text-sm text-[#6b7280]">Running Departments</div>
             </div>
             <div className="text-center">
-              <div className="text-lg font-bold text-purple-600">{publishedCourses}</div>
-              <div className="text-sm text-gray-500">Published Courses</div>
+              <div className="text-lg font-bold text-[#9333ea]">{publishedCourses}</div>
+              <div className="text-sm text-[#6b7280]">Published Courses</div>
             </div>
             <div className="text-center">
-              <div className="text-lg font-bold text-orange-600">{recentActivities.length}</div>
-              <div className="text-sm text-gray-500">Recent Activities</div>
+              <div className="text-lg font-bold text-[#ea580c]">{recentActivities.length}</div>
+              <div className="text-sm text-[#6b7280]">Recent Activities</div>
             </div>
           </div>
         </CardContent>

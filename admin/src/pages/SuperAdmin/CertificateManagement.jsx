@@ -333,10 +333,10 @@ const CertificateManagement = () => {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b">
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-[#111827]">
             {selectedTemplate ? "Edit Template" : "Create New Template"}
           </h3>
-          <button onClick={() => setShowTemplateModal(false)} className="text-gray-400 hover:text-gray-600">
+          <button onClick={() => setShowTemplateModal(false)} className="text-[#9ca3af] hover:text-[#4b5563]">
             <IconX className="w-5 h-5" />
           </button>
         </div>
@@ -344,47 +344,47 @@ const CertificateManagement = () => {
         <div className="p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Template Name</label>
+              <label className="block text-sm font-medium text-[#374151] mb-2">Template Name</label>
               <input
                 type="text"
                 value={templateForm.name}
                 onChange={(e) => setTemplateForm(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                 placeholder="Certificate Template Name"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+              <label className="block text-sm font-medium text-[#374151] mb-2">Description</label>
               <input
                 type="text"
                 value={templateForm.description}
                 onChange={(e) => setTemplateForm(prev => ({ ...prev, description: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                 placeholder="Template description"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">HTML Template</label>
+            <label className="block text-sm font-medium text-[#374151] mb-2">HTML Template</label>
             <textarea
               value={templateForm.template || defaultTemplate}
               onChange={(e) => setTemplateForm(prev => ({ ...prev, template: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
               rows={12}
               placeholder="HTML template with placeholders like {{studentName}}, {{courseName}}, etc."
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-[#6b7280] mt-1">
               Use placeholders like {{ studentName }}, {{ courseName }}, {{ departmentName }}, {{ instructorName }}, {{ level }}, {{ issueDate }}, {{ grade }}
             </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">CSS Styles (Optional)</label>
+            <label className="block text-sm font-medium text-[#374151] mb-2">CSS Styles (Optional)</label>
             <textarea
               value={templateForm.styles}
               onChange={(e) => setTemplateForm(prev => ({ ...prev, styles: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
               rows={4}
               placeholder="Additional CSS styles for the certificate"
             />
@@ -392,11 +392,11 @@ const CertificateManagement = () => {
 
           <div>
             <div className="flex items-center justify-between mb-4">
-              <label className="block text-sm font-medium text-gray-700">Placeholders</label>
+              <label className="block text-sm font-medium text-[#374151]">Placeholders</label>
               <button
                 type="button"
                 onClick={addPlaceholder}
-                className="flex items-center space-x-1 px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
+                className="flex items-center space-x-1 px-3 py-1 bg-[#2563eb] text-white text-sm rounded-md hover:bg-[#1d4ed8]"
               >
                 <IconPlus className="w-4 h-4" />
                 <span>Add Placeholder</span>
@@ -404,19 +404,19 @@ const CertificateManagement = () => {
             </div>
             <div className="space-y-3 max-h-40 overflow-y-auto">
               {templateForm.placeholders.map((placeholder, index) => (
-                <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-md">
+                <div key={index} className="flex items-center space-x-3 p-3 bg-[#f9fafb] rounded-md">
                   <input
                     type="text"
                     value={placeholder.key}
                     onChange={(e) => updatePlaceholder(index, 'key', e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                     placeholder="Placeholder key (e.g., studentName)"
                   />
                   <input
                     type="text"
                     value={placeholder.description}
                     onChange={(e) => updatePlaceholder(index, 'description', e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                     placeholder="Description"
                   />
                   <label className="flex items-center space-x-2">
@@ -426,12 +426,12 @@ const CertificateManagement = () => {
                       onChange={(e) => updatePlaceholder(index, 'required', e.target.checked)}
                       className="rounded"
                     />
-                    <span className="text-sm text-gray-700">Required</span>
+                    <span className="text-sm text-[#374151]">Required</span>
                   </label>
                   <button
                     type="button"
                     onClick={() => removePlaceholder(index)}
-                    className="text-red-600 hover:text-red-800"
+                    className="text-[#dc2626] hover:text-[#991b1b]"
                   >
                     <IconTrash className="w-4 h-4" />
                   </button>
@@ -447,21 +447,21 @@ const CertificateManagement = () => {
               onChange={(e) => setTemplateForm(prev => ({ ...prev, isDefault: e.target.checked }))}
               className="mr-2"
             />
-            <label className="text-sm text-gray-700">Set as default template</label>
+            <label className="text-sm text-[#374151]">Set as default template</label>
           </div>
         </div>
 
         <div className="flex justify-end space-x-3 p-6 border-t">
           <button
             onClick={() => setShowTemplateModal(false)}
-            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+            className="px-4 py-2 text-[#374151] bg-[#f3f4f6] rounded-md hover:bg-[#e5e7eb]"
           >
             Cancel
           </button>
           <button
             onClick={selectedTemplate ? handleUpdateTemplate : handleCreateTemplate}
             disabled={creating || updating}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            className="px-4 py-2 bg-[#2563eb] text-[#ffffff] rounded-md hover:bg-[#1d4ed8] disabled:opacity-50"
           >
             {creating || updating ? "Saving..." : selectedTemplate ? "Update" : "Create"}
           </button>
@@ -475,19 +475,19 @@ const CertificateManagement = () => {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg w-full max-w-md">
         <div className="flex items-center justify-between p-6 border-b">
-          <h3 className="text-lg font-semibold text-gray-900">Issue Certificate</h3>
-          <button onClick={() => setShowIssueModal(false)} className="text-gray-400 hover:text-gray-600">
+          <h3 className="text-lg font-semibold text-[#111827]">Issue Certificate</h3>
+          <button onClick={() => setShowIssueModal(false)} className="text-[#9ca3af] hover:text-[#4b5563]">
             <IconX className="w-5 h-5" />
           </button>
         </div>
 
         <div className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Student</label>
+            <label className="block text-sm font-medium text-[#374151] mb-2">Student</label>
             <select
               value={issueForm.studentId}
               onChange={(e) => setIssueForm(prev => ({ ...prev, studentId: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
             >
               <option value="">Select Student</option>
               {users.map(user => (
@@ -497,11 +497,11 @@ const CertificateManagement = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Course</label>
+            <label className="block text-sm font-medium text-[#374151] mb-2">Course</label>
             <select
               value={issueForm.courseId}
               onChange={(e) => setIssueForm(prev => ({ ...prev, courseId: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
             >
               <option value="">Select Course</option>
               {courses.map(course => (
@@ -511,11 +511,11 @@ const CertificateManagement = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Template</label>
+            <label className="block text-sm font-medium text-[#374151] mb-2">Template</label>
             <select
               value={issueForm.templateId}
               onChange={(e) => setIssueForm(prev => ({ ...prev, templateId: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
             >
               <option value="">Select Template</option>
               {templates.map(template => (
@@ -527,11 +527,11 @@ const CertificateManagement = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Grade</label>
+            <label className="block text-sm font-medium text-[#374151] mb-2">Grade</label>
             <select
               value={issueForm.grade}
               onChange={(e) => setIssueForm(prev => ({ ...prev, grade: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
             >
               <option value="A+">A+</option>
               <option value="A">A</option>
@@ -546,14 +546,14 @@ const CertificateManagement = () => {
         <div className="flex justify-end space-x-3 p-6 border-t">
           <button
             onClick={() => setShowIssueModal(false)}
-            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+            className="px-4 py-2 text-[#374151] bg-[#f3f4f6] rounded-md hover:bg-[#e5e7eb]"
           >
             Cancel
           </button>
           <button
             onClick={handleIssueCertificate}
             disabled={issuing || !issueForm.studentId || !issueForm.courseId}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            className="px-4 py-2 bg-[#2563eb] text-[#ffffff] rounded-md hover:bg-[#1d4ed8] disabled:opacity-50"
           >
             {issuing ? "Issuing..." : "Issue Certificate"}
           </button>
@@ -567,19 +567,19 @@ const CertificateManagement = () => {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg w-full max-w-md">
         <div className="flex items-center justify-between p-6 border-b">
-          <h3 className="text-lg font-semibold text-gray-900">Bulk Generate Certificates</h3>
-          <button onClick={() => setShowBulkModal(false)} className="text-gray-400 hover:text-gray-600">
+          <h3 className="text-lg font-semibold text-[#111827]">Bulk Generate Certificates</h3>
+          <button onClick={() => setShowBulkModal(false)} className="text-[#9ca3af] hover:text-[#4b5563]">
             <IconX className="w-5 h-5" />
           </button>
         </div>
 
         <div className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Course</label>
+            <label className="block text-sm font-medium text-[#374151] mb-2">Course</label>
             <select
               value={bulkForm.courseId}
               onChange={(e) => setBulkForm(prev => ({ ...prev, courseId: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
             >
               <option value="">Select Course</option>
               {courses.map(course => (
@@ -589,11 +589,11 @@ const CertificateManagement = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Template</label>
+            <label className="block text-sm font-medium text-[#374151] mb-2">Template</label>
             <select
               value={bulkForm.templateId}
               onChange={(e) => setBulkForm(prev => ({ ...prev, templateId: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
             >
               <option value="">Select Template</option>
               {templates.map(template => (
@@ -605,11 +605,11 @@ const CertificateManagement = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Generation Criteria</label>
+            <label className="block text-sm font-medium text-[#374151] mb-2">Generation Criteria</label>
             <select
               value={bulkForm.criteria}
               onChange={(e) => setBulkForm(prev => ({ ...prev, criteria: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
             >
               <option value="completion">Course Completion</option>
               <option value="passing_grade">Passing Grade</option>
@@ -621,14 +621,14 @@ const CertificateManagement = () => {
         <div className="flex justify-end space-x-3 p-6 border-t">
           <button
             onClick={() => setShowBulkModal(false)}
-            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+            className="px-4 py-2 text-[#374151] bg-[#f3f4f6] rounded-md hover:bg-[#e5e7eb]"
           >
             Cancel
           </button>
           <button
             onClick={handleBulkGenerate}
             disabled={bulkGenerating || !bulkForm.courseId || !bulkForm.templateId}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            className="px-4 py-2 bg-[#2563eb] text-[#ffffff] rounded-md hover:bg-[#1d4ed8] disabled:opacity-50"
           >
             {bulkGenerating ? "Generating..." : "Generate Certificates"}
           </button>
@@ -642,14 +642,14 @@ const CertificateManagement = () => {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b">
-          <h3 className="text-lg font-semibold text-gray-900">Certificate Preview</h3>
-          <button onClick={() => setShowPreview(false)} className="text-gray-400 hover:text-gray-600">
+          <h3 className="text-lg font-semibold text-[#111827]">Certificate Preview</h3>
+          <button onClick={() => setShowPreview(false)} className="text-[#9ca3af] hover:text-[#4b5563]">
             <IconX className="w-5 h-5" />
           </button>
         </div>
 
         <div className="p-6">
-          <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+          <div className="border border-[#e5e7eb] rounded-lg p-4 bg-[#f9fafb]">
             <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
           </div>
         </div>
@@ -662,15 +662,15 @@ const CertificateManagement = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Certificate Management</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl font-bold text-[#111827]">Certificate Management</h1>
+          <p className="text-[#4b5563] mt-1">
             Advanced certificate management with template design and bulk generation
           </p>
         </div>
         <div className="flex items-center space-x-3">
           <button
             onClick={() => refetchTemplates()}
-            className="flex items-center space-x-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+            className="flex items-center space-x-2 px-3 py-2 bg-[#f3f4f6] text-[#374151] rounded-md hover:bg-[#e5e7eb]"
           >
             <IconRefresh className="w-4 h-4" />
             <span>Refresh</span>
@@ -679,7 +679,7 @@ const CertificateManagement = () => {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-[#e5e7eb]">
         <nav className="-mb-px flex space-x-8">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -688,8 +688,8 @@ const CertificateManagement = () => {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm ${activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-[#3b82f6] text-[#2563eb]'
+                  : 'border-transparent text-[#6b7280] hover:text-[#374151] hover:border-[#d1d5db]'
                   }`}
               >
                 <Icon className="w-4 h-4" />
@@ -706,17 +706,17 @@ const CertificateManagement = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className="relative">
-                <IconSearch className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                <IconSearch className="absolute left-3 top-3 w-4 h-4 text-[#9ca3af]" />
                 <input
                   type="text"
                   placeholder="Search templates..."
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="pl-10 pr-4 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                 />
               </div>
             </div>
             <button
               onClick={() => openTemplateModal()}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              className="flex items-center space-x-2 px-4 py-2 bg-[#2563eb] text-[#ffffff] rounded-md hover:bg-[#1d4ed8]"
             >
               <IconPlus className="w-4 h-4" />
               <span>Create Template</span>
@@ -725,40 +725,40 @@ const CertificateManagement = () => {
 
           {templatesLoading ? (
             <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2563eb]"></div>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {templates.map((template) => (
-                <div key={template._id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div key={template._id} className="bg-white rounded-lg shadow-sm border border-[#e5e7eb] p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
-                      <h3 className="font-medium text-gray-900 flex items-center">
+                      <h3 className="font-medium text-[#111827] flex items-center">
                         {template.name}
                         {template.isDefault && (
-                          <IconStar className="w-4 h-4 text-yellow-500 ml-2 fill-current" />
+                          <IconStar className="w-4 h-4 text-[#eab308] ml-2 fill-current" />
                         )}
                       </h3>
-                      <p className="text-sm text-gray-600 mt-1">{template.description}</p>
+                      <p className="text-sm text-[#4b5563] mt-1">{template.description}</p>
                     </div>
                     <div className="flex items-center space-x-1">
                       <button
                         onClick={() => handlePreview(template._id)}
-                        className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                        className="p-1 text-[#2563eb] hover:bg-[#eff6ff] rounded"
                         title="Preview"
                       >
                         <IconEye className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => openTemplateModal(template)}
-                        className="p-1 text-gray-600 hover:bg-gray-50 rounded"
+                        className="p-1 hover:text-[#4b5563] hover:bg-[#f9fafb] rounded"
                         title="Edit"
                       >
                         <IconEdit className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteTemplate(template._id)}
-                        className="p-1 text-red-600 hover:bg-red-50 rounded"
+                        className="p-1 text-[#dc2626] hover:bg-[#fef2f2] rounded"
                         title="Delete"
                       >
                         <IconTrash className="w-4 h-4" />
@@ -767,7 +767,7 @@ const CertificateManagement = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm text-gray-500">
+                    <div className="flex items-center justify-between text-sm text-[#6b7280]">
                       <span>Placeholders: {template.placeholders?.length || 0}</span>
                       <span>Active: {template.isActive ? 'Yes' : 'No'}</span>
                     </div>
@@ -775,7 +775,7 @@ const CertificateManagement = () => {
                     {!template.isDefault && (
                       <button
                         onClick={() => handleSetDefault(template._id)}
-                        className="w-full py-2 px-3 text-sm bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-md hover:bg-yellow-100"
+                        className="w-full py-2 px-3 text-sm bg-[#fefce8] text-[#a16207] border border-[#fef08a] rounded-md hover:bg-[#fef9c3]"
                       >
                         Set as Default
                       </button>
@@ -794,19 +794,19 @@ const CertificateManagement = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className="relative">
-                <IconSearch className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                <IconSearch className="absolute left-3 top-3 w-4 h-4 text-[#9ca3af]" />
                 <input
                   type="text"
                   placeholder="Search certificates..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="pl-10 pr-4 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                 />
               </div>
               <select
                 value={selectedCourse}
                 onChange={(e) => setSelectedCourse(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
               >
                 <option value="">All Courses</option>
                 {courses.map(course => (
@@ -816,7 +816,7 @@ const CertificateManagement = () => {
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
               >
                 <option value="">All Status</option>
                 <option value="ACTIVE">Active</option>
@@ -826,7 +826,7 @@ const CertificateManagement = () => {
             </div>
             <button
               onClick={() => setShowIssueModal(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              className="flex items-center space-x-2 px-4 py-2 bg-[#2563eb] text-white rounded-md hover:bg-[#1d4ed8]"
             >
               <IconPlus className="w-4 h-4" />
               <span>Issue Certificate</span>
@@ -834,56 +834,56 @@ const CertificateManagement = () => {
           </div>
 
           {selectedCourse ? (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="bg-white rounded-lg shadow-sm border border-[#e5e7eb]">
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-[#f9fafb]">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Issue Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">Student</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">Course</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">Grade</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">Issue Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white divide-y divide-[#e5e7eb]">
                     {filteredCertificates.map((certificate) => (
-                      <tr key={certificate._id} className="hover:bg-gray-50">
+                      <tr key={certificate._id} className="hover:bg-[#f9fafb]">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <div>
-                              <div className="text-sm font-medium text-gray-900">
+                              <div className="text-sm font-medium text-[#111827]">
                                 {certificate.student?.fullName}
                               </div>
-                              <div className="text-sm text-gray-500">{certificate.student?.email}</div>
+                              <div className="text-sm text-[#6b7280]">{certificate.student?.email}</div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#111827]">
                           {certificate.course?.title}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${certificate.grade === 'A+' || certificate.grade === 'A'
-                              ? 'bg-green-100 text-green-800'
-                              : certificate.grade === 'B'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : certificate.grade === 'C'
-                                  ? 'bg-orange-100 text-orange-800'
-                                  : 'bg-blue-100 text-blue-800'
+                            ? 'bg-[#dcfce7] text-[#166534]'
+                            : certificate.grade === 'B'
+                              ? 'bg-[#fef9c3] text-[#854d0e]'
+                              : certificate.grade === 'C'
+                                ? 'bg-[#ffedd5] text-[#9a3412]'
+                                : 'bg-[#dbeafe] text-[#1e40af]'
                             }`}>
                             {certificate.grade}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#6b7280]">
                           {new Date(certificate.issueDate).toLocaleDateString()}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${certificate.status === 'ACTIVE'
-                              ? 'bg-green-100 text-green-800'
-                              : certificate.status === 'REVOKED'
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-gray-100 text-gray-800'
+                            ? 'bg-[#dcfce7] text-[#166534]'
+                            : certificate.status === 'REVOKED'
+                              ? 'bg-[#fee2e2] text-[#991b1b]'
+                              : 'bg-[#f3f4f6] text-[#1f2937]'
                             }`}>
                             {certificate.status}
                           </span>
@@ -891,13 +891,13 @@ const CertificateManagement = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex items-center space-x-2">
                             <button
-                              className="text-blue-600 hover:text-blue-900"
+                              className="text-[#2563eb] hover:text-[#1e3a8a]"
                               title="View"
                             >
                               <IconEye className="w-4 h-4" />
                             </button>
                             <button
-                              className="text-green-600 hover:text-green-900"
+                              className="text-[#16a34a] hover:text-[#14532d]"
                               title="Download"
                             >
                               <IconDownload className="w-4 h-4" />
@@ -905,7 +905,7 @@ const CertificateManagement = () => {
                             {certificate.status === 'ACTIVE' && (
                               <button
                                 onClick={() => handleRevoke(certificate._id)}
-                                className="text-red-600 hover:text-red-900"
+                                className="text-[#dc2626] hover:text-[#7f1d1d]"
                                 title="Revoke"
                               >
                                 <IconX className="w-4 h-4" />
@@ -920,10 +920,10 @@ const CertificateManagement = () => {
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-              <IconCertificate className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Select a Course</h3>
-              <p className="text-gray-500">Choose a course to view its certificates</p>
+            <div className="bg-white rounded-lg shadow-sm border border-[#e5e7eb] p-8 text-center">
+              <IconCertificate className="w-12 h-12 text-[#9ca3af] mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-[#111827] mb-2">Select a Course</h3>
+              <p className="text-[#6b7280]">Choose a course to view its certificates</p>
             </div>
           )}
         </div>
@@ -932,17 +932,17 @@ const CertificateManagement = () => {
       {/* Issue Certificate Tab */}
       {activeTab === "issue" && (
         <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-6">Issue New Certificate</h3>
+          <div className="bg-white rounded-lg shadow-sm border border-[#e5e7eb] p-6">
+            <h3 className="text-lg font-medium text-[#111827] mb-6">Issue New Certificate</h3>
 
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Student</label>
+                  <label className="block text-sm font-medium text-[#374151] mb-2">Student</label>
                   <select
                     value={issueForm.studentId}
                     onChange={(e) => setIssueForm(prev => ({ ...prev, studentId: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                   >
                     <option value="">Select Student</option>
                     {users.map(user => (
@@ -952,11 +952,11 @@ const CertificateManagement = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Course</label>
+                  <label className="block text-sm font-medium text-[#374151] mb-2">Course</label>
                   <select
                     value={issueForm.courseId}
                     onChange={(e) => setIssueForm(prev => ({ ...prev, courseId: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                   >
                     <option value="">Select Course</option>
                     {courses.map(course => (
@@ -968,11 +968,11 @@ const CertificateManagement = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Template</label>
+                  <label className="block text-sm font-medium text-[#374151] mb-2">Template</label>
                   <select
                     value={issueForm.templateId}
                     onChange={(e) => setIssueForm(prev => ({ ...prev, templateId: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                   >
                     <option value="">Select Template</option>
                     {templates.map(template => (
@@ -984,11 +984,11 @@ const CertificateManagement = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Grade</label>
+                  <label className="block text-sm font-medium text-[#374151] mb-2">Grade</label>
                   <select
                     value={issueForm.grade}
                     onChange={(e) => setIssueForm(prev => ({ ...prev, grade: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                   >
                     <option value="A+">A+</option>
                     <option value="A">A</option>
@@ -1004,7 +1004,7 @@ const CertificateManagement = () => {
                 <button
                   onClick={handleIssueCertificate}
                   disabled={issuing || !issueForm.studentId || !issueForm.courseId}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                  className="px-6 py-2 bg-[#2563eb] text-white rounded-md hover:bg-[#1d4ed8] disabled:opacity-50"
                 >
                   {issuing ? "Issuing..." : "Issue Certificate"}
                 </button>
@@ -1017,16 +1017,16 @@ const CertificateManagement = () => {
       {/* Bulk Generate Tab */}
       {activeTab === "bulk" && (
         <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-6">Bulk Generate Certificates</h3>
+          <div className="bg-white rounded-lg shadow-sm border border-[#e5e7eb] p-6">
+            <h3 className="text-lg font-medium text-[#111827] mb-6">Bulk Generate Certificates</h3>
 
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Course</label>
+                <label className="block text-sm font-medium text-[#374151] mb-2">Course</label>
                 <select
                   value={bulkForm.courseId}
                   onChange={(e) => setBulkForm(prev => ({ ...prev, courseId: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                 >
                   <option value="">Select Course</option>
                   {courses.map(course => (
@@ -1036,11 +1036,11 @@ const CertificateManagement = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Template</label>
+                <label className="block text-sm font-medium text-[#374151] mb-2">Template</label>
                 <select
                   value={bulkForm.templateId}
                   onChange={(e) => setBulkForm(prev => ({ ...prev, templateId: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                 >
                   <option value="">Select Template</option>
                   {templates.map(template => (
@@ -1052,11 +1052,11 @@ const CertificateManagement = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Generation Criteria</label>
+                <label className="block text-sm font-medium text-[#374151] mb-2">Generation Criteria</label>
                 <select
                   value={bulkForm.criteria}
                   onChange={(e) => setBulkForm(prev => ({ ...prev, criteria: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
                 >
                   <option value="completion">Course Completion</option>
                   <option value="passing_grade">Passing Grade</option>
@@ -1064,12 +1064,12 @@ const CertificateManagement = () => {
                 </select>
               </div>
 
-              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+              <div className="bg-[#fefce8] border border-[#fef08a] rounded-md p-4">
                 <div className="flex">
-                  <IconAlertTriangle className="w-5 h-5 text-yellow-400 mt-0.5" />
+                  <IconAlertTriangle className="w-5 h-5 text-[#facc15] mt-0.5" />
                   <div className="ml-3">
-                    <h3 className="text-sm font-medium text-yellow-800">Bulk Generation Notice</h3>
-                    <div className="mt-2 text-sm text-yellow-700">
+                    <h3 className="text-sm font-medium text-[#854d0e]">Bulk Generation Notice</h3>
+                    <div className="mt-2 text-sm text-[#a16207]">
                       <p>
                         This will generate certificates for all students meeting the selected criteria.
                         Please review your selection carefully before proceeding.
@@ -1083,7 +1083,7 @@ const CertificateManagement = () => {
                 <button
                   onClick={handleBulkGenerate}
                   disabled={bulkGenerating || !bulkForm.courseId || !bulkForm.templateId}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                  className="px-6 py-2 bg-[#2563eb] text-white rounded-md hover:bg-[#1d4ed8] disabled:opacity-50"
                 >
                   {bulkGenerating ? "Generating..." : "Generate Certificates"}
                 </button>

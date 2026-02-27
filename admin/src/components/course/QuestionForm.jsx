@@ -27,7 +27,7 @@ export const QuestionForm = ({
           variant="ghost"
           size="sm"
           onClick={onRemove}
-          className="text-red-600 hover:text-red-800"
+          className="text-[#dc2626] hover:text-[#991b1b]"
         >
           <IconTrash className="h-4 w-4" />
         </Button>
@@ -57,13 +57,13 @@ export const QuestionForm = ({
         </div>
 
         {errors[`quiz-${quizId}-question-${question.id}-options`] && (
-          <p className="text-sm text-red-600">
+          <p className="text-sm text-[#dc2626]">
             {errors[`quiz-${quizId}-question-${question.id}-options`]}
           </p>
         )}
 
         {errors[`quiz-${quizId}-question-${question.id}-correct`] && (
-          <p className="text-sm text-red-600">
+          <p className="text-sm text-[#dc2626]">
             {errors[`quiz-${quizId}-question-${question.id}-correct`]}
           </p>
         )}
@@ -85,7 +85,7 @@ export const QuestionForm = ({
               placeholder={`Option ${oIndex + 1}`}
               className={
                 errors[`quiz-${quizId}-question-${question.id}-option-${option.id}-text`]
-                  ? "border-red-500"
+                  ? "border-[#ef4444]"
                   : ""
               }
             />
@@ -94,7 +94,7 @@ export const QuestionForm = ({
               variant="ghost"
               size="sm"
               onClick={() => onRemoveOption(option.id)}
-              className="text-red-600 hover:text-red-800"
+              className="text-[#dc2626] hover:text-[#991b1b]"
               disabled={question.options.length <= 2}
             >
               <IconTrash className="h-4 w-4" />

@@ -56,7 +56,7 @@ export const CModuleForm = ({
             variant="ghost"
             size="sm"
             onClick={() => onRemove(module.id)}
-            className="text-red-600 hover:text-red-800"
+            className="text-[#dc2626] hover:text-[#991b1b]"
           >
             <IconTrash className="h-4 w-4" />
           </Button>

@@ -69,11 +69,11 @@ const AssignmentMonitoring = () => {
   }
 
   const getGradeColor = (grade, maxScore) => {
-    if (!maxScore || grade === null) return 'text-gray-500'
+    if (!maxScore || grade === null) return 'text-[#6b7280]'
     const percentage = (grade / maxScore) * 100
-    if (percentage >= 80) return 'text-green-600'
-    if (percentage >= 60) return 'text-yellow-600'
-    return 'text-red-600'
+    if (percentage >= 80) return 'text-[#16a34a]'
+    if (percentage >= 60) return 'text-[#ca8a04]'
+    return 'text-[#dc2626]'
   }
 
   const formatFileSize = (bytes) => {
@@ -189,15 +189,15 @@ const AssignmentMonitoring = () => {
         </Badge>
       </div>
 
-      <Card className="bg-amber-50 border-amber-200">
+      <Card className="bg-[#fffbeb] border-[#fde68a]">
         <CardContent className="pt-6">
           <div className="flex items-start space-x-3">
-            <div className="w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center mt-0.5">
+            <div className="w-5 h-5 bg-[#f59e0b] rounded-full flex items-center justify-center mt-0.5">
               <IconClipboard className="h-3 w-3 text-white" />
             </div>
             <div>
-              <h3 className="font-medium text-amber-900">Assignment Monitoring & Grading</h3>
-              <p className="text-sm text-amber-700 mt-1">
+              <h3 className="font-medium text-[#78350f]">Assignment Monitoring & Grading</h3>
+              <p className="text-sm text-[#b45309] mt-1">
                 View student assignment submissions, download files, and grade assignments.
                 Click "View" on any submission to see details and provide grades with feedback.
               </p>
@@ -466,7 +466,7 @@ const AssignmentMonitoring = () => {
                       {submission.attachments.map((file, index) => (
                         <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                           <div className="flex items-center space-x-3">
-                            <IconFile className="h-8 w-8 text-blue-500" />
+                            <IconFile className="h-8 w-8 text-[#3b82f6]" />
                             <div>
                               <p className="font-medium text-sm">{file.originalName}</p>
                               <p className="text-xs text-muted-foreground">
@@ -492,7 +492,7 @@ const AssignmentMonitoring = () => {
                   ) : submission.fileUrl ? (
                     <div className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex items-center space-x-3">
-                        <IconFile className="h-8 w-8 text-blue-500" />
+                        <IconFile className="h-8 w-8 text-[#3b82f6]" />
                         <div>
                           <p className="font-medium text-sm">Legacy File</p>
                           <p className="text-xs text-muted-foreground">Click to download</p>

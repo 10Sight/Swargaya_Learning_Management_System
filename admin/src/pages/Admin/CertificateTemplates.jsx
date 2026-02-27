@@ -847,7 +847,7 @@ ${levelColors}
                   id="isDefault"
                   checked={formData.isDefault}
                   onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
-                  className="rounded border-gray-300"
+                  className="rounded [#d1d5db]"
                 />
                 <Label htmlFor="isDefault" className="text-sm">
                   Set as default template
@@ -895,11 +895,11 @@ ${levelColors}
                   <TableRow key={template._id}>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Award className="h-4 w-4 text-blue-500" />
+                        <Award className="h-4 w-4 [#3b82f6]" />
                         <span className="font-medium">{template.name}</span>
                         {template.isDefault && (
                           <Badge variant="secondary" className="ml-2">
-                            <Star className="h-3 w-3 mr-1 fill-yellow-400" />
+                            <Star className="h-3 w-3 mr-1 [#facc15]" />
                             Default
                           </Badge>
                         )}
@@ -980,19 +980,19 @@ ${levelColors}
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6">
           {/* Backdrop with "half glass blurred" effect (strong blur) */}
           <div
-            className="fixed inset-0 bg-black/30 backdrop-blur-xl transition-all duration-200"
+            className="fixed inset-0 bg-[#000000]/30 backdrop-blur-xl transition-all duration-200"
             onClick={() => setShowPreviewDialog(false)}
           />
 
           {/* Modal Content */}
-          <div className="relative w-full h-full max-w-[90vw] max-h-[90vh] bg-white/95 shadow-2xl rounded-xl overflow-hidden flex flex-col border border-white/20 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white/50 backdrop-blur-sm sticky top-0 z-10">
-              <h2 className="text-xl font-semibold text-gray-800">Certificate Preview</h2>
+          <div className="relative w-full h-full max-w-[90vw] max-h-[90vh] bg-[#ffffff]/95 shadow-2xl rounded-xl overflow-hidden flex flex-col border border-white/20 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#f3f4f6] bg-[#ffffff]/50 backdrop-blur-sm sticky top-0 z-10">
+              <h2 className="text-xl font-semibold [#1f2937]">Certificate Preview</h2>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowPreviewDialog(false)}
-                className="hover:bg-gray-100 rounded-full h-8 w-8"
+                className="hover:bg-[#f3f4f6] rounded-full h-8 w-8"
               >
                 <span className="sr-only">Close</span>
                 <svg
@@ -1013,7 +1013,7 @@ ${levelColors}
               </Button>
             </div>
 
-            <div className="flex-1 overflow-auto bg-gray-50/50 p-4 sm:p-8 flex items-center justify-center">
+            <div className="flex-1 overflow-auto bg-[#f9fafb]/50 p-4 sm:p-8 flex items-center justify-center">
               <div
                 className="w-full h-full bg-white shadow-sm border rounded-lg overflow-hidden flex items-center justify-center"
                 style={{ minHeight: '100%' }}
@@ -1028,7 +1028,7 @@ ${levelColors}
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-gray-100 bg-white/50 flex justify-end gap-3 backdrop-blur-sm">
+            <div className="px-6 py-4 border-t border-[#f3f4f6] bg-[#ffffff]/50 flex justify-end gap-3 backdrop-blur-sm">
               <Button
                 variant="outline"
                 onClick={() => setShowPreviewDialog(false)}

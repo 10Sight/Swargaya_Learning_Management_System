@@ -32,7 +32,7 @@ const LanguageSelector = () => {
         <Button
           variant="ghost"
           size="icon"
-          className="relative h-9 w-9 rounded-full hover:bg-gray-100 text-gray-600"
+          className="relative h-9 w-9 rounded-full hover:bg-[#f3f4f6] text-[#4b5563]"
         >
           <Globe2 className="h-5 w-5" />
           <span className="sr-only">{t("label.language")}</span>
@@ -42,7 +42,7 @@ const LanguageSelector = () => {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
-        <DropdownMenuLabel className="text-xs text-gray-500">
+        <DropdownMenuLabel className="text-xs text-[#6b7280]">
           {t("label.language")}
         </DropdownMenuLabel>
         {languageOptions.map((lang) => (
@@ -51,7 +51,7 @@ const LanguageSelector = () => {
             onClick={() => handleChange(lang.code)}
             className={
               lang.code === currentLanguage
-                ? "bg-gray-100 font-medium cursor-default"
+                ? "bg-[#f3f4f6] font-medium cursor-default"
                 : "cursor-pointer"
             }
           >

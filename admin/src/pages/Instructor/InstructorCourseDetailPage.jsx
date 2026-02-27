@@ -229,10 +229,10 @@ const InstructorCourseDetailPage = () => {
   if (courseError) {
     return (
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
-        <div className="text-red-600 text-lg font-medium">
+        <div className="text-[#dc2626] text-lg font-medium">
           Error loading course
         </div>
-        <p className="text-gray-600 text-center">
+        <p className="text-[#4b5563] text-center">
           {courseError?.message || "Failed to fetch course details"}
         </p>
         <div className="flex gap-2">

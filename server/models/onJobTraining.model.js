@@ -8,6 +8,7 @@ class OnJobTraining {
 
         this.student = data.student;
         this.name = data.name || "Level-1 Practical Evaluation of On the Job Training";
+        this.model = data.model;
         this.department = data.department;
         this.line = data.line;
         this.machine = data.machine;
@@ -32,21 +33,22 @@ class OnJobTraining {
             BEGIN
                 CREATE TABLE dbo.on_job_trainings (
                     id INT IDENTITY(1,1) PRIMARY KEY,
-                    student VARCHAR(255) NOT NULL,
-                    name VARCHAR(255) DEFAULT 'Level-1 Practical Evaluation of On the Job Training',
-                    department VARCHAR(255) NOT NULL,
-                    line VARCHAR(255) NOT NULL,
-                    machine VARCHAR(255) NOT NULL,
-                    entries VARCHAR(MAX),
-                    scoring VARCHAR(MAX),
+                    student NVARCHAR(255) NOT NULL,
+                    name NVARCHAR(255) DEFAULT 'Level-1 Practical Evaluation of On the Job Training',
+                    model NVARCHAR(255),
+                    department NVARCHAR(255) NOT NULL,
+                    line NVARCHAR(255) NOT NULL,
+                    machine NVARCHAR(255) NOT NULL,
+                    entries NVARCHAR(MAX),
+                    scoring NVARCHAR(MAX),
                     totalMarks DECIMAL(10, 2) DEFAULT 36,
                     totalMarksObtained DECIMAL(10, 2),
                     totalPercentage DECIMAL(5, 2),
-                    result VARCHAR(50) DEFAULT 'Pending',
-                    guidelines VARCHAR(MAX),
-                    remarks VARCHAR(MAX),
-                    createdBy VARCHAR(255),
-                    updatedBy VARCHAR(255),
+                    result NVARCHAR(50) DEFAULT 'Pending',
+                    guidelines NVARCHAR(MAX),
+                    remarks NVARCHAR(MAX),
+                    createdBy NVARCHAR(255),
+                    updatedBy NVARCHAR(255),
                     createdAt DATETIME DEFAULT GETDATE(),
                     updatedAt DATETIME DEFAULT GETDATE()
                 );
@@ -66,7 +68,7 @@ class OnJobTraining {
         const ojt = new OnJobTraining(data);
 
         const fields = [
-            "student", "name", "department", "line", "machine",
+            "student", "name", "model", "department", "line", "machine",
             "entries", "scoring", "totalMarks", "totalMarksObtained",
             "totalPercentage", "result", "guidelines", "remarks",
             "createdBy", "updatedBy", "createdAt"
@@ -142,7 +144,7 @@ class OnJobTraining {
         this.updatedAt = new Date(); // Manually update timestamp
 
         const fields = [
-            "student", "name", "department", "line", "machine",
+            "student", "name", "model", "department", "line", "machine",
             "entries", "scoring", "totalMarks", "totalMarksObtained",
             "totalPercentage", "result", "guidelines", "remarks",
             "createdBy", "updatedBy", "updatedAt"

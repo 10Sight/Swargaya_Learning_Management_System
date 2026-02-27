@@ -53,45 +53,45 @@ const DepartmentStatusNotifications = ({ userId, departmentId, className = '' })
   const getNotificationIcon = (type) => {
     switch (type) {
       case 'ERROR':
-        return <XCircle className="w-5 h-5 text-red-600" />;
+        return <XCircle className="w-5 h-5 text-[#dc2626]" />;
       case 'SUCCESS':
-        return <CheckCircle className="w-5 h-5 text-green-600" />;
+        return <CheckCircle className="w-5 h-5 text-[#16a34a]" />;
       case 'WARNING':
-        return <AlertTriangle className="w-5 h-5 text-yellow-600" />;
+        return <AlertTriangle className="w-5 h-5 text-[#ca8a04]" />;
       case 'INFO':
-        return <Info className="w-5 h-5 text-blue-600" />;
+        return <Info className="w-5 h-5 text-[#2563eb]" />;
       default:
-        return <Bell className="w-5 h-5 text-gray-600" />;
+        return <Bell className="w-5 h-5 text-[#4b5563]" />;
     }
   };
 
   const getNotificationColor = (type) => {
     switch (type) {
       case 'ERROR':
-        return 'bg-red-50 border-red-200';
+        return 'bg-[#fef2f2] border-[#fecaca]';
       case 'SUCCESS':
-        return 'bg-green-50 border-green-200';
+        return 'bg-[#f0fdf4] border-[#bbf7d0]';
       case 'WARNING':
-        return 'bg-yellow-50 border-yellow-200';
+        return 'bg-[#fefce8] border-[#fde047]';
       case 'INFO':
-        return 'bg-blue-50 border-blue-200';
+        return 'bg-[#eff6ff] border-[#bfdbfe]';
       default:
-        return 'bg-gray-50 border-gray-200';
+        return 'bg-[#f9fafb] border-[#e5e7eb]';
     }
   };
 
   const getNotificationTextColor = (type) => {
     switch (type) {
       case 'ERROR':
-        return 'text-red-800';
+        return 'text-[#991b1b]';
       case 'SUCCESS':
-        return 'text-green-800';
+        return 'text-[#166534]';
       case 'WARNING':
-        return 'text-yellow-800';
+        return 'text-[#854d0e]';
       case 'INFO':
-        return 'text-blue-800';
+        return 'text-[#1e40af]';
       default:
-        return 'text-gray-800';
+        return 'text-[#1f2937]';
     }
   };
 
@@ -99,8 +99,8 @@ const DepartmentStatusNotifications = ({ userId, departmentId, className = '' })
     return (
       <div className={`space-y-3 ${className}`}>
         <div className="animate-pulse">
-          <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
-          <div className="h-16 bg-gray-200 rounded"></div>
+          <div className="h-4 bg-[#e5e7eb] rounded w-1/4 mb-2"></div>
+          <div className="h-16 bg-[#e5e7eb] rounded"></div>
         </div>
       </div>
     );
@@ -158,7 +158,7 @@ const DepartmentStatusNotifications = ({ userId, departmentId, className = '' })
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 w-6 p-0 hover:bg-gray-200"
+              className="h-6 w-6 p-0 hover:bg-[#e5e7eb]"
               onClick={() => dismissNotification(index)}
             >
               <X className="w-3 h-3" />
@@ -198,8 +198,8 @@ export const DepartmentStatusSummary = ({ departmentId, refreshTrigger }) => {
       <Card className="w-full">
         <CardContent className="p-4">
           <div className="animate-pulse space-y-2">
-            <div className="h-4 bg-gray-200 rounded w-1/3"></div>
-            <div className="h-6 bg-gray-200 rounded w-1/2"></div>
+            <div className="h-4 bg-[#e5e7eb] rounded w-1/3"></div>
+            <div className="h-6 bg-[#e5e7eb] rounded w-1/2"></div>
           </div>
         </CardContent>
       </Card>
@@ -217,7 +217,7 @@ export const DepartmentStatusSummary = ({ departmentId, refreshTrigger }) => {
       <CardContent className="space-y-3">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-xs text-gray-500">Current Status</p>
+            <p className="text-xs text-[#6b7280]">Current Status</p>
             <Badge
               variant={department.status === 'CANCELLED' ? 'destructive' : 'default'}
               className="mt-1"
@@ -227,7 +227,7 @@ export const DepartmentStatusSummary = ({ departmentId, refreshTrigger }) => {
           </div>
 
           <div>
-            <p className="text-xs text-gray-500">Calculated Status</p>
+            <p className="text-xs text-[#6b7280]">Calculated Status</p>
             <Badge
               variant={statusCalculation.calculatedStatus === 'CANCELLED' ? 'destructive' : 'secondary'}
               className="mt-1"
@@ -238,16 +238,16 @@ export const DepartmentStatusSummary = ({ departmentId, refreshTrigger }) => {
         </div>
 
         {!isStatusAccurate && (
-          <Alert className="bg-yellow-50 border-yellow-200">
-            <AlertTriangle className="w-4 h-4 text-yellow-600" />
-            <AlertDescription className="text-yellow-800 text-xs">
+          <Alert className="bg-[#fefce8] border-[#fde047]">
+            <AlertTriangle className="w-4 h-4 text-[#ca8a04]" />
+            <AlertDescription className="text-[#854d0e] text-xs">
               Status needs to be updated based on dates
             </AlertDescription>
           </Alert>
         )}
 
         {timeline.daysUntilStart !== null && (
-          <div className="text-xs text-gray-600">
+          <div className="text-xs text-[#4b5563]">
             <div className="flex items-center gap-1">
               <Calendar className="w-3 h-3" />
               {timeline.daysUntilStart > 0
@@ -261,7 +261,7 @@ export const DepartmentStatusSummary = ({ departmentId, refreshTrigger }) => {
         )}
 
         {timeline.daysUntilEnd !== null && (
-          <div className="text-xs text-gray-600">
+          <div className="text-xs text-[#4b5563]">
             <div className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
               {timeline.daysUntilEnd > 0

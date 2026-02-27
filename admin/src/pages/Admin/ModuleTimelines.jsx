@@ -320,10 +320,10 @@ const ModuleTimelines = () => {
     const deadlineDate = new Date(deadline);
     const hoursUntilDeadline = (deadlineDate - now) / (1000 * 60 * 60);
 
-    if (hoursUntilDeadline < 0) return 'bg-red-100 text-red-800';
-    if (hoursUntilDeadline < 24) return 'bg-orange-100 text-orange-800';
-    if (hoursUntilDeadline < 72) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-green-100 text-green-800';
+    if (hoursUntilDeadline < 0) return 'bg-[#fee2e2] text-[#991b1b]';
+    if (hoursUntilDeadline < 24) return 'bg-[#ffedd5] text-[#9a3412]';
+    if (hoursUntilDeadline < 72) return 'bg-[#fef9c3] text-[#854d0e]';
+    return 'bg-[#dcfce7] text-[#166534]';
   };
 
   const getStatusText = (deadline) => {
@@ -363,8 +363,8 @@ const ModuleTimelines = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Module Timelines</h1>
-          <p className="text-gray-600">Manage module deadlines and automatic progression</p>
+          <h1 className="text-2xl font-bold text-[#111827]">Module Timelines</h1>
+          <p className="text-[#4b5563]">Manage module deadlines and automatic progression</p>
         </div>
 
         <div className="flex gap-2">
@@ -525,7 +525,7 @@ const ModuleTimelines = () => {
                     <Badge className={getStatusColor(moduleStatus.deadline)}>
                       {getStatusText(moduleStatus.deadline)}
                     </Badge>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-[#6b7280]">
                       Due: {formatDate(moduleStatus.deadline)}
                     </span>
                   </div>
@@ -536,29 +536,29 @@ const ModuleTimelines = () => {
                       <div key={studentIndex} className="flex items-center justify-between p-2 border rounded">
                         <div>
                           <span className="font-medium">{studentStatus.student.fullName}</span>
-                          <span className="text-xs text-gray-500 ml-2">{studentStatus.student.email}</span>
+                          <span className="text-xs text-[#6b7280] ml-2">{studentStatus.student.email}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           {studentStatus.status === 'COMPLETED' && (
-                            <Badge className="bg-green-100 text-green-800">
+                            <Badge className="bg-[#dcfce7] text-[#166534]">
                               <CheckCircle className="w-3 h-3 mr-1" />
                               Completed
                             </Badge>
                           )}
                           {studentStatus.status === 'MISSED_DEADLINE' && (
-                            <Badge className="bg-red-100 text-red-800">
+                            <Badge className="bg-[#fee2e2] text-[#991b1b]">
                               <XCircle className="w-3 h-3 mr-1" />
                               Missed
                             </Badge>
                           )}
                           {studentStatus.status === 'OVERDUE' && (
-                            <Badge className="bg-orange-100 text-orange-800">
+                            <Badge className="bg-[#ffedd5] text-[#9a3412]">
                               <AlertCircle className="w-3 h-3 mr-1" />
                               Overdue
                             </Badge>
                           )}
                           {studentStatus.status === 'IN_PROGRESS' && (
-                            <Badge className="bg-yellow-100 text-yellow-800">
+                            <Badge className="bg-[#fef9c3] text-[#854d0e]">
                               <Clock className="w-3 h-3 mr-1" />
                               In Progress
                             </Badge>
@@ -579,9 +579,9 @@ const ModuleTimelines = () => {
         {timelines.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center">
-              <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No timelines set</h3>
-              <p className="text-gray-600 mb-4">Create your first module timeline to start managing deadlines</p>
+              <Clock className="w-12 h-12 text-[#9ca3af] mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-[#111827] mb-2">No timelines set</h3>
+              <p className="text-[#4b5563] mb-4">Create your first module timeline to start managing deadlines</p>
               <Button onClick={() => setDialogOpen(true)}>
                 <Plus className="w-4 h-4 mr-2" />
                 Create Timeline
@@ -596,13 +596,13 @@ const ModuleTimelines = () => {
                   <div className="flex items-start justify-between">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <BookOpen className="w-4 h-4 text-blue-600" />
+                        <BookOpen className="w-4 h-4 text-[#2563eb]" />
                         <span className="font-medium">{timeline.course?.title || 'Unknown Course'}</span>
-                        <span className="text-gray-400">→</span>
+                        <span className="text-[#9ca3af]">→</span>
                         <span className="font-medium">{timeline.module?.title || 'Unknown Module'}</span>
                       </div>
 
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                      <div className="flex items-center gap-4 text-sm text-[#4b5563]">
                         <div className="flex items-center gap-1">
                           <Users className="w-3 h-3" />
                           {timeline.department?.name || 'Unknown Department'}
@@ -618,7 +618,7 @@ const ModuleTimelines = () => {
                       </div>
 
                       {timeline.description && (
-                        <p className="text-sm text-gray-600">{timeline.description}</p>
+                        <p className="text-sm text-[#4b5563]">{timeline.description}</p>
                       )}
                     </div>
 
@@ -651,7 +651,7 @@ const ModuleTimelines = () => {
                           size="sm"
                           variant="outline"
                           onClick={() => handleDelete(timeline._id)}
-                          className="text-red-600 hover:text-red-700"
+                          className="text-[#dc2626] hover:text-[#b91c1c]"
                         >
                           <Trash2 className="w-3 h-3 mr-1" />
                           Delete
@@ -662,7 +662,7 @@ const ModuleTimelines = () => {
 
                   {timeline.enableWarnings && (
                     <div className="mt-3 pt-3 border-t">
-                      <div className="flex items-center gap-1 text-xs text-gray-500">
+                      <div className="flex items-center gap-1 text-xs text-[#6b7280]">
                         <Bell className="w-3 h-3" />
                         Warnings enabled: 7d, 3d, 1d before deadline
                       </div>

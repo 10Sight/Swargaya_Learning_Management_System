@@ -43,12 +43,12 @@ const ResourcePreview = () => {
 
   if (!resource) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-[#f9fafb] to-[#f3f4f6] flex items-center justify-center p-4">
         <div className="max-w-md w-full">
-          <Card className="shadow-lg border-red-200">
+          <Card className="shadow-lg border-[#fecaca]">
             <CardContent className="p-6 text-center">
-              <AlertCircle className="h-12 w-12 sm:h-16 sm:w-16 text-red-500 mx-auto mb-4" />
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">Resource Not Found</h3>
+              <AlertCircle className="h-12 w-12 sm:h-16 sm:w-16 text-[#ef4444] mx-auto mb-4" />
+              <h3 className="text-lg sm:text-xl font-bold text-[#111827] mb-2">Resource Not Found</h3>
               <Alert variant="destructive" className="mb-4">
                 <AlertDescription className="text-sm">
                   The requested resource could not be found. Please go back and try again.
@@ -66,7 +66,7 @@ const ResourcePreview = () => {
   }
 
   const getResourceIcon = (type) => {
-    switch(type?.toLowerCase()) {
+    switch (type?.toLowerCase()) {
       case 'video':
         return <Video className="h-5 w-5 sm:h-6 sm:w-6" />;
       case 'pdf':
@@ -99,8 +99,8 @@ const ResourcePreview = () => {
       return (
         <div className="flex items-center justify-center h-64 sm:h-96">
           <div className="text-center">
-            <Loader2 className="h-8 w-8 sm:h-12 sm:w-12 animate-spin text-blue-600 mx-auto mb-4" />
-            <p className="text-sm sm:text-base text-gray-600">Loading preview...</p>
+            <Loader2 className="h-8 w-8 sm:h-12 sm:w-12 animate-spin text-[#2563eb] mx-auto mb-4" />
+            <p className="text-sm sm:text-base text-[#4b5563]">Loading preview...</p>
           </div>
         </div>
       );
@@ -110,8 +110,8 @@ const ResourcePreview = () => {
       return (
         <div className="flex items-center justify-center h-64 sm:h-96">
           <div className="text-center">
-            <AlertCircle className="h-8 w-8 sm:h-12 sm:w-12 text-red-500 mx-auto mb-4" />
-            <p className="text-sm sm:text-base text-red-600 mb-4">{error}</p>
+            <AlertCircle className="h-8 w-8 sm:h-12 sm:w-12 text-[#ef4444] mx-auto mb-4" />
+            <p className="text-sm sm:text-base text-[#dc2626] mb-4">{error}</p>
             <Button onClick={() => setError(null)} variant="outline">
               Try Again
             </Button>
@@ -120,7 +120,7 @@ const ResourcePreview = () => {
       );
     }
 
-    switch(type?.toLowerCase()) {
+    switch (type?.toLowerCase()) {
       case 'pdf':
         return (
           <div className="w-full h-full min-h-96">
@@ -132,7 +132,7 @@ const ResourcePreview = () => {
             />
           </div>
         );
-        
+
       case 'video':
         return (
           <div className="w-full">
@@ -148,7 +148,7 @@ const ResourcePreview = () => {
             </video>
           </div>
         );
-        
+
       case 'image':
         return (
           <div className="w-full flex justify-center">
@@ -160,7 +160,7 @@ const ResourcePreview = () => {
             />
           </div>
         );
-        
+
       case 'text':
         return (
           <div className="w-full">
@@ -172,18 +172,18 @@ const ResourcePreview = () => {
             />
           </div>
         );
-        
+
       default:
         return (
           <div className="text-center py-8 sm:py-12">
-            <div className="p-6 sm:p-8 bg-gray-100 rounded-full w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-4 flex items-center justify-center">
+            <div className="p-6 sm:p-8 bg-[#f3f4f6] rounded-full w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-4 flex items-center justify-center">
               {getResourceIcon(type)}
             </div>
-            <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Preview Not Available</h3>
-            <p className="text-sm sm:text-base text-gray-600 mb-4">
+            <h3 className="text-lg sm:text-xl font-semibold text-[#111827] mb-2">Preview Not Available</h3>
+            <p className="text-sm sm:text-base text-[#4b5563] mb-4">
               This file type cannot be previewed directly. Please download to view the content.
             </p>
-            <Button onClick={handleDownload} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={handleDownload} className="bg-[#2563eb] hover:bg-[#1d4ed8]">
               <Download className="h-4 w-4 mr-2" />
               Download File
             </Button>
@@ -193,7 +193,7 @@ const ResourcePreview = () => {
   };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 ${isFullscreen ? 'p-0' : 'p-4 sm:p-6'}`}>
+    <div className={`min-h-screen bg-gradient-to-br from-[#f9fafb] to-[#f3f4f6] ${isFullscreen ? 'p-0' : 'p-4 sm:p-6'}`}>
       <div className={`mx-auto ${isFullscreen ? 'max-w-full h-screen' : 'max-w-6xl'}`}>
         {/* Header */}
         {!isFullscreen && (
@@ -210,37 +210,36 @@ const ResourcePreview = () => {
                   <span className="hidden sm:inline">Back</span>
                 </Button>
                 <div>
-                  <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 leading-tight">
+                  <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-[#111827] leading-tight">
                     {resource.title || 'Resource Preview'}
                   </h1>
                   <div className="flex items-center gap-2 mt-1">
                     {moduleTitle && (
-                      <span className="text-xs sm:text-sm text-gray-600">
+                      <span className="text-xs sm:text-sm text-[#4b5563]">
                         Module: {moduleTitle}
                       </span>
                     )}
                     {courseTitle && (
-                      <span className="text-xs sm:text-sm text-gray-600">
+                      <span className="text-xs sm:text-sm text-[#4b5563]">
                         • Course: {courseTitle}
                       </span>
                     )}
                   </div>
                 </div>
               </div>
-              
+
               {/* Action Buttons */}
               <div className="flex items-center gap-2">
-                <Badge 
-                  className={`px-3 py-1 text-xs sm:text-sm font-medium ${
-                    resource.type === 'video' ? 'bg-red-500 text-white' :
-                    resource.type === 'pdf' ? 'bg-blue-500 text-white' :
-                    resource.type === 'image' ? 'bg-green-500 text-white' :
-                    'bg-gray-500 text-white'
-                  }`}
+                <Badge
+                  className={`px-3 py-1 text-xs sm:text-sm font-medium ${resource.type === 'video' ? 'bg-[#ef4444] text-white' :
+                      resource.type === 'pdf' ? 'bg-[#3b82f6] text-white' :
+                        resource.type === 'image' ? 'bg-[#22c55e] text-white' :
+                          'bg-[#6b7280] text-white'
+                    }`}
                 >
                   {resource.type?.toUpperCase() || 'FILE'}
                 </Badge>
-                
+
                 {resource.type !== 'link' && (
                   <Button
                     onClick={handleDownload}
@@ -252,7 +251,7 @@ const ResourcePreview = () => {
                     <span className="hidden sm:inline">Download</span>
                   </Button>
                 )}
-                
+
                 <Button
                   onClick={toggleFullscreen}
                   variant="outline"
@@ -282,16 +281,16 @@ const ResourcePreview = () => {
               </Button>
             </div>
           )}
-          
+
           <CardContent className={`${isFullscreen ? 'p-4 h-full' : 'p-4 sm:p-6'}`}>
             {resource.description && !isFullscreen && (
-              <div className="mb-4 sm:mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <p className="text-sm sm:text-base text-blue-800 leading-relaxed">
+              <div className="mb-4 sm:mb-6 p-4 bg-[#eff6ff] rounded-lg border border-[#bfdbfe]">
+                <p className="text-sm sm:text-base text-[#1e40af] leading-relaxed">
                   {resource.description}
                 </p>
               </div>
             )}
-            
+
             <div className={`${isFullscreen ? 'h-full flex items-center justify-center' : ''}`}>
               {renderPreviewContent()}
             </div>
@@ -304,7 +303,7 @@ const ResourcePreview = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                  <div className="p-2 bg-blue-100 rounded-lg">
+                  <div className="p-2 bg-[#dbeafe] rounded-lg">
                     {getResourceIcon(resource.type)}
                   </div>
                   Resource Information
@@ -313,17 +312,17 @@ const ResourcePreview = () => {
               <CardContent>
                 <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div>
-                    <dt className="font-semibold text-gray-900 mb-1">Title</dt>
-                    <dd className="text-gray-600">{resource.title || 'Untitled Resource'}</dd>
+                    <dt className="font-semibold text-[#111827] mb-1">Title</dt>
+                    <dd className="text-[#4b5563]">{resource.title || 'Untitled Resource'}</dd>
                   </div>
                   <div>
-                    <dt className="font-semibold text-gray-900 mb-1">Type</dt>
-                    <dd className="text-gray-600">{resource.type?.toUpperCase() || 'Unknown'}</dd>
+                    <dt className="font-semibold text-[#111827] mb-1">Type</dt>
+                    <dd className="text-[#4b5563]">{resource.type?.toUpperCase() || 'Unknown'}</dd>
                   </div>
                   {resource.description && (
                     <div className="sm:col-span-2">
-                      <dt className="font-semibold text-gray-900 mb-1">Description</dt>
-                      <dd className="text-gray-600 leading-relaxed">{resource.description}</dd>
+                      <dt className="font-semibold text-[#111827] mb-1">Description</dt>
+                      <dd className="text-[#4b5563] leading-relaxed">{resource.description}</dd>
                     </div>
                   )}
                 </dl>

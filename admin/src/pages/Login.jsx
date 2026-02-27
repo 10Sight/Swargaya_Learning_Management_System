@@ -99,7 +99,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#f8fafc] via-[#eff6ff] to-[#e0e7ff] relative overflow-hidden">
       {/* Background Pattern */}
       <div
         className="absolute inset-0 opacity-30"
@@ -131,14 +131,14 @@ const Login = () => {
             </div>
 
             <CardHeader className="text-center space-y-4 pb-8 pt-12">
-              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg">
+              <div className="w-16 h-16 bg-gradient-to-r from-[#3b82f6] to-[#4f46e5] rounded-2xl flex items-center justify-center mx-auto shadow-lg">
                 <GraduationCap className="h-8 w-8 text-white" />
               </div>
               <div className="space-y-2">
-                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-[#2563eb] to-[#4f46e5] bg-clip-text text-transparent">
                   Welcome Back
                 </CardTitle>
-                <CardDescription className="text-gray-600">
+                <CardDescription className="text-[#4b5563]">
                   Sign in to access your learning dashboard
                 </CardDescription>
               </div>
@@ -146,12 +146,12 @@ const Login = () => {
 
             <CardContent className="space-y-6">
               {/* Login Method Selector */}
-              <div className="flex rounded-lg bg-slate-100/80 p-1 backdrop-blur-sm">
+              <div className="flex rounded-lg bg-[#f1f5f9]/80 p-1 backdrop-blur-sm">
                 <button
                   type="button"
                   className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 ${loginMethod === 'email'
-                      ? 'bg-white text-blue-600 shadow-sm ring-1 ring-blue-100'
-                      : 'text-gray-600 hover:text-gray-800 hover:bg-white/50'
+                    ? 'bg-white text-[#2563eb] shadow-sm ring-1 ring-[#dbeafe]'
+                    : 'text-[#4b5563] hover:text-[#1f2937] hover:bg-white/50'
                     }`}
                   onClick={() => handleLoginMethodChange('email')}
                 >
@@ -161,8 +161,8 @@ const Login = () => {
                 <button
                   type="button"
                   className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 ${loginMethod === 'username'
-                      ? 'bg-white text-blue-600 shadow-sm ring-1 ring-blue-100'
-                      : 'text-gray-600 hover:text-gray-800 hover:bg-white/50'
+                    ? 'bg-white text-[#2563eb] shadow-sm ring-1 ring-[#dbeafe]'
+                    : 'text-[#4b5563] hover:text-[#1f2937] hover:bg-white/50'
                     }`}
                   onClick={() => handleLoginMethodChange('username')}
                 >
@@ -228,7 +228,7 @@ const Login = () => {
                     onCheckedChange={(checked) => setRememberMe(checked === true)}
                     disabled={isLoading}
                   />
-                  <Label htmlFor="rememberMe" className="text-gray-700 cursor-pointer text-sm">
+                  <Label htmlFor="rememberMe" className="text-[#374151] cursor-pointer text-sm">
                     Remember me for 30 days
                   </Label>
                 </div>
@@ -236,7 +236,7 @@ const Login = () => {
                 <Button
                   type="submit"
                   size="lg"
-                  className={`w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] disabled:scale-100 disabled:opacity-70`}
+                  className={`w-full bg-gradient-to-r from-[#2563eb] to-[#4f46e5] hover:from-[#1d4ed8] hover:to-[#4338ca] text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] disabled:scale-100 disabled:opacity-70`}
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -256,9 +256,9 @@ const Login = () => {
               </form>
 
               <div className="mt-8 text-center">
-                <p className="text-gray-600 text-sm">
+                <p className="text-[#4b5563] text-sm">
                   Don't have an account?{' '}
-                  <a href="#" className="text-blue-600 font-semibold hover:text-blue-700 hover:underline transition-colors">
+                  <a href="#" className="text-[#2563eb] font-semibold hover:text-[#1d4ed8] hover:underline transition-colors">
                     Contact Administrator
                   </a>
                 </p>

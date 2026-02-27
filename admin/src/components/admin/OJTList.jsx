@@ -41,7 +41,7 @@ const OJTList = ({ studentId, onViewDetails, onAddTraining }) => {
             </div>
 
             {ojts.length === 0 ? (
-                <div className="text-center py-12 border rounded-lg bg-gray-50 text-gray-500">
+                <div className="text-center py-12 border rounded-lg bg-[#f9fafb] text-[#6b7280]">
                     No On Job Training records found. Start a new session.
                 </div>
             ) : (

@@ -240,7 +240,7 @@ const EditQuizPage = () => {
   if (isError || !quiz) {
     return (
       <div className="space-y-4">
-        <p className="text-red-600">Failed to load quiz.</p>
+        <p className="text-[#dc2626]">Failed to load quiz.</p>
         <Button variant="outline" onClick={() => navigate(-1)}>Go Back</Button>
       </div>
     );
@@ -319,7 +319,7 @@ const EditQuizPage = () => {
               <div key={`q-${qi}`} className="border rounded-lg p-4 space-y-4">
                 <div className="flex justify-between items-start">
                   <h3 className="font-semibold">Question {qi + 1}</h3>
-                  <Button type="button" onClick={() => removeQuestion(qi)} variant="ghost" size="sm" className="text-red-600 hover:text-red-800 hover:bg-red-50">
+                  <Button type="button" onClick={() => removeQuestion(qi)} variant="ghost" size="sm" className="text-[#dc2626] hover:text-[#991b1b] hover:bg-[#fef2f2]">
                     <IconTrash className="h-4 w-4" />
                   </Button>
                 </div>
@@ -387,7 +387,7 @@ const EditQuizPage = () => {
                       <button
                         type="button"
                         onClick={() => handleOptionChange(qi, oi, "isCorrect", true)}
-                        className={`p-2 rounded-full border ${o.isCorrect ? "bg-green-100 border-green-300 text-green-700" : "bg-gray-100 border-gray-300 text-gray-500"}`}
+                        className={`p-2 rounded-full border ${o.isCorrect ? "bg-[#dcfce7] border-[#86efac] text-[#15803d]" : "bg-[#f3f4f6] border-[#d1d5db] text-[#6b7280]"}`}
                         title={o.isCorrect ? "Correct answer" : "Mark as correct"}
                       >
                         {o.isCorrect ? <IconCheck className="h-4 w-4" /> : <IconX className="h-4 w-4" />}
@@ -395,7 +395,7 @@ const EditQuizPage = () => {
 
                       <Input value={o.text} onChange={(e) => handleOptionChange(qi, oi, "text", e.target.value)} placeholder={`Option ${oi + 1}`} className="flex-1" required />
 
-                      <Button type="button" onClick={() => removeOption(qi, oi)} variant="ghost" size="sm" className="text-red-600 hover:text-red-800 hover:bg-red-50" disabled={q.options.length <= 2}>
+                      <Button type="button" onClick={() => removeOption(qi, oi)} variant="ghost" size="sm" className="text-[#dc2626] hover:text-[#991b1b] hover:bg-[#fef2f2]" disabled={q.options.length <= 2}>
                         <IconTrash className="h-4 w-4" />
                       </Button>
                     </div>

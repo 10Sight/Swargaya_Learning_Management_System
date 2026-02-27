@@ -102,14 +102,14 @@ const CreateRoleModal = ({ open, onClose, permissions, onSuccess }) => {
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1300] p-4 text-left">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-[#e5e7eb]">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <IconShield size={24} className="text-blue-600" />
+            <div className="p-2 bg-[#dbeafe] rounded-lg">
+              <IconShield size={24} className="text-[#2563eb]" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">Create Custom Role</h2>
-              <p className="text-sm text-gray-600">Define a new role with specific permissions</p>
+              <h2 className="text-xl font-semibold text-[#111827]">Create Custom Role</h2>
+              <p className="text-sm text-[#4b5563]">Define a new role with specific permissions</p>
             </div>
           </div>
           <button
@@ -117,7 +117,7 @@ const CreateRoleModal = ({ open, onClose, permissions, onSuccess }) => {
               resetForm();
               onClose();
             }}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 text-[#9ca3af] hover:text-[#4b5563] hover:bg-[#f3f4f6] rounded-lg transition-colors"
           >
             <IconX size={20} />
           </button>
@@ -127,10 +127,10 @@ const CreateRoleModal = ({ open, onClose, permissions, onSuccess }) => {
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {/* Basic Information */}
             <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-900">Basic Information</h3>
+              <h3 className="text-lg font-medium text-[#111827]">Basic Information</h3>
 
               <div>
-                <label htmlFor="roleName" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="roleName" className="block text-sm font-medium text-[#374151] mb-2">
                   Role Name *
                 </label>
                 <input
@@ -138,14 +138,14 @@ const CreateRoleModal = ({ open, onClose, permissions, onSuccess }) => {
                   type="text"
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-[#d1d5db] rounded-lg focus:ring-2 focus:ring-[#3b82f6] focus:border-transparent"
                   placeholder="Enter role name"
                   required
                 />
               </div>
 
               <div>
-                <label htmlFor="roleDescription" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="roleDescription" className="block text-sm font-medium text-[#374151] mb-2">
                   Description
                 </label>
                 <textarea
@@ -153,7 +153,7 @@ const CreateRoleModal = ({ open, onClose, permissions, onSuccess }) => {
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-[#d1d5db] rounded-lg focus:ring-2 focus:ring-[#3b82f6] focus:border-transparent"
                   placeholder="Describe this role and its purpose"
                 />
               </div>
@@ -162,8 +162,8 @@ const CreateRoleModal = ({ open, onClose, permissions, onSuccess }) => {
             {/* Permissions */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium text-gray-900">Permissions</h3>
-                <span className="text-sm text-gray-600">
+                <h3 className="text-lg font-medium text-[#111827]">Permissions</h3>
+                <span className="text-sm text-[#4b5563]">
                   {formData.permissions.length} selected
                 </span>
               </div>
@@ -175,9 +175,9 @@ const CreateRoleModal = ({ open, onClose, permissions, onSuccess }) => {
                 const allSelected = selectedCount === categoryPermissions.length;
 
                 return (
-                  <div key={category} className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div key={category} className="border border-[#e5e7eb] rounded-lg overflow-hidden">
                     {/* Category Header */}
-                    <div className="bg-gray-50 p-4">
+                    <div className="bg-[#f9fafb] p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
                           <label className="flex items-center space-x-2">
@@ -185,20 +185,20 @@ const CreateRoleModal = ({ open, onClose, permissions, onSuccess }) => {
                               type="checkbox"
                               checked={allSelected}
                               onChange={() => handleCategoryToggle(category, categoryPermissions)}
-                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              className="w-4 h-4 text-[#2563eb] border-[#d1d5db] rounded focus:ring-[#3b82f6]"
                             />
-                            <span className="font-medium text-gray-900 capitalize">
+                            <span className="font-medium text-[#111827] capitalize">
                               {category.replace(/([A-Z])/g, ' $1').trim()}
                             </span>
                           </label>
-                          <span className="text-sm text-gray-500">
+                          <span className="text-sm text-[#6b7280]">
                             ({selectedCount}/{categoryPermissions.length})
                           </span>
                         </div>
                         <button
                           type="button"
                           onClick={() => toggleCategory(category)}
-                          className="text-gray-400 hover:text-gray-600"
+                          className="text-[#9ca3af] hover:text-[#4b5563]"
                         >
                           <IconChevronDown
                             size={16}
@@ -217,9 +217,9 @@ const CreateRoleModal = ({ open, onClose, permissions, onSuccess }) => {
                               type="checkbox"
                               checked={formData.permissions.includes(permission.id)}
                               onChange={() => handlePermissionToggle(permission.id)}
-                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              className="w-4 h-4 text-[#2563eb] border-[#d1d5db] rounded focus:ring-[#3b82f6]"
                             />
-                            <span className="text-sm text-gray-700">{permission.name}</span>
+                            <span className="text-sm text-[#374151]">{permission.name}</span>
                           </label>
                         ))}
                       </div>
@@ -231,8 +231,8 @@ const CreateRoleModal = ({ open, onClose, permissions, onSuccess }) => {
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
-            <div className="flex items-center text-sm text-gray-600">
+          <div className="flex items-center justify-between p-6 border-t border-[#e5e7eb] bg-[#f9fafb]">
+            <div className="flex items-center text-sm text-[#4b5563]">
               <IconAlertTriangle size={16} className="mr-1" />
               Custom roles can be modified or deleted later
             </div>
@@ -243,7 +243,7 @@ const CreateRoleModal = ({ open, onClose, permissions, onSuccess }) => {
                   resetForm();
                   onClose();
                 }}
-                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 text-[#374151] bg-white border border-[#d1d5db] rounded-lg hover:bg-[#f9fafb] transition-colors"
                 disabled={isLoading}
               >
                 Cancel
@@ -251,7 +251,7 @@ const CreateRoleModal = ({ open, onClose, permissions, onSuccess }) => {
               <button
                 type="submit"
                 disabled={isLoading || !formData.name.trim() || formData.permissions.length === 0}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+                className="px-4 py-2 bg-[#2563eb] text-[#ffffff] rounded-lg hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
               >
                 {isLoading ? (
                   <>

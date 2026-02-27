@@ -60,18 +60,18 @@ const CreateAdmin = () => {
             {/* Header */}
             <div className="flex items-center gap-4 mb-6">
                 <Button variant="ghost" onClick={() => navigate(-1)} className="p-0 hover:bg-transparent h-auto">
-                    <IconArrowLeft className="w-6 h-6 text-gray-600" />
+                    <IconArrowLeft className="w-6 h-6 text-[#4b5563]" />
                 </Button>
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Create Admin User</h1>
-                    <p className="text-gray-500">Add a new administrator to the system</p>
+                    <h1 className="text-2xl font-bold text-[#111827]">Create Admin User</h1>
+                    <p className="text-[#6b7280]">Add a new administrator to the system</p>
                 </div>
             </div>
 
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        <IconUserShield className="w-5 h-5 text-purple-600" />
+                        <IconUserShield className="w-5 h-5 text-[#9333ea]" />
                         Admin Details
                     </CardTitle>
                     <CardDescription>
@@ -155,7 +155,7 @@ const CreateAdmin = () => {
                         </div>
 
                         <div className="grid grid-cols-1 gap-6">
-                            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 text-sm text-yellow-800 flex gap-2 items-start">
+                            <div className="bg-[#fefce8] border border-[#fef08a] rounded-md p-4 text-sm text-[#854d0e] flex gap-2 items-start">
                                 <IconUserShield className="w-5 h-5 shrink-0" />
                                 <div>
                                     <p className="font-semibold">Access Level: Admin</p>
@@ -168,7 +168,7 @@ const CreateAdmin = () => {
                             <Button type="button" variant="outline" onClick={() => navigate(-1)}>
                                 Cancel
                             </Button>
-                            <Button type="submit" className="bg-purple-600 hover:bg-purple-700 text-white" disabled={isLoading}>
+                            <Button type="submit" className="bg-[#9333ea] hover:bg-[#7e22ce] text-white" disabled={isLoading}>
                                 {isLoading && <IconLoader className="w-4 h-4 mr-2 animate-spin" />}
                                 Create Admin Account
                             </Button>

@@ -20,7 +20,7 @@ const ENV = {
     SMTP_USERNAME: process.env.SMTP_USERNAME,
     SMTP_PASSWORD: process.env.SMTP_PASSWORD,
 
-    // Frontend URLs
+    // Database configuration
     DB_HOST: process.env.DB_HOST || "localhost",
     DB_USER: process.env.DB_USER || "LMS_USER",
     DB_PASSWORD: process.env.DB_PASSWORD || "LMS@12345",

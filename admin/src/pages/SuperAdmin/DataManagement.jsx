@@ -240,15 +240,15 @@ const DataManagement = () => {
   const getOperationStatusIcon = (action) => {
     switch (action) {
       case 'CREATE_BACKUP':
-        return <Archive className="h-4 w-4 text-blue-600" />;
+        return <Archive className="h-4 w-4 text-[#2563eb]" />;
       case 'RESTORE_BACKUP':
-        return <RefreshCcw className="h-4 w-4 text-green-600" />;
+        return <RefreshCcw className="h-4 w-4 text-[#16a34a]" />;
       case 'EXPORT_DATA':
-        return <Download className="h-4 w-4 text-purple-600" />;
+        return <Download className="h-4 w-4 text-[#9333ea]" />;
       case 'IMPORT_DATA':
-        return <Upload className="h-4 w-4 text-orange-600" />;
+        return <Upload className="h-4 w-4 text-[#ea580c]" />;
       default:
-        return <Activity className="h-4 w-4 text-gray-600" />;
+        return <Activity className="h-4 w-4 text-[#4b5563]" />;
     }
   };
 
@@ -265,8 +265,8 @@ const DataManagement = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Data Management</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl font-bold text-[#111827]">Data Management</h1>
+          <p className="text-[#4b5563] mt-1">
             Comprehensive database backup, restore, export, import, and cleanup utilities
           </p>
         </div>
@@ -276,7 +276,7 @@ const DataManagement = () => {
               refetchStats();
               refetchBackups();
             }}
-            className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
+            className="inline-flex items-center px-4 py-2 bg-[#f3f4f6] text-[#374151] text-sm font-medium rounded-lg hover:bg-[#e5e7eb] transition-colors"
           >
             <RefreshCcw className="h-4 w-4 mr-2" />
             Refresh
@@ -285,7 +285,7 @@ const DataManagement = () => {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-[#e5e7eb]">
         <nav className="-mb-px flex space-x-8">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -294,8 +294,8 @@ const DataManagement = () => {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center py-2 px-1 border-b-2 font-medium text-sm ${activeTab === tab.id
-                    ? 'border-indigo-500 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-[#6366f1] text-[#4f46e5]'
+                  : 'border-transparent text-[#6b7280] hover:text-[#374151] hover:border-[#d1d5db]'
                   }`}
               >
                 <Icon className="h-4 w-4 mr-2" />
@@ -319,16 +319,16 @@ const DataManagement = () => {
                   <div key={key} className="bg-white rounded-lg shadow-sm border p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-600 capitalize">{key}</p>
-                        <p className="text-2xl font-bold text-gray-900">
+                        <p className="text-sm font-medium text-[#4b5563] capitalize">{key}</p>
+                        <p className="text-2xl font-bold text-[#111827]">
                           {stats.total.toLocaleString()}
                         </p>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-[#6b7280]">
                           {stats.recent} recent
                         </p>
                       </div>
-                      <div className="p-3 bg-blue-100 rounded-full">
-                        <Icon className="h-6 w-6 text-blue-600" />
+                      <div className="p-3 bg-[#dbeafe] rounded-full">
+                        <Icon className="h-6 w-6 text-[#2563eb]" />
                       </div>
                     </div>
                   </div>
@@ -340,26 +340,26 @@ const DataManagement = () => {
             {dataStats?.data?.summary && (
               <div className="bg-white rounded-lg shadow-sm border">
                 <div className="p-6 border-b">
-                  <h3 className="text-lg font-semibold text-gray-900">System Summary</h3>
+                  <h3 className="text-lg font-semibold text-[#111827]">System Summary</h3>
                 </div>
                 <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="text-center">
-                    <p className="text-3xl font-bold text-indigo-600">
+                    <p className="text-3xl font-bold text-[#4f46e5]">
                       {dataStats.data.summary.totalCollections}
                     </p>
-                    <p className="text-sm text-gray-600 mt-1">Total Collections</p>
+                    <p className="text-sm text-[#4b5563] mt-1">Total Collections</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-3xl font-bold text-green-600">
+                    <p className="text-3xl font-bold text-[#16a34a]">
                       {dataStats.data.summary.totalRecords.toLocaleString()}
                     </p>
-                    <p className="text-sm text-gray-600 mt-1">Total Records</p>
+                    <p className="text-sm text-[#4b5563] mt-1">Total Records</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-3xl font-bold text-purple-600">
+                    <p className="text-3xl font-bold text-[#9333ea]">
                       {formatFileSize(dataStats.data.summary.estimatedSize)}
                     </p>
-                    <p className="text-sm text-gray-600 mt-1">Estimated Size</p>
+                    <p className="text-sm text-[#4b5563] mt-1">Estimated Size</p>
                   </div>
                 </div>
               </div>
@@ -372,12 +372,12 @@ const DataManagement = () => {
             {/* Create Backup Section */}
             <div className="bg-white rounded-lg shadow-sm border">
               <div className="p-6 border-b">
-                <h3 className="text-lg font-semibold text-gray-900">Create New Backup</h3>
+                <h3 className="text-lg font-semibold text-[#111827]">Create New Backup</h3>
               </div>
               <div className="p-6">
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-[#374151] mb-2">
                       Description (optional)
                     </label>
                     <input
@@ -385,7 +385,7 @@ const DataManagement = () => {
                       value={backupConfig.description}
                       onChange={(e) => setBackupConfig({ ...backupConfig, description: e.target.value })}
                       placeholder="Enter backup description..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-1 focus:ring-[#4f46e5]"
                     />
                   </div>
 
@@ -395,9 +395,9 @@ const DataManagement = () => {
                         type="checkbox"
                         checked={backupConfig.compression}
                         onChange={(e) => setBackupConfig({ ...backupConfig, compression: e.target.checked })}
-                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        className="rounded border-[#d1d5db] text-[#4f46e5] focus:ring-[#4f46e5]"
                       />
-                      <span className="ml-2 text-sm text-gray-700">Enable compression</span>
+                      <span className="ml-2 text-sm text-[#374151]">Enable compression</span>
                     </label>
 
                     <label className="flex items-center">
@@ -405,16 +405,16 @@ const DataManagement = () => {
                         type="checkbox"
                         checked={backupConfig.includeFiles}
                         onChange={(e) => setBackupConfig({ ...backupConfig, includeFiles: e.target.checked })}
-                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        className="rounded border-[#d1d5db] text-[#4f46e5] focus:ring-[#4f46e5]"
                       />
-                      <span className="ml-2 text-sm text-gray-700">Include files</span>
+                      <span className="ml-2 text-sm text-[#374151]">Include files</span>
                     </label>
                   </div>
 
                   <button
                     onClick={handleCreateBackup}
                     disabled={creatingBackup}
-                    className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                    className="inline-flex items-center px-4 py-2 bg-[#4f46e5] text-[#ffffff] text-sm font-medium rounded-lg hover:bg-[#4338ca] disabled:opacity-50"
                   >
                     {creatingBackup ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -430,25 +430,25 @@ const DataManagement = () => {
             {/* Backup History */}
             <div className="bg-white rounded-lg shadow-sm border">
               <div className="p-6 border-b">
-                <h3 className="text-lg font-semibold text-gray-900">Backup History</h3>
+                <h3 className="text-lg font-semibold text-[#111827]">Backup History</h3>
               </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-[#f9fafb]">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
                         Backup ID
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
                         Created
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
                         Size
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
                         Status
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
@@ -456,19 +456,19 @@ const DataManagement = () => {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {backupHistory?.data?.backups?.map((backup) => (
                       <tr key={backup._id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#111827]">
                           {backup.backup?.id || backup._id}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#6b7280]">
                           {formatDate(backup.createdAt)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-[#6b7280]">
                           {backup.backup?.size ? formatFileSize(backup.backup.size) : 'N/A'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${backup.fileExists
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
+                            ? 'bg-[#dcfce7] text-[#166534]'
+                            : 'bg-[#fee2e2] text-[#991b1b]'
                             }`}>
                             {backup.fileExists ? 'Available' : 'Missing'}
                           </span>
@@ -477,14 +477,14 @@ const DataManagement = () => {
                           {backup.fileExists && (
                             <button
                               onClick={() => setShowRestoreConfirm(backup.backup?.id || backup._id)}
-                              className="text-indigo-600 hover:text-indigo-900"
+                              className="text-[#4f46e5] hover:text-indigo-900"
                             >
                               Restore
                             </button>
                           )}
                           <button
                             onClick={() => setShowDeleteConfirm(backup.backup?.id || backup._id)}
-                            className="text-red-600 hover:text-red-900"
+                            className="text-[#dc2626] hover:text-[#7f1d1d]"
                           >
                             Delete
                           </button>
@@ -503,14 +503,14 @@ const DataManagement = () => {
             {/* Export Data */}
             <div className="bg-white rounded-lg shadow-sm border">
               <div className="p-6 border-b">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                  <Download className="h-5 w-5 text-blue-600 mr-2" />
+                <h3 className="text-lg font-semibold text-[#111827] flex items-center">
+                  <Download className="h-5 w-5 text-[#2563eb] mr-2" />
                   Export Data
                 </h3>
               </div>
               <div className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-[#374151] mb-2">
                     Collections to Export
                   </label>
                   <div className="grid grid-cols-2 gap-2">
@@ -532,9 +532,9 @@ const DataManagement = () => {
                               });
                             }
                           }}
-                          className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                          className="rounded border-[#d1d5db] text-[#4f46e5] focus:ring-[#4f46e5]"
                         />
-                        <span className="ml-2 text-sm text-gray-700">{collection.label}</span>
+                        <span className="ml-2 text-sm text-[#374151]">{collection.label}</span>
                       </label>
                     ))}
                   </div>
@@ -542,21 +542,21 @@ const DataManagement = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Date From</label>
+                    <label className="block text-sm font-medium text-[#374151] mb-2">Date From</label>
                     <input
                       type="date"
                       value={exportConfig.dateFrom}
                       onChange={(e) => setExportConfig({ ...exportConfig, dateFrom: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-1 focus:ring-[#4f46e5]"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Date To</label>
+                    <label className="block text-sm font-medium text-[#374151] mb-2">Date To</label>
                     <input
                       type="date"
                       value={exportConfig.dateTo}
                       onChange={(e) => setExportConfig({ ...exportConfig, dateTo: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-1 focus:ring-[#4f46e5]"
                     />
                   </div>
                 </div>
@@ -566,15 +566,15 @@ const DataManagement = () => {
                     type="checkbox"
                     checked={exportConfig.includeMetadata}
                     onChange={(e) => setExportConfig({ ...exportConfig, includeMetadata: e.target.checked })}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded border-[#d1d5db] text-[#4f46e5] focus:ring-[#4f46e5]"
                   />
-                  <span className="ml-2 text-sm text-gray-700">Include metadata</span>
+                  <span className="ml-2 text-sm text-[#374151]">Include metadata</span>
                 </label>
 
                 <button
                   onClick={handleExportData}
                   disabled={exporting}
-                  className="w-full inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  className="w-full inline-flex items-center justify-center px-4 py-2 bg-[#2563eb] text-[#ffffff] text-sm font-medium rounded-lg hover:bg-[#1d4ed8] disabled:opacity-50"
                 >
                   {exporting ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -589,14 +589,14 @@ const DataManagement = () => {
             {/* Import Data */}
             <div className="bg-white rounded-lg shadow-sm border">
               <div className="p-6 border-b">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                  <Upload className="h-5 w-5 text-green-600 mr-2" />
+                <h3 className="text-lg font-semibold text-[#111827] flex items-center">
+                  <Upload className="h-5 w-5 text-[#16a34a] mr-2" />
                   Import Data
                 </h3>
               </div>
               <div className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-[#374151] mb-2">
                     Select JSON File
                   </label>
                   <input
@@ -604,23 +604,23 @@ const DataManagement = () => {
                     type="file"
                     accept=".json,application/json"
                     onChange={handleFileSelect}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-1 focus:ring-[#4f46e5]"
                   />
                   {selectedFile && (
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="text-sm text-[#4b5563] mt-1">
                       Selected: {selectedFile.name} ({formatFileSize(selectedFile.size)})
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-[#374151] mb-2">
                     Import Mode
                   </label>
                   <select
                     value={importConfig.mode}
                     onChange={(e) => setImportConfig({ ...importConfig, mode: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-1 focus:ring-[#4f46e5]"
                   >
                     <option value="append">Append (add/update records)</option>
                     <option value="replace">Replace (clear and import)</option>
@@ -632,15 +632,15 @@ const DataManagement = () => {
                     type="checkbox"
                     checked={importConfig.validateData}
                     onChange={(e) => setImportConfig({ ...importConfig, validateData: e.target.checked })}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded border-[#d1d5db] text-[#4f46e5] focus:ring-[#4f46e5]"
                   />
-                  <span className="ml-2 text-sm text-gray-700">Validate data before import</span>
+                  <span className="ml-2 text-sm text-[#374151]">Validate data before import</span>
                 </label>
 
                 <button
                   onClick={handleImportData}
                   disabled={importing || !selectedFile}
-                  className="w-full inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50"
+                  className="w-full inline-flex items-center justify-center px-4 py-2 bg-[#16a34a] text-[#ffffff] text-sm font-medium rounded-lg hover:bg-[#15803d] disabled:opacity-50"
                 >
                   {importing ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -657,31 +657,31 @@ const DataManagement = () => {
         {activeTab === 'cleanup' && (
           <div className="bg-white rounded-lg shadow-sm border">
             <div className="p-6 border-b">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                <Trash2 className="h-5 w-5 text-red-600 mr-2" />
+              <h3 className="text-lg font-semibold text-[#111827] flex items-center">
+                <Trash2 className="h-5 w-5 text-[#dc2626] mr-2" />
                 Data Cleanup
               </h3>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-[#4b5563] mt-1">
                 Clean up old audit logs and backup files to free up storage space
               </p>
             </div>
             <div className="p-6 space-y-6">
               {/* Audit Logs Cleanup */}
-              <div className="border border-gray-200 rounded-lg p-4">
+              <div className="border border-[#e5e7eb] rounded-lg p-4">
                 <div className="flex items-center mb-3">
                   <input
                     type="checkbox"
                     checked={cleanupConfig.cleanupAuditLogs}
                     onChange={(e) => setCleanupConfig({ ...cleanupConfig, cleanupAuditLogs: e.target.checked })}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded border-[#d1d5db] text-[#4f46e5] focus:ring-[#4f46e5]"
                   />
-                  <label className="ml-2 text-sm font-medium text-gray-700">
+                  <label className="ml-2 text-sm font-medium text-[#374151]">
                     Clean up old audit logs
                   </label>
                 </div>
                 {cleanupConfig.cleanupAuditLogs && (
                   <div className="ml-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-[#374151] mb-2">
                       Retention period (days)
                     </label>
                     <input
@@ -690,9 +690,9 @@ const DataManagement = () => {
                       max="365"
                       value={cleanupConfig.auditLogRetentionDays}
                       onChange={(e) => setCleanupConfig({ ...cleanupConfig, auditLogRetentionDays: parseInt(e.target.value) })}
-                      className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="w-32 px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-1 focus:ring-[#4f46e5]"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-[#6b7280] mt-1">
                       Audit logs older than this will be deleted
                     </p>
                   </div>
@@ -700,21 +700,21 @@ const DataManagement = () => {
               </div>
 
               {/* Backup Cleanup */}
-              <div className="border border-gray-200 rounded-lg p-4">
+              <div className="border border-[#e5e7eb] rounded-lg p-4">
                 <div className="flex items-center mb-3">
                   <input
                     type="checkbox"
                     checked={cleanupConfig.cleanupBackups}
                     onChange={(e) => setCleanupConfig({ ...cleanupConfig, cleanupBackups: e.target.checked })}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded border-[#d1d5db] text-[#4f46e5] focus:ring-[#4f46e5]"
                   />
-                  <label className="ml-2 text-sm font-medium text-gray-700">
+                  <label className="ml-2 text-sm font-medium text-[#374151]">
                     Clean up old backup files
                   </label>
                 </div>
                 {cleanupConfig.cleanupBackups && (
                   <div className="ml-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-[#374151] mb-2">
                       Retention period (days)
                     </label>
                     <input
@@ -723,9 +723,9 @@ const DataManagement = () => {
                       max="365"
                       value={cleanupConfig.backupRetentionDays}
                       onChange={(e) => setCleanupConfig({ ...cleanupConfig, backupRetentionDays: parseInt(e.target.value) })}
-                      className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="w-32 px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-1 focus:ring-[#4f46e5]"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-[#6b7280] mt-1">
                       Backup files older than this will be deleted
                     </p>
                   </div>
@@ -733,14 +733,14 @@ const DataManagement = () => {
               </div>
 
               {/* Dry Run Option */}
-              <div className="flex items-center p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-center p-4 bg-[#fefce8] border border-[#fef08a] rounded-lg">
                 <input
                   type="checkbox"
                   checked={cleanupConfig.dryRun}
                   onChange={(e) => setCleanupConfig({ ...cleanupConfig, dryRun: e.target.checked })}
-                  className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  className="rounded border-[#d1d5db] text-[#4f46e5] focus:ring-[#4f46e5]"
                 />
-                <label className="ml-2 text-sm font-medium text-gray-700">
+                <label className="ml-2 text-sm font-medium text-[#374151]">
                   Dry run (preview only, don't delete anything)
                 </label>
               </div>
@@ -749,8 +749,8 @@ const DataManagement = () => {
                 onClick={handleCleanupData}
                 disabled={cleaning || (!cleanupConfig.cleanupAuditLogs && !cleanupConfig.cleanupBackups)}
                 className={`inline-flex items-center px-4 py-2 text-white text-sm font-medium rounded-lg disabled:opacity-50 ${cleanupConfig.dryRun
-                    ? 'bg-yellow-600 hover:bg-yellow-700'
-                    : 'bg-red-600 hover:bg-red-700'
+                  ? 'bg-[#ca8a04] hover:bg-[#a16207]'
+                  : 'bg-[#dc2626] hover:bg-[#b91c1c]'
                   }`}
               >
                 {cleaning ? (
@@ -767,25 +767,25 @@ const DataManagement = () => {
         {activeTab === 'operations' && (
           <div className="bg-white rounded-lg shadow-sm border">
             <div className="p-6 border-b">
-              <h3 className="text-lg font-semibold text-gray-900">Operation History</h3>
-              <p className="text-sm text-gray-600 mt-1">
+              <h3 className="text-lg font-semibold text-[#111827]">Operation History</h3>
+              <p className="text-sm text-[#4b5563] mt-1">
                 Recent data management operations
               </p>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+                <thead className="bg-[#f9fafb]">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
                       Operation
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
                       User
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
                       Date
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
                       Details
                     </th>
                   </tr>
@@ -796,18 +796,18 @@ const DataManagement = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           {getOperationStatusIcon(operation.action)}
-                          <span className="ml-2 text-sm font-medium text-gray-900">
+                          <span className="ml-2 text-sm font-medium text-[#111827]">
                             {operation.action.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-[#6b7280]">
                         {operation.userId?.fullName || 'System'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-[#6b7280]">
                         {formatDate(operation.createdAt)}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
+                      <td className="px-6 py-4 text-sm text-[#6b7280]">
                         {operation.details?.description ||
                           operation.details?.collections?.join(', ') ||
                           'No details available'}
@@ -826,24 +826,24 @@ const DataManagement = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
             <div className="flex items-center mb-4">
-              <AlertTriangle className="h-6 w-6 text-yellow-600 mr-3" />
-              <h3 className="text-lg font-semibold text-gray-900">Confirm Restore</h3>
+              <AlertTriangle className="h-6 w-6 text-[#ca8a04] mr-3" />
+              <h3 className="text-lg font-semibold text-[#111827]">Confirm Restore</h3>
             </div>
-            <p className="text-gray-600 mb-6">
+            <p className="text-[#4b5563] mb-6">
               This action will replace all current data with the backup data. This cannot be undone.
               Are you sure you want to proceed?
             </p>
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => setShowRestoreConfirm(null)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                className="px-4 py-2 text-[#374151] bg-[#f3f4f6] rounded-lg hover:bg-[#e5e7eb]"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleRestoreBackup(showRestoreConfirm)}
                 disabled={restoring}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                className="px-4 py-2 bg-[#dc2626] text-white rounded-lg hover:bg-[#b91c1c] disabled:opacity-50"
               >
                 {restoring ? 'Restoring...' : 'Confirm Restore'}
               </button>
@@ -857,23 +857,23 @@ const DataManagement = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
             <div className="flex items-center mb-4">
-              <AlertTriangle className="h-6 w-6 text-red-600 mr-3" />
-              <h3 className="text-lg font-semibold text-gray-900">Confirm Delete</h3>
+              <AlertTriangle className="h-6 w-6 text-[#dc2626] mr-3" />
+              <h3 className="text-lg font-semibold text-[#111827]">Confirm Delete</h3>
             </div>
-            <p className="text-gray-600 mb-6">
+            <p className="text-[#4b5563] mb-6">
               Are you sure you want to delete this backup? This action cannot be undone.
             </p>
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => setShowDeleteConfirm(null)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                className="px-4 py-2 text-[#374151] bg-[#f3f4f6] rounded-lg hover:bg-[#e5e7eb]"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleDeleteBackup(showDeleteConfirm)}
                 disabled={deleting}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                className="px-4 py-2 bg-[#dc2626] text-white rounded-lg hover:bg-[#b91c1c] disabled:opacity-50"
               >
                 {deleting ? 'Deleting...' : 'Delete Backup'}
               </button>

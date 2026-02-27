@@ -93,7 +93,7 @@ const AddModulePage = () => {
       toast.error("Module must have at least one lesson");
       return;
     }
-    
+
     setFormData((prev) => ({
       ...prev,
       lessons: prev.lessons.filter((_, i) => i !== index),
@@ -133,7 +133,7 @@ const AddModulePage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -275,7 +275,7 @@ const AddModulePage = () => {
               <div key={lIndex} className="border rounded-lg p-4 space-y-4">
                 <div className="flex justify-between items-start">
                   <h3 className="font-semibold flex items-center gap-2">
-                    <IconFileText className="h-5 w-5 text-blue-600" />
+                    <IconFileText className="h-5 w-5 text-[#2563eb]" />
                     Lesson {lIndex + 1}
                   </h3>
                   <Button
@@ -283,7 +283,7 @@ const AddModulePage = () => {
                     onClick={() => removeLesson(lIndex)}
                     variant="ghost"
                     size="sm"
-                    className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                    className="text-[#dc2626] hover:text-[#991b1b] hover:bg-[#fef2f2]"
                   >
                     <IconTrash className="h-4 w-4" />
                   </Button>
@@ -340,8 +340,8 @@ const AddModulePage = () => {
           >
             Cancel
           </Button>
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             disabled={isCreatingModule || isCreatingLesson}
             className="gap-2"
           >

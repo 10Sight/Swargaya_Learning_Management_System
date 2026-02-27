@@ -35,8 +35,8 @@ export default function ModuleQuiz({
 
   if (!isUnlocked) {
     return (
-      <Alert className="bg-amber-50 border-amber-200">
-        <Lock className="h-4 w-4 text-amber-600" />
+      <Alert className="bg-[#fffbeb] border-[#fde68a]">
+        <Lock className="h-4 w-4 text-[#d97706]" />
         <AlertDescription>
           Complete lessons and resources to unlock the quiz.
         </AlertDescription>
@@ -66,7 +66,7 @@ export default function ModuleQuiz({
             <div className="flex items-center gap-2">
               <Badge variant="outline">Questions: {quiz?.questions?.length || 'N/A'}</Badge>
               {markedComplete && (
-                <Badge variant="outline" className="bg-green-100 text-green-700">Completed</Badge>
+                <Badge variant="outline" className="bg-[#dcfce7] text-[#15803d]">Completed</Badge>
               )}
             </div>
             {!markedComplete && (
@@ -84,7 +84,7 @@ export default function ModuleQuiz({
 
           <div className="flex gap-2">
             {!markedComplete && (
-              <Button onClick={handleComplete} className="bg-green-600 hover:bg-green-700">
+              <Button onClick={handleComplete} className="bg-[#16a34a] hover:bg-[#15803d]">
                 <CheckCircle2 className="h-4 w-4 mr-2" /> Mark as Complete
               </Button>
             )}

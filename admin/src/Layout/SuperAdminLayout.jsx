@@ -151,7 +151,7 @@ export function SuperAdminLayout() {
     return (
       <IconLayoutSidebarRightCollapse
         className={`${opened ? "rotate-180" : "mx-auto"
-          } min-w-5 min-h-5 duration-500 transition-all cursor-pointer text-gray-600 hover:text-gray-800`}
+          } min-w-5 min-h-5 duration-500 transition-all cursor-pointer text-[#4b5563] hover:text-[#1f2937]`}
         onClick={onClick}
         aria-label={ariaLabel}
       />
@@ -159,14 +159,14 @@ export function SuperAdminLayout() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-indigo-50/20">
+    <div className="flex min-h-screen bg-gradient-to-br from-[#f8fafc] via-[#faf5ff]/30 to-[#eef2ff]/20">
       {/* Sidebar */}
       <nav
-        className={`fixed top-0 left-0 h-screen bg-white/95 backdrop-blur-xl border-r border-gray-200/50 text-black shadow-2xl transition-all duration-300 z-20
+        className={`fixed top-0 left-0 h-screen bg-white/95 backdrop-blur-xl border-r border-[#e5e7eb]/50 text-black shadow-2xl transition-all duration-300 z-20
                 ${collapsed ? "w-16" : "w-64"} `}
       >
         <div
-          className={`relative h-16 items-center flex transition-all p-4 duration-300 z-50 border-b border-gray-200/80 bg-white/50 backdrop-blur-sm`}
+          className={`relative h-16 items-center flex transition-all p-4 duration-300 z-50 border-b border-[#e5e7eb]/80 bg-white/50 backdrop-blur-sm`}
         >
           <ToggleButton
             opened={!collapsed}
@@ -174,7 +174,7 @@ export function SuperAdminLayout() {
             ariaLabel="Toggle sidebar"
           />
           {!collapsed && (
-            <span className="ml-4 py-1 text-sm font-bold uppercase tracking-wider bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+            <span className="ml-4 py-1 text-sm font-bold uppercase tracking-wider bg-gradient-to-r from-[#9333ea] to-[#2563eb] bg-clip-text text-transparent">
               {t("header.superAdmin")}
             </span>
           )}
@@ -186,7 +186,7 @@ export function SuperAdminLayout() {
             <div key={category.category} className="mb-4">
               {!collapsed && (
                 <div className="px-2 mb-2">
-                  <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  <h3 className="text-xs font-semibold text-[#9ca3af] uppercase tracking-wider">
                     {category.category}
                   </h3>
                 </div>
@@ -202,8 +202,8 @@ export function SuperAdminLayout() {
                     <div
                       className={`group relative flex items-center cursor-pointer w-full overflow-hidden h-10 rounded-xl transition-all duration-300 hover:scale-[1.02]
                       ${isActive
-                          ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg shadow-purple-200"
-                          : "text-gray-600 hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 hover:text-purple-700 hover:shadow-md"
+                          ? "bg-gradient-to-r from-[#9333ea] to-[#2563eb] text-white shadow-lg shadow-[#e9d5ff]"
+                          : "text-[#4b5563] hover:bg-gradient-to-r hover:from-[#faf5ff] hover:to-[#eff6ff] hover:text-[#7e22ce] hover:shadow-md"
                         }
                       ${collapsed ? "justify-center mx-1" : "items-center px-3"}`}
                       key={item.label}
@@ -222,7 +222,7 @@ export function SuperAdminLayout() {
                         <span className="ml-3 text-sm font-medium transition-all group-hover:translate-x-0.5">{item.label}</span>
                       )}
                       {!collapsed && (
-                        <div className={`ml-auto opacity-0 group-hover:opacity-100 transition-opacity ${isActive ? 'text-purple-200' : 'text-gray-400'
+                        <div className={`ml-auto opacity-0 group-hover:opacity-100 transition-opacity ${isActive ? 'text-[#e9d5ff]' : 'text-[#9ca3af]'
                           }`}>
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -241,14 +241,14 @@ export function SuperAdminLayout() {
         <div className="absolute bottom-4 w-full px-2">
           <div
             className={`p-2 flex items-center rounded-lg w-full transition-all duration-200 ${isLoading
-              ? "opacity-50 cursor-not-allowed bg-gray-100"
-              : "hover:bg-red-50 hover:text-red-600 cursor-pointer"
+              ? "opacity-50 cursor-not-allowed bg-[#f3f4f6]"
+              : "hover:bg-[#fef2f2] hover:text-[#dc2626] cursor-pointer"
               } ${collapsed ? "justify-center" : "px-3"
               }`}
             onClick={isLoading ? undefined : handleLogout}
           >
             {isLoading ? (
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-red-600"></div>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#dc2626]"></div>
             ) : (
               <IconLogout className="min-w-5 min-h-5" stroke={1.5} />
             )}
@@ -268,7 +268,7 @@ export function SuperAdminLayout() {
       >
         {/* Header */}
         <header
-          className={`px-4 sm:px-6 bg-white/95 backdrop-blur-lg shadow-sm border-b border-gray-200/80 flex h-16 items-center justify-between gap-2 sm:gap-4 fixed right-0 top-0 z-30 transition-all duration-300 ${collapsed ? "w-[calc(100%-4rem)]" : "w-[calc(100%-16rem)]"
+          className={`px-4 sm:px-6 bg-white/95 backdrop-blur-lg shadow-sm border-b border-[#e5e7eb]/80 flex h-16 items-center justify-between gap-2 sm:gap-4 fixed right-0 top-0 z-30 transition-all duration-300 ${collapsed ? "w-[calc(100%-4rem)]" : "w-[calc(100%-16rem)]"
             }`}
         >
           {/* Left side (Breadcrumb) */}
@@ -277,7 +277,7 @@ export function SuperAdminLayout() {
               <BreadcrumbItem>
                 <Link
                   to="/superadmin"
-                  className="flex items-center text-purple-600 hover:text-purple-800 transition-colors"
+                  className="flex items-center text-[#9333ea] hover:text-[#6b21a8] transition-colors"
                 >
                   <HomeIcon size={18} aria-hidden="true" />
                   <span className="sr-only">Home</span>
@@ -285,7 +285,7 @@ export function SuperAdminLayout() {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage className="text-gray-800 font-medium">
+                <BreadcrumbPage className="text-[#1f2937] font-medium">
                   {pageName}
                 </BreadcrumbPage>
               </BreadcrumbItem>
@@ -296,10 +296,10 @@ export function SuperAdminLayout() {
           <div className="relative flex items-center gap-3">
             <LanguageSelector />
             <div className="mr-2 text-right hidden lg:block">
-              <p className="text-sm font-medium text-gray-800 truncate max-w-32">
+              <p className="text-sm font-medium text-[#1f2937] truncate max-w-32">
                 {user?.fullName || user?.userName || 'Admin User'}
               </p>
-              <p className="text-xs text-gray-500 capitalize">
+              <p className="text-xs text-[#6b7280] capitalize">
                 {user?.role?.toLowerCase().replace('_', ' ') || 'Super Admin'}
               </p>
             </div>
@@ -317,12 +317,12 @@ export function SuperAdminLayout() {
               <div className="relative size-9 sm:size-10 group">
                 <img
                   src={user?.avatar?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.fullName || user?.userName || 'Admin User')}&background=7c3aed&color=fff`}
-                  className="rounded-full size-full border-2 border-white shadow-md object-cover transition-transform group-hover:scale-105 ring-2 ring-purple-100 cursor-pointer"
+                  className="rounded-full size-full border-2 border-white shadow-md object-cover transition-transform group-hover:scale-105 ring-2 ring-[#f3e8ff] cursor-pointer"
                   alt="User avatar"
                   onClick={() => document.getElementById('superadmin-avatar-input').click()}
                   title="Change profile picture"
                 />
-                <div className="absolute bg-green-500 rounded-full bottom-0 right-0 size-2.5 sm:size-3 border-2 border-white"></div>
+                <div className="absolute bg-[#22c55e] rounded-full bottom-0 right-0 size-2.5 sm:size-3 border-2 border-white"></div>
               </div>
             </div>
           </div>
@@ -330,7 +330,7 @@ export function SuperAdminLayout() {
 
         {/* Page Content */}
         <div className="pt-20 pb-6 px-4 sm:px-6 min-h-screen">
-          <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-sm border border-gray-200/50 p-4 sm:p-6 transition-all duration-300 hover:shadow-md">
+          <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-sm border border-[#e5e7eb]/50 p-4 sm:p-6 transition-all duration-300 hover:shadow-md">
             <Outlet />
           </div>
         </div>

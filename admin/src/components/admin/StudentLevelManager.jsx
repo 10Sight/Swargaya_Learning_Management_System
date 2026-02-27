@@ -187,7 +187,7 @@ const StudentLevelManager = () => {
       l => l.name.toUpperCase() === levelName?.toUpperCase()
     );
 
-    if (!level) return "bg-gray-100 text-gray-800";
+    if (!level) return "bg-[#f3f4f6] text-[#1f2937]";
 
     // Convert hex color to tailwind-like classes (simplified)
     // For actual hex colors, we'll use inline styles
@@ -219,7 +219,7 @@ const StudentLevelManager = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-blue-600" />
+            <Shield className="h-5 w-5 text-[#2563eb]" />
             Student Level Manager
           </CardTitle>
           <CardDescription>
@@ -306,7 +306,7 @@ const StudentLevelManager = () => {
                     <TableRow key={`${student.id}-${student.courseId || idx}`}>
                       <TableCell>
                         <div>
-                          <div className="font-medium text-blue-600">{student.courseTitle}</div>
+                          <div className="font-medium text-[#2563eb]">{student.courseTitle}</div>
                           <div className="font-medium">{student.name}</div>
                           <div className="text-xs text-muted-foreground">{student.email}</div>
                         </div>

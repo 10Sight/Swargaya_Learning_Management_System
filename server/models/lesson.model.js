@@ -26,14 +26,14 @@ class Lesson {
             BEGIN
                 CREATE TABLE dbo.lessons (
                     id INT IDENTITY(1,1) PRIMARY KEY,
-                    module VARCHAR(255) NOT NULL,
-                    title VARCHAR(255) NOT NULL,
-                    content VARCHAR(MAX),
-                    slides VARCHAR(MAX),
+                    module NVARCHAR(255) NOT NULL,
+                    title NVARCHAR(255) NOT NULL,
+                    content NVARCHAR(MAX),
+                    slides NVARCHAR(MAX),
                     duration INT DEFAULT 0,
                     [order] INT DEFAULT 1,
-                    slug VARCHAR(255),
-                    resources VARCHAR(MAX),
+                    slug NVARCHAR(255),
+                    resources NVARCHAR(MAX),
                     createdAt DATETIME DEFAULT GETDATE(),
                     updatedAt DATETIME DEFAULT GETDATE(),
                     CONSTRAINT unique_lesson_module_slug UNIQUE (module, slug)

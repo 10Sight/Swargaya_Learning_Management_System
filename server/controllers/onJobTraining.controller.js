@@ -16,7 +16,7 @@ const parseJSON = (data, fallback = []) => {
  */
 export const createOnJobTraining = async (req, res, next) => {
     try {
-        const { studentId, departmentId, lineId, machineId, name } = req.body;
+        const { studentId, departmentId, lineId, machineId, name, model } = req.body;
 
         if (!studentId || !departmentId || !lineId || !machineId) {
             return next(new ApiError("All fields (Student, Department, Line, Machine) are required", 400));
@@ -43,9 +43,9 @@ export const createOnJobTraining = async (req, res, next) => {
 
         const [result] = await pool.query(
             `INSERT INTO on_job_trainings 
-            (student, name, department, line, machine, createdBy, updatedBy, entries, result, createdAt, updatedAt)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;`,
-            [userId, ojtName, departmentId, lineId, machineId, req.user.id, req.user.id, JSON.stringify([]), "Pending"]
+            (student, name, model, department, line, machine, createdBy, updatedBy, entries, result, createdAt, updatedAt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;`,
+            [userId, ojtName, model || null, departmentId, lineId, machineId, req.user.id, req.user.id, JSON.stringify([]), "Pending"]
         );
 
         // Fetch created OJT with populated names
@@ -147,7 +147,7 @@ export const getOnJobTrainingById = async (req, res, next) => {
                    d.name as deptName, 
                    l.name as lineName, 
                    m.name as machineName, m.name as machineDisplayName,
-                   u.fullName as studentName, u.email as studentEmail, u.avatar as studentAvatar
+                   u.fullName as studentName, u.email as studentEmail, u.avatar as studentAvatar, u.createdAt as studentCreatedAt
             FROM on_job_trainings ojt
             LEFT JOIN departments d ON ojt.department = d.id
             LEFT JOIN [lines] l ON ojt.line = l.id
@@ -166,10 +166,10 @@ export const getOnJobTrainingById = async (req, res, next) => {
         ojt.department = { id: ojt.department, name: ojt.deptName };
         ojt.line = { id: ojt.line, name: ojt.lineName };
         ojt.machine = { id: ojt.machine, name: ojt.machineName, machineName: ojt.machineDisplayName };
-        ojt.student = { id: ojt.student, fullName: ojt.studentName, email: ojt.studentEmail, avatar: ojt.studentAvatar };
+        ojt.student = { id: ojt.student, fullName: ojt.studentName, email: ojt.studentEmail, avatar: ojt.studentAvatar, createdAt: ojt.studentCreatedAt };
 
         delete ojt.deptName; delete ojt.lineName; delete ojt.machineName; delete ojt.machineDisplayName;
-        delete ojt.studentName; delete ojt.studentEmail; delete ojt.studentAvatar;
+        delete ojt.studentName; delete ojt.studentEmail; delete ojt.studentAvatar; delete ojt.studentCreatedAt;
 
         res.status(200).json({
             success: true,
@@ -188,7 +188,7 @@ export const getOnJobTrainingById = async (req, res, next) => {
 export const updateOnJobTraining = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { entries, scoring, totalMarks, totalMarksObtained, totalPercentage, result, remarks } = req.body;
+        const { entries, scoring, totalMarks, totalMarksObtained, totalPercentage, result, remarks, model } = req.body;
 
         console.log(`[DEBUG] Update OJT ${id} Payload:`, JSON.stringify(req.body, null, 2));
 
@@ -205,6 +205,7 @@ export const updateOnJobTraining = async (req, res, next) => {
         if (totalPercentage !== undefined) { updateFields.push("totalPercentage = ?"); updateValues.push(totalPercentage); }
         if (result !== undefined) { updateFields.push("result = ?"); updateValues.push(result); }
         if (remarks !== undefined) { updateFields.push("remarks = ?"); updateValues.push(remarks); }
+        if (model !== undefined) { updateFields.push("model = ?"); updateValues.push(model); }
 
         updateFields.push("updatedBy = ?"); updateValues.push(req.user.id);
         updateFields.push("updatedAt = GETDATE()");

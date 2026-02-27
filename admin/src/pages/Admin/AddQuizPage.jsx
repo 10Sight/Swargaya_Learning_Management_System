@@ -451,7 +451,7 @@ const AddQuizPage = () => {
 
                 {/* Show error message if no modules */}
                 {!modulesLoading && !modulesError && modules.length === 0 && (
-                  <div className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-md p-3">
+                  <div className="text-sm text-[#d97706] bg-[#fffbeb] border border-[#fde68a] rounded-md p-3">
                     <p className="font-medium">No modules found for this course.</p>
                     <p className="text-xs mt-1">
                       You need to create modules first before adding quizzes.
@@ -471,7 +471,7 @@ const AddQuizPage = () => {
 
                 {/* Show error message if modules failed to load */}
                 {modulesError && (
-                  <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
+                  <div className="text-sm text-[#dc2626] bg-[#fef2f2] border border-[#fecaca] rounded-md p-3">
                     <p className="font-medium">Failed to load modules.</p>
                     <p className="text-xs mt-1">
                       {modulesError?.message || "Please try again later."}
@@ -623,7 +623,7 @@ const AddQuizPage = () => {
                     onClick={() => removeQuestion(qIndex)}
                     variant="ghost"
                     size="sm"
-                    className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                    className="text-[#dc2626] hover:text-[#991b1b] hover:bg-[#fef2f2]"
                   >
                     <IconTrash className="h-4 w-4" />
                   </Button>
@@ -718,8 +718,8 @@ const AddQuizPage = () => {
                           handleOptionChange(qIndex, oIndex, "isCorrect", true)
                         }
                         className={`p-2 rounded-full border ${option.isCorrect
-                          ? "bg-green-100 border-green-300 text-green-700"
-                          : "bg-gray-100 border-gray-300 text-gray-500"
+                          ? "bg-[#dcfce7] border-[#86efac] text-[#15803d]"
+                          : "bg-[#f3f4f6] border-[#d1d5db] text-[#6b7280]"
                           }`}
                         title={option.isCorrect ? "Correct answer" : "Mark as correct"}
                       >
@@ -745,7 +745,7 @@ const AddQuizPage = () => {
                         onClick={() => removeOption(qIndex, oIndex)}
                         variant="ghost"
                         size="sm"
-                        className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                        className="text-[#dc2626] hover:text-[#991b1b] hover:bg-[#fef2f2]"
                         disabled={question.options.length <= 2}
                       >
                         <IconTrash className="h-4 w-4" />
@@ -755,7 +755,7 @@ const AddQuizPage = () => {
                 </div>
 
                 {question.options.filter(opt => opt.isCorrect).length === 0 && (
-                  <p className="text-sm text-red-600">
+                  <p className="text-sm text-[#dc2626]">
                     This question needs a correct answer
                   </p>
                 )}

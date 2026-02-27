@@ -60,10 +60,10 @@ import AssignmentSubmissionModal from "@/components/student/AssignmentSubmission
 
 // Constants
 const STATUS_CONFIG = {
-  ACTIVE: { name: "Active", color: "bg-green-100 text-green-800" },
-  UPCOMING: { name: "Upcoming", color: "bg-blue-100 text-blue-800" },
-  COMPLETED: { name: "Completed", color: "bg-gray-100 text-gray-800" },
-  PAUSED: { name: "Paused", color: "bg-yellow-100 text-yellow-800" },
+  ACTIVE: { name: "Active", color: "bg-[#dcfce7] text-[#166534]" },
+  UPCOMING: { name: "Upcoming", color: "bg-[#dbeafe] text-[#1e40af]" },
+  COMPLETED: { name: "Completed", color: "bg-[#f3f4f6] text-[#1f2937]" },
+  PAUSED: { name: "Paused", color: "bg-[#fef9c3] text-[#854d0e]" },
 };
 
 // Hook for managing course data
@@ -499,13 +499,13 @@ const DepartmentCourse = () => {
 
   const getLevelBadge = useCallback((level) => {
     const colorMap = {
-      L1: "bg-blue-100 text-blue-800",
-      L2: "bg-orange-100 text-orange-800",
-      L3: "bg-green-100 text-green-800",
+      L1: "bg-[#dbeafe] text-[#1e40af]",
+      L2: "bg-[#ffedd5] text-[#9a3412]",
+      L3: "bg-[#dcfce7] text-[#166534]",
     };
 
     const raw = typeof level === "string" ? level : (level != null ? `L${level}` : "L1");
-    const color = colorMap[raw] || "bg-gray-100 text-gray-800";
+    const color = colorMap[raw] || "bg-[#f3f4f6] text-[#1f2937]";
 
     return (
       <Badge className={`${color} font-medium text-xs px-2 py-1`}>
@@ -838,7 +838,7 @@ const DepartmentCourse = () => {
   // Loading state with responsive design optimized for 320px
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 px-0 py-2 xs:px-4 xs:py-4 sm:px-6 sm:py-6">
+      <div className="min-h-screen bg-gradient-to-br from-[#f9fafb] to-[#f3f4f6] px-0 py-2 xs:px-4 xs:py-4 sm:px-6 sm:py-6">
         <div className="w-full max-w-[300px] sm:max-w-7xl mx-auto space-y-3 xs:space-y-4 sm:space-y-6">
           {/* Header Skeleton */}
           <Card className="overflow-hidden">
@@ -895,13 +895,13 @@ const DepartmentCourse = () => {
   // Error state with responsive design optimized for 320px
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center px-0 py-2 xs:px-4">
+      <div className="min-h-screen bg-gradient-to-br from-[#f9fafb] to-[#f3f4f6] flex items-center justify-center px-0 py-2 xs:px-4">
         <div className="w-full max-w-[300px] sm:max-w-md">
-          <Card className="shadow-lg border-red-200">
+          <Card className="shadow-lg border-[#fecaca]">
             <CardContent className="p-3 xs:p-6 text-center">
               <div className="mb-4 xs:mb-6">
-                <AlertCircle className="h-10 w-10 xs:h-12 xs:w-12 sm:h-16 sm:w-16 text-red-500 mx-auto mb-3 xs:mb-4" />
-                <h3 className="text-base xs:text-lg sm:text-xl font-bold text-gray-900 mb-2">Something went wrong</h3>
+                <AlertCircle className="h-10 w-10 xs:h-12 xs:w-12 sm:h-16 sm:w-16 text-[#ef4444] mx-auto mb-3 xs:mb-4" />
+                <h3 className="text-base xs:text-lg sm:text-xl font-bold text-[#111827] mb-2">Something went wrong</h3>
                 <Alert variant="destructive" className="text-left">
                   <AlertDescription className="text-xs xs:text-sm">
                     {error}
@@ -927,19 +927,19 @@ const DepartmentCourse = () => {
   // No department state with responsive design optimized for 320px
   if (!department) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center px-0 py-2 xs:px-4">
+      <div className="min-h-screen bg-gradient-to-br from-[#f9fafb] to-[#f3f4f6] flex items-center justify-center px-0 py-2 xs:px-4">
         <div className="w-full max-w-[300px] sm:max-w-md">
           <Card className="shadow-lg">
             <CardContent className="p-4 xs:p-6 sm:p-8 text-center">
               <div className="mb-4 xs:mb-6">
                 <BookOpen className="h-10 w-10 xs:h-12 xs:w-12 sm:h-16 sm:w-16 text-muted-foreground mx-auto mb-3 xs:mb-4" />
-                <h3 className="text-base xs:text-lg sm:text-xl font-bold text-gray-900 mb-2">No Course Assigned</h3>
+                <h3 className="text-base xs:text-lg sm:text-xl font-bold text-[#111827] mb-2">No Course Assigned</h3>
                 <p className="text-xs xs:text-sm sm:text-base text-muted-foreground leading-relaxed">
                   You are not currently enrolled in any course. Please contact your administrator for assistance.
                 </p>
               </div>
-              <div className="p-3 xs:p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <div className="flex items-center justify-center gap-2 text-blue-700">
+              <div className="p-3 xs:p-4 bg-[#eff6ff] rounded-lg border border-[#bfdbfe]">
+                <div className="flex items-center justify-center gap-2 text-[#1d4ed8]">
                   <Lightbulb className="h-3 w-3 xs:h-4 xs:w-4" />
                   <p className="text-xs xs:text-sm">
                     Once you're enrolled, your courses and learning materials will appear here.
@@ -956,36 +956,36 @@ const DepartmentCourse = () => {
   // Check if department is cancelled - prevent access to course content
   if (department?.status === 'CANCELLED') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center px-0 py-2 xs:px-4">
+      <div className="min-h-screen bg-gradient-to-br from-[#f9fafb] to-[#f3f4f6] flex items-center justify-center px-0 py-2 xs:px-4">
         <div className="w-full max-w-[300px] sm:max-w-md lg:max-w-lg">
-          <Card className="shadow-xl border-red-200 bg-gradient-to-br from-red-50 to-rose-50">
+          <Card className="shadow-xl border-[#fecaca] bg-gradient-to-br from-[#fef2f2] to-[#fff1f2]">
             <CardContent className="p-4 xs:p-6 sm:p-8 text-center space-y-4 xs:space-y-6">
               {/* Cancellation Icon */}
-              <div className="mx-auto w-16 h-16 xs:w-20 xs:h-20 sm:w-24 sm:h-24 bg-red-100 rounded-full flex items-center justify-center">
-                <AlertCircle className="h-8 w-8 xs:h-10 xs:w-10 sm:h-12 sm:w-12 text-red-600" />
+              <div className="mx-auto w-16 h-16 xs:w-20 xs:h-20 sm:w-24 sm:h-24 bg-[#fee2e2] rounded-full flex items-center justify-center">
+                <AlertCircle className="h-8 w-8 xs:h-10 xs:w-10 sm:h-12 sm:w-12 text-[#dc2626]" />
               </div>
 
               {/* Cancellation Message */}
               <div className="space-y-2 xs:space-y-3">
-                <h2 className="text-lg xs:text-xl sm:text-2xl font-bold text-red-800">
+                <h2 className="text-lg xs:text-xl sm:text-2xl font-bold text-[#991b1b]">
                   Department Cancelled
                 </h2>
-                <p className="text-sm xs:text-base text-red-700 leading-relaxed">
+                <p className="text-sm xs:text-base text-[#b91c1b] leading-relaxed">
                   Unfortunately, your department <span className="font-semibold">"{department.name}"</span> has been cancelled.
                 </p>
               </div>
 
               {/* Department Info */}
-              <div className="bg-white/60 backdrop-blur-sm rounded-lg p-3 xs:p-4 border border-red-200">
+              <div className="bg-white/60 backdrop-blur-sm rounded-lg p-3 xs:p-4 border border-[#fecaca]">
                 <div className="space-y-2 text-sm xs:text-base">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Course:</span>
-                    <span className="font-medium text-gray-800">
+                    <span className="text-[#4b5563]">Course:</span>
+                    <span className="font-medium text-[#1f2937]">
                       {department.course?.title || department.course?.name || 'N/A'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Status:</span>
+                    <span className="text-[#4b5563]">Status:</span>
                     <Badge variant="destructive" className="text-xs">
                       Cancelled
                     </Badge>
@@ -996,9 +996,9 @@ const DepartmentCourse = () => {
               {/* Cancellation Reason (if available) */}
               {/* Cancellation Reason (if available) */}
               {department.notes && (
-                <Alert className="text-left bg-orange-50 border-orange-200">
-                  <AlertCircle className="h-4 w-4 text-orange-600" />
-                  <AlertDescription className="text-sm text-orange-800">
+                <Alert className="text-left bg-[#fff7ed] border-[#fed7aa]">
+                  <AlertCircle className="h-4 w-4 text-[#ea580c]" />
+                  <AlertDescription className="text-sm text-[#9a3412]">
                     <strong>Reason:</strong> {department.notes}
                   </AlertDescription>
                 </Alert>
@@ -1006,16 +1006,16 @@ const DepartmentCourse = () => {
 
               {/* Contact Information */}
               <div className="space-y-3 xs:space-y-4">
-                <div className="bg-blue-50 rounded-lg p-3 xs:p-4 border border-blue-200">
+                <div className="bg-[#eff6ff] rounded-lg p-3 xs:p-4 border border-[#bfdbfe]">
                   <div className="flex items-start gap-2 xs:gap-3">
-                    <div className="p-1 bg-blue-100 rounded-full shrink-0">
-                      <Lightbulb className="h-3 w-3 xs:h-4 xs:w-4 text-blue-600" />
+                    <div className="p-1 bg-[#dbeafe] rounded-full shrink-0">
+                      <Lightbulb className="h-3 w-3 xs:h-4 xs:w-4 text-[#2563eb]" />
                     </div>
                     <div className="text-left space-y-1">
-                      <p className="text-xs xs:text-sm font-medium text-blue-800">
+                      <p className="text-xs xs:text-sm font-medium text-[#1e40af]">
                         Need Help?
                       </p>
-                      <p className="text-xs text-blue-700">
+                      <p className="text-xs text-[#1d4ed8]">
                         Please contact your administrator or instructor for more information about alternative learning options.
                       </p>
                     </div>
@@ -1062,14 +1062,14 @@ const DepartmentCourse = () => {
   const courseLevelAssignments = (courseAssignments || []).filter(a => !a?.module && !a?.moduleId && !(a?.module && (a.module._id || a.module.id)));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#f9fafb] to-[#f3f4f6] overflow-x-hidden">
       <div className="w-full max-w-[300px] sm:max-w-7xl mx-auto px-0 xs:px-4 sm:px-6 py-2 xs:py-4 sm:py-6 space-y-3 xs:space-y-4 sm:space-y-6">
         {/* Level Upgrade Message */}
         {uiState.levelUpgradeMessage && (
-          <Alert className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 shadow-lg">
-            <Trophy className="h-4 w-4 xs:h-5 xs:w-5 text-green-600" />
+          <Alert className="bg-gradient-to-r from-[#f0fdf4] to-[#ecfdf5] border-[#bbf7d0] shadow-lg">
+            <Trophy className="h-4 w-4 xs:h-5 xs:w-5 text-[#16a34a]" />
             <AlertDescription className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-2 xs:gap-3">
-              <div className="flex items-center gap-2 text-green-800 font-medium text-xs xs:text-sm sm:text-base">
+              <div className="flex items-center gap-2 text-[#166534] font-medium text-xs xs:text-sm sm:text-base">
                 <Star className="h-3 w-3 xs:h-4 xs:w-4" />
                 <span>{uiState.levelUpgradeMessage}</span>
               </div>
@@ -1077,7 +1077,7 @@ const DepartmentCourse = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => setUiState(prev => ({ ...prev, levelUpgradeMessage: null }))}
-                className="text-green-600 hover:text-green-700 hover:bg-green-100 self-end xs:self-auto p-1 xs:p-2"
+                className="text-[#16a34a] hover:text-[#15803d] hover:bg-[#dcfce7] self-end xs:self-auto p-1 xs:p-2"
               >
                 <AlertCircle className="h-3 w-3 xs:h-4 xs:w-4" />
               </Button>
@@ -1086,7 +1086,7 @@ const DepartmentCourse = () => {
         )}
 
         {/* Enhanced Course Header */}
-        <Card className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border-blue-300 shadow-xl">
+        <Card className="bg-gradient-to-br from-[#eff6ff] via-[#eef2ff] to-[#faf5ff] border-[#93c5fd] shadow-xl">
           <CardHeader className="pb-3 xs:pb-4 sm:pb-6 p-3 xs:p-4 sm:p-6">
             <div className="flex flex-col gap-3 xs:gap-4 sm:gap-6">
               {/* Header Info */}
@@ -1094,8 +1094,8 @@ const DepartmentCourse = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-col gap-2 xs:gap-3 mb-2 xs:mb-3">
                     <CardTitle className="flex items-start xs:items-center gap-2 xs:gap-3 text-sm xs:text-lg sm:text-xl lg:text-2xl min-w-0">
-                      <div className="p-1 xs:p-2 sm:p-3 bg-blue-100 rounded-lg shrink-0">
-                        <BookOpen className="h-4 w-4 xs:h-5 xs:w-5 sm:h-6 sm:w-6 text-blue-600" />
+                      <div className="p-1 xs:p-2 sm:p-3 bg-[#dbeafe] rounded-lg shrink-0">
+                        <BookOpen className="h-4 w-4 xs:h-5 xs:w-5 sm:h-6 sm:w-6 text-[#2563eb]" />
                       </div>
                       <span className="truncate leading-tight xs:leading-normal">{department.course?.title || department.course?.name || "Course"}</span>
                     </CardTitle>
@@ -1103,7 +1103,7 @@ const DepartmentCourse = () => {
                       {getLevelBadge(currentLevel)}
                     </div>
                   </div>
-                  <CardDescription className="text-xs xs:text-sm sm:text-base text-gray-700 leading-relaxed break-words">
+                  <CardDescription className="text-xs xs:text-sm sm:text-base text-[#374151] leading-relaxed break-words">
                     {department.course?.description || "Complete the modules below to finish the course"}
                   </CardDescription>
                 </div>
@@ -1115,14 +1115,14 @@ const DepartmentCourse = () => {
                     size="sm"
                     onClick={refresh}
                     disabled={refreshing}
-                    className="flex items-center gap-1 xs:gap-2 bg-white/80 hover:bg-white border-blue-200 hover:border-blue-300 text-blue-700 text-xs xs:text-sm px-2 xs:px-3 min-h-[44px]"
+                    className="flex items-center gap-1 xs:gap-2 bg-white/80 hover:bg-white border-[#bfdbfe] hover:border-[#93c5fd] text-[#1d4ed8] text-xs xs:text-sm px-2 xs:px-3 min-h-[44px]"
                   >
                     <RefreshCw className={`h-3 w-3 xs:h-4 xs:w-4 ${refreshing ? 'animate-spin' : ''}`} />
                     <span className="hidden xs:inline">Refresh</span>
                   </Button>
                   <Badge
                     variant="outline"
-                    className={`text-xs px-2 py-1 font-medium ${STATUS_CONFIG[department.status]?.color || 'bg-gray-100 text-gray-800'}`}
+                    className={`text-xs px-2 py-1 font-medium ${STATUS_CONFIG[department.status]?.color || 'bg-[#f3f4f6] text-[#1f2937]'}`}
                   >
                     {STATUS_CONFIG[department.status]?.name || department.status}
                   </Badge>
@@ -1132,33 +1132,33 @@ const DepartmentCourse = () => {
               {/* Enhanced Progress Section */}
               <div className="space-y-3 xs:space-y-4">
                 <div className="flex flex-col xs:flex-row xs:justify-between xs:items-center gap-2">
-                  <span className="text-xs xs:text-sm sm:text-base font-semibold text-gray-900">Course Progress</span>
+                  <span className="text-xs xs:text-sm sm:text-base font-semibold text-[#111827]">Course Progress</span>
                   <div className="flex flex-col xs:flex-row items-start xs:items-center gap-1 xs:gap-2">
-                    <span className="text-xs bg-white/70 px-2 py-1 rounded-full text-gray-600">
+                    <span className="text-xs bg-white/70 px-2 py-1 rounded-full text-[#4b5563]">
                       {completedCount}/{modules.length} modules
                     </span>
-                    <div className="text-xs font-bold text-blue-700 bg-blue-100 px-2 py-1 rounded-full">
+                    <div className="text-xs font-bold text-[#1d4ed8] bg-[#dbeafe] px-2 py-1 rounded-full">
                       {progress}%
                     </div>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Progress value={progress} className="h-2 xs:h-3 sm:h-4 bg-blue-100" />
+                  <Progress value={progress} className="h-2 xs:h-3 sm:h-4 bg-[#dbeafe]" />
                   <div className="grid grid-cols-2 gap-1 xs:gap-2 text-xs">
-                    <div className="flex items-center gap-1 text-gray-600">
-                      <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />
+                    <div className="flex items-center gap-1 text-[#4b5563]">
+                      <CheckCircle2 className="h-3 w-3 text-[#22c55e] shrink-0" />
                       <span className="truncate">Done: {completedCount}</span>
                     </div>
-                    <div className="flex items-center gap-1 text-gray-600">
-                      <BookOpen className="h-3 w-3 text-blue-500 shrink-0" />
+                    <div className="flex items-center gap-1 text-[#4b5563]">
+                      <BookOpen className="h-3 w-3 text-[#3b82f6] shrink-0" />
                       <span className="truncate">Total: {modules.length}</span>
                     </div>
-                    <div className="flex items-center gap-1 text-gray-600">
-                      <Trophy className="h-3 w-3 text-yellow-500 shrink-0" />
+                    <div className="flex items-center gap-1 text-[#4b5563]">
+                      <Trophy className="h-3 w-3 text-[#eab308] shrink-0" />
                       <span className="truncate">{currentLevel}</span>
                     </div>
-                    <div className="flex items-center gap-1 text-gray-600">
-                      <TrendingUp className="h-3 w-3 text-purple-500 shrink-0" />
+                    <div className="flex items-center gap-1 text-[#4b5563]">
+                      <TrendingUp className="h-3 w-3 text-[#a855f7] shrink-0" />
                       <span className="truncate">{progress}%</span>
                     </div>
                   </div>
@@ -1170,33 +1170,33 @@ const DepartmentCourse = () => {
 
         {/* Enhanced Completion Banner */}
         {allModulesCompleted && (
-          <Alert className="bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 border-green-300 shadow-xl">
-            <Trophy className="h-4 w-4 xs:h-5 xs:w-5 sm:h-6 sm:w-6 text-green-600" />
+          <Alert className="bg-gradient-to-br from-[#f0fdf4] via-[#ecfdf5] to-[#f0f9ff] border-[#86efac] shadow-xl">
+            <Trophy className="h-4 w-4 xs:h-5 xs:w-5 sm:h-6 sm:w-6 text-[#16a34a]" />
             <AlertDescription>
               <div className="flex flex-col xs:flex-row xs:items-start xs:justify-between gap-3 xs:gap-4">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 text-green-800 font-bold text-sm xs:text-lg sm:text-xl mb-2">
+                  <div className="flex items-center gap-2 text-[#166534] font-bold text-sm xs:text-lg sm:text-xl mb-2">
                     <GraduationCap className="h-4 w-4 xs:h-5 xs:w-5" />
                     <span>Congratulations! Course Completed!</span>
                   </div>
-                  <p className="text-green-700 text-xs xs:text-sm sm:text-base leading-relaxed break-words">
+                  <p className="text-[#15803d] text-xs xs:text-sm sm:text-base leading-relaxed break-words">
                     Outstanding achievement! You have successfully finished all modules. Your dedication to learning is truly commendable.
                   </p>
                   <div className="mt-2 xs:mt-3 flex flex-wrap gap-1 xs:gap-2">
-                    <Badge className="bg-green-600 text-white px-2 xs:px-3 py-1 text-xs">
+                    <Badge className="bg-[#16a34a] text-white px-2 xs:px-3 py-1 text-xs">
                       <CheckCircle2 className="h-3 w-3 mr-1" />
                       All Complete
                     </Badge>
-                    <Badge className="bg-yellow-500 text-white px-2 xs:px-3 py-1 text-xs">
+                    <Badge className="bg-[#eab308] text-white px-2 xs:px-3 py-1 text-xs">
                       <Award className="h-3 w-3 mr-1" />
                       Achievement
                     </Badge>
                   </div>
                 </div>
                 <div className="shrink-0 self-center xs:self-start">
-                  <div className="text-center p-2 xs:p-4 bg-green-100 rounded-lg border border-green-200">
-                    <Trophy className="h-6 w-6 xs:h-8 xs:w-8 sm:h-10 sm:w-10 text-yellow-500 mx-auto mb-1 xs:mb-2" />
-                    <Badge className="bg-green-600 text-white text-xs">
+                  <div className="text-center p-2 xs:p-4 bg-[#dcfce7] rounded-lg border border-[#bbf7d0]">
+                    <Trophy className="h-6 w-6 xs:h-8 xs:w-8 sm:h-10 sm:w-10 text-[#eab308] mx-auto mb-1 xs:mb-2" />
+                    <Badge className="bg-[#16a34a] text-white text-xs">
                       Complete
                     </Badge>
                   </div>
@@ -1208,23 +1208,23 @@ const DepartmentCourse = () => {
 
         {/* Enhanced Course-Level Assessments Section - 320px optimized */}
         {allModulesCompleted && courseContentLoaded && (courseLevelQuizzes.length > 0 || courseLevelAssignments.length > 0) && (
-          <Card className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200 shadow-xl">
+          <Card className="bg-gradient-to-r from-[#faf5ff] to-[#fdf2f8] border-[#e9d5ff] shadow-xl">
             <CardHeader className="pb-3 xs:pb-4 sm:pb-6 p-3 xs:p-4 sm:p-6">
               <div className="flex flex-col gap-3">
                 <div className="flex-1">
                   <CardTitle className="flex flex-col xs:flex-row xs:items-center gap-2 xs:gap-3 mb-2">
                     <div className="flex items-center gap-2">
-                      <div className="p-1 xs:p-2 bg-purple-100 rounded-lg">
-                        <Trophy className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5 text-purple-600" />
+                      <div className="p-1 xs:p-2 bg-[#f3e8ff] rounded-lg">
+                        <Trophy className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5 text-[#9333ea]" />
                       </div>
                       <span className="text-sm xs:text-base sm:text-lg lg:text-xl">Final Assessments</span>
                     </div>
-                    <Badge className="bg-purple-500 text-white px-2 xs:px-3 py-1 text-xs self-start xs:self-auto">
+                    <Badge className="bg-[#9333ea] text-white px-2 xs:px-3 py-1 text-xs self-start xs:self-auto">
                       {courseLevelQuizzes.length + courseLevelAssignments.length} tests
                     </Badge>
                   </CardTitle>
                   <CardDescription className="text-xs xs:text-sm sm:text-base leading-relaxed flex items-center gap-2 break-words">
-                    <Target className="h-3 w-3 xs:h-4 xs:w-4 text-purple-600 shrink-0" />
+                    <Target className="h-3 w-3 xs:h-4 xs:w-4 text-[#9333ea] shrink-0" />
                     <span>Congratulations on completing all modules! You can now access the final course assessments.</span>
                   </CardDescription>
                 </div>
@@ -1234,20 +1234,20 @@ const DepartmentCourse = () => {
               {/* Enhanced Course Quizzes */}
               {courseLevelQuizzes.length > 0 && (
                 <div>
-                  <h3 className="break-all font-bold mb-3 xs:mb-4 flex items-center gap-2 text-purple-800 text-xs xs:text-sm sm:text-base">
+                  <h3 className="break-all font-bold mb-3 xs:mb-4 flex items-center gap-2 text-[#6b21a8] text-xs xs:text-sm sm:text-base">
                     <Award className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5" />
                     Final Course Quizzes ({courseLevelQuizzes.length})
                   </h3>
                   <div className="grid gap-3 xs:gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2">
                     {courseLevelQuizzes.map((quiz, index) => (
-                      <Card key={index} className="border-purple-200 hover:shadow-lg hover:border-purple-300 transition-all duration-300">
+                      <Card key={index} className="border-[#e9d5ff] hover:shadow-lg hover:border-[#d8b4fe] transition-all duration-300">
                         <CardHeader className="pb-2 xs:pb-3 p-3 xs:p-4 sm:p-6">
                           <CardTitle className="text-xs xs:text-sm sm:text-base lg:text-lg flex flex-col gap-2">
                             <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <Trophy className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5 text-purple-600 shrink-0" />
+                              <Trophy className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5 text-[#9333ea] shrink-0" />
                               <span className="truncate break-words text-xs xs:text-sm sm:text-base min-w-0">{quiz.title || 'Final Course Quiz'}</span>
                             </div>
-                            <Badge className="bg-purple-600 text-white text-xs px-2 py-1 self-start">
+                            <Badge className="bg-[#9333ea] text-white text-xs px-2 py-1 self-start">
                               COURSE LEVEL
                             </Badge>
                           </CardTitle>
@@ -1277,7 +1277,7 @@ const DepartmentCourse = () => {
                             </div>
                           </div>
                           <Button
-                            className="w-full bg-purple-600 hover:bg-purple-700 text-xs xs:text-sm min-h-[44px]"
+                            className="w-full bg-[#9333ea] hover:bg-[#7e22ce] text-xs xs:text-sm min-h-[44px]"
                             onClick={() => handleStartQuiz(quiz)}
                             size="sm"
                           >
@@ -1295,20 +1295,20 @@ const DepartmentCourse = () => {
               {/* Enhanced Course Assignments */}
               {courseLevelAssignments.length > 0 && (
                 <div>
-                  <h3 className="font-bold mb-3 xs:mb-4 flex items-center gap-2 text-purple-800 text-xs xs:text-sm sm:text-base">
+                  <h3 className="font-bold mb-3 xs:mb-4 flex items-center gap-2 text-[#6b21a8] text-xs xs:text-sm sm:text-base">
                     <FileText className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5" />
                     Final Course Assignments ({courseLevelAssignments.length})
                   </h3>
                   <div className="grid gap-3 xs:gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2">
                     {courseLevelAssignments.map((assignment, index) => (
-                      <Card key={index} className="border-purple-200 hover:shadow-lg hover:border-purple-300 transition-all duration-300">
+                      <Card key={index} className="border-[#e9d5ff] hover:shadow-lg hover:border-[#d8b4fe] transition-all duration-300">
                         <CardHeader className="pb-2 xs:pb-3 p-3 xs:p-4 sm:p-6">
                           <CardTitle className="text-xs xs:text-sm sm:text-base lg:text-lg flex flex-col gap-2">
                             <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <FileText className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5 text-purple-600 shrink-0" />
+                              <FileText className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5 text-[#9333ea] shrink-0" />
                               <span className="truncate break-words text-xs xs:text-sm sm:text-base min-w-0">{assignment.title || 'Final Assignment'}</span>
                             </div>
-                            <Badge className="bg-purple-600 text-white text-xs px-2 py-1 self-start">
+                            <Badge className="bg-[#9333ea] text-white text-xs px-2 py-1 self-start">
                               COURSE LEVEL
                             </Badge>
                           </CardTitle>
@@ -1340,7 +1340,7 @@ const DepartmentCourse = () => {
                               <span className="hidden xs:inline">View Details</span>
                               <span className="xs:hidden">View</span>
                             </Button>
-                            <Button className="w-full bg-purple-600 hover:bg-purple-700 text-xs min-h-[44px]">
+                            <Button className="w-full bg-[#9333ea] hover:bg-[#7e22ce] text-xs min-h-[44px]">
                               <FileText className="h-3 w-3 mr-2" />
                               <span className="hidden xs:inline">Submit Work</span>
                               <span className="xs:hidden">Submit</span>
@@ -1363,17 +1363,17 @@ const DepartmentCourse = () => {
               <div className="flex-1">
                 <CardTitle className="flex flex-col xs:flex-row xs:items-center gap-2 xs:gap-3 mb-2">
                   <div className="flex items-center gap-2">
-                    <div className="p-1 xs:p-2 bg-blue-100 rounded-lg">
-                      <ListChecks className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5 text-blue-600" />
+                    <div className="p-1 xs:p-2 bg-[#dbeafe] rounded-lg">
+                      <ListChecks className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5 text-[#2563eb]" />
                     </div>
                     <span className="text-sm xs:text-base sm:text-lg lg:text-xl">Course Modules</span>
                   </div>
-                  <Badge className="bg-blue-500 text-white px-2 xs:px-3 py-1 text-xs self-start xs:self-auto">
+                  <Badge className="bg-[#3b82f6] text-white px-2 xs:px-3 py-1 text-xs self-start xs:self-auto">
                     {modules.length} modules
                   </Badge>
                 </CardTitle>
                 <CardDescription className="text-xs xs:text-sm sm:text-base leading-relaxed flex items-start gap-2 break-words">
-                  <BookMarked className="h-3 w-3 xs:h-4 xs:w-4 text-blue-600 shrink-0 mt-0.5" />
+                  <BookMarked className="h-3 w-3 xs:h-4 xs:w-4 text-[#2563eb] shrink-0 mt-0.5" />
                   <span>Complete modules in strict sequence to unlock the next content. You must finish all lessons (and assessments if any) in a module before proceeding to the next one.</span>
                 </CardDescription>
               </div>
@@ -1413,12 +1413,12 @@ const DepartmentCourse = () => {
                   >
                     <div
                       className={`group relative p-2 xs:p-4 sm:p-6 rounded-xl border-2 transition-all duration-300 hover:shadow-lg ${isCompleted
-                        ? "bg-gradient-to-br from-green-50 to-green-100 border-green-300 shadow-sm"
+                        ? "bg-gradient-to-br from-[#f0fdf4] to-[#dcfce7] border-[#86efac] shadow-sm"
                         : isCurrent
-                          ? "bg-gradient-to-br from-blue-50 to-blue-100 border-blue-300 shadow-md ring-2 ring-blue-200"
+                          ? "bg-gradient-to-br from-[#eff6ff] to-[#dbeafe] border-[#93c5fd] shadow-md ring-2 ring-[#bfdbfe]"
                           : isLocked
-                            ? "bg-gray-50 border-gray-200 opacity-60"
-                            : "bg-white border-gray-200 hover:border-gray-300"
+                            ? "bg-[#f9fafb] border-[#e5e7eb] opacity-60"
+                            : "bg-white border-[#e5e7eb] hover:border-[#d1d5db]"
                         }`}
                     >
                       <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3 xs:gap-4">
@@ -1426,10 +1426,10 @@ const DepartmentCourse = () => {
                           {/* Module Number/Status Indicator */}
                           <div className="flex flex-col items-center shrink-0">
                             <div className={`w-6 h-6 xs:w-8 xs:h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs xs:text-sm font-medium ${isCompleted
-                              ? "bg-green-100 text-green-700"
+                              ? "bg-[#dcfce7] text-[#15803d]"
                               : isCurrent
-                                ? "bg-blue-100 text-blue-700"
-                                : "bg-gray-100 text-gray-500"
+                                ? "bg-[#dbeafe] text-[#1d4ed8]"
+                                : "bg-[#f3f4f6] text-[#6b7280]"
                               }`}>
                               {isCompleted ? (
                                 <CheckCircle2 className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5" />
@@ -1438,7 +1438,7 @@ const DepartmentCourse = () => {
                               )}
                             </div>
                             {index < modules.length - 1 && (
-                              <div className={`w-0.5 h-4 xs:h-6 sm:h-8 mt-1 hidden xs:block ${isCompleted ? "bg-green-200" : "bg-gray-200"
+                              <div className={`w-0.5 h-4 xs:h-6 sm:h-8 mt-1 hidden xs:block ${isCompleted ? "bg-[#bbf7d0]" : "bg-[#e5e7eb]"
                                 }`} />
                             )}
                           </div>
@@ -1446,9 +1446,9 @@ const DepartmentCourse = () => {
                           {/* Module Content */}
                           <div className="flex-1">
                             <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                              <h3 className={`font-semibold line-clamp-1 text-sm sm:text-base lg:text-lg  ${isCompleted ? "text-green-800" :
-                                isCurrent ? "text-blue-800" :
-                                  "text-gray-700"
+                              <h3 className={`font-semibold line-clamp-1 text-sm sm:text-base lg:text-lg  ${isCompleted ? "text-[#166534]" :
+                                isCurrent ? "text-[#1e40af]" :
+                                  "text-[#374151]"
                                 }`}>
                                 {module.title || `Module ${index + 1}`}
                               </h3>
@@ -1468,12 +1468,12 @@ const DepartmentCourse = () => {
                                   </Badge>
                                 )}
                                 {isCompleted && (
-                                  <Badge variant="outline" className="text-xs bg-green-100 text-green-800 px-2 py-1">
+                                  <Badge variant="outline" className="text-xs bg-[#dcfce7] text-[#166534] px-2 py-1">
                                     Completed
                                   </Badge>
                                 )}
                                 {isLevelLocked && (
-                                  <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800 border-yellow-300 px-2 py-1">
+                                  <Badge variant="outline" className="text-xs bg-[#fef9c3] text-[#854d0e] border-[#fcd34d] px-2 py-1">
                                     <Lock className="h-3 w-3 mr-1" />
                                     <span className="hidden sm:inline">Level Locked</span>
                                     <span className="sm:hidden">Locked</span>
@@ -1488,12 +1488,12 @@ const DepartmentCourse = () => {
                             {/* Module Meta */}
                             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs text-muted-foreground">
                               <span className="flex items-center gap-1">
-                                <CheckCircle2 className="h-3 w-3 text-green-500" />
+                                <CheckCircle2 className="h-3 w-3 text-[#22c55e]" />
                                 <span>{completedLessonsInModule} of {moduleLessons.length} lessons</span>
                               </span>
                               {module.duration && (
                                 <span className="flex items-center gap-1">
-                                  <Clock className="h-3 w-3 text-blue-500" />
+                                  <Clock className="h-3 w-3 text-[#3b82f6]" />
                                   <span>{module.duration}</span>
                                 </span>
                               )}
@@ -1508,7 +1508,7 @@ const DepartmentCourse = () => {
                             onClick={() => handleModuleClick(module, index)}
                             disabled={isLocked || loadingStates[moduleId]}
                             className={`w-full sm:w-auto text-xs sm:text-sm min-h-[44px] ${isCompleted
-                              ? "bg-green-100 text-green-700 hover:bg-green-200"
+                              ? "bg-[#dcfce7] text-[#15803d] hover:bg-[#bbf7d0]"
                               : isCurrent
                                 ? "shadow-md"
                                 : ""
@@ -1548,12 +1548,12 @@ const DepartmentCourse = () => {
                           }>
                             <div className="border-b">
                               <TabsList className="flex w-full overflow-x-auto bg-transparent h-auto p-0 gap-1">
-                                <TabsTrigger value="lessons" className="flex items-center rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-transparent py-2 sm:py-3 text-xs sm:text-sm min-w-[140px] sm:min-w-0">
+                                <TabsTrigger value="lessons" className="flex items-center rounded-none border-b-2 border-transparent data-[state=active]:border-[#3b82f6] data-[state=active]:bg-transparent py-2 sm:py-3 text-xs sm:text-sm min-w-[140px] sm:min-w-0">
                                   <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                                   <span className="hidden sm:inline">Lessons ({moduleLessons.length})</span>
                                   <span className="sm:hidden">Lessons</span>
                                 </TabsTrigger>
-                                <TabsTrigger value="assessments" className="flex items-center rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-transparent py-2 sm:py-3 text-xs sm:text-sm min-w-[140px] sm:min-w-0">
+                                <TabsTrigger value="assessments" className="flex items-center rounded-none border-b-2 border-transparent data-[state=active]:border-[#3b82f6] data-[state=active]:bg-transparent py-2 sm:py-3 text-xs sm:text-sm min-w-[140px] sm:min-w-0">
                                   <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                                   <span className="hidden sm:inline">Assessments ({(quizzesByModule[moduleId]?.length || 0) + (assignmentsByModule[moduleId]?.length || 0)})</span>
                                   <span className="sm:hidden">Tests</span>
@@ -1589,18 +1589,18 @@ const DepartmentCourse = () => {
                                       <div
                                         key={getLessonId(lesson) || lessonIndex}
                                         className={`flex flex-col sm:flex-row items-start justify-between rounded-lg border p-3 sm:p-4 gap-3 sm:gap-0 ${isLessonLocked
-                                          ? 'opacity-60 bg-gray-50'
+                                          ? 'opacity-60 bg-[#f9fafb]'
                                           : isLessonDone
-                                            ? 'bg-green-50 border-green-200'
-                                            : 'hover:bg-blue-50 border-blue-200 ring-2 ring-blue-100'
+                                            ? 'bg-[#f0fdf4] border-[#bbf7d0]'
+                                            : 'hover:bg-[#eff6ff] border-[#bfdbfe] ring-2 ring-[#dbeafe]'
                                           }`}
                                       >
                                         <div className="flex items-start gap-3 flex-1 min-w-0">
                                           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium shrink-0 ${isLessonDone
-                                            ? "bg-green-100 text-green-700"
+                                            ? "bg-[#dcfce7] text-[#15803d]"
                                             : isLessonLocked
-                                              ? "bg-gray-100 text-gray-500"
-                                              : "bg-blue-100 text-blue-600"
+                                              ? "bg-[#f3f4f6] text-[#6b7280]"
+                                              : "bg-[#dbeafe] text-[#2563eb]"
                                             }`}>
                                             {isLessonDone ? (
                                               <CheckCircle2 className="h-4 w-4" />
@@ -1616,7 +1616,7 @@ const DepartmentCourse = () => {
                                                 {lesson.title || `Lesson ${lessonIndex + 1}`}
                                               </h4>
                                               {isLessonDone && (
-                                                <Badge variant="outline" className="text-xs bg-green-100 text-green-700 self-start sm:self-auto">
+                                                <Badge variant="outline" className="text-xs bg-[#dcfce7] text-[#15803d] self-start sm:self-auto">
                                                   Completed
                                                 </Badge>
                                               )}
@@ -1640,8 +1640,8 @@ const DepartmentCourse = () => {
                                               size="sm"
                                               onClick={() => navigate(`/student/lesson/${getLessonId(lesson)}`)}
                                               className={`w-full sm:w-auto text-xs sm:text-sm min-h-[44px] ${isLessonDone ?
-                                                "bg-green-100 text-green-700 hover:bg-green-200" :
-                                                "bg-blue-600 hover:bg-blue-700 text-white"
+                                                "bg-[#dcfce7] text-[#15803d] hover:bg-[#bbf7d0]" :
+                                                "bg-[#2563eb] hover:bg-[#1d4ed8] text-white"
                                                 }`}
                                             >
                                               {isLessonDone ? (
@@ -1659,7 +1659,7 @@ const DepartmentCourse = () => {
                                             </Button>
                                           )}
                                           {isLessonLocked && (
-                                            <Badge variant="outline" className="text-xs bg-gray-100 text-gray-600 px-2 py-1 w-full sm:w-auto justify-center">
+                                            <Badge variant="outline" className="text-xs bg-[#f3f4f6] text-[#4b5563] px-2 py-1 w-full sm:w-auto justify-center">
                                               <Lock className="h-3 w-3 mr-1" />
                                               Locked
                                             </Badge>
@@ -1705,7 +1705,7 @@ const DepartmentCourse = () => {
                                             <div>
                                               <Button
                                                 onClick={() => handleMarkModuleComplete(module)}
-                                                className="w-full bg-green-600 hover:bg-green-700 min-h-[44px]"
+                                                className="w-full bg-[#16a34a] hover:bg-[#15803d] min-h-[44px]"
                                                 size="lg"
                                                 disabled={uiState.processingAction === `module-${moduleId}`}
                                               >
@@ -1717,14 +1717,14 @@ const DepartmentCourse = () => {
                                                 Complete Module
                                               </Button>
                                               <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mt-2">
-                                                <Zap className="h-3 w-3 text-green-500" />
+                                                <Zap className="h-3 w-3 text-[#22c55e]" />
                                                 <span>All {hasLessons ? 'lessons and ' : ''}assessments completed!</span>
                                               </div>
                                             </div>
                                           ) : (
                                             <div className="text-center">
                                               <div className="flex items-start gap-2 text-sm text-muted-foreground mb-4">
-                                                <BookMarked className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                                                <BookMarked className="h-4 w-4 text-[#3b82f6] shrink-0 mt-0.5" />
                                                 <span>{hasLessons ? 'All lessons completed! Now complete the assessments in the "Assessments" tab to finish this module.' : 'This module has no lessons. Please complete the assessments in the "Assessments" tab to finish this module.'}</span>
                                               </div>
                                               <Button
@@ -1748,7 +1748,7 @@ const DepartmentCourse = () => {
                                           <div>
                                             <Button
                                               onClick={() => handleMarkModuleComplete(module)}
-                                              className="w-full bg-green-600 hover:bg-green-700 min-h-[44px]"
+                                              className="w-full bg-[#16a34a] hover:bg-[#15803d] min-h-[44px]"
                                               size="lg"
                                               disabled={uiState.processingAction === `module-${moduleId}`}
                                             >
@@ -1760,7 +1760,7 @@ const DepartmentCourse = () => {
                                               Complete Module
                                             </Button>
                                             <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mt-2">
-                                              <Zap className="h-3 w-3 text-green-500" />
+                                              <Zap className="h-3 w-3 text-[#22c55e]" />
                                               <span>{hasLessons ? 'All lessons completed! ' : ''}No assessments required for this module.</span>
                                             </div>
                                           </div>
@@ -1780,35 +1780,35 @@ const DepartmentCourse = () => {
                                 {/* Assessment access control */}
                                 {moduleLessons.length > 0 && (
                                   <div className={`rounded-lg p-3 xs:p-4 mb-3 xs:mb-4 ${completedLessonsInModule === moduleLessons.length
-                                    ? 'bg-green-50 border border-green-200'
-                                    : 'bg-amber-50 border border-amber-200'
+                                    ? 'bg-[#f0fdf4] border border-[#bbf7d0]'
+                                    : 'bg-[#fffbeb] border border-[#fde68a]'
                                     }`}>
                                     <div className="flex items-start gap-2 xs:gap-3">
                                       {completedLessonsInModule === moduleLessons.length ? (
-                                        <Trophy className="h-4 w-4 xs:h-5 xs:w-5 text-green-600 mt-0.5" />
+                                        <Trophy className="h-4 w-4 xs:h-5 xs:w-5 text-[#16a34a] mt-0.5" />
                                       ) : (
-                                        <Lock className="h-4 w-4 xs:h-5 xs:w-5 text-amber-600 mt-0.5" />
+                                        <Lock className="h-4 w-4 xs:h-5 xs:w-5 text-[#d97706] mt-0.5" />
                                       )}
                                       <div>
                                         <div className={`flex items-center gap-2 font-semibold mb-1 ${completedLessonsInModule === moduleLessons.length
-                                          ? 'text-green-800'
-                                          : 'text-amber-800'
+                                          ? 'text-[#166534]'
+                                          : 'text-[#92400e]'
                                           }`}>
                                           {completedLessonsInModule === moduleLessons.length ? (
                                             <>
-                                              <Zap className="h-4 w-4 text-green-600" />
+                                              <Zap className="h-4 w-4 text-[#16a34a]" />
                                               <span>Assessments Unlocked!</span>
                                             </>
                                           ) : (
                                             <>
-                                              <Lock className="h-4 w-4 text-amber-600" />
+                                              <Lock className="h-4 w-4 text-[#d97706]" />
                                               <span>Complete All Lessons First</span>
                                             </>
                                           )}
                                         </div>
                                         <p className={`text-xs xs:text-sm leading-relaxed ${completedLessonsInModule === moduleLessons.length
-                                          ? 'text-green-700'
-                                          : 'text-amber-700'
+                                          ? 'text-[#15803d]'
+                                          : 'text-[#b45309]'
                                           }`}>
                                           {completedLessonsInModule === moduleLessons.length
                                             ? 'Great job completing all lessons! You can now access the assessments below. Complete all assessments to finish this module.'
@@ -1817,15 +1817,15 @@ const DepartmentCourse = () => {
                                         </p>
                                         {completedLessonsInModule < moduleLessons.length && (
                                           <div className="mt-3">
-                                            <div className="w-full bg-amber-200 rounded-full h-2">
+                                            <div className="w-full bg-[#fde68a] rounded-full h-2">
                                               <div
-                                                className="bg-amber-600 h-2 rounded-full transition-all duration-500"
+                                                className="bg-[#d97706] h-2 rounded-full transition-all duration-500"
                                                 style={{
                                                   width: `${moduleLessons.length > 0 ? (completedLessonsInModule / moduleLessons.length) * 100 : 0}%`
                                                 }}
                                               ></div>
                                             </div>
-                                            <p className="text-xs text-amber-600 mt-1">
+                                            <p className="text-xs text-[#d97706] mt-1">
                                               {Math.round((completedLessonsInModule / moduleLessons.length) * 100)}% complete
                                             </p>
                                           </div>
@@ -1872,7 +1872,7 @@ const DepartmentCourse = () => {
 
                       {/* Module Resources Component - 320px optimized */}
                       <div className="mt-3 xs:mt-4">
-                        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                        <div className="bg-white rounded-lg border border-[#e5e7eb] shadow-sm">
                           <StudentModuleResources
                             moduleId={moduleId}
                             resources={resourcesByModule[moduleId] || []}
@@ -1893,10 +1893,10 @@ const DepartmentCourse = () => {
 
         {/* Course-Level Assessments (appear after all modules completed) */}
         {allModulesCompleted && (courseLevelQuizzes.length > 0 || courseLevelAssignments.length > 0) && (
-          <Card className="border-2 border-yellow-300 bg-gradient-to-br from-yellow-50 to-amber-50">
-            <CardHeader className="bg-gradient-to-r from-yellow-100 to-amber-100">
+          <Card className="border-2 border-[#fcd34d] bg-gradient-to-br from-[#fefce8] to-[#fffbeb]">
+            <CardHeader className="bg-gradient-to-r from-[#fef9c3] to-[#fef3c7]">
               <CardTitle className="flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-yellow-600" />
+                <Trophy className="h-5 w-5 text-[#ca8a04]" />
                 Final Course Assessments
               </CardTitle>
               <CardDescription>

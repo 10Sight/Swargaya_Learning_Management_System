@@ -183,30 +183,30 @@ const AllUsersManagement = () => {
   const getRoleColor = (role) => {
     switch (role) {
       case "SUPERADMIN":
-        return "bg-purple-100 text-purple-800";
+        return "bg-[#f3e8ff] text-[#6b21a8]";
       case "ADMIN":
-        return "bg-red-100 text-red-800";
+        return "bg-[#fee2e2] text-[#991b1b]";
       case "INSTRUCTOR":
-        return "bg-blue-100 text-blue-800";
+        return "bg-[#dbeafe] text-[#1e40af]";
       case "STUDENT":
-        return "bg-green-100 text-green-800";
+        return "bg-[#dcfce7] text-[#166534]";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-[#f3f4f6] text-[#1f2937]";
     }
   };
 
   const getStatusColor = (status) => {
     switch (status) {
       case "ACTIVE":
-        return "bg-green-100 text-green-800";
+        return "bg-[#dcfce7] text-[#166534]";
       case "SUSPENDED":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-[#fef9c3] text-[#854d0e]";
       case "BANNED":
-        return "bg-red-100 text-red-800";
+        return "bg-[#fee2e2] text-[#991b1b]";
       case "PENDING":
-        return "bg-blue-100 text-blue-800";
+        return "bg-[#dbeafe] text-[#1e40af]";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-[#f3f4f6] text-[#1f2937]";
     }
   };
 
@@ -217,10 +217,10 @@ const AllUsersManagement = () => {
       {/* Header */}
       <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
+          <h1 className="text-xl sm:text-2xl font-bold text-[#111827] truncate">
             All Users Management
           </h1>
-          <p className="text-sm sm:text-base text-gray-600 mt-1">
+          <p className="text-sm sm:text-base text-[#4b5563] mt-1">
             Manage all users across the platform with advanced controls
           </p>
         </div>
@@ -230,7 +230,7 @@ const AllUsersManagement = () => {
               onClick={() => setShowDebugInfo(!showDebugInfo)}
               variant={showDebugInfo ? "default" : "outline"}
               size="sm"
-              className={`${showDebugInfo ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200" : ""} flex-1 xs:flex-none`}
+              className={`${showDebugInfo ? "bg-[#fef9c3] text-[#a16207] hover:bg-[#fef08a]" : ""} flex-1 xs:flex-none`}
             >
               <IconInfoCircle className="w-4 h-4 mr-2" />
               <span className="hidden xs:inline">Debug</span>
@@ -249,7 +249,7 @@ const AllUsersManagement = () => {
           </div>
           <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-300">
+              <Button className="bg-gradient-to-r from-[#2563eb] to-[#1d4ed8] hover:from-[#1d4ed8] hover:to-[#1e40af] text-[#ffffff] shadow-lg hover:shadow-xl transition-all duration-300">
                 <IconPlus className="w-4 h-4 mr-2" />
                 <span className="hidden xs:inline">Create User</span>
                 <span className="xs:hidden">Create</span>
@@ -380,7 +380,7 @@ const AllUsersManagement = () => {
                 <Button
                   onClick={handleCreateUser}
                   disabled={!newUser.fullName || !newUser.email}
-                  className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+                  className="w-full sm:w-auto bg-gradient-to-r from-[#2563eb] to-[#1d4ed8] hover:from-[#1d4ed8] hover:to-[#1e40af]"
                 >
                   Create User
                 </Button>
@@ -392,16 +392,16 @@ const AllUsersManagement = () => {
 
       {/* Debug Information Panel */}
       {showDebugInfo && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+        <div className="bg-[#fefce8] border border-[#fef08a] rounded-lg p-6">
           <div className="flex items-start space-x-3">
-            <IconInfoCircle className="w-5 h-5 text-yellow-600 mt-1" />
+            <IconInfoCircle className="w-5 h-5 text-[#ca8a04] mt-1" />
             <div className="flex-1">
-              <h3 className="text-yellow-800 font-medium mb-3">Debug Information</h3>
+              <h3 className="text-[#854d0e] font-medium mb-3">Debug Information</h3>
               <div className="space-y-3 text-sm">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <strong className="text-yellow-800">Current User:</strong>
-                    <div className="text-yellow-700 mt-1">
+                    <strong className="text-[#854d0e]">Current User:</strong>
+                    <div className="text-[#a16207] mt-1">
                       {currentUser ? (
                         <div>
                           <div>Name: {currentUser.fullName}</div>
@@ -410,13 +410,13 @@ const AllUsersManagement = () => {
                           <div>Status: {currentUser.status}</div>
                         </div>
                       ) : (
-                        <div className="text-red-600">No user data found in Redux state</div>
+                        <div className="text-[#dc2626]">No user data found in Redux state</div>
                       )}
                     </div>
                   </div>
                   <div>
-                    <strong className="text-yellow-800">Authentication:</strong>
-                    <div className="text-yellow-700 mt-1">
+                    <strong className="text-[#854d0e]">Authentication:</strong>
+                    <div className="text-[#a16207] mt-1">
                       <div>Token exists: {localStorage.getItem('token') ? 'Yes' : 'No'}</div>
                       <div>IsLoggedIn: {localStorage.getItem('isLoggedIn')}</div>
                     </div>
@@ -424,14 +424,14 @@ const AllUsersManagement = () => {
                 </div>
 
                 <div>
-                  <strong className="text-yellow-800">API Request Status:</strong>
-                  <div className="text-yellow-700 mt-1">
+                  <strong className="text-[#854d0e]">API Request Status:</strong>
+                  <div className="text-[#a16207] mt-1">
                     <div>Loading: {isLoading ? 'Yes' : 'No'}</div>
                     <div>Error: {isError ? 'Yes' : 'No'}</div>
                     {error && (
                       <div className="mt-2">
                         <strong>Error Details:</strong>
-                        <div className="bg-red-50 border border-red-200 rounded p-2 mt-1">
+                        <div className="bg-[#fef2f2] border border-[#fecaca] rounded p-2 mt-1">
                           <div>Status: {error.status}</div>
                           <div>Message: {error.message || error.data?.message}</div>
                           {error.data && (
@@ -444,8 +444,8 @@ const AllUsersManagement = () => {
                 </div>
 
                 <div>
-                  <strong className="text-yellow-800">API Endpoint:</strong>
-                  <div className="text-yellow-700 mt-1">
+                  <strong className="text-[#854d0e]">API Endpoint:</strong>
+                  <div className="text-[#a16207] mt-1">
                     <div>URL: /api/users</div>
                     <div>Parameters: {JSON.stringify({
                       page: currentPage,
@@ -469,14 +469,14 @@ const AllUsersManagement = () => {
 
       {/* Filters */}
       {showFilters && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="bg-white rounded-lg shadow-sm border border-[#e5e7eb] p-6">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
+              <label className="block text-sm font-medium text-[#374151] mb-2">Role</label>
               <select
                 value={filters.role}
                 onChange={(e) => setFilters({ ...filters, role: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
               >
                 <option value="">All Roles</option>
                 <option value="SUPERADMIN">Super Admin</option>
@@ -487,11 +487,11 @@ const AllUsersManagement = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+              <label className="block text-sm font-medium text-[#374151] mb-2">Status</label>
               <select
                 value={filters.status}
                 onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
               >
                 <option value="">All Status</option>
                 <option value="ACTIVE">Active</option>
@@ -502,11 +502,11 @@ const AllUsersManagement = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Unit</label>
+              <label className="block text-sm font-medium text-[#374151] mb-2">Unit</label>
               <select
                 value={filters.unit}
                 onChange={(e) => setFilters({ ...filters, unit: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
               >
                 <option value="">All Units</option>
                 <option value="UNIT_1">Unit 1</option>
@@ -518,22 +518,22 @@ const AllUsersManagement = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Date From</label>
+              <label className="block text-sm font-medium text-[#374151] mb-2">Date From</label>
               <input
                 type="date"
                 value={filters.dateFrom}
                 onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Date To</label>
+              <label className="block text-sm font-medium text-[#374151] mb-2">Date To</label>
               <input
                 type="date"
                 value={filters.dateTo}
                 onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
               />
             </div>
           </div>
@@ -541,42 +541,42 @@ const AllUsersManagement = () => {
       )}
 
       {/* Search and Actions */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-[#ffffff] rounded-lg shadow-sm border border-[#e5e7eb] p-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
           <div className="relative flex-1 max-w-md">
-            <IconSearch className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+            <IconSearch className="absolute left-3 top-3 w-4 h-4 text-[#9ca3af]" />
             <input
               type="text"
               placeholder="Search users by name, email, or username..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
             />
           </div>
 
           <div className="flex items-center space-x-3">
             {selectedUsers.length > 0 && (
               <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-[#4b5563]">
                   {selectedUsers.length} selected
                 </span>
                 <button
                   onClick={() => handleBulkAction('activate')}
-                  className="flex items-center space-x-1 px-3 py-1 bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors"
+                  className="flex items-center space-x-1 px-3 py-1 bg-[#dcfce7] text-[#15803d] rounded-md hover:bg-[#bbf7d0] transition-colors"
                 >
                   <IconUserCheck className="w-4 h-4" />
                   <span>Activate</span>
                 </button>
                 <button
                   onClick={() => handleBulkAction('suspend')}
-                  className="flex items-center space-x-1 px-3 py-1 bg-yellow-100 text-yellow-700 rounded-md hover:bg-yellow-200 transition-colors"
+                  className="flex items-center space-x-1 px-3 py-1 bg-[#fef9c3] text-[#a16207] rounded-md hover:bg-[#fef08a] transition-colors"
                 >
                   <IconUserX className="w-4 h-4" />
                   <span>Suspend</span>
                 </button>
                 <button
                   onClick={() => handleBulkAction('delete')}
-                  className="flex items-center space-x-1 px-3 py-1 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
+                  className="flex items-center space-x-1 px-3 py-1 bg-[#fee2e2] text-[#b91c1c] rounded-md hover:bg-[#fecaca] transition-colors"
                 >
                   <IconTrash className="w-4 h-4" />
                   <span>Delete</span>
@@ -586,13 +586,13 @@ const AllUsersManagement = () => {
 
             <button
               onClick={() => refetch()}
-              className="flex items-center space-x-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+              className="flex items-center space-x-2 px-3 py-2 bg-[#f3f4f6] text-[#374151] rounded-md hover:bg-[#e5e7eb] transition-colors"
             >
               <IconRefresh className="w-4 h-4" />
               <span>Refresh</span>
             </button>
 
-            <button className="flex items-center space-x-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors">
+            <button className="flex items-center space-x-2 px-3 py-2 bg-[#f3f4f6] text-[#374151] rounded-md hover:bg-[#e5e7eb] transition-colors">
               <IconDownload className="w-4 h-4" />
               <span>Export</span>
             </button>
@@ -601,12 +601,12 @@ const AllUsersManagement = () => {
       </div>
 
       {/* Users Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      <div className="bg-white rounded-lg shadow-sm border border-[#e5e7eb]">
         {/* Desktop Table */}
         <div className="hidden lg:block">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-[#f9fafb]">
                 <tr>
                   <th className="px-6 py-3 text-left">
                     <input
@@ -619,45 +619,45 @@ const AllUsersManagement = () => {
                           setSelectedUsers([]);
                         }
                       }}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="rounded border-[#d1d5db] text-[#2563eb] focus:ring-[#3b82f6]"
                     />
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
                     User
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
                     Contact
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
                     Role
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
                     Department
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
                     Last Login
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-[#6b7280] uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-[#ffffff] divide-y divide-[#e5e7eb]">
                 {isLoading ? (
                   <tr>
                     <td colSpan="8" className="px-6 py-8 text-center">
                       <div className="flex justify-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2563eb]"></div>
                       </div>
                     </td>
                   </tr>
                 ) : isError ? (
                   <tr>
                     <td colSpan="8" className="px-6 py-8 text-center">
-                      <div className="text-red-600">
+                      <div className="text-[#dc2626]">
                         Error loading users: {error?.data?.message || error?.message}
                       </div>
                     </td>
@@ -665,12 +665,12 @@ const AllUsersManagement = () => {
                 ) : users.length === 0 ? (
                   <tr>
                     <td colSpan="8" className="px-6 py-8 text-center">
-                      <div className="text-gray-500">No users found</div>
+                      <div className="text-[#6b7280]">No users found</div>
                     </td>
                   </tr>
                 ) : (
                   users.map((user) => (
-                    <tr key={user._id} className="hover:bg-gray-50">
+                    <tr key={user._id} className="hover:bg-[#f9fafb]">
                       <td className="px-6 py-4">
                         <input
                           type="checkbox"
@@ -682,7 +682,7 @@ const AllUsersManagement = () => {
                               setSelectedUsers(selectedUsers.filter(id => id !== user._id));
                             }
                           }}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          className="rounded border-[#d1d5db] text-[#2563eb] focus:ring-[#3b82f6]"
                         />
                       </td>
                       <td className="px-6 py-4">
@@ -693,14 +693,14 @@ const AllUsersManagement = () => {
                             alt={user.fullName}
                           />
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">{user.fullName}</div>
-                            <div className="text-sm text-gray-500">@{user.userName}</div>
+                            <div className="text-sm font-medium text-[#111827]">{user.fullName}</div>
+                            <div className="text-sm text-[#6b7280]">@{user.userName}</div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">{user.email}</div>
-                        <div className="text-sm text-gray-500">{user.phoneNumber}</div>
+                        <div className="text-sm text-[#111827]">{user.email}</div>
+                        <div className="text-sm text-[#6b7280]">{user.phoneNumber}</div>
                       </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(user.role)}`}>
@@ -712,17 +712,17 @@ const AllUsersManagement = () => {
                           {user.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
+                      <td className="px-6 py-4 text-sm text-[#111827]">
                         {user.department?.name || 'No Department'}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
+                      <td className="px-6 py-4 text-sm text-[#6b7280]">
                         {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
                       </td>
                       <td className="px-6 py-4 text-center">
                         <div className="flex items-center justify-center space-x-2">
                           <button
                             onClick={() => {/* View user details */ }}
-                            className="text-blue-600 hover:text-blue-900 transition-colors"
+                            className="text-[#2563eb] hover:text-[#1e3a8a] transition-colors"
                             title="View Details"
                           >
                             <IconEye className="w-4 h-4" />
@@ -732,14 +732,14 @@ const AllUsersManagement = () => {
                               setSelectedUser(user);
                               setShowEditModal(true);
                             }}
-                            className="text-green-600 hover:text-green-900 transition-colors"
+                            className="text-[#16a34a] hover:text-[#14532d] transition-colors"
                             title="Edit User"
                           >
                             <IconEdit className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteUser(user._id, true)}
-                            className="text-red-600 hover:text-red-900 transition-colors"
+                            className="text-[#dc2626] hover:text-[#7f1d1d] transition-colors"
                             title="Permanently Delete"
                           >
                             <IconTrash className="w-4 h-4" />
@@ -758,17 +758,17 @@ const AllUsersManagement = () => {
         <div className="lg:hidden space-y-4 p-4">
           {isLoading ? (
             <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2563eb]"></div>
             </div>
           ) : isError ? (
-            <div className="text-center py-8 text-red-600">
+            <div className="text-center py-8 text-[#dc2626]">
               Error loading users: {error?.data?.message || error?.message}
             </div>
           ) : users.length === 0 ? (
             <div className="text-center py-8">
-              <IconUsers className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-500 mb-2">No users found</h3>
-              <p className="text-gray-400">Try adjusting your search or filters</p>
+              <IconUsers className="w-16 h-16 text-[#d1d5db] mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-[#6b7280] mb-2">No users found</h3>
+              <p className="text-[#9ca3af]">Try adjusting your search or filters</p>
             </div>
           ) : (
             users.map((user) => (
@@ -786,14 +786,14 @@ const AllUsersManagement = () => {
                             setSelectedUsers(selectedUsers.filter(id => id !== user._id));
                           }
                         }}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-3"
+                        className="rounded border-[#d1d5db] text-[#2563eb] focus:ring-[#3b82f6] mr-3"
                       />
                       <Avatar className="h-12 w-12">
                         <AvatarImage
                           src={user.avatar?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=2563eb&color=fff`}
                           alt={user.fullName}
                         />
-                        <AvatarFallback className="bg-blue-100 text-blue-800">
+                        <AvatarFallback className="bg-[#dbeafe] text-[#1e40af]">
                           {user.fullName.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
@@ -802,18 +802,18 @@ const AllUsersManagement = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between">
                         <div className="min-w-0 flex-1">
-                          <h3 className="font-medium text-gray-900 truncate">{user.fullName}</h3>
-                          <p className="text-sm text-gray-500 truncate">@{user.userName}</p>
-                          <p className="text-sm text-gray-600 mt-1">{user.email}</p>
+                          <h3 className="font-medium text-[#111827] truncate">{user.fullName}</h3>
+                          <p className="text-sm text-[#6b7280] truncate">@{user.userName}</p>
+                          <p className="text-sm text-[#4b5563] mt-1">{user.email}</p>
                           {user.phoneNumber && (
-                            <p className="text-sm text-gray-500">{user.phoneNumber}</p>
+                            <p className="text-sm text-[#6b7280]">{user.phoneNumber}</p>
                           )}
                         </div>
 
                         <div className="flex items-center space-x-1 ml-2">
                           <button
                             onClick={() => {/* View user details */ }}
-                            className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-colors"
+                            className="p-2 text-[#2563eb] hover:text-[#1e3a8a] hover:bg-[#eff6ff] rounded-lg transition-colors"
                             title="View Details"
                           >
                             <IconEye className="w-4 h-4" />
@@ -823,14 +823,14 @@ const AllUsersManagement = () => {
                               setSelectedUser(user);
                               setShowEditModal(true);
                             }}
-                            className="p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-colors"
+                            className="p-2 text-[#16a34a] hover:text-[#14532d] hover:bg-[#f0fdf4] rounded-lg transition-colors"
                             title="Edit User"
                           >
                             <IconEdit className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteUser(user._id, true)}
-                            className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
+                            className="p-2 text-[#dc2626] hover:text-[#7f1d1d] hover:bg-[#fef2f2] rounded-lg transition-colors"
                             title="Permanently Delete"
                           >
                             <IconTrash className="w-4 h-4" />
@@ -853,8 +853,8 @@ const AllUsersManagement = () => {
                         )}
                       </div>
 
-                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                        <div className="text-xs text-gray-500">
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#f3f4f6]">
+                        <div className="text-xs text-[#6b7280]">
                           Last login: {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
                         </div>
                       </div>
@@ -867,9 +867,9 @@ const AllUsersManagement = () => {
         </div>
 
         {/* Pagination */}
-        <div className="px-4 sm:px-6 py-4 border-t border-gray-200">
+        <div className="px-4 sm:px-6 py-4 border-t border-[#e5e7eb]">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="text-sm text-gray-700">
+            <div className="text-sm text-[#374151]">
               Showing {((currentPage - 1) * 20) + 1} to {Math.min(currentPage * 20, totalUsers)} of {totalUsers} users
             </div>
             <div className="flex items-center space-x-1 sm:space-x-2">

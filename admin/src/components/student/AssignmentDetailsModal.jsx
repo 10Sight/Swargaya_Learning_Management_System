@@ -9,25 +9,25 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 // import { Separator } from '@/components/ui/separator';
-import { 
-  FileText, 
-  Clock, 
-  Award, 
-  CheckCircle, 
-  AlertCircle, 
+import {
+  FileText,
+  Clock,
+  Award,
+  CheckCircle,
+  AlertCircle,
   Calendar,
   User,
   Download,
   Upload
 } from 'lucide-react';
 
-const AssignmentDetailsModal = ({ 
-  assignment, 
+const AssignmentDetailsModal = ({
+  assignment,
   submission = null,
-  isOpen, 
-  onClose, 
+  isOpen,
+  onClose,
   onSubmit,
-  isSubmissionLoading = false 
+  isSubmissionLoading = false
 }) => {
   if (!assignment) return null;
 
@@ -46,7 +46,7 @@ const AssignmentDetailsModal = ({
 
   const getDueDateStatus = () => {
     if (!assignment.dueDate) return null;
-    
+
     const now = new Date();
     const dueDate = new Date(assignment.dueDate);
     const timeDiff = dueDate - now;
@@ -67,15 +67,15 @@ const AssignmentDetailsModal = ({
     if (!submission) {
       return { status: 'not_submitted', message: 'Not submitted', color: 'secondary' };
     }
-    
+
     if (submission.grade !== null && submission.grade !== undefined) {
       return { status: 'graded', message: 'Graded', color: 'default' };
     }
-    
+
     if (submission.isLate) {
       return { status: 'late', message: 'Submitted late', color: 'warning' };
     }
-    
+
     return { status: 'submitted', message: 'Submitted', color: 'success' };
   };
 
@@ -93,7 +93,7 @@ const AssignmentDetailsModal = ({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-start gap-3">
-            <FileText className="h-6 w-6 text-blue-600 mt-1 flex-shrink-0" />
+            <FileText className="h-6 w-6 text-[#2563eb] mt-1 flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <DialogTitle className="text-xl font-semibold pr-6">
                 {assignment.title}
@@ -108,18 +108,18 @@ const AssignmentDetailsModal = ({
         <div className="space-y-6">
           {/* Status Badges */}
           <div className="flex flex-wrap gap-2">
-            <Badge variant="outline" className="bg-orange-50 text-orange-800 border-orange-200">
+            <Badge variant="outline" className="bg-[#fff7ed] text-[#9a3412] border-[#fed7aa]">
               <Award className="h-3 w-3 mr-1" />
               Module Assignment
             </Badge>
-            
+
             {dueDateStatus && (
               <Badge variant={dueDateStatus.color}>
                 <Clock className="h-3 w-3 mr-1" />
                 {dueDateStatus.message}
               </Badge>
             )}
-            
+
             <Badge variant={submissionStatus.color}>
               {submissionStatus.status === 'submitted' || submissionStatus.status === 'graded' ? (
                 <CheckCircle className="h-3 w-3 mr-1" />
@@ -142,7 +142,7 @@ const AssignmentDetailsModal = ({
                 <span className="font-medium">Due Date:</span>
                 <span>{formatDate(assignment.dueDate)}</span>
               </div>
-              
+
               <div className="flex items-center gap-2 text-sm">
                 <Award className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium">Max Score:</span>
@@ -157,12 +157,12 @@ const AssignmentDetailsModal = ({
                   <span className="font-medium">Submitted:</span>
                   <span>{formatDate(submission.submittedAt)}</span>
                 </div>
-                
+
                 {submission.grade !== null && submission.grade !== undefined && (
                   <div className="flex items-center gap-2 text-sm">
                     <Award className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium">Grade:</span>
-                    <span className="font-semibold text-green-600">
+                    <span className="font-semibold text-[#16a34a]">
                       {submission.grade}/{assignment.maxScore || 100}
                     </span>
                   </div>
@@ -176,7 +176,7 @@ const AssignmentDetailsModal = ({
             <div className="space-y-4">
               <div className="border-b" />
               <h4 className="font-medium">Your Submission</h4>
-              
+
               <div className="bg-muted rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
@@ -184,7 +184,7 @@ const AssignmentDetailsModal = ({
                     <span className="text-sm font-medium">Submitted File</span>
                   </div>
                   <Button
-                    variant="outline" 
+                    variant="outline"
                     size="sm"
                     onClick={handleDownloadSubmission}
                   >
@@ -192,13 +192,13 @@ const AssignmentDetailsModal = ({
                     View File
                   </Button>
                 </div>
-                
+
                 {submission.resubmissionCount > 0 && (
                   <p className="text-xs text-muted-foreground mb-2">
                     Resubmitted {submission.resubmissionCount} time(s)
                   </p>
                 )}
-                
+
                 {submission.feedback && (
                   <div className="mt-3 pt-3 border-t">
                     <h5 className="text-sm font-medium mb-2">Instructor Feedback</h5>

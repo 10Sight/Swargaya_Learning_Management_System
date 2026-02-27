@@ -26,22 +26,22 @@ const ConfirmationModal = ({
   const getIcon = () => {
     switch (type) {
       case "danger":
-        return <Trash2 className="w-6 h-6 text-red-600" />;
+        return <Trash2 className="w-6 h-6 text-[#dc2626]" />;
       case "restore":
-        return <RotateCcw className="w-6 h-6 text-green-600" />;
+        return <RotateCcw className="w-6 h-6 text-[#16a34a]" />;
       default:
-        return <AlertTriangle className="w-6 h-6 text-yellow-600" />;
+        return <AlertTriangle className="w-6 h-6 text-[#ca8a04]" />;
     }
   };
 
   const getConfirmButtonClass = () => {
     switch (type) {
       case "danger":
-        return "bg-red-600 hover:bg-red-700 text-white";
+        return "bg-[#dc2626] hover:bg-[#b91c1c] text-white";
       case "restore":
-        return "bg-green-600 hover:bg-green-700 text-white";
+        return "bg-[#16a34a] hover:bg-[#15803d] text-white";
       default:
-        return "bg-yellow-600 hover:bg-yellow-700 text-white";
+        return "bg-[#ca8a04] hover:bg-[#a16207] text-white";
     }
   };
 
@@ -52,10 +52,10 @@ const ConfirmationModal = ({
           <div className="flex items-center gap-3 mb-2">
             {getIcon()}
             <DialogTitle className="text-lg font-semibold">
-            {title || t('dialog.confirmTitle')}
+              {title || t('dialog.confirmTitle')}
             </DialogTitle>
           </div>
-          <DialogDescription className="text-gray-600">
+          <DialogDescription className="text-[#4b5563]">
             {description || t('dialog.confirmMessage')}
           </DialogDescription>
         </DialogHeader>

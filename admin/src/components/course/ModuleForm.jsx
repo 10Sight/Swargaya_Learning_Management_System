@@ -56,10 +56,10 @@ const ModuleForm = ({
               value={formData.title}
               onChange={handleInputChange}
               placeholder="Enter module title"
-              className={formErrors.title ? "border-red-500" : ""}
+              className={formErrors.title ? "border-[#ef4444]" : ""}
             />
             {formErrors.title && (
-              <p className="text-sm text-red-600">{formErrors.title}</p>
+              <p className="text-sm text-[#dc2626]">{formErrors.title}</p>
             )}
           </div>
 
@@ -72,10 +72,10 @@ const ModuleForm = ({
               onChange={handleInputChange}
               placeholder="Enter module description"
               rows={3}
-              className={formErrors.description ? "border-red-500" : ""}
+              className={formErrors.description ? "border-[#ef4444]" : ""}
             />
             {formErrors.description && (
-              <p className="text-sm text-red-600">{formErrors.description}</p>
+              <p className="text-sm text-[#dc2626]">{formErrors.description}</p>
             )}
           </div>
 
@@ -89,10 +89,10 @@ const ModuleForm = ({
               value={formData.order}
               onChange={handleInputChange}
               placeholder="Enter module order"
-              className={formErrors.order ? "border-red-500" : ""}
+              className={formErrors.order ? "border-[#ef4444]" : ""}
             />
             {formErrors.order && (
-              <p className="text-sm text-red-600">{formErrors.order}</p>
+              <p className="text-sm text-[#dc2626]">{formErrors.order}</p>
             )}
             <p className="text-xs text-muted-foreground">
               Suggested next order: {modules.length + 1}
@@ -127,10 +127,10 @@ const ModuleForm = ({
               {isCreating
                 ? "Creating..."
                 : isUpdating
-                ? "Updating..."
-                : editingModule
-                ? "Update Module"
-                : "Create Module"}
+                  ? "Updating..."
+                  : editingModule
+                    ? "Update Module"
+                    : "Create Module"}
             </Button>
           </div>
         </form>

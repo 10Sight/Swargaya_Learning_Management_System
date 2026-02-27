@@ -10,31 +10,31 @@ const InstructorProfile = ({ instructor }) => {
       case "ACTIVE":
         return (
           <Badge variant="success" className="flex items-center gap-1 w-fit">
-            <div className="h-2 w-2 rounded-full bg-green-500"></div> Active
+            <div className="h-2 w-2 rounded-full bg-[#22c55e]"></div> Active
           </Badge>
         );
       case "SUSPENDED":
         return (
           <Badge variant="destructive" className="flex items-center gap-1 w-fit">
-            <div className="h-2 w-2 rounded-full bg-red-500"></div> Suspended
+            <div className="h-2 w-2 rounded-full bg-[#ef4444]"></div> Suspended
           </Badge>
         );
       case "PENDING":
         return (
           <Badge variant="warning" className="flex items-center gap-1 w-fit">
-            <div className="h-2 w-2 rounded-full bg-amber-500"></div> Pending
+            <div className="h-2 w-2 rounded-full bg-[#f59e0b]"></div> Pending
           </Badge>
         );
       case "BANNED":
         return (
           <Badge variant="destructive" className="flex items-center gap-1 w-fit">
-            <div className="h-2 w-2 rounded-full bg-red-700"></div> Banned
+            <div className="h-2 w-2 rounded-full bg-[#b91c1c]"></div> Banned
           </Badge>
         );
       default:
         return (
           <Badge variant="secondary" className="flex items-center gap-1 w-fit">
-            <div className="h-2 w-2 rounded-full bg-gray-500"></div> {status}
+            <div className="h-2 w-2 rounded-full bg-[#6b7280]"></div> {status}
           </Badge>
         );
     }

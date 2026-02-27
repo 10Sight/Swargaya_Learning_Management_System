@@ -411,7 +411,7 @@ const AddCourse = () => {
         instructor: formData.instructor
       }).unwrap();
 
-      const courseId = courseResponse.data._id;
+      const courseId = courseResponse.data.id || courseResponse.data._id;
 
       // Create modules and their resources
       const modulePromises = modules.map(async (module) => {
@@ -422,18 +422,20 @@ const AddCourse = () => {
           order: module.order
         }).unwrap();
 
-        const moduleId = moduleResponse.data._id;
+        const moduleId = moduleResponse.data.id || moduleResponse.data._id;
 
         // Create resources for this module
         if (module.resources && module.resources.length > 0) {
           const resourcePromises = module.resources.map(async (resource) => {
-            await createResource({
-              moduleId,
-              title: resource.title,
-              type: resource.type,
-              file: resource.file,
-              url: resource.url
-            }).unwrap();
+            const resourceFormData = new FormData();
+            resourceFormData.append('moduleId', moduleId);
+            resourceFormData.append('scope', 'module');
+            resourceFormData.append('title', resource.title);
+            resourceFormData.append('type', resource.type);
+            if (resource.file) resourceFormData.append('file', resource.file);
+            if (resource.url) resourceFormData.append('url', resource.url);
+
+            await createResource(resourceFormData).unwrap();
           });
 
           await Promise.all(resourcePromises);
@@ -459,7 +461,7 @@ const AddCourse = () => {
           }))
         }).unwrap();
 
-        return quizResponse.data._id;
+        return quizResponse.data.id || quizResponse.data._id;
       });
 
       await Promise.all(quizPromises);
@@ -473,7 +475,7 @@ const AddCourse = () => {
           dueDate: assignment.dueDate
         }).unwrap();
 
-        return assignmentResponse.data._id;
+        return assignmentResponse.data.id || assignmentResponse.data._id;
       });
 
       await Promise.all(assignmentPromises);
@@ -510,7 +512,7 @@ const AddCourse = () => {
   }, [activeLevels, formData.level]);
 
   const instructorOptions = instructors.map(instructor => ({
-    value: instructor._id,
+    value: String(instructor._id),
     label: instructor.fullName
   }));
 
@@ -620,7 +622,7 @@ const AddCourse = () => {
               Add Module
             </Button>
           }
-          className="border-l-4 border-l-blue-500"
+          className="border-l-4 border-l-[#3b82f6]"
         >
           {modules.length === 0 ? (
             <div className="text-center py-12 border-2 border-dashed rounded-lg bg-muted/20">
@@ -661,11 +663,11 @@ const AddCourse = () => {
               Add Quiz
             </Button>
           }
-          className="border-l-4 border-l-green-500"
+          className="border-l-4 border-l-[#22c55e]"
         >
           {quizzes.length === 0 ? (
             <div className="text-center py-12 border-2 border-dashed rounded-lg bg-muted/20">
-              <div className="bg-green-100 text-green-600 h-12 w-12 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="bg-[#dcfce7] text-[#16a34a] h-12 w-12 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
@@ -707,11 +709,11 @@ const AddCourse = () => {
               Add Assignment
             </Button>
           }
-          className="border-l-4 border-l-purple-500"
+          className="border-l-4 border-l-[#a855f7]"
         >
           {assignments.length === 0 ? (
             <div className="text-center py-12 border-2 border-dashed rounded-lg bg-muted/20">
-              <div className="bg-purple-100 text-purple-600 h-12 w-12 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="bg-[#f3e8ff] text-[#9333ea] h-12 w-12 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>

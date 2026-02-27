@@ -25,13 +25,13 @@ class Module {
             BEGIN
                 CREATE TABLE dbo.modules (
                     id INT IDENTITY(1,1) PRIMARY KEY,
-                    course VARCHAR(255) NOT NULL,
-                    title VARCHAR(255) NOT NULL,
-                    description VARCHAR(MAX),
-                    slug VARCHAR(255),
+                    course NVARCHAR(255) NOT NULL,
+                    title NVARCHAR(255) NOT NULL,
+                    description NVARCHAR(MAX),
+                    slug NVARCHAR(255),
                     [order] INT DEFAULT 1,
-                    lessons VARCHAR(MAX),
-                    resources VARCHAR(MAX),
+                    lessons NVARCHAR(MAX),
+                    resources NVARCHAR(MAX),
                     createdAt DATETIME DEFAULT GETDATE(),
                     updatedAt DATETIME DEFAULT GETDATE(),
                     CONSTRAINT unique_module_slug UNIQUE (course, slug)

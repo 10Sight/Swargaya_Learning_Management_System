@@ -155,7 +155,7 @@ const DepartmentLineManager = ({ departmentId }) => {
                 {isLoading ? (
                     <div className="flex justify-center p-8"><IconLoader className="animate-spin" /></div>
                 ) : error ? (
-                    <div className="text-red-500 p-4">Error loading lines: {error.message}</div>
+                    <div className="text-[#ef4444] p-4">Error loading lines: {error.message}</div>
                 ) : linesData?.data?.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
                         No lines found for this department. Create one to get started.
@@ -173,7 +173,7 @@ const DepartmentLineManager = ({ departmentId }) => {
                             {linesData?.data?.map((line) => (
                                 <TableRow
                                     key={line.id || line._id}
-                                    className="cursor-pointer hover:bg-gray-100"
+                                    className="cursor-pointer hover:bg-[#f3f4f6]"
                                     onClick={() => navigate(`/admin/departments/${departmentId}/lines/${line.id || line._id}`)}
                                 >
                                     <TableCell className="font-medium">
@@ -192,19 +192,19 @@ const DepartmentLineManager = ({ departmentId }) => {
                                     <TableCell className="text-right">
                                         {editingLineId === (line.id || line._id) ? (
                                             <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600" onClick={(e) => saveEdit(e)} disabled={isUpdating}>
+                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-[#16a34a]" onClick={(e) => saveEdit(e)} disabled={isUpdating}>
                                                     <IconCheck className="h-4 w-4" />
                                                 </Button>
-                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-red-600" onClick={cancelEditing}>
+                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-[#dc2626]" onClick={cancelEditing}>
                                                     <IconX className="h-4 w-4" />
                                                 </Button>
                                             </div>
                                         ) : (
                                             <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-blue-600" onClick={(e) => startEditing(e, line)}>
+                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-[#2563eb]" onClick={(e) => startEditing(e, line)}>
                                                     <IconEdit className="h-4 w-4" />
                                                 </Button>
-                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-red-600" onClick={(e) => handleDeleteLine(e, line.id || line._id)}>
+                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-[#dc2626]" onClick={(e) => handleDeleteLine(e, line.id || line._id)}>
                                                     {isDeleting ? <IconLoader className="h-4 w-4 animate-spin" /> : <IconTrash className="h-4 w-4" />}
                                                 </Button>
                                             </div>

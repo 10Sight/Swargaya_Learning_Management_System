@@ -58,10 +58,10 @@ const InstructorStudents = () => {
   }
 
   const getProgressColor = (progress) => {
-    if (progress >= 80) return 'text-green-600'
-    if (progress >= 60) return 'text-yellow-600'
-    if (progress >= 40) return 'text-orange-600'
-    return 'text-red-600'
+    if (progress >= 80) return 'text-[#16a34a]'
+    if (progress >= 60) return 'text-[#ca8a04]'
+    if (progress >= 40) return 'text-[#ea580c]'
+    return 'text-[#dc2626]'
   }
 
   if (isLoading && selectedDepartmentId) {
@@ -201,7 +201,7 @@ const InstructorStudents = () => {
                       <TableRow key={student._id}>
                         <TableCell>
                           <div
-                            className="cursor-pointer hover:underline text-blue-600"
+                            className="cursor-pointer hover:underline text-[#2563eb]"
                             onClick={() => navigate(`/trainer/employees/${student._id}`)}
                           >
                             <p className="font-medium">{student.fullName}</p>
@@ -278,15 +278,15 @@ const InstructorStudents = () => {
           </Card>
 
           {/* Read-only Notice */}
-          <Card className="bg-blue-50 border-blue-200">
+          <Card className="bg-[#eff6ff] border-[#bfdbfe]">
             <CardContent className="pt-6">
               <div className="flex items-start space-x-3">
-                <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center mt-0.5">
+                <div className="w-5 h-5 bg-[#3b82f6] rounded-full flex items-center justify-center mt-0.5">
                   <IconEye className="h-3 w-3 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-blue-900">Read-Only Access</h3>
-                  <p className="text-sm text-blue-700 mt-1">
+                  <h3 className="font-medium text-[#1e3a8a]">Read-Only Access</h3>
+                  <p className="text-sm text-[#1d4ed8] mt-1">
                     You can view employee information, progress, quiz attempts, and assignment submissions
                     but cannot make any modifications or grade assignments.
                   </p>

@@ -164,7 +164,7 @@ export function InstructorLayout() {
     return (
       <IconLayoutSidebarRightCollapse
         className={`${opened ? "rotate-180" : "mx-auto"
-          } min-w-5 min-h-5 duration-500 transition-all cursor-pointer text-gray-600 hover:text-gray-800`}
+          } min-w-5 min-h-5 duration-500 transition-all cursor-pointer text-[#4b5563] hover:text-[#1f2937]`}
         onClick={onClick}
         aria-label={ariaLabel}
       />
@@ -172,23 +172,23 @@ export function InstructorLayout() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-green-50/30 to-blue-50/20">
+    <div className="flex min-h-screen bg-gradient-to-br from-[#f8fafc] via-[#f0fdf4]/30 to-[#eff6ff]/20">
       {/* Mobile overlay */}
       {!collapsed && isMobile && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-10 md:hidden animate-in fade-in duration-300"
+          className="fixed inset-0 bg-[#000000]/60 backdrop-blur-sm z-10 md:hidden animate-in fade-in duration-300"
           onClick={toggleSidebar}
         />
       )}
 
       {/* Sidebar */}
       <nav
-        className={`fixed top-0 left-0 h-screen bg-white/95 backdrop-blur-xl border-r border-gray-200/50 text-black shadow-2xl transition-all duration-300 z-20
+        className={`fixed top-0 left-0 h-screen bg-[#ffffff]/95 backdrop-blur-xl border-r border-[#e5e7eb]/50 text-[#000000] shadow-2xl transition-all duration-300 z-20
                 ${collapsed ? "w-16" : "w-64"} 
                 ${isMobile && !collapsed ? 'shadow-3xl border-r-2' : ''}`}
       >
         <div
-          className={`relative h-16 items-center flex transition-all p-4 duration-300 z-50 border-b border-gray-200/80 bg-white/50`}
+          className={`relative h-16 items-center flex transition-all p-4 duration-300 z-50 border-b border-[#e5e7eb]/80 bg-[#ffffff]/50`}
         >
           <ToggleButton
             opened={!collapsed}
@@ -205,7 +205,7 @@ export function InstructorLayout() {
         </div>
 
         {/* Sidebar Tabs */}
-        <div className="px-3 flex flex-col w-full py-6 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300">
+        <div className="px-3 flex flex-col w-full py-6 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-[#d1d5db]">
           {tabs.map((item) => {
             const isActive =
               pathname === item.link ||
@@ -216,8 +216,8 @@ export function InstructorLayout() {
               <div
                 className={`group relative flex items-center cursor-pointer w-full overflow-hidden h-12 rounded-xl transition-all duration-300 hover:scale-[1.02]
                 ${isActive
-                    ? "bg-gradient-to-r from-green-600 to-blue-600 text-white shadow-lg shadow-green-200"
-                    : "text-gray-600 hover:bg-gradient-to-r hover:from-green-50 hover:to-blue-50 hover:text-green-700 hover:shadow-md"
+                    ? "bg-gradient-to-r from-[#16a34a] to-[#2563eb] text-[#ffffff] shadow-lg shadow-[#bbf7d0]"
+                    : "text-[#4b5563] hover:bg-gradient-to-r hover:from-[#f0fdf4] hover:to-[#eff6ff] hover:text-[#15803d] hover:shadow-md"
                   }
                 ${collapsed ? "justify-center mx-1" : "items-center px-4"}`}
                 key={item.label}
@@ -227,7 +227,7 @@ export function InstructorLayout() {
                 }}
               >
                 {isActive && !collapsed && (
-                  <div className="absolute left-0 top-0 h-full w-1 bg-white rounded-r-full" />
+                  <div className="absolute left-0 top-0 h-full w-1 bg-[#ffffff] rounded-r-full" />
                 )}
                 <item.icon
                   className={`${collapsed ? "w-5 h-5" : "min-w-5 min-h-5"
@@ -240,7 +240,7 @@ export function InstructorLayout() {
                   </span>
                 )}
                 {!collapsed && (
-                  <div className={`ml-auto opacity-0 group-hover:opacity-100 transition-opacity ${isActive ? 'text-green-200' : 'text-gray-400'
+                  <div className={`ml-auto opacity-0 group-hover:opacity-100 transition-opacity ${isActive ? 'text-[#bbf7d0]' : 'text-[#9ca3af]'
                     }`}>
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -256,14 +256,14 @@ export function InstructorLayout() {
         <div className="absolute bottom-6 w-full px-3">
           <div
             className={`group p-3 flex items-center rounded-xl w-full transition-all duration-300 ${isLoading
-              ? "opacity-50 cursor-not-allowed bg-gray-100"
-              : "hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 hover:text-red-600 cursor-pointer hover:shadow-md"
+              ? "opacity-50 cursor-not-allowed bg-[#f3f4f6]"
+              : "hover:bg-gradient-to-r hover:from-[#fef2f2] hover:to-[#fdf2f8] hover:text-[#dc2626] cursor-pointer hover:shadow-md"
               } ${collapsed ? "justify-center mx-1" : "px-4"
               }`}
             onClick={isLoading ? undefined : handleLogout}
           >
             {isLoading ? (
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-red-600"></div>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#dc2626]"></div>
             ) : (
               <IconLogout className="min-w-5 min-h-5 transition-transform group-hover:scale-110" stroke={1.5} />
             )}
@@ -283,7 +283,7 @@ export function InstructorLayout() {
       >
         {/* Header */}
         <header
-          className={`px-4 sm:px-6 bg-white/95 backdrop-blur-lg shadow-sm border-b border-gray-200/80 flex h-16 items-center justify-between gap-2 sm:gap-4 fixed right-0 top-0 z-30 transition-all duration-300 ${collapsed ? "w-[calc(100%-4rem)]" : "w-[calc(100%-16rem)]"
+          className={`px-4 sm:px-6 bg-[#ffffff]/95 backdrop-blur-lg shadow-sm border-b border-[#e5e7eb]/80 flex h-16 items-center justify-between gap-2 sm:gap-4 fixed right-0 top-0 z-30 transition-all duration-300 ${collapsed ? "w-[calc(100%-4rem)]" : "w-[calc(100%-16rem)]"
             }`}
         >
           {/* Mobile menu button */}
@@ -291,10 +291,10 @@ export function InstructorLayout() {
             {isMobile && (
               <button
                 onClick={toggleSidebar}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors md:hidden"
+                className="p-2 rounded-lg hover:bg-[#f3f4f6] transition-colors md:hidden"
                 aria-label="Toggle menu"
               >
-                <IconMenu2 className="w-5 h-5 text-gray-600" />
+                <IconMenu2 className="w-5 h-5 text-[#4b5563]" />
               </button>
             )}
 
@@ -304,7 +304,7 @@ export function InstructorLayout() {
                 <BreadcrumbItem>
                   <Link
                     to="/trainer"
-                    className="flex items-center text-green-600 hover:text-green-800 transition-colors"
+                    className="flex items-center text-[#16a34a] hover:text-[#15803d] transition-colors"
                   >
                     <HomeIcon size={18} aria-hidden="true" />
                     <span className="sr-only">Home</span>
@@ -312,7 +312,7 @@ export function InstructorLayout() {
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
-                  <BreadcrumbPage className="text-gray-800 font-medium">
+                  <BreadcrumbPage className="text-[#1f2937] font-medium">
                     {pageName}
                   </BreadcrumbPage>
                 </BreadcrumbItem>
@@ -320,7 +320,7 @@ export function InstructorLayout() {
             </Breadcrumb>
 
             {/* Mobile page title */}
-            <h1 className="font-semibold text-gray-800 text-lg sm:hidden">
+            <h1 className="font-semibold text-[#1f2937] text-lg sm:hidden">
               {pageName}
             </h1>
           </div>
@@ -331,7 +331,7 @@ export function InstructorLayout() {
             <Button
               variant="ghost"
               size="icon"
-              className="hidden sm:flex hover:bg-gray-100 text-gray-600 hover:text-gray-800 transition-colors"
+              className="hidden sm:flex hover:bg-[#f3f4f6] text-[#4b5563] hover:text-[#1f2937] transition-colors"
               onClick={handleInstallClick}
               title="Install App"
             >
@@ -343,56 +343,56 @@ export function InstructorLayout() {
             <input ref={avatarFileRef} type="file" accept="image/*" className="hidden" onChange={onAvatarChange} />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:ring-2 hover:ring-green-200 transition-all">
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:ring-2 hover:ring-[#bbf7d0] transition-all">
                   <Avatar className="h-9 w-9">
                     <AvatarImage
                       src={user?.avatar?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.fullName || user?.userName || 'Instructor')}&background=059669&color=fff`}
                       alt={user?.fullName || user?.userName || 'Instructor'}
                     />
-                    <AvatarFallback className="bg-gradient-to-r from-green-500 to-blue-600 text-white">
+                    <AvatarFallback className="bg-gradient-to-r from-[#22c55e] to-[#2563eb] text-[#ffffff]">
                       {(user?.fullName || user?.userName || 'IN').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="absolute bg-green-500 rounded-full bottom-0 right-0 size-2.5 border-2 border-white animate-pulse"></div>
+                  <div className="absolute bg-[#22c55e] rounded-full bottom-0 right-0 size-2.5 border-2 border-[#ffffff] animate-pulse"></div>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-64 p-2" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-[#111827]">
                         {user?.fullName || user?.userName || 'Instructor'}
                       </p>
-                      <Badge variant="outline" className="text-xs border-green-200 text-green-700">
+                      <Badge variant="outline" className="text-xs border-[#bbf7d0] text-[#15803d]">
                         {user?.role?.toLowerCase().replace('_', ' ') || 'Instructor'}
                       </Badge>
                     </div>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-[#6b7280]">
                       {user?.email || 'instructor@sarvagaya.edu'}
                     </p>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer hover:bg-green-50" onClick={pickAvatar}>
+                <DropdownMenuItem className="cursor-pointer hover:bg-[#f0fdf4]" onClick={pickAvatar}>
                   <IconUser className="mr-2 h-4 w-4" />
                   {t("profile.changeProfilePicture")}
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer hover:bg-green-50">
+                <DropdownMenuItem className="cursor-pointer hover:bg-[#f0fdf4]">
                   <IconSettings className="mr-2 h-4 w-4" />
                   {t("settings.accountSettings")}
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer hover:bg-green-50">
+                <DropdownMenuItem className="cursor-pointer hover:bg-[#f0fdf4]">
                   <Command className="mr-2 h-4 w-4" />
                   {t("ui.keyboardShortcuts")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  className="cursor-pointer hover:bg-red-50 text-red-600 focus:text-red-600"
+                  className="cursor-pointer hover:bg-[#fef2f2] text-[#dc2626] focus:text-[#dc2626]"
                   onClick={handleLogout}
                   disabled={isLoading}
                 >
                   {isLoading ? (
-                    <div className="mr-2 animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                    <div className="mr-2 animate-spin rounded-full h-4 w-4 border-b-2 border-[#dc2626]"></div>
                   ) : (
                     <IconLogout className="mr-2 h-4 w-4" />
                   )}
@@ -405,7 +405,7 @@ export function InstructorLayout() {
 
         {/* Page Content */}
         <div className="pt-20 pb-6 px-4 sm:px-6 min-h-screen">
-          <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-sm border border-gray-200/50 p-4 sm:p-6 transition-all duration-300 hover:shadow-md">
+          <div className="bg-[#ffffff]/80 backdrop-blur-sm rounded-xl shadow-sm border border-[#e5e7eb]/50 p-4 sm:p-6 transition-all duration-300 hover:shadow-md">
             <Outlet />
           </div>
         </div>

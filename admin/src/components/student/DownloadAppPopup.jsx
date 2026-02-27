@@ -80,17 +80,17 @@ const DownloadAppPopup = ({ isOpen, onClose, userRole }) => {
     try {
       // Show the install prompt
       const result = await deferredPrompt.prompt();
-      
+
       // Wait for the user to respond to the prompt
       const choiceResult = await deferredPrompt.userChoice;
-      
+
       if (choiceResult.outcome === 'accepted') {
         setIsInstalled(true);
         onClose();
       } else {
         console.log('User dismissed the install prompt');
       }
-      
+
       // Clear the deferredPrompt
       setDeferredPrompt(null);
       setIsInstallable(false);
@@ -114,22 +114,22 @@ const DownloadAppPopup = ({ isOpen, onClose, userRole }) => {
 
   const features = [
     {
-      icon: <Zap className="h-5 w-5 text-blue-600" />,
+      icon: <Zap className="h-5 w-5 text-[#2563eb]" />,
       title: "Faster Performance",
       description: "Lightning-fast loading and smooth interactions"
     },
     {
-      icon: <Wifi className="h-5 w-5 text-green-600" />,
+      icon: <Wifi className="h-5 w-5 text-[#16a34a]" />,
       title: "Offline Access",
       description: "Access your courses even without internet"
     },
     {
-      icon: <Bell className="h-5 w-5 text-purple-600" />,
+      icon: <Bell className="h-5 w-5 text-[#9333ea]" />,
       title: "Push Notifications",
       description: "Get notified about assignments and updates"
     },
     {
-      icon: <Star className="h-5 w-5 text-yellow-600" />,
+      icon: <Star className="h-5 w-5 text-[#ca8a04]" />,
       title: "Native Experience",
       description: "App-like experience on your device"
     }
@@ -145,22 +145,22 @@ const DownloadAppPopup = ({ isOpen, onClose, userRole }) => {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden">
         {/* Header with gradient background */}
-        <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6 pb-4">
+        <div className="bg-gradient-to-br from-[#eff6ff] via-[#eef2ff] to-[#faf5ff] p-6 pb-4">
           <DialogHeader className="text-center relative">
             <div className="mx-auto mb-4 p-3 bg-white rounded-full shadow-lg">
               {platform === 'mobile' ? (
-                <Smartphone className="h-8 w-8 text-blue-600" />
+                <Smartphone className="h-8 w-8 text-[#2563eb]" />
               ) : (
-                <Monitor className="h-8 w-8 text-blue-600" />
+                <Monitor className="h-8 w-8 text-[#2563eb]" />
               )}
             </div>
-            <DialogTitle className="text-xl font-bold text-gray-900 mb-2">
+            <DialogTitle className="text-xl font-bold text-[#111827] mb-2">
               Download Our App
             </DialogTitle>
-            <DialogDescription className="text-gray-600 text-base">
+            <DialogDescription className="text-[#4b5563] text-base">
               Get the best learning experience with our mobile app
             </DialogDescription>
-            <Badge className="absolute top-0 right-0 bg-green-100 text-green-800 border-green-200">
+            <Badge className="absolute top-0 right-0 bg-[#dcfce7] text-[#166534] border-[#bbf7d0]">
               Free
             </Badge>
           </DialogHeader>
@@ -168,20 +168,20 @@ const DownloadAppPopup = ({ isOpen, onClose, userRole }) => {
 
         {/* Features section */}
         <div className="px-6 py-4">
-          <h3 className="font-semibold text-gray-900 mb-4 text-center">
+          <h3 className="font-semibold text-[#111827] mb-4 text-center">
             Why download the app?
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {features.map((feature, index) => (
-              <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+              <div key={index} className="flex items-start gap-3 p-3 bg-[#f9fafb] rounded-lg">
                 <div className="p-2 bg-white rounded-full shadow-sm">
                   {feature.icon}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-sm text-gray-900 mb-1">
+                  <h4 className="font-medium text-sm text-[#111827] mb-1">
                     {feature.title}
                   </h4>
-                  <p className="text-xs text-gray-600 leading-relaxed">
+                  <p className="text-xs text-[#4b5563] leading-relaxed">
                     {feature.description}
                   </p>
                 </div>
@@ -192,10 +192,10 @@ const DownloadAppPopup = ({ isOpen, onClose, userRole }) => {
 
         {/* Install instructions for different platforms */}
         <div className="px-6 pb-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="bg-[#eff6ff] border border-[#bfdbfe] rounded-lg p-4">
             <div className="flex items-start gap-3">
-              <CheckCircle2 className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-              <div className="text-sm text-blue-800">
+              <CheckCircle2 className="h-5 w-5 text-[#2563eb] mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-[#1e40af]">
                 {platform === 'mobile' ? (
                   <>
                     <p className="font-medium mb-1">Mobile Installation:</p>
@@ -222,23 +222,23 @@ const DownloadAppPopup = ({ isOpen, onClose, userRole }) => {
             <Button
               variant="outline"
               onClick={handleRemindLater}
-              className="flex-1 text-gray-600 hover:text-gray-700"
+              className="flex-1 text-[#4b5563] hover:text-[#374151]"
             >
               Remind Later
             </Button>
             <Button
               variant="ghost"
               onClick={handleDontShowAgain}
-              className="flex-1 text-gray-400 hover:text-gray-500 text-sm"
+              className="flex-1 text-[#9ca3af] hover:text-[#6b7280] text-sm"
             >
               Don't Show Again
             </Button>
           </div>
-          
+
           {isInstallable ? (
             <Button
               onClick={handleInstallClick}
-              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8"
+              className="w-full sm:w-auto bg-[#2563eb] hover:bg-[#1d4ed8] text-white px-8"
               size="lg"
             >
               <Download className="h-4 w-4 mr-2" />
@@ -248,7 +248,7 @@ const DownloadAppPopup = ({ isOpen, onClose, userRole }) => {
             <Button
               onClick={() => window.open(window.location.href, '_blank')}
               variant="outline"
-              className="w-full sm:w-auto border-blue-600 text-blue-600 hover:bg-blue-50 px-8"
+              className="w-full sm:w-auto border-[#2563eb] text-[#2563eb] hover:bg-[#eff6ff] px-8"
               size="lg"
             >
               <Download className="h-4 w-4 mr-2" />

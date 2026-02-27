@@ -52,7 +52,7 @@ export default defineConfig({
   },
   build: {
     // Optimize build performance
-    target: 'esnext',
+    target: 'es2015',
     minify: 'esbuild',
     sourcemap: false, // Disable sourcemaps for production builds to reduce size
     cssCodeSplit: true, // Split CSS into separate chunks

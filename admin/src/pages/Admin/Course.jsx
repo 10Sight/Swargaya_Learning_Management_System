@@ -439,10 +439,10 @@ const Course = () => {
   if (coursesError) {
     return (
       <div className="flex flex-col justify-center items-center h-64 space-y-4 p-4">
-        <div className="text-red-600 text-lg font-medium">
+        <div className="text-[#dc2626] text-lg font-medium">
           Error loading courses
         </div>
-        <p className="text-gray-600 text-center">
+        <p className="text-[#4b5563] text-center">
           {coursesError?.message || "Failed to fetch courses"}
         </p>
         <Button onClick={() => refetch()} variant="outline" className="gap-2">
@@ -462,13 +462,13 @@ const Course = () => {
           value={totalCount}
           description="All courses in the system"
           icon={IconBook}
-          iconBgColor="bg-blue-100"
-          iconColor="text-blue-600"
-          gradientFrom="from-blue-50"
-          gradientTo="to-blue-100"
-          borderColor="border-blue-200"
-          textColor="text-blue-800"
-          valueColor="text-blue-900"
+          iconBgColor="bg-[#dbeafe]"
+          iconColor="text-[#2563eb]"
+          gradientFrom="from-[#eff6ff]"
+          gradientTo="to-[#dbeafe]"
+          borderColor="border-[#bfdbfe]"
+          textColor="text-[#1e40af]"
+          valueColor="text-[#1e3a8a]"
         />
 
         <StatCard
@@ -476,13 +476,13 @@ const Course = () => {
           value={courses.filter((c) => c.status === "PUBLISHED").length}
           description="Currently published"
           icon={IconEye}
-          iconBgColor="bg-green-100"
-          iconColor="text-green-600"
-          gradientFrom="from-green-50"
-          gradientTo="to-green-100"
-          borderColor="border-green-200"
-          textColor="text-green-800"
-          valueColor="text-green-900"
+          iconBgColor="bg-[#dcfce7]"
+          iconColor="text-[#16a34a]"
+          gradientFrom="from-[#f0fdf4]"
+          gradientTo="to-[#dcfce7]"
+          borderColor="border-[#bbf7d0]"
+          textColor="text-[#166534]"
+          valueColor="text-[#14532d]"
         />
 
         <StatCard
@@ -493,13 +493,13 @@ const Course = () => {
           )}
           description="Learning materials"
           icon={IconFileText}
-          iconBgColor="bg-purple-100"
-          iconColor="text-purple-600"
-          gradientFrom="from-purple-50"
-          gradientTo="to-purple-100"
-          borderColor="border-purple-200"
-          textColor="text-purple-800"
-          valueColor="text-purple-900"
+          iconBgColor="bg-[#f3e8ff]"
+          iconColor="text-[#9333ea]"
+          gradientFrom="from-[#faf5ff]"
+          gradientTo="to-[#f3e8ff]"
+          borderColor="border-[#e9d5ff]"
+          textColor="text-[#6b21a8]"
+          valueColor="text-[#581c87]"
         />
       </div>
 
@@ -531,7 +531,7 @@ const Course = () => {
 
           <Button
             onClick={() => navigate("/admin/add-course")}
-            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-300 w-full sm:w-auto"
+            className="bg-[#2563eb] hover:bg-[#1d4ed8] text-[#ffffff] shadow-lg hover:shadow-xl transition-all duration-300 w-full sm:w-auto"
           >
             <IconPlus className="h-4 w-4 mr-2" />
             <span className="hidden xs:inline">Add Course</span>
@@ -541,7 +541,7 @@ const Course = () => {
       </Tabs>
 
       {/* Search and Filters using reusable components */}
-      <Card className="shadow-sm border border-gray-200/50">
+      <Card className="shadow-sm border border-[#e5e7eb]/50">
         <CardHeader className="pb-3 px-4 sm:px-6">
           <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row justify-between items-stretch sm:items-center gap-4">
             <SearchInput
@@ -675,8 +675,8 @@ const Course = () => {
                     >
                       <TableCell>
                         <div className="flex items-center space-x-3">
-                          <Avatar className="h-10 w-10 border bg-blue-100">
-                            <AvatarFallback className="bg-blue-100 text-blue-800">
+                          <Avatar className="h-10 w-10 border bg-[#dbeafe]">
+                            <AvatarFallback className="bg-[#dbeafe] text-[#1e40af]">
                               <IconBook className="h-5 w-5" />
                             </AvatarFallback>
                           </Avatar>
@@ -749,7 +749,7 @@ const Course = () => {
                                     e.stopPropagation();
                                     openDeleteDialog(course);
                                   }}
-                                  className="h-8 w-8 p-0 text-red-600 hover:text-red-800 hover:bg-red-50"
+                                  className="h-8 w-8 p-0 text-[#dc2626] hover:text-[#991b1b] hover:bg-[#fef2f2]"
                                 >
                                   <IconTrash className="h-4 w-4" />
                                 </Button>
@@ -767,11 +767,11 @@ const Course = () => {
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-10">
                       <div className="flex flex-col items-center space-y-3">
-                        <IconBook className="h-12 w-12 text-muted-foreground/60" />
-                        <p className="text-muted-foreground font-medium">
+                        <IconBook className="h-12 w-12 text-[#9ca3af]/60" />
+                        <p className="text-[#9ca3af] font-medium">
                           No courses found
                         </p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-[#9ca3af]">
                           {searchTerm ||
                             statusFilter !== "ALL" ||
                             categoryFilter !== "ALL"
@@ -803,13 +803,13 @@ const Course = () => {
               courses.map((course) => (
                 <Card
                   key={course._id}
-                  className="group cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02] border border-gray-200/50"
+                  className="group cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02] border border-[#e5e7eb]/50"
                   onClick={() => handleCourseClick(course)}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start space-x-3">
-                      <Avatar className="h-12 w-12 border bg-blue-100 flex-shrink-0">
-                        <AvatarFallback className="bg-blue-100 text-blue-800">
+                      <Avatar className="h-12 w-12 border bg-[#dbeafe] flex-shrink-0">
+                        <AvatarFallback className="bg-[#dbeafe] text-[#1e40af]">
                           <IconBook className="h-6 w-6" />
                         </AvatarFallback>
                       </Avatar>
@@ -817,7 +817,7 @@ const Course = () => {
                       <div className="flex-1 min-w-0 space-y-2">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
-                            <h3 className="font-medium text-foreground line-clamp-1 group-hover:text-blue-600 transition-colors">
+                            <h3 className="font-medium text-foreground line-clamp-1 group-hover:text-[#2563eb] transition-colors">
                               {course.title}
                             </h3>
                             <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
@@ -835,7 +835,7 @@ const Course = () => {
                           {getStatusBadge(course.status)}
                         </div>
 
-                        <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                        <div className="flex items-center justify-between pt-2 border-t border-[#f3f4f6]">
                           <div className="flex items-center gap-2">
                             <Select
                               value={course.status}
@@ -874,7 +874,7 @@ const Course = () => {
                                 e.stopPropagation();
                                 openDeleteDialog(course);
                               }}
-                              className="h-8 w-8 p-0 text-red-600 hover:text-red-800 hover:bg-red-50"
+                              className="h-8 w-8 p-0 text-[#dc2626] hover:text-[#991b1b] hover:bg-[#fef2f2]"
                             >
                               <IconTrash className="h-4 w-4" />
                             </Button>
@@ -1068,11 +1068,11 @@ const Course = () => {
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-100 rounded-full">
-                <IconTrash className="h-6 w-6 text-red-600" />
+              <div className="p-2 bg-[#fee2e2] rounded-full">
+                <IconTrash className="h-6 w-6 text-[#dc2626]" />
               </div>
               <div>
-                <DialogTitle className="text-red-800">
+                <DialogTitle className="text-[#991b1b]">
                   Delete Course
                 </DialogTitle>
                 <DialogDescription>
@@ -1083,15 +1083,15 @@ const Course = () => {
           </DialogHeader>
 
           <div className="py-4">
-            <div className="p-4 bg-red-50 rounded-lg border border-red-200 mb-4">
-              <p className="text-sm text-red-800 font-medium mb-2">
+            <div className="p-4 bg-[#fef2f2] rounded-lg border border-[#fecaca] mb-4">
+              <p className="text-sm text-[#991b1b] font-medium mb-2">
                 You are about to delete the following course:
               </p>
 
-              <div className="bg-white p-3 rounded-md border border-red-100">
+              <div className="bg-[#ffffff] p-3 rounded-md border border-[#fee2e2]">
                 <div className="flex items-start gap-3">
-                  <Avatar className="h-10 w-10 border bg-blue-100 flex-shrink-0">
-                    <AvatarFallback className="bg-blue-100 text-blue-800">
+                  <Avatar className="h-10 w-10 border bg-[#dbeafe] flex-shrink-0">
+                    <AvatarFallback className="bg-[#dbeafe] text-[#1e40af]">
                       <IconBook className="h-5 w-5" />
                     </AvatarFallback>
                   </Avatar>
@@ -1114,8 +1114,8 @@ const Course = () => {
               </div>
             </div>
 
-            <div className="mt-4 p-3 bg-slate-100 rounded-md">
-              <p className="text-sm font-medium text-slate-800 flex items-center gap-2">
+            <div className="mt-4 p-3 bg-[#f1f5f9] rounded-md">
+              <p className="text-sm font-medium text-[#1e293b] flex items-center gap-2">
                 <IconInfoCircle className="h-4 w-4" />
                 To confirm deletion, type the course title below
               </p>

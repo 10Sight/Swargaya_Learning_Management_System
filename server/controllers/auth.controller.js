@@ -56,8 +56,8 @@ export const register = asyncHandler(async (req, res) => {
   email = email.toLowerCase();
   userName = userName.toLowerCase();
 
-  const emailExists = await User.findOne({ email });
-  if (emailExists) throw new ApiError("Email already in use", 400);
+  // const emailExists = await User.findOne({ email });
+  // if (emailExists) throw new ApiError("Email already in use", 400);
 
   const usernameExists = await User.findOne({ userName });
   if (usernameExists) throw new ApiError("Username already in use", 400);

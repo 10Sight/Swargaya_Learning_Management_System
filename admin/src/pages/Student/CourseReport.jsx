@@ -95,8 +95,8 @@ const CourseReport = () => {
 
   const getQuizStatusColor = (status) => {
     return status === 'PASSED'
-      ? 'bg-green-100 text-green-800'
-      : 'bg-red-100 text-red-800'
+      ? 'bg-[#dcfce7] text-[#166534]'
+      : 'bg-[#fee2e2] text-[#991b1b]'
   }
 
   const generatePDF = () => {
@@ -212,7 +212,7 @@ const CourseReport = () => {
       {/* Report Content */}
       <div id="report-content" ref={reportRef} className="bg-white">
         <Card className="border-2 border-primary/20">
-          <CardHeader className="text-center bg-gradient-to-r from-blue-50 to-indigo-100 border-b">
+          <CardHeader className="text-center bg-gradient-to-r from-[#eff6ff] to-[#e0e7ff] border-b">
             <div className="flex justify-center mb-4">
               <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center">
                 <GraduationCap className="h-8 w-8 text-white" />
@@ -288,7 +288,7 @@ const CourseReport = () => {
                   </div>
                   <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
                     <span className="text-muted-foreground">Progress:</span>
-                    <span className="font-medium text-green-600">{reportData.progress.progressPercent}%</span>
+                    <span className="font-medium text-[#16a34a]">{reportData.progress.progressPercent}%</span>
                   </div>
                 </CardContent>
               </Card>
@@ -312,19 +312,19 @@ const CourseReport = () => {
                 </Card>
                 <Card className="text-center">
                   <CardContent className="pt-6">
-                    <div className="text-2xl font-bold text-green-600">{reportData.quizSummary.passedQuizzes}</div>
+                    <div className="text-2xl font-bold text-[#16a34a]">{reportData.quizSummary.passedQuizzes}</div>
                     <div className="text-sm text-muted-foreground">Passed</div>
                   </CardContent>
                 </Card>
                 <Card className="text-center">
                   <CardContent className="pt-6">
-                    <div className="text-2xl font-bold text-red-600">{reportData.quizSummary.failedQuizzes}</div>
+                    <div className="text-2xl font-bold text-[#dc2626]">{reportData.quizSummary.failedQuizzes}</div>
                     <div className="text-sm text-muted-foreground">Failed</div>
                   </CardContent>
                 </Card>
                 <Card className="text-center">
                   <CardContent className="pt-6">
-                    <div className="text-2xl font-bold text-blue-600">{reportData.quizSummary.averageScore}%</div>
+                    <div className="text-2xl font-bold text-[#2563eb]">{reportData.quizSummary.averageScore}%</div>
                     <div className="text-sm text-muted-foreground">Average Score</div>
                   </CardContent>
                 </Card>
@@ -392,17 +392,17 @@ const CourseReport = () => {
             {/* Certificate Footer */}
             <div className="text-center space-y-4 pt-4">
               <div className="flex justify-center">
-                <Award className="h-12 w-12 text-yellow-500" />
+                <Award className="h-12 w-12 text-[#eab308]" />
               </div>
               <p className="text-lg font-semibold">Congratulations on your achievement!</p>
               <div className="flex flex-col sm:flex-row justify-between items-center gap-6 sm:gap-0 pt-8 max-w-lg mx-auto">
                 <div className="text-center">
-                  <div className="border-t border-gray-400 w-32 mb-2"></div>
+                  <div className="border-t border-[#9ca3af] w-32 mb-2"></div>
                   <p className="text-sm text-muted-foreground">Date</p>
                   <p className="text-sm font-medium">{formatDate(reportData.generatedAt)}</p>
                 </div>
                 <div className="text-center">
-                  <div className="border-t border-gray-400 w-32 mb-2"></div>
+                  <div className="border-t border-[#9ca3af] w-32 mb-2"></div>
                   <p className="text-sm text-muted-foreground">Instructor</p>
                   <p className="text-sm font-medium">{reportData.instructor.fullName}</p>
                 </div>

@@ -3,15 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Trash2, RotateCcw, Eye, Edit, User, Users } from "lucide-react";
 import { cn } from '@/lib/utils';
 
-const ActionButton = ({ 
-  icon: Icon, 
-  onClick, 
-  tooltip, 
-  variant = "outline", 
+const ActionButton = ({
+  icon: Icon,
+  onClick,
+  tooltip,
+  variant = "outline",
   size = "sm",
   className,
   disabled = false,
-  ...props 
+  ...props
 }) => {
   return (
     <Button
@@ -30,68 +30,68 @@ const ActionButton = ({
 
 const ActionButtons = {
   View: (props) => (
-    <ActionButton 
-      icon={Eye} 
+    <ActionButton
+      icon={Eye}
       tooltip="View Details"
-      className="hover:bg-blue-50 hover:text-blue-600"
-      {...props} 
+      className="hover:bg-[#eff6ff] hover:text-[#2563eb]"
+      {...props}
     />
   ),
-  
+
   Edit: (props) => (
-    <ActionButton 
-      icon={Edit} 
+    <ActionButton
+      icon={Edit}
       tooltip="Edit"
-      className="hover:bg-green-50 hover:text-green-600"
-      {...props} 
+      className="hover:bg-[#f0fdf4] hover:text-[#16a34a]"
+      {...props}
     />
   ),
-  
+
   Delete: (props) => (
-    <ActionButton 
-      icon={Trash2} 
+    <ActionButton
+      icon={Trash2}
       tooltip="Delete Permanently"
-      className="hover:bg-red-50 hover:text-red-600"
+      className="hover:bg-[#fef2f2] hover:text-[#dc2626]"
       variant="outline"
-      {...props} 
+      {...props}
     />
   ),
-  
+
   SoftDelete: (props) => (
-    <ActionButton 
-      icon={Trash2} 
+    <ActionButton
+      icon={Trash2}
       tooltip="Delete"
-      className="hover:bg-orange-50 hover:text-orange-600"
+      className="hover:bg-[#fff7ed] hover:text-[#ea580c]"
       variant="outline"
-      {...props} 
+      {...props}
     />
   ),
-  
+
   Restore: (props) => (
-    <ActionButton 
-      icon={RotateCcw} 
+    <ActionButton
+      icon={RotateCcw}
       tooltip="Restore"
-      className="hover:bg-green-50 hover:text-green-600"
+      className="hover:bg-[#f0fdf4] hover:text-[#16a34a]"
       variant="outline"
-      {...props} 
+      {...props}
     />
   ),
 
   ViewUser: (props) => (
-    <ActionButton 
-      icon={User} 
+    <ActionButton
+      icon={User}
       tooltip="View User"
-      className="hover:bg-blue-50 hover:text-blue-600"
-      {...props} 
+      className="hover:bg-[#eff6ff] hover:text-[#2563eb]"
+      {...props}
     />
   ),
 
   ManageUsers: (props) => (
-    <ActionButton 
-      icon={Users} 
+    <ActionButton
+      icon={Users}
       tooltip="Manage Users"
-      className="hover:bg-purple-50 hover:text-purple-600"
-      {...props} 
+      className="hover:bg-[#f3e8ff] hover:text-[#9333ea]"
+      {...props}
     />
   ),
 };

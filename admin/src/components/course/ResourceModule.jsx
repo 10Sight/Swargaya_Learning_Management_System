@@ -75,48 +75,48 @@ const ResourceModule = ({ module, courseId }) => {
   const getFileIcon = (resource) => {
     const format = resource.format?.toLowerCase();
     const type = resource.type?.toLowerCase();
-    
+
     // Check by resource type first
     switch (type) {
       case 'video':
-        return <IconVideo className="h-4 w-4 text-purple-500" />;
+        return <IconVideo className="h-4 w-4 text-[#a855f7]" />;
       case 'image':
-        return <IconPhoto className="h-4 w-4 text-green-500" />;
+        return <IconPhoto className="h-4 w-4 text-[#22c55e]" />;
       case 'pdf':
-        return <IconFileTypePdf className="h-4 w-4 text-red-500" />;
+        return <IconFileTypePdf className="h-4 w-4 text-[#ef4444]" />;
       case 'link':
-        return <IconLink className="h-4 w-4 text-blue-500" />;
+        return <IconLink className="h-4 w-4 text-[#3b82f6]" />;
       case 'text':
-        return <IconFileText className="h-4 w-4 text-gray-500" />;
+        return <IconFileText className="h-4 w-4 text-[#6b7280]" />;
     }
-    
+
     // Fallback to format if type doesn't match
     switch (format) {
       case 'pdf':
-        return <IconFileTypePdf className="h-4 w-4 text-red-500" />;
+        return <IconFileTypePdf className="h-4 w-4 text-[#ef4444]" />;
       case 'doc':
       case 'docx':
-        return <IconFileText className="h-4 w-4 text-blue-500" />;
+        return <IconFileText className="h-4 w-4 text-[#3b82f6]" />;
       case 'xls':
       case 'xlsx':
-        return <IconFileText className="h-4 w-4 text-green-500" />;
+        return <IconFileText className="h-4 w-4 text-[#22c55e]" />;
       case 'ppt':
       case 'pptx':
-        return <IconFileText className="h-4 w-4 text-orange-500" />;
+        return <IconFileText className="h-4 w-4 text-[#f97316]" />;
       case 'jpg':
       case 'jpeg':
       case 'png':
       case 'gif':
       case 'webp':
-        return <IconPhoto className="h-4 w-4 text-green-500" />;
+        return <IconPhoto className="h-4 w-4 text-[#22c55e]" />;
       case 'mp4':
       case 'mov':
       case 'avi':
       case 'wmv':
       case 'webm':
-        return <IconVideo className="h-4 w-4 text-purple-500" />;
+        return <IconVideo className="h-4 w-4 text-[#a855f7]" />;
       default:
-        return <IconFile className="h-4 w-4 text-gray-500" />;
+        return <IconFile className="h-4 w-4 text-[#6b7280]" />;
     }
   };
 
@@ -128,8 +128,8 @@ const ResourceModule = ({ module, courseId }) => {
     <Card>
       <CardHeader className="pb-3">
         <div className="flex justify-between items-center">
-          <div 
-            className="flex items-center gap-2 cursor-pointer flex-1" 
+          <div
+            className="flex items-center gap-2 cursor-pointer flex-1"
             onClick={toggleExpanded}
           >
             <CardTitle>{module.title}</CardTitle>
@@ -159,13 +159,13 @@ const ResourceModule = ({ module, courseId }) => {
       {/* Resources accordion content */}
       {isExpanded && (
         <CardContent className="pt-4">
-          
+
           {resourcesLoading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="border rounded-lg p-4 animate-pulse">
-                  <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-4 bg-[#e5e7eb] rounded mb-2"></div>
+                  <div className="h-3 bg-[#e5e7eb] rounded w-3/4"></div>
                 </div>
               ))}
             </div>
@@ -202,7 +202,7 @@ const ResourceModule = ({ module, courseId }) => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="flex gap-2">
                     {/* Preview button for images and videos */}
                     {resource.url && ['image', 'video'].includes(resource.type?.toLowerCase()) && (
@@ -215,7 +215,7 @@ const ResourceModule = ({ module, courseId }) => {
                         <IconEye className="h-4 w-4" />
                       </Button>
                     )}
-                    
+
                     {/* Download button for all resource types */}
                     {resource.url && (
                       <Button
@@ -227,7 +227,7 @@ const ResourceModule = ({ module, courseId }) => {
                         <IconDownload className="h-4 w-4" />
                       </Button>
                     )}
-                    
+
                     {/* Legacy support for older resources */}
                     {!resource.url && resource.fileUrl && (
                       <Button
@@ -249,7 +249,7 @@ const ResourceModule = ({ module, courseId }) => {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                      className="text-[#dc2626] hover:text-[#991b1b] hover:bg-[#fef2f2]"
                       onClick={() => handleDeleteResource(resource._id)}
                       disabled={isDeletingResource}
                     >
@@ -270,8 +270,8 @@ const ResourceModule = ({ module, courseId }) => {
               <p className="text-sm text-muted-foreground mt-1 mb-3">
                 Add resources to this module to provide supplementary materials
               </p>
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 onClick={() => navigate(`${basePath}/add-resource/${courseId}?moduleId=${moduleId}`)}
               >
                 <IconPlus className="h-4 w-4 mr-1" />

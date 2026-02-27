@@ -223,17 +223,17 @@ const StudentDashboard = () => {
     <AccountStatusWrapper allowPending={false}>
       <div className="space-y-4 sm:space-y-6">
         {/* Welcome Header */}
-        <Card className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border-blue-200 shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden">
+        <Card className="bg-gradient-to-br from-[#eff6ff] via-[#eef2ff] to-[#faf5ff] border-[#bfdbfe] shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden">
           <CardHeader className="relative">
             {/* Background decoration */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-200/30 to-transparent rounded-bl-full transform translate-x-8 -translate-y-8"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-[#bfdbfe]/30 to-transparent rounded-bl-full transform translate-x-8 -translate-y-8"></div>
 
             <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex-1 min-w-0">
-                <CardTitle className="text-lg sm:text-xl lg:text-2xl text-blue-900 font-bold leading-tight">
+                <CardTitle className="text-lg sm:text-xl lg:text-2xl text-[#1e3a8a] font-bold leading-tight">
                   Welcome back, {user?.fullName?.split(' ')[0] || 'Student'}! 👋
                 </CardTitle>
-                <CardDescription className="text-blue-700 text-sm sm:text-base mt-1 leading-relaxed">
+                <CardDescription className="text-[#1d4ed8] text-sm sm:text-base mt-1 leading-relaxed">
                   Ready to continue your learning journey?
                 </CardDescription>
               </div>
@@ -247,7 +247,7 @@ const StudentDashboard = () => {
                   <span className="sm:hidden">{currentLevel}</span>
                 </Badge>
                 {dashboardData.department && (
-                  <Badge variant="outline" className="bg-white/80 backdrop-blur-sm text-xs sm:text-sm px-3 py-1.5 rounded-full border-blue-200 text-blue-700">
+                  <Badge variant="outline" className="bg-white/80 backdrop-blur-sm text-xs sm:text-sm px-3 py-1.5 rounded-full border-[#bfdbfe] text-[#1d4ed8]">
                     <Users className="w-3 h-3 mr-1 sm:hidden" />
                     <span className="truncate max-w-24 sm:max-w-none">
                       {dashboardData.department.name}
@@ -261,74 +261,74 @@ const StudentDashboard = () => {
 
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <Card className="group hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-l-4 border-l-blue-500" onClick={() => navigate('/student/course')}>
+          <Card className="group hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-l-4 border-l-[#3b82f6]" onClick={() => navigate('/student/course')}>
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Course Progress</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-blue-600 mt-1">{courseProgress}%</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-[#2563eb] mt-1">{courseProgress}%</p>
                   <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                     {dashboardData.progress?.completedModules?.length || 0} of {dashboardData.course?.modules?.length || 0} modules
                   </p>
                 </div>
-                <div className="p-2 sm:p-3 bg-blue-100 rounded-full shrink-0 group-hover:bg-blue-200 transition-colors duration-300">
-                  <Target className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+                <div className="p-2 sm:p-3 bg-[#dbeafe] rounded-full shrink-0 group-hover:bg-[#bfdbfe] transition-colors duration-300">
+                  <Target className="h-5 w-5 sm:h-6 sm:w-6 text-[#2563eb]" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="group hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-l-4 border-l-green-500" onClick={() => navigate('/student/course')}>
+          <Card className="group hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-l-4 border-l-[#22c55e]" onClick={() => navigate('/student/course')}>
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Lessons Completed</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-green-600 mt-1">{completedLessons}</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-[#16a34a] mt-1">{completedLessons}</p>
                   <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                     of {totalLessons} total lessons
                   </p>
                 </div>
-                <div className="p-2 sm:p-3 bg-green-100 rounded-full shrink-0 group-hover:bg-green-200 transition-colors duration-300">
-                  <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
+                <div className="p-2 sm:p-3 bg-[#dcfce7] rounded-full shrink-0 group-hover:bg-[#bbf7d0] transition-colors duration-300">
+                  <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 text-[#16a34a]" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="group hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-default border-l-4 border-l-purple-500">
+          <Card className="group hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-default border-l-4 border-l-[#a855f7]">
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Current Level</p>
                   <div className="flex items-center gap-2 mt-1">
-                    <p className="text-xl sm:text-2xl font-bold text-purple-600">{currentLevel}</p>
+                    <p className="text-xl sm:text-2xl font-bold text-[#9333ea]">{currentLevel}</p>
                     <span className="text-sm">{levelInfo.icon}</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1 truncate">
                     {levelInfo.name}
                   </p>
                 </div>
-                <div className="p-2 sm:p-3 bg-purple-100 rounded-full shrink-0 group-hover:bg-purple-200 transition-colors duration-300">
-                  <Trophy className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
+                <div className="p-2 sm:p-3 bg-[#f3e8ff] rounded-full shrink-0 group-hover:bg-[#e9d5ff] transition-colors duration-300">
+                  <Trophy className="h-5 w-5 sm:h-6 sm:w-6 text-[#9333ea]" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="group hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-l-4 border-l-orange-500" onClick={() => navigate('/student/department')}>
+          <Card className="group hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-l-4 border-l-[#f97316]" onClick={() => navigate('/student/department')}>
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Department Status</p>
-                  <p className="text-lg sm:text-xl font-bold text-orange-600 mt-1 truncate">
+                  <p className="text-lg sm:text-xl font-bold text-[#ea580c] mt-1 truncate">
                     {dashboardData.department?.status || 'N/A'}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1 truncate">
                     {dashboardData.department?.name || 'No department'}
                   </p>
                 </div>
-                <div className="p-2 sm:p-3 bg-orange-100 rounded-full shrink-0 group-hover:bg-orange-200 transition-colors duration-300">
-                  <Users className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600" />
+                <div className="p-2 sm:p-3 bg-[#ffedd5] rounded-full shrink-0 group-hover:bg-[#fed7aa] transition-colors duration-300">
+                  <Users className="h-5 w-5 sm:h-6 sm:w-6 text-[#ea580c]" />
                 </div>
               </div>
             </CardContent>
@@ -341,7 +341,7 @@ const StudentDashboard = () => {
           <Card className="h-full">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-[#2563eb]" />
                 Course Progress
               </CardTitle>
               <CardDescription className="text-sm">
@@ -376,7 +376,7 @@ const StudentDashboard = () => {
 
                   <Button
                     onClick={() => navigate('/student/course')}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                    className="w-full bg-[#2563eb] hover:bg-[#1d4ed8] text-[#ffffff]"
                     size="lg"
                   >
                     <PlayCircle className="h-4 w-4 mr-2" />
@@ -399,7 +399,7 @@ const StudentDashboard = () => {
           <Card className="h-full">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <Target className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
+                <Target className="h-4 w-4 sm:h-5 sm:w-5 text-[#16a34a]" />
                 <span className="hidden sm:inline">Current Focus</span>
                 <span className="sm:hidden">Next Up</span>
               </CardTitle>
@@ -410,20 +410,20 @@ const StudentDashboard = () => {
             <CardContent>
               {currentModule ? (
                 <div className="space-y-4">
-                  <div className="p-4 sm:p-6 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg shadow-sm">
+                  <div className="p-4 sm:p-6 bg-gradient-to-br from-[#f0fdf4] to-[#ecfdf5] border border-[#bbf7d0] rounded-lg shadow-sm">
                     <div className="flex items-start justify-between mb-3">
-                      <h3 className="font-semibold text-green-800 text-sm sm:text-base leading-tight line-clamp-2 flex-1 mr-2">
+                      <h3 className="font-semibold text-[#166534] text-sm sm:text-base leading-tight line-clamp-2 flex-1 mr-2">
                         {currentModule.title}
                       </h3>
-                      <Badge variant="outline" className="bg-green-100 text-green-700 text-xs px-2 py-1 whitespace-nowrap">
+                      <Badge variant="outline" className="bg-[#dcfce7] text-[#15803d] text-xs px-2 py-1 whitespace-nowrap">
                         <span className="hidden sm:inline">Next Module</span>
                         <span className="sm:hidden">Next</span>
                       </Badge>
                     </div>
-                    <p className="text-xs sm:text-sm text-green-700 mb-4 leading-relaxed line-clamp-3">
+                    <p className="text-xs sm:text-sm text-[#15803d] mb-4 leading-relaxed line-clamp-3">
                       {currentModule.description || "Continue your learning journey with this module."}
                     </p>
-                    <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-green-600">
+                    <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-[#16a34a]">
                       <span className="flex items-center gap-1">
                         <BookOpen className="h-3 w-3" />
                         <span>{currentModule.lessons?.length || 0} lessons</span>
@@ -439,7 +439,7 @@ const StudentDashboard = () => {
 
                   <Button
                     onClick={() => navigate('/student/course')}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white"
+                    className="w-full bg-[#16a34a] hover:bg-[#15803d] text-white"
                     size="lg"
                   >
                     <PlayCircle className="h-4 w-4 mr-2" />
@@ -450,16 +450,16 @@ const StudentDashboard = () => {
               ) : dashboardData.course && courseProgress === 100 ? (
                 <div className="text-center py-6 sm:py-8 space-y-4">
                   <div className="relative">
-                    <Trophy className="h-12 w-12 sm:h-16 sm:w-16 text-yellow-500 mx-auto mb-4 animate-bounce" />
-                    <div className="absolute inset-0 bg-yellow-200 rounded-full blur-xl opacity-30 animate-pulse"></div>
+                    <Trophy className="h-12 w-12 sm:h-16 sm:w-16 text-[#eab308] mx-auto mb-4 animate-bounce" />
+                    <div className="absolute inset-0 bg-[#fef08a] rounded-full blur-xl opacity-30 animate-pulse"></div>
                   </div>
-                  <h3 className="font-bold text-lg sm:text-xl mb-2 text-yellow-700">Congratulations! 🎉</h3>
+                  <h3 className="font-bold text-lg sm:text-xl mb-2 text-[#a16207]">Congratulations! 🎉</h3>
                   <p className="text-muted-foreground mb-6 text-sm sm:text-base px-4">You've completed all course modules!</p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
                     <Button
                       onClick={() => navigate('/student/course')}
                       variant="outline"
-                      className="flex-1 border-yellow-300 hover:bg-yellow-50"
+                      className="flex-1 border-[#fde047] hover:bg-[#fefce8]"
                     >
                       <Award className="h-4 w-4 mr-2" />
                       <span className="hidden sm:inline">Final Assessments</span>
@@ -483,7 +483,7 @@ const StudentDashboard = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-blue-600" />
+                <Users className="h-5 w-5 text-[#2563eb]" />
                 Department Information
               </CardTitle>
               <CardDescription>
@@ -509,8 +509,8 @@ const StudentDashboard = () => {
                   <Badge
                     variant={dashboardData.department.status === 'ACTIVE' ? 'default' : 'secondary'}
                     className={`text-xs px-3 py-1 ${dashboardData.department.status === 'ACTIVE'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-gray-100 text-gray-800'
+                      ? 'bg-[#dcfce7] text-[#166534]'
+                      : 'bg-[#f3f4f6] text-[#1f2937]'
                       }`}
                   >
                     {dashboardData.department.status}
@@ -522,8 +522,8 @@ const StudentDashboard = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mt-4 sm:mt-6 pt-4 sm:pt-6 border-t">
                   {dashboardData.department.startDate && (
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-100 rounded-full">
-                        <Calendar className="h-4 w-4 text-blue-600" />
+                      <div className="p-2 bg-[#dbeafe] rounded-full">
+                        <Calendar className="h-4 w-4 text-[#2563eb]" />
                       </div>
                       <div>
                         <p className="text-xs sm:text-sm font-medium text-muted-foreground">Start Date</p>
@@ -534,8 +534,8 @@ const StudentDashboard = () => {
 
                   {dashboardData.department.endDate && (
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-red-100 rounded-full">
-                        <Calendar className="h-4 w-4 text-red-600" />
+                      <div className="p-2 bg-[#fee2e2] rounded-full">
+                        <Calendar className="h-4 w-4 text-[#dc2626]" />
                       </div>
                       <div>
                         <p className="text-xs sm:text-sm font-medium text-muted-foreground">End Date</p>
@@ -553,7 +553,7 @@ const StudentDashboard = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Star className="h-5 w-5 text-yellow-500" />
+              <Star className="h-5 w-5 text-[#eab308]" />
               Quick Actions
             </CardTitle>
             <CardDescription>
@@ -568,8 +568,8 @@ const StudentDashboard = () => {
                 className="h-auto p-3 sm:p-4 justify-start hover:shadow-md transition-all duration-300 hover:scale-105 group"
               >
                 <div className="flex items-center gap-3 w-full">
-                  <div className="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors duration-300">
-                    <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                  <div className="p-2 bg-[#dbeafe] rounded-lg group-hover:bg-[#bfdbfe] transition-colors duration-300">
+                    <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-[#2563eb]" />
                   </div>
                   <div className="text-left flex-1 min-w-0">
                     <p className="font-medium text-sm sm:text-base truncate">Continue Course</p>
@@ -589,8 +589,8 @@ const StudentDashboard = () => {
                 className="h-auto p-3 sm:p-4 justify-start hover:shadow-md transition-all duration-300 hover:scale-105 group"
               >
                 <div className="flex items-center gap-3 w-full">
-                  <div className="p-2 bg-orange-100 rounded-lg group-hover:bg-orange-200 transition-colors duration-300">
-                    <Users className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" />
+                  <div className="p-2 bg-[#ffedd5] rounded-lg group-hover:bg-[#fed7aa] transition-colors duration-300">
+                    <Users className="h-4 w-4 sm:h-5 sm:w-5 text-[#ea580c]" />
                   </div>
                   <div className="text-left flex-1 min-w-0">
                     <p className="font-medium text-sm sm:text-base truncate">View Department</p>

@@ -150,13 +150,13 @@ const DepartmentStudentsTable = ({ students, departmentId, departmentName, onRef
   // Get student status badge
   const getStatusBadge = (status) => {
     const statusConfig = {
-      ACTIVE: { variant: "default", color: "text-green-700" },
-      SUSPENDED: { variant: "destructive", color: "text-red-700" },
-      PENDING: { variant: "secondary", color: "text-amber-700" },
-      BANNED: { variant: "destructive", color: "text-red-700" },
+      ACTIVE: { variant: "default", color: "text-[#15803d]" },
+      SUSPENDED: { variant: "destructive", color: "text-[#b91c1c]" },
+      PENDING: { variant: "secondary", color: "text-[#b45309]" },
+      BANNED: { variant: "destructive", color: "text-[#b91c1c]" },
     };
 
-    const config = statusConfig[status] || { variant: "secondary", color: "text-gray-700" };
+    const config = statusConfig[status] || { variant: "secondary", color: "text-[#374151]" };
 
     return (
       <Badge variant={config.variant} className={config.color}>
@@ -289,13 +289,13 @@ const DepartmentStudentsTable = ({ students, departmentId, departmentName, onRef
                           return (
                             <div
                               key={sId}
-                              className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 ${selectedStudents.includes(sId) ? 'bg-blue-50 border border-blue-200' : ''
+                              className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer hover:bg-[#f9fafb] ${selectedStudents.includes(sId) ? 'bg-[#eff6ff] border border-[#bfdbfe]' : ''
                                 }`}
                               onClick={() => toggleStudentSelection(sId)}
                             >
                               <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${selectedStudents.includes(sId)
-                                ? 'bg-blue-600 border-blue-600 text-white'
-                                : 'border-gray-300'
+                                ? 'bg-[#2563eb] border-[#2563eb] text-white'
+                                : 'border-[#d1d5db]'
                                 }`}>
                                 {selectedStudents.includes(sId) && (
                                   <IconCheck className="h-3 w-3" />
@@ -431,13 +431,13 @@ const DepartmentStudentsTable = ({ students, departmentId, departmentName, onRef
                             return (
                               <div
                                 key={sId}
-                                className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 ${selectedStudents.includes(sId) ? 'bg-blue-50 border border-blue-200' : ''
+                                className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer hover:bg-[#f9fafb] ${selectedStudents.includes(sId) ? 'bg-[#eff6ff] border border-[#bfdbfe]' : ''
                                   }`}
                                 onClick={() => toggleStudentSelection(sId)}
                               >
                                 <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${selectedStudents.includes(sId)
-                                  ? 'bg-blue-600 border-blue-600 text-white'
-                                  : 'border-gray-300'
+                                  ? 'bg-[#2563eb] border-[#2563eb] text-white'
+                                  : 'border-[#d1d5db]'
                                   }`}>
                                   {selectedStudents.includes(sId) && (
                                     <IconCheck className="h-3 w-3" />
@@ -563,7 +563,7 @@ const DepartmentStudentsTable = ({ students, departmentId, departmentName, onRef
               const lastActivity = studentProgress?.lastActivity;
 
               return (
-                <TableRow key={student._id} className="hover:bg-gray-50">
+                <TableRow key={student._id} className="hover:bg-[#f9fafb]">
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-10 w-10 border-2">
@@ -571,7 +571,7 @@ const DepartmentStudentsTable = ({ students, departmentId, departmentName, onRef
                           src={student.avatar?.url}
                           alt={student.fullName}
                         />
-                        <AvatarFallback className="bg-blue-100 text-blue-800 font-medium">
+                        <AvatarFallback className="bg-[#dbeafe] text-[#1e40af] font-medium">
                           {student.fullName
                             ?.split(" ")
                             .map((n) => n[0])
@@ -670,7 +670,7 @@ const DepartmentStudentsTable = ({ students, departmentId, departmentName, onRef
                             <AlertDialogTrigger asChild>
                               <DropdownMenuItem
                                 onSelect={(e) => e.preventDefault()}
-                                className="text-red-600"
+                                className="text-[#dc2626]"
                               >
                                 <IconUserMinus className="h-4 w-4 mr-2" />
                                 Remove from Department
@@ -688,7 +688,7 @@ const DepartmentStudentsTable = ({ students, departmentId, departmentName, onRef
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                                 <AlertDialogAction
                                   onClick={() => handleRemoveStudent(student._id, student.fullName)}
-                                  className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+                                  className="bg-[#dc2626] hover:bg-[#b91c1c] focus:ring-[#dc2626]"
                                   disabled={isRemovingStudent}
                                 >
                                   {isRemovingStudent && <IconLoader className="h-4 w-4 mr-2 animate-spin" />}
@@ -738,23 +738,23 @@ const DepartmentStudentsTable = ({ students, departmentId, departmentName, onRef
         {!progressLoading && departmentProgress.length > 0 && (
           <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
             <div className="text-center">
-              <div className="text-lg font-bold text-blue-600">{students.length}</div>
+              <div className="text-lg font-bold text-[#2563eb]">{students.length}</div>
               <div className="text-xs text-muted-foreground">Total Trainees</div>
             </div>
             <div className="text-center">
-              <div className="text-lg font-bold text-green-600">
+              <div className="text-lg font-bold text-[#16a34a]">
                 {departmentProgress.filter(p => p.progressPercentage > 0).length}
               </div>
               <div className="text-xs text-muted-foreground">Active Learners</div>
             </div>
             <div className="text-center">
-              <div className="text-lg font-bold text-orange-600">
+              <div className="text-lg font-bold text-[#ea580c]">
                 {departmentProgress.filter(p => p.progressPercentage >= 100).length}
               </div>
               <div className="text-xs text-muted-foreground">Completed</div>
             </div>
             <div className="text-center">
-              <div className="text-lg font-bold text-purple-600">
+              <div className="text-lg font-bold text-[#9333ea]">
                 {Math.round(
                   departmentProgress.reduce((sum, p) => sum + p.progressPercentage, 0) / departmentProgress.length
                 )}%

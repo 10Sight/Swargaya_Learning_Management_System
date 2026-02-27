@@ -144,10 +144,10 @@ const DepartmentDetail = () => {
     return (
       <div className="container mx-auto p-6">
         <div className="flex flex-col items-center justify-center h-96 space-y-4">
-          <div className="text-red-600 text-lg font-medium">
+          <div className="text-[#dc2626] text-lg font-medium">
             {departmentError.status === 404 ? "Department not found" : "Error loading department"}
           </div>
-          <p className="text-gray-600 text-center">
+          <p className="text-[#4b5563] text-center">
             {departmentError.data?.message || "Failed to fetch department details"}
           </p>
           <div className="flex gap-3">
@@ -173,7 +173,7 @@ const DepartmentDetail = () => {
     return (
       <div className="container mx-auto p-6">
         <div className="flex flex-col items-center justify-center h-96 space-y-4">
-          <div className="text-gray-600 text-lg font-medium">
+          <div className="text-[#4b5563] text-lg font-medium">
             Department not found
           </div>
           <Button
@@ -224,12 +224,12 @@ const DepartmentDetail = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <IconUsers className="h-4 w-4 text-blue-600" />
+              <IconUsers className="h-4 w-4 text-[#2563eb]" />
               Trainees
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{enhancedStats.totalStudents}</div>
+            <div className="text-2xl font-bold text-[#2563eb]">{enhancedStats.totalStudents}</div>
             <p className="text-xs text-muted-foreground">Total enrolled</p>
           </CardContent>
         </Card>
@@ -237,12 +237,12 @@ const DepartmentDetail = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <IconTrendingUp className="h-4 w-4 text-green-600" />
+              <IconTrendingUp className="h-4 w-4 text-[#16a34a]" />
               Progress
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{enhancedStats.averageProgress}%</div>
+            <div className="text-2xl font-bold text-[#16a34a]">{enhancedStats.averageProgress}%</div>
             <p className="text-xs text-muted-foreground">Average progress</p>
           </CardContent>
         </Card>
@@ -250,12 +250,12 @@ const DepartmentDetail = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <IconFileText className="h-4 w-4 text-purple-600" />
+              <IconFileText className="h-4 w-4 text-[#9333ea]" />
               Submissions
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{enhancedStats.totalSubmissions}</div>
+            <div className="text-2xl font-bold text-[#9333ea]">{enhancedStats.totalSubmissions}</div>
             <p className="text-xs text-muted-foreground">Total submissions</p>
           </CardContent>
         </Card>
@@ -263,12 +263,12 @@ const DepartmentDetail = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <IconChartBar className="h-4 w-4 text-orange-600" />
+              <IconChartBar className="h-4 w-4 text-[#ea580c]" />
               Quiz Score
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{enhancedStats.averageQuizScore}%</div>
+            <div className="text-2xl font-bold text-[#ea580c]">{enhancedStats.averageQuizScore}%</div>
             <p className="text-xs text-muted-foreground">Average score</p>
           </CardContent>
         </Card>
@@ -321,10 +321,10 @@ const DepartmentDetail = () => {
                     const { student, completedModules, totalModules, progressPercentage, lastActivity } = studentProgress;
 
                     return (
-                      <div key={student._id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                      <div key={student._id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-[#f9fafb]">
                         <div className="flex items-center gap-4 flex-1">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-sm font-medium text-blue-800">
+                            <div className="w-10 h-10 rounded-full bg-[#dbeafe] flex items-center justify-center text-sm font-medium text-[#1e40af]">
                               {student.fullName?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
                             </div>
                             <div>
@@ -388,10 +388,10 @@ const DepartmentDetail = () => {
               ) : submissionStats.submissions.length > 0 ? (
                 <div className="space-y-4">
                   {submissionStats.submissions.slice(0, 10).map((submission) => (
-                    <div key={submission._id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                    <div key={submission._id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-[#f9fafb]">
                       <div className="flex items-center gap-4 flex-1">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-xs font-medium text-purple-800">
+                          <div className="w-8 h-8 rounded-full bg-[#f3e8ff] flex items-center justify-center text-xs font-medium text-[#6b21a8]">
                             {submission.student?.fullName?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
                           </div>
                           <div>
@@ -423,19 +423,19 @@ const DepartmentDetail = () => {
                   {/* Show stats summary */}
                   <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
                     <div className="text-center">
-                      <div className="text-lg font-bold text-purple-600">{submissionStats.stats.totalSubmissions}</div>
+                      <div className="text-lg font-bold text-[#9333ea]">{submissionStats.stats.totalSubmissions}</div>
                       <div className="text-xs text-muted-foreground">Total</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-lg font-bold text-green-600">{submissionStats.stats.gradedSubmissions}</div>
+                      <div className="text-lg font-bold text-[#16a34a]">{submissionStats.stats.gradedSubmissions}</div>
                       <div className="text-xs text-muted-foreground">Graded</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-lg font-bold text-orange-600">{submissionStats.stats.averageGrade}%</div>
+                      <div className="text-lg font-bold text-[#ea580c]">{submissionStats.stats.averageGrade}%</div>
                       <div className="text-xs text-muted-foreground">Avg Grade</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-lg font-bold text-red-600">{submissionStats.stats.lateSubmissions}</div>
+                      <div className="text-lg font-bold text-[#dc2626]">{submissionStats.stats.lateSubmissions}</div>
                       <div className="text-xs text-muted-foreground">Late</div>
                     </div>
                   </div>
@@ -472,10 +472,10 @@ const DepartmentDetail = () => {
               ) : attemptStats.attempts.length > 0 ? (
                 <div className="space-y-4">
                   {attemptStats.attempts.slice(0, 10).map((attempt) => (
-                    <div key={attempt._id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                    <div key={attempt._id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-[#f9fafb]">
                       <div className="flex items-center gap-4 flex-1">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-xs font-medium text-orange-800">
+                          <div className="w-8 h-8 rounded-full bg-[#ffedd5] flex items-center justify-center text-xs font-medium text-[#9a3412]">
                             {attempt.student?.fullName?.split(' ').map(n => n[0]).join('').toUpperCase() || '?'}
                           </div>
                           <div>
@@ -505,19 +505,19 @@ const DepartmentDetail = () => {
                   {/* Show stats summary */}
                   <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
                     <div className="text-center">
-                      <div className="text-lg font-bold text-orange-600">{attemptStats.stats.totalAttempts}</div>
+                      <div className="text-lg font-bold text-[#ea580c]">{attemptStats.stats.totalAttempts}</div>
                       <div className="text-xs text-muted-foreground">Total</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-lg font-bold text-green-600">{attemptStats.stats.passedAttempts}</div>
+                      <div className="text-lg font-bold text-[#16a34a]">{attemptStats.stats.passedAttempts}</div>
                       <div className="text-xs text-muted-foreground">Passed</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-lg font-bold text-blue-600">{attemptStats.stats.passRate}%</div>
+                      <div className="text-lg font-bold text-[#2563eb]">{attemptStats.stats.passRate}%</div>
                       <div className="text-xs text-muted-foreground">Pass Rate</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-lg font-bold text-purple-600">{attemptStats.stats.averageScore}%</div>
+                      <div className="text-lg font-bold text-[#9333ea]">{attemptStats.stats.averageScore}%</div>
                       <div className="text-xs text-muted-foreground">Avg Score</div>
                     </div>
                   </div>

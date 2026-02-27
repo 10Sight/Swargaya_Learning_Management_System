@@ -727,8 +727,8 @@ const SkillMatrix = () => {
             <div className="no-print bg-white p-4 rounded-lg shadow-sm border space-y-4">
                 <div className="flex justify-between items-center">
                     <div>
-                        <h1 className="text-xl font-bold text-gray-800">Skill Matrix Generator</h1>
-                        <p className="text-sm text-gray-500">Select Department and Line to generate matrix</p>
+                        <h1 className="text-xl font-bold text-[#1f2937]">Skill Matrix Generator</h1>
+                        <p className="text-sm text-[#6b7280]">Select Department and Line to generate matrix</p>
                     </div>
                 </div>
 
@@ -767,11 +767,11 @@ const SkillMatrix = () => {
                             <IconPrinter className="h-4 w-4" />
                             Print
                         </Button>
-                        <Button onClick={handleExport} disabled={!selectedLine || matrixEntries.length === 0} variant="outline" className="gap-2 border-green-600 text-green-600 hover:bg-green-50">
+                        <Button onClick={handleExport} disabled={!selectedLine || matrixEntries.length === 0} variant="outline" className="gap-2 border-[#16a34a] text-[#16a34a] hover:bg-[#f0fdf4]">
                             <IconDownload className="h-4 w-4" />
                             Export Excel
                         </Button>
-                        <Button onClick={handleSave} disabled={isSaving || !selectedLine} className="gap-2 bg-green-600 hover:bg-green-700">
+                        <Button onClick={handleSave} disabled={isSaving || !selectedLine} className="gap-2 bg-[#16a34a] hover:bg-[#15803d]">
                             {isSaving ? <IconLoader className="animate-spin h-4 w-4" /> : <IconDeviceFloppy className="h-4 w-4" />}
                             Save Data
                         </Button>
@@ -781,13 +781,13 @@ const SkillMatrix = () => {
 
             {/* Matrix Display */}
             {!selectedLine ? (
-                <div className="text-center py-10 text-gray-500 border-2 border-dashed rounded-lg">
+                <div className="text-center py-10 text-[#6b7280] border-2 border-dashed rounded-lg">
                     Please select a Department and Line to view the Skill Matrix.
                 </div>
             ) : isMachinesLoading || isLinesLoading ? (
                 <div className="flex justify-center py-10"><IconLoader className="animate-spin" /></div>
             ) : matrixEntries.length === 0 ? (
-                <div className="text-center py-10 text-gray-500 border-2 border-dashed rounded-lg">
+                <div className="text-center py-10 text-[#6b7280] border-2 border-dashed rounded-lg">
                     No users or machines found for this selection.
                 </div>
             ) : (
@@ -797,8 +797,8 @@ const SkillMatrix = () => {
                         <div className="w-[150px] border-r border-black p-2 flex items-center justify-center">
                             <img src="/motherson+marelli.png" alt="Logo" className="h-10" />
                             <div className="flex flex-col ml-2">
-                                <span className="font-bold text-xs text-red-600">motherson</span>
-                                <span className="font-bold text-xs text-blue-600">MARELLI</span>
+                                <span className="font-bold text-xs text-[#dc2626]">motherson</span>
+                                <span className="font-bold text-xs text-[#2563eb]">MARELLI</span>
                             </div>
                         </div>
                         <div className="flex-1 border-r border-black flex items-center justify-center">
@@ -821,22 +821,22 @@ const SkillMatrix = () => {
                         </div>
                     </div>
 
-                    <div className="flex border-b border-black text-xs font-semibold bg-gray-50">
+                    <div className="flex border-b border-black text-xs font-semibold bg-[#f9fafb]">
                         <div className="w-[30%] border-r border-black p-1">Plant : MMLI,Pune</div>
                         <div className="flex-1 p-1 text-right pr-10">Department : <span className="ml-4">{selectedDeptName}</span></div>
                     </div>
 
                     {/* Table Header */}
-                    <div className="flex border-b border-black text-[10px] font-bold bg-gray-200 text-center">
+                    <div className="flex border-b border-black text-[10px] font-bold bg-[#e5e7eb] text-center">
                         <div className="w-8 border-r border-black p-2 flex items-center justify-center">Sr.No.</div>
                         <div className="w-32 border-r border-black p-2 flex items-center justify-center">OPERATOR NAME</div>
                         <div className="w-12 border-r border-black p-2 flex items-center justify-center">TNR/EMP</div>
                         <div className="w-16 border-r border-black p-2 flex items-center justify-center">DET/CAS</div>
                         <div className="w-20 border-r border-black p-2 flex items-center justify-center">DOJ</div>
-                        <div className="w-32 border-r border-black p-2 flex items-center justify-center bg-gray-100">Station / Machine Name</div>
-                        <div className="w-24 border-r border-black p-2 flex items-center justify-center bg-gray-100 text-[9px] leading-tight">Critical & Non Critical</div>
-                        <div className="w-16 border-r border-black p-2 flex items-center justify-center bg-gray-100 text-[9px] leading-tight">Minimum Skill Level Required</div>
-                        <div className="w-16 border-r border-black p-2 flex items-center justify-center bg-gray-100 text-[9px] leading-tight">Current Skill Level</div>
+                        <div className="w-32 border-r border-black p-2 flex items-center justify-center bg-[#f3f4f6]">Station / Machine Name</div>
+                        <div className="w-24 border-r border-black p-2 flex items-center justify-center bg-[#f3f4f6] text-[9px] leading-tight">Critical & Non Critical</div>
+                        <div className="w-16 border-r border-black p-2 flex items-center justify-center bg-[#f3f4f6] text-[9px] leading-tight">Minimum Skill Level Required</div>
+                        <div className="w-16 border-r border-black p-2 flex items-center justify-center bg-[#f3f4f6] text-[9px] leading-tight">Current Skill Level</div>
 
                         <div className="flex-1 flex overflow-x-auto">
                             {matrixEntries[0]?.stations?.map((station) => (
@@ -941,7 +941,7 @@ const SkillMatrix = () => {
                                             >
                                                 <SelectTrigger className="w-full h-full border-none p-0 flex justify-center bg-transparent focus:ring-0 select-trigger">
                                                     <div>
-                                                        {level > 0 ? <SkillIcon level={level} size={20} /> : <div className="h-5 w-5 rounded-full border border-gray-300"></div>}
+                                                        {level > 0 ? <SkillIcon level={level} size={20} /> : <div className="h-5 w-5 rounded-full border border-[#d1d5db]"></div>}
                                                     </div>
                                                 </SelectTrigger>
                                                 <SelectContent>
@@ -974,7 +974,7 @@ const SkillMatrix = () => {
                                     <SkillIcon level={parseLevel(lvl.name)} size={20} />
                                     <div className="flex flex-col">
                                         <span className="font-bold">{lvl.name}</span>
-                                        <span className="text-[9px] text-gray-600 leading-tight">{lvl.description || ""}</span>
+                                        <span className="text-[9px] text-[#4b5563] leading-tight">{lvl.description || ""}</span>
                                     </div>
                                 </div>
                             ))}
@@ -1004,7 +1004,7 @@ const SkillMatrix = () => {
                         {/* Revision History (Editable) */}
                         <div className="w-[40%] text-[9px]">
                             {/* Header */}
-                            <div className="flex bg-yellow-300 font-bold border-b border-black text-center">
+                            <div className="flex bg-[#fde047] font-bold border-b border-black text-center">
                                 <div className="w-16 border-r border-black p-1">Rev Date</div>
                                 <div className="w-10 border-r border-black p-1">Rev no</div>
                                 <div className="flex-1 border-r border-black p-1">What Change</div>

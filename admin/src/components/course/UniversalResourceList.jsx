@@ -43,23 +43,23 @@ const formatFileSize = (bytes) => {
 
 const getResourceTypeBadge = (type) => {
   const colors = {
-    video: "bg-red-100 text-red-800",
-    image: "bg-green-100 text-green-800", 
-    pdf: "bg-blue-100 text-blue-800",
-    link: "bg-purple-100 text-purple-800",
-    text: "bg-gray-100 text-gray-800"
+    video: "bg-[#fee2e2] text-[#991b1b]",
+    image: "bg-[#dcfce7] text-[#166534]",
+    pdf: "bg-[#dbeafe] text-[#1e40af]",
+    link: "bg-[#f3e8ff] text-[#6b21a8]",
+    text: "bg-[#f3f4f6] text-[#1f2937]"
   };
 
-  return colors[type?.toLowerCase()] || "bg-gray-100 text-gray-800";
+  return colors[type?.toLowerCase()] || "bg-[#f3f4f6] text-[#1f2937]";
 };
 
-export const UniversalResourceList = ({ 
-  scope, 
-  courseId, 
-  moduleId, 
-  lessonId, 
+export const UniversalResourceList = ({
+  scope,
+  courseId,
+  moduleId,
+  lessonId,
   entityName = "",
-  showAddButton = true 
+  showAddButton = true
 }) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [deleteResource, { isLoading: isDeletingResource }] = useDeleteResourceMutation();
@@ -122,8 +122,8 @@ export const UniversalResourceList = ({
         </CardHeader>
         <CardContent>
           <div className="flex justify-center items-center py-8">
-            <IconLoader className="h-6 w-6 animate-spin text-gray-500" />
-            <span className="ml-2 text-gray-500">Loading resources...</span>
+            <IconLoader className="h-6 w-6 animate-spin text-[#6b7280]" />
+            <span className="ml-2 text-[#6b7280]">Loading resources...</span>
           </div>
         </CardContent>
       </Card>
@@ -140,11 +140,11 @@ export const UniversalResourceList = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-red-600">
+          <div className="text-center py-8 text-[#dc2626]">
             <p>Error loading resources: {error?.data?.message || "Unknown error"}</p>
-            <Button 
-              variant="outline" 
-              className="mt-2" 
+            <Button
+              variant="outline"
+              className="mt-2"
               onClick={refetch}
             >
               Try Again
@@ -184,8 +184,8 @@ export const UniversalResourceList = ({
         </CardHeader>
         <CardContent>
           {resources.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <IconFile className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+            <div className="text-center py-12 text-[#6b7280]">
+              <IconFile className="h-12 w-12 mx-auto mb-4 text-[#9ca3af]" />
               <h3 className="text-lg font-medium mb-2">No Resources Yet</h3>
               <p className="text-sm mb-4">
                 Add resources like PDFs, videos, images, or external links to enhance learning.
@@ -204,36 +204,36 @@ export const UniversalResourceList = ({
             <div className="grid gap-4">
               {resources.map((resource) => {
                 const IconComponent = getResourceIcon(resource.type);
-                
+
                 return (
                   <div
                     key={resource._id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors group"
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-[#f9fafb] transition-colors group"
                   >
                     <div className="flex items-center gap-4 flex-1 min-w-0">
-                      <div className="p-2 rounded-full bg-gray-100">
-                        <IconComponent className="h-5 w-5 text-gray-600" />
+                      <div className="p-2 rounded-full bg-[#f3f4f6]">
+                        <IconComponent className="h-5 w-5 text-[#4b5563]" />
                       </div>
-                      
+
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-medium text-gray-900 truncate">
+                          <h4 className="font-medium text-[#111827] truncate">
                             {resource.title}
                           </h4>
-                          <span 
+                          <span
                             className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getResourceTypeBadge(resource.type)}`}
                           >
                             {resource.type?.toUpperCase()}
                           </span>
                         </div>
-                        
+
                         {resource.description && (
-                          <p className="text-sm text-gray-600 mb-1 line-clamp-2">
+                          <p className="text-sm text-[#4b5563] mb-1 line-clamp-2">
                             {resource.description}
                           </p>
                         )}
-                        
-                        <div className="flex items-center gap-4 text-xs text-gray-500">
+
+                        <div className="flex items-center gap-4 text-xs text-[#6b7280]">
                           {resource.fileName && (
                             <span>📁 {resource.fileName}</span>
                           )}
@@ -247,7 +247,7 @@ export const UniversalResourceList = ({
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       {resource.url && (
                         <Button
@@ -263,13 +263,13 @@ export const UniversalResourceList = ({
                           )}
                         </Button>
                       )}
-                      
+
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleDeleteResource(resource._id)}
                         disabled={isDeletingResource}
-                        className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                        className="text-[#dc2626] hover:text-[#991b1b] hover:bg-[#fef2f2]"
                       >
                         {isDeletingResource ? (
                           <IconLoader className="h-4 w-4 animate-spin" />

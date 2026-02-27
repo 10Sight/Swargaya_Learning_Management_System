@@ -152,7 +152,7 @@ const MachineManager = ({ lineId }) => {
                 {isLoading ? (
                     <div className="flex justify-center p-8"><IconLoader className="animate-spin" /></div>
                 ) : error ? (
-                    <div className="text-red-500 p-4">Error loading machines: {error.message}</div>
+                    <div className="text-[#ef4444] p-4">Error loading machines: {error.message}</div>
                 ) : machinesData?.data?.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
                         No machines found for this line. Create one to get started.
@@ -170,7 +170,7 @@ const MachineManager = ({ lineId }) => {
                             {machinesData?.data?.map((machine) => (
                                 <TableRow
                                     key={machine.id || machine._id}
-                                    className="hover:bg-gray-100"
+                                    className="hover:bg-[#f3f4f6]"
                                 >
                                     <TableCell className="font-medium">
                                         {editingMachineId === (machine.id || machine._id) ? (
@@ -188,19 +188,19 @@ const MachineManager = ({ lineId }) => {
                                     <TableCell className="text-right">
                                         {editingMachineId === (machine.id || machine._id) ? (
                                             <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600" onClick={(e) => saveEdit(e)} disabled={isUpdating}>
+                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-[#16a34a]" onClick={(e) => saveEdit(e)} disabled={isUpdating}>
                                                     <IconCheck className="h-4 w-4" />
                                                 </Button>
-                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-red-600" onClick={cancelEditing}>
+                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-[#dc2626]" onClick={cancelEditing}>
                                                     <IconX className="h-4 w-4" />
                                                 </Button>
                                             </div>
                                         ) : (
                                             <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-blue-600" onClick={(e) => startEditing(e, machine)}>
+                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-[#2563eb]" onClick={(e) => startEditing(e, machine)}>
                                                     <IconEdit className="h-4 w-4" />
                                                 </Button>
-                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-red-600" onClick={(e) => handleDeleteMachine(e, machine.id || machine._id)}>
+                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-[#dc2626]" onClick={(e) => handleDeleteMachine(e, machine.id || machine._id)}>
                                                     {isDeleting ? <IconLoader className="h-4 w-4 animate-spin" /> : <IconTrash className="h-4 w-4" />}
                                                 </Button>
                                             </div>

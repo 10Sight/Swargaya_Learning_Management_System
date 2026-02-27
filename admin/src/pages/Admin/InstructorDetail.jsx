@@ -61,7 +61,7 @@ const InstructorDetail = () => {
         <div className="grid gap-6">
           {/* Header Skeleton */}
           <Card>
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 h-32"></div>
+            <div className="bg-gradient-to-r from-[#2563eb] to-[#9333ea] h-32"></div>
             <CardContent className="relative pt-0">
               <div className="flex flex-col md:flex-row md:items-end md:justify-between -mt-16">
                 <div className="flex flex-col md:flex-row items-center md:items-end gap-4">
@@ -107,7 +107,7 @@ const InstructorDetail = () => {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
-        <div className="text-red-600 text-lg font-medium">
+        <div className="text-[#dc2626] text-lg font-medium">
           Error loading instructor
         </div>
         <p className="text-muted-foreground text-center">

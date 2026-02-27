@@ -7,7 +7,7 @@ import { IconPrinter, IconDownload, IconDeviceFloppy, IconArrowLeft } from "@tab
 import { toast } from "sonner";
 import { useGetOnJobTrainingByIdQuery, useUpdateOnJobTrainingMutation } from "@/Redux/AllApi/OnJobTrainingApi";
 
-const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model = "Model Name", readOnly = false, onBack }) => {
+const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model: initialModel = "Model Name", readOnly = false, onBack }) => {
     const componentRef = useRef();
 
     // API Hooks
@@ -31,7 +31,8 @@ const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model = "Mo
         name: "",
         line: "",
         machine: "",
-        doj: ""
+        doj: "",
+        model: ""
     });
 
     // Summary State
@@ -71,8 +72,8 @@ const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model = "Mo
                 name: data.name || "Level-1 Practical Evaluation of On the Job Training",
                 line: data.line?.name || "",
                 machine: data.machine?.name + (data.machine?.machineName ? ` (${data.machine.machineName})` : "") || "",
-                // defaulting DOJ to createdAt if not stored explicitly, or empty
-                doj: data.student?.createdAt ? new Date(data.student.createdAt).toLocaleDateString() : ""
+                doj: data.student?.createdAt ? new Date(data.student.createdAt).toLocaleDateString() : "",
+                model: data.model || initialModel
             });
         }
     }, [ojtData]);
@@ -140,6 +141,7 @@ const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model = "Mo
                     totalMarksObtained: summary.totalMarksObtained,
                     totalPercentage: summary.totalPercentage,
                     result: summary.result,
+                    model: headerInfo.model,
                     ...docDetails
                 }
             };
@@ -194,15 +196,15 @@ const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model = "Mo
                         Back
                     </Button>
                     <div>
-                        <h1 className="text-xl font-bold text-gray-800">{headerInfo.name || "On Job Training Evaluation"}</h1>
-                        <p className="text-sm text-gray-500">
+                        <h1 className="text-xl font-bold text-[#1f2937]">{headerInfo.name || "On Job Training Evaluation"}</h1>
+                        <p className="text-sm text--[#6b7280]">
                             Level-1 Practical Evaluation of On the Job Training
                         </p>
                     </div>
                 </div>
                 <div className="flex gap-2">
                     {!readOnly && (
-                        <Button onClick={handleSave} disabled={isSaving} className="gap-2 bg-blue-600 hover:bg-blue-700">
+                        <Button onClick={handleSave} disabled={isSaving} className="gap-2 bg-[#2563eb] hover:bg-[#1d4ed8]">
                             <IconDeviceFloppy className="w-4 h-4" />
                             {isSaving ? "Saving..." : "Save Data"}
                         </Button>
@@ -225,7 +227,7 @@ const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model = "Mo
                             </div>
                             <div className="grid grid-cols-1 border border-black text-xs">
                                 <div className="flex border-b border-black">
-                                    <span className="p-1 border-r border-black font-semibold bg-gray-100 w-20">Doc. No.</span>
+                                    <span className="p-1 border-r border-black font-semibold bg-[#f3f4f6] w-20">Doc. No.</span>
                                     <span className="p-1 w-32">
                                         <Input disabled={readOnly}
                                             className="h-full w-full border-none p-1 focus-visible:ring-0"
@@ -235,7 +237,7 @@ const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model = "Mo
                                     </span>
                                 </div>
                                 <div className="flex border-b border-black">
-                                    <span className="p-1 border-r border-black font-semibold bg-gray-100 w-20">Rev. No.</span>
+                                    <span className="p-1 border-r border-black font-semibold bg-[#f3f4f6] w-20">Rev. No.</span>
                                     <span className="p-1 w-32">
                                         <Input disabled={readOnly}
                                             className="h-full w-full border-none p-1 focus-visible:ring-0"
@@ -245,7 +247,7 @@ const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model = "Mo
                                     </span>
                                 </div>
                                 <div className="flex">
-                                    <span className="p-1 border-r border-black font-semibold bg-gray-100 w-20">Rev. Date</span>
+                                    <span className="p-1 border-r border-black font-semibold bg-[#f3f4f6] w-20">Rev. Date</span>
                                     <span className="p-1 w-32">
                                         <Input disabled={readOnly}
                                             className="h-full w-full border-none p-1 focus-visible:ring-0"
@@ -260,7 +262,15 @@ const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model = "Mo
                         <div className="mb-4 grid grid-cols-2 gap-8 text-xs">
                             <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
                                 <span className="font-bold">Model:</span>
-                                <div className="border-b border-black h-5 px-2 font-medium">{model}</div>
+                                <div className="border-b border-black h-5 px-2 font-medium">
+                                    <Input
+                                        disabled={readOnly}
+                                        className="h-full w-full border-none p-0 text-left focus-visible:ring-0 bg-transparent font-medium"
+                                        value={headerInfo.model}
+                                        onChange={(e) => setHeaderInfo(prev => ({ ...prev, model: e.target.value }))}
+                                        placeholder="Enter Model"
+                                    />
+                                </div>
                                 <span className="font-bold">Name of Associate:</span>
                                 <div className="border-b border-black h-5 px-2 font-medium">{studentName}</div>
                             </div>
@@ -276,7 +286,7 @@ const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model = "Mo
                         <div className="border border-black mb-4">
                             <table className="w-full text-center text-xs border-collapse">
                                 <thead>
-                                    <tr className="bg-gray-100 font-bold">
+                                    <tr className="bg-[#f3f4f6] font-bold">
                                         <th rowSpan="2" className="border border-black p-1 w-16">Date</th>
                                         <th rowSpan="2" className="border border-black p-1 w-12">HOURS</th>
                                         <th rowSpan="2" className="border border-black p-1 w-20">PRODUCTION TARGET</th>
@@ -284,17 +294,17 @@ const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model = "Mo
                                         <th rowSpan="2" className="border border-black p-1 w-16">OK PARTS</th>
                                         <th rowSpan="2" className="border border-black p-1 w-16">Rejection</th>
                                         <th colSpan="2" className="border border-black p-1">CYCLE TIME</th>
-                                        <th rowSpan="2" className="border border-black p-1 bg-gray-200">NC Tag (critical)</th>
+                                        <th rowSpan="2" className="border border-black p-1 bg-[#e5e7eb]">NC Tag (critical)</th>
                                         <th rowSpan="2" className="border border-black p-1">ESCALATION SYSTEM</th>
                                         <th rowSpan="2" className="border border-black p-1">SOS FOLLOW</th>
-                                        <th rowSpan="2" className="border border-black p-1 bg-gray-200">Customer Complaint (critical)</th>
+                                        <th rowSpan="2" className="border border-black p-1 bg-[#e5e7eb]">Customer Complaint (critical)</th>
                                         <th rowSpan="2" className="border border-black p-1">PPE USES</th>
                                         <th rowSpan="2" className="border border-black p-1">Associate sign</th>
                                         <th rowSpan="2" className="border border-black p-1">MTS Trainer Sign</th>
                                         <th rowSpan="2" className="border border-black p-1">TL Sign</th>
                                         <th rowSpan="2" className="border border-black p-1">Shift Incharge Sign</th>
                                     </tr>
-                                    <tr className="bg-gray-100 font-bold">
+                                    <tr className="bg-[#f3f4f6] font-bold">
                                         <th className="border border-black p-1 w-12">Target</th>
                                         <th className="border border-black p-1 w-12">Actual</th>
                                     </tr>
@@ -314,10 +324,10 @@ const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model = "Mo
                                             <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.rejection ?? ""} onChange={e => handleEntryChange(index, 'rejection', e.target.value)} /></td>
                                             <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.cycleTimeTarget ?? ""} onChange={e => handleEntryChange(index, 'cycleTimeTarget', e.target.value)} /></td>
                                             <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.cycleTimeActual ?? ""} onChange={e => handleEntryChange(index, 'cycleTimeActual', e.target.value)} /></td>
-                                            <td className="border border-black p-0 bg-gray-50"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 bg-transparent focus-visible:ring-0" value={row.ncTag ?? ""} onChange={e => handleEntryChange(index, 'ncTag', e.target.value)} /></td>
+                                            <td className="border border-black p-0 bg-[#f9fafb]"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 bg-transparent focus-visible:ring-0" value={row.ncTag ?? ""} onChange={e => handleEntryChange(index, 'ncTag', e.target.value)} /></td>
                                             <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.escalationSystem ?? ""} onChange={e => handleEntryChange(index, 'escalationSystem', e.target.value)} /></td>
                                             <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.sosFollow ?? ""} onChange={e => handleEntryChange(index, 'sosFollow', e.target.value)} /></td>
-                                            <td className="border border-black p-0 bg-gray-50"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 bg-transparent focus-visible:ring-0" value={row.customerComplaint ?? ""} onChange={e => handleEntryChange(index, 'customerComplaint', e.target.value)} /></td>
+                                            <td className="border border-black p-0 bg-[#f9fafb]"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 bg-transparent focus-visible:ring-0" value={row.customerComplaint ?? ""} onChange={e => handleEntryChange(index, 'customerComplaint', e.target.value)} /></td>
                                             <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.ppeUses ?? ""} onChange={e => handleEntryChange(index, 'ppeUses', e.target.value)} /></td>
                                             <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.associateSign ?? ""} onChange={e => handleEntryChange(index, 'associateSign', e.target.value)} /></td>
                                             <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.mtsTrainerSign ?? ""} onChange={e => handleEntryChange(index, 'mtsTrainerSign', e.target.value)} /></td>
@@ -377,19 +387,19 @@ const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model = "Mo
                                                     <div className="flex-1 p-0 h-full">
                                                         <select
                                                             disabled={readOnly}
-                                                            className={`h-full w-full border-none text-center text-lg font-bold p-0 focus:outline-none bg-transparent ${summary.result === 'Pass' ? 'text-green-600' : summary.result === 'Fail' ? 'text-red-600' : ''}`}
+                                                            className={`h-full w-full border-none text-center text-lg font-bold p-0 focus:outline-none bg-transparent ${summary.result === 'Pass' ? 'text-[#16a34a]' : summary.result === 'Fail' ? 'text-[#dc2626]' : ''}`}
                                                             value={summary.result}
                                                             onChange={e => handleSummaryChange('result', e.target.value)}
                                                         >
                                                             <option value="">Select</option>
-                                                            <option value="Pass" className="text-green-600">Pass</option>
-                                                            <option value="Fail" className="text-red-600">Fail</option>
+                                                            <option value="Pass" className="text-[#16a34a]">Pass</option>
+                                                            <option value="Fail" className="text-[#dc2626]">Fail</option>
                                                         </select>
                                                     </div>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td colSpan={3} className="border border-black p-1 bg-gray-200"></td>
+                                        <td colSpan={3} className="border border-black p-1 bg-[#e5e7eb]"></td>
                                     </tr>
                                     <tr>
                                         <td className="border border-black p-1 font-bold">Evaluation %</td>
@@ -398,9 +408,9 @@ const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model = "Mo
                                         <td className="border border-black p-1"></td>
                                         <td className="border border-black p-1"></td>
                                         <td className="border border-black p-1"></td>
-                                        <td className="border border-black p-1 bg-gray-200"></td>
+                                        <td className="border border-black p-1 bg-[#e5e7eb]"></td>
                                         <td className="border border-black p-1"></td>
-                                        <td colSpan={3} className="border border-black p-1 bg-gray-200"></td>
+                                        <td colSpan={3} className="border border-black p-1 bg-[#e5e7eb]"></td>
                                     </tr>
                                     <tr>
                                         <td className="border border-black p-1 font-bold">Evaluation Mark</td>
@@ -409,9 +419,9 @@ const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model = "Mo
                                         <td className="border border-black p-1"></td>
                                         <td className="border border-black p-1"></td>
                                         <td className="border border-black p-1"></td>
-                                        <td className="border border-black p-1 bg-gray-200"></td>
+                                        <td className="border border-black p-1 bg-[#e5e7eb]"></td>
                                         <td className="border border-black p-1"></td>
-                                        <td colSpan={3} className="border border-black p-1 bg-gray-200"></td>
+                                        <td colSpan={3} className="border border-black p-1 bg-[#e5e7eb]"></td>
                                     </tr>
                                     <tr>
                                         <td colSpan={13} className="border border-black p-1 text-right font-bold pr-4">Result- Pass/ Fail</td>
@@ -425,7 +435,7 @@ const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model = "Mo
                         <div className="border border-black mb-4">
                             <table className="w-full text-center text-xs border-collapse">
                                 <thead>
-                                    <tr className="bg-gray-100">
+                                    <tr className="bg-[#f3f4f6]">
                                         <th colSpan={2} className="border border-black p-1 w-32">Total Production</th>
                                         <th colSpan={2} className="border border-black p-1 w-32">OK Production</th>
                                         <th colSpan={2} className="border border-black p-1 w-32">Rejection</th>
@@ -434,10 +444,10 @@ const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model = "Mo
                                         <th className="border border-black p-1 w-20">Follow (Aware)</th>
                                         <th className="border border-black p-1 w-20">Not Follow (Not Aware)</th>
                                         {/* Empty columns to match table width */}
-                                        <th className="border border-black p-1 bg-gray-50 flex-1"></th>
-                                        <th className="border border-black p-1 bg-gray-50 flex-1"></th>
-                                        <th className="border border-black p-1 bg-gray-50 flex-1"></th>
-                                        <th className="border border-black p-1 bg-gray-50 flex-1"></th>
+                                        <th className="border border-black p-1 bg-[#f9fafb] flex-1"></th>
+                                        <th className="border border-black p-1 bg-[#f9fafb] flex-1"></th>
+                                        <th className="border border-black p-1 bg-[#f9fafb] flex-1"></th>
+                                        <th className="border border-black p-1 bg-[#f9fafb] flex-1"></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -534,7 +544,7 @@ const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model = "Mo
                                 </div>
                             </div>
                             {/* Change Management Section */}
-                            <div className="p-1 font-bold text-center bg-gray-100 border-b border-black">Change Management</div>
+                            <div className="p-1 font-bold text-center bg-[#f3f4f6] border-b border-black">Change Management</div>
                             <div className="grid grid-cols-[100px_1fr_100px_60px_80px_1fr_80px] border-b border-black text-center font-semibold text-[10px]">
                                 <div className="border-r border-black p-1">Rev No & Date</div>
                                 <div className="border-r border-black p-1">What Change</div>

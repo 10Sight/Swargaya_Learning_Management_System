@@ -6,13 +6,13 @@ const StatCard = ({
   value,
   description,
   icon: Icon,
-  iconBgColor = "bg-blue-100",
-  iconColor = "text-blue-600",
-  gradientFrom = "from-blue-50",
-  gradientTo = "to-blue-100",
-  borderColor = "border-blue-200",
-  textColor = "text-blue-800",
-  valueColor = "text-blue-900",
+  iconBgColor = "bg-[#dbeafe]",
+  iconColor = "text-[#2563eb]",
+  gradientFrom = "from-[#eff6ff]",
+  gradientTo = "to-[#dbeafe]",
+  borderColor = "border-[#bfdbfe]",
+  textColor = "text-[#1e40af]",
+  valueColor = "text-[#1e3a8a]",
 }) => {
   return (
     <Card className={`bg-gradient-to-br ${gradientFrom} ${gradientTo} ${borderColor}`}>

@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input'
 import { IconChartBar, IconDownload } from '@tabler/icons-react'
 
-const Bar = ({ value = 0, max = 1, color = 'bg-blue-600' }) => {
+const Bar = ({ value = 0, max = 1, color = 'bg-[#2563eb]' }) => {
   const pct = max > 0 ? Math.round((value / max) * 100) : 0
   return (
     <div className="w-full bg-muted rounded h-2">
@@ -20,7 +20,7 @@ const ExamHistory = () => {
   const [year, setYear] = useState(String(new Date().getFullYear()))
   const [studentId, setStudentId] = useState('')
 
-  const params = useMemo(() => ({ groupBy, year: groupBy === 'month' ? year : '' , studentId: studentId || '' }), [groupBy, year, studentId])
+  const params = useMemo(() => ({ groupBy, year: groupBy === 'month' ? year : '', studentId: studentId || '' }), [groupBy, year, studentId])
   const { data, isLoading, refetch } = useGetExamHistoryStatsQuery(params)
   const [triggerExport, { isFetching: isExporting }] = useLazyExportExamHistoryQuery()
 
@@ -48,7 +48,7 @@ const ExamHistory = () => {
             document.body.appendChild(a)
             a.click(); a.remove(); window.URL.revokeObjectURL(url)
           }}>
-            <IconDownload className="h-4 w-4 mr-2"/> Excel
+            <IconDownload className="h-4 w-4 mr-2" /> Excel
           </Button>
           <Button variant="outline" disabled={isExporting} onClick={async () => {
             const { data: blobData } = await triggerExport({ ...params, format: 'pdf' })
@@ -60,19 +60,19 @@ const ExamHistory = () => {
             document.body.appendChild(a)
             a.click(); a.remove(); window.URL.revokeObjectURL(url)
           }}>
-            <IconDownload className="h-4 w-4 mr-2"/> PDF
+            <IconDownload className="h-4 w-4 mr-2" /> PDF
           </Button>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-<CardTitle className="flex items-center gap-2"><IconChartBar className="h-5 w-5"/> Filters</CardTitle>
+          <CardTitle className="flex items-center gap-2"><IconChartBar className="h-5 w-5" /> Filters</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col sm:flex-row gap-3">
           <div className="w-full sm:w-48">
             <Select value={groupBy} onValueChange={setGroupBy}>
-              <SelectTrigger><SelectValue placeholder="Group By"/></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Group By" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="month">By Month</SelectItem>
                 <SelectItem value="year">By Year</SelectItem>
@@ -103,15 +103,15 @@ const ExamHistory = () => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
                       <div className="flex justify-between text-xs"><span>Passed</span><span>{series.passed[idx]}</span></div>
-                      <Bar value={series.passed[idx]} max={maxValue} color="bg-green-600"/>
+                      <Bar value={series.passed[idx]} max={maxValue} color="bg-[#16a34a]" />
                     </div>
                     <div>
                       <div className="flex justify-between text-xs"><span>Failed</span><span>{series.failed[idx]}</span></div>
-                      <Bar value={series.failed[idx]} max={maxValue} color="bg-red-600"/>
+                      <Bar value={series.failed[idx]} max={maxValue} color="bg-[#dc2626]" />
                     </div>
                     <div>
                       <div className="flex justify-between text-xs"><span>Total</span><span>{series.total[idx]}</span></div>
-                      <Bar value={series.total[idx]} max={maxValue} color="bg-blue-600"/>
+                      <Bar value={series.total[idx]} max={maxValue} color="bg-[#2563eb]" />
                     </div>
                   </div>
                 </div>

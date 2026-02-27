@@ -58,7 +58,7 @@ const CourseLevelSettings = () => {
   const [selectedConfig, setSelectedConfig] = useState(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [configToDelete, setConfigToDelete] = useState(null);
-  
+
   // Form state
   const [configName, setConfigName] = useState("");
   const [configDescription, setConfigDescription] = useState("");
@@ -220,7 +220,7 @@ const CourseLevelSettings = () => {
     try {
       // Validate compatibility
       const compatibilityResult = await validateCompatibility({ levels }).unwrap();
-      
+
       if (!compatibilityResult.data.isCompatible) {
         toast.warning(
           `Warning: ${compatibilityResult.data.affectedStudentsCount} students have levels that won't exist in this configuration. Consider migrating them first.`
@@ -293,7 +293,7 @@ const CourseLevelSettings = () => {
   if (configsLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2563eb]"></div>
       </div>
     );
   }
@@ -304,7 +304,7 @@ const CourseLevelSettings = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5 text-blue-600" />
+            <Settings className="h-5 w-5 text-[#2563eb]" />
             Course Level Configuration
           </CardTitle>
           <CardDescription>
@@ -329,7 +329,7 @@ const CourseLevelSettings = () => {
       {/* Active Configuration Info */}
       {activeConfig && !isCreating && !isEditing && (
         <Alert>
-          <CheckCircle className="h-4 w-4 text-green-600" />
+          <CheckCircle className="h-4 w-4 text-[#16a34a]" />
           <AlertDescription>
             <strong>Active Configuration:</strong> {activeConfig.name} ({activeConfig.levels.length} levels)
           </AlertDescription>
@@ -354,7 +354,7 @@ const CourseLevelSettings = () => {
                   placeholder="e.g., 2-Level System, 5-Level Progressive"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="config-description">Description</Label>
                 <Textarea
@@ -379,7 +379,7 @@ const CourseLevelSettings = () => {
 
               <div className="space-y-4">
                 {levels.map((level, index) => (
-                  <Card key={index} className="bg-slate-50">
+                  <Card key={index} className="bg-[#f8fafc]">
                     <CardContent className="pt-6">
                       <div className="flex items-start gap-4">
                         {/* Order Controls */}
@@ -472,7 +472,7 @@ const CourseLevelSettings = () => {
                           variant="ghost"
                           onClick={() => handleRemoveLevel(index)}
                           disabled={levels.length === 1}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          className="text-[#dc2626] hover:text-[#b91c1c] hover:bg-[#fef2f2]"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -568,7 +568,7 @@ const CourseLevelSettings = () => {
                             </Badge>
                           )}
                           {config.isActive && (
-                            <Badge variant="success" className="w-fit bg-green-100 text-green-800">
+                            <Badge variant="success" className="w-fit bg-[#dcfce7] text-[#166534]">
                               Active
                             </Badge>
                           )}

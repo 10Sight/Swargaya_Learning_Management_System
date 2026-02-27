@@ -253,14 +253,14 @@ const BulkOperations = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onFocus={() => setShowDropdown(true)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-[#d1d5db] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3b82f6] focus:border-transparent"
             />
-            <Search className="absolute right-3 top-2.5 w-5 h-5 text-gray-400" />
+            <Search className="absolute right-3 top-2.5 w-5 h-5 text-[#9ca3af]" />
           </div>
           <button
             type="button"
             onClick={() => setShowDropdown(!showDropdown)}
-            className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200"
+            className="px-3 py-2 bg-[#f3f4f6] border border-[#d1d5db] rounded-lg hover:bg-[#e5e7eb]"
           >
             <ChevronDown className="w-5 h-5" />
           </button>
@@ -271,11 +271,11 @@ const BulkOperations = () => {
             {selectedUserIds.map(userId => {
               const user = filteredUsers.find(u => u._id === userId);
               return user ? (
-                <span key={userId} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-sm">
+                <span key={userId} className="inline-flex items-center gap-1 px-2 py-1 bg-[#dbeafe] text-[#1e40af] rounded-md text-sm">
                   {user.fullName}
                   <button
                     onClick={() => handleUserToggle(userId)}
-                    className="text-blue-600 hover:text-blue-800"
+                    className="text-[#2563eb] hover:text-[#1e40af]"
                   >
                     <XCircle className="w-3 h-3" />
                   </button>
@@ -286,14 +286,14 @@ const BulkOperations = () => {
         )}
 
         {showDropdown && (
-          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          <div className="absolute z-10 w-full mt-1 bg-white border border-[#d1d5db] rounded-lg shadow-lg max-h-60 overflow-y-auto">
             {filteredUsers.length === 0 ? (
-              <div className="px-3 py-2 text-gray-500">No users found</div>
+              <div className="px-3 py-2 text-[#6b7280]">No users found</div>
             ) : (
               filteredUsers.map(user => (
                 <div
                   key={user._id}
-                  className={`px-3 py-2 cursor-pointer hover:bg-gray-100 flex items-center gap-2 ${selectedUserIds.includes(user._id) ? 'bg-blue-50 text-blue-700' : ''
+                  className={`px-3 py-2 cursor-pointer hover:bg-[#f3f4f6] flex items-center gap-2 ${selectedUserIds.includes(user._id) ? 'bg-[#eff6ff] text-[#1d4ed8]' : ''
                     }`}
                   onClick={() => handleUserToggle(user._id)}
                 >
@@ -305,9 +305,9 @@ const BulkOperations = () => {
                   />
                   <div className="flex-1">
                     <div className="font-medium">{user.fullName}</div>
-                    <div className="text-sm text-gray-500">{user.email}</div>
+                    <div className="text-sm text-[#6b7280]">{user.email}</div>
                   </div>
-                  <span className="text-xs bg-gray-200 px-2 py-1 rounded-full">
+                  <span className="text-xs bg-[#e5e7eb] px-2 py-1 rounded-full">
                     {user.role}
                   </span>
                 </div>
@@ -325,7 +325,7 @@ const BulkOperations = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <UserPlus className="w-5 h-5 text-blue-500" />
+            <UserPlus className="w-5 h-5 text-[#3b82f6]" />
             Bulk User Enrollment
           </CardTitle>
           <CardDescription>
@@ -386,7 +386,7 @@ const BulkOperations = () => {
                   const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
                   setEnrollmentForm(prev => ({ ...prev, courseIds: selectedOptions }));
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-32"
+                className="w-full px-3 py-2 border border-[#d1d5db] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3b82f6] min-h-32"
               >
                 <option value="course1">React Fundamentals</option>
                 <option value="course2">Node.js Backend Development</option>
@@ -446,7 +446,7 @@ const BulkOperations = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Mail className="w-5 h-5 text-green-500" />
+            <Mail className="w-5 h-5 text-[#22c55e]" />
             Bulk Email Campaign
           </CardTitle>
           <CardDescription>
@@ -540,7 +540,7 @@ const BulkOperations = () => {
           <Button
             onClick={handleBulkEmail}
             disabled={emailLoading || operationInProgress}
-            className="w-full bg-green-600 hover:bg-green-700"
+            className="w-full bg-[#16a34a] hover:bg-[#15803d]"
             size="lg"
           >
             {emailLoading ? (
@@ -561,7 +561,7 @@ const BulkOperations = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Award className="w-5 h-5 text-yellow-500" />
+            <Award className="w-5 h-5 text-[#eab308]" />
             Bulk Certificate Generation
           </CardTitle>
           <CardDescription>
@@ -669,7 +669,7 @@ const BulkOperations = () => {
           <Button
             onClick={handleBulkCertificates}
             disabled={certificateLoading || operationInProgress}
-            className="w-full bg-yellow-600 hover:bg-yellow-700"
+            className="w-full bg-[#ca8a04] hover:bg-[#a16207]"
             size="lg"
           >
             {certificateLoading ? (
@@ -692,7 +692,7 @@ const BulkOperations = () => {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-gray-500" />
+                <Clock className="w-5 h-5 text-[#6b7280]" />
                 Operation History
               </CardTitle>
               <CardDescription>
@@ -789,9 +789,9 @@ const BulkOperations = () => {
                     <TableRow key={operation._id}>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          {operation.operationType === 'enroll users' && <UserPlus className="w-4 h-4 text-blue-500" />}
-                          {operation.operationType === 'send emails' && <Mail className="w-4 h-4 text-green-500" />}
-                          {operation.operationType === 'generate certificates' && <Award className="w-4 h-4 text-yellow-500" />}
+                          {operation.operationType === 'enroll users' && <UserPlus className="w-4 h-4 text-[#3b82f6]" />}
+                          {operation.operationType === 'send emails' && <Mail className="w-4 h-4 text-[#22c55e]" />}
+                          {operation.operationType === 'generate certificates' && <Award className="w-4 h-4 text-[#eab308]" />}
                           <span className="font-medium capitalize">
                             {operation.operationType}
                           </span>
@@ -817,16 +817,16 @@ const BulkOperations = () => {
                       <TableCell>
                         {operation.summary && (
                           <div className="text-xs space-y-1">
-                            <div className="text-green-600 flex items-center gap-1">
+                            <div className="text-[#16a34a] flex items-center gap-1">
                               <CheckCircle className="w-3 h-3" />
                               {operation.summary.successful || 0}
                             </div>
-                            <div className="text-red-600 flex items-center gap-1">
+                            <div className="text-[#dc2626] flex items-center gap-1">
                               <XCircle className="w-3 h-3" />
                               {operation.summary.failed || 0}
                             </div>
                             {operation.summary.skipped > 0 && (
-                              <div className="text-yellow-600 flex items-center gap-1">
+                              <div className="text-[#ca8a04] flex items-center gap-1">
                                 <AlertCircle className="w-3 h-3" />
                                 {operation.summary.skipped}
                               </div>
@@ -895,17 +895,17 @@ const BulkOperations = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Bulk Operations</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl font-bold text-[#111827]">Bulk Operations</h1>
+          <p className="text-[#4b5563] mt-1">
             Perform bulk operations on users, send mass emails, and generate certificates
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           {operationInProgress && (
-            <Alert className="bg-blue-50 border-blue-200">
+            <Alert className="bg-[#eff6ff] border-[#bfdbfe]">
               <RefreshCw className="w-4 h-4 animate-spin" />
-              <AlertDescription className="text-blue-800">
+              <AlertDescription className="text-[#1e40af]">
                 Operation in progress...
               </AlertDescription>
             </Alert>

@@ -170,14 +170,14 @@ const UsersManagement = () => {
 
   const getUserStatusBadge = (status) => {
     const statusColors = {
-      ACTIVE: 'bg-green-100 text-green-800',
-      SUSPENDED: 'bg-yellow-100 text-yellow-800',
-      BANNED: 'bg-red-100 text-red-800',
-      PENDING: 'bg-blue-100 text-blue-800',
+      ACTIVE: 'bg-[#dcfce7] text-[#166534]',
+      SUSPENDED: 'bg-[#fef9c3] text-[#854d0e]',
+      BANNED: 'bg-[#fee2e2] text-[#991b1b]',
+      PENDING: 'bg-[#dbeafe] text-[#1e40af]',
     };
 
     return (
-      <Badge className={statusColors[status] || 'bg-gray-100 text-gray-800'}>
+      <Badge className={statusColors[status] || 'bg-[#f3f4f6] text-[#1f2937]'}>
         {status}
       </Badge>
     );
@@ -185,14 +185,14 @@ const UsersManagement = () => {
 
   const getRoleBadge = (role) => {
     const roleColors = {
-      ADMIN: 'bg-purple-100 text-purple-800',
-      INSTRUCTOR: 'bg-blue-100 text-blue-800',
-      STUDENT: 'bg-green-100 text-green-800',
-      SUPERADMIN: 'bg-red-100 text-red-800',
+      ADMIN: 'bg-[#f3e8ff] text-[#6b21a8]',
+      INSTRUCTOR: 'bg-[#dbeafe] text-[#1e40af]',
+      STUDENT: 'bg-[#dcfce7] text-[#166534]',
+      SUPERADMIN: 'bg-[#fee2e2] text-[#991b1b]',
     };
 
     return (
-      <Badge className={roleColors[role] || 'bg-gray-100 text-gray-800'}>
+      <Badge className={roleColors[role] || 'bg-[#f3f4f6] text-[#1f2937]'}>
         {role?.replace('_', ' ')}
       </Badge>
     );
@@ -284,7 +284,7 @@ const UsersManagement = () => {
                   Array.from({ length: 5 }).map((_, index) => (
                     <TableRow key={index}>
                       <TableCell colSpan={7}>
-                        <div className="animate-pulse bg-gray-200 h-4 rounded"></div>
+                        <div className="animate-pulse bg-[#e5e7eb] h-4 rounded"></div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -292,8 +292,8 @@ const UsersManagement = () => {
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8">
                       <div className="flex flex-col items-center gap-2">
-                        <Users className="w-12 h-12 text-gray-400" />
-                        <p className="text-gray-500">No users found</p>
+                        <Users className="w-12 h-12 text-[#9ca3af]" />
+                        <p className="text-[#6b7280]">No users found</p>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -302,7 +302,7 @@ const UsersManagement = () => {
                     <TableRow key={user._id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-full bg-[#e5e7eb] flex items-center justify-center">
                             {user.avatar?.url ? (
                               <img
                                 src={user.avatar.url}
@@ -310,15 +310,15 @@ const UsersManagement = () => {
                                 className="w-full h-full rounded-full object-cover"
                               />
                             ) : (
-                              <span className="text-sm font-medium text-gray-600">
+                              <span className="text-sm font-medium text-[#6b7280]">
                                 {user.fullName?.charAt(0)?.toUpperCase()}
                               </span>
                             )}
                           </div>
                           <div>
                             <p className="font-medium">{user.fullName}</p>
-                            <p className="text-sm text-gray-500">{user.email}</p>
-                            <p className="text-xs text-gray-400">@{user.userName}</p>
+                            <p className="text-sm text-[#6b7280]">{user.email}</p>
+                            <p className="text-xs text-[#9ca3af]">@{user.userName}</p>
                           </div>
                         </div>
                       </TableCell>
@@ -327,7 +327,7 @@ const UsersManagement = () => {
                       </TableCell>
                       <TableCell>
                         {user.unit ? user.unit.replace("UNIT_", "Unit ") : (
-                          <span className="text-gray-400">No unit</span>
+                          <span className="text-[#9ca3af]">No unit</span>
                         )}
                       </TableCell>
                       <TableCell>
@@ -335,7 +335,7 @@ const UsersManagement = () => {
                       </TableCell>
                       <TableCell>
                         {user.department?.name || (
-                          <span className="text-gray-400">No department</span>
+                          <span className="text-[#9ca3af]">No department</span>
                         )}
                       </TableCell>
                       <TableCell>
@@ -366,7 +366,7 @@ const UsersManagement = () => {
           {/* Pagination */}
           {currentData && currentData.totalPages > 1 && (
             <div className="flex items-center justify-between mt-4">
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-[#6b7280]">
                 Showing {((currentPage - 1) * limit) + 1} to{' '}
                 {Math.min(currentPage * limit, currentData.totalUsers)} of{' '}
                 {currentData.totalUsers} users

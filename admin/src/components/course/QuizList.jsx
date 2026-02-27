@@ -51,7 +51,7 @@ const QuizList = ({ quizzes, courseId, onRefetch, modules = [] }) => {
 
   // Ensure quizzes is always an array
   const quizArray = Array.isArray(quizzes) ? quizzes : [];
-  
+
   // Helper function to get module name
   const getModuleName = (moduleId) => {
     const module = modules.find(m => m._id === moduleId || m.id === moduleId);
@@ -67,8 +67,8 @@ const QuizList = ({ quizzes, courseId, onRefetch, modules = [] }) => {
           <p className="text-sm text-muted-foreground mt-1">
             Add quizzes to test student knowledge
           </p>
-          <Button 
-            onClick={() => navigate(`${basePath}/add-quiz/${courseId}`)} 
+          <Button
+            onClick={() => navigate(`${basePath}/add-quiz/${courseId}`)}
             className="mt-4"
           >
             Add Quiz
@@ -113,7 +113,7 @@ const QuizList = ({ quizzes, courseId, onRefetch, modules = [] }) => {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                    className="text-[#dc2626] hover:text-[#991b1b] hover:bg-[#fef2f2]"
                     onClick={() => handleDeleteQuiz(quiz._id)}
                     disabled={isDeletingQuiz}
                   >

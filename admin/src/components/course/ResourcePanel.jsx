@@ -160,15 +160,15 @@ const ResourcePanel = ({ moduleId, moduleTitle }) => {
   const getResourceIcon = (type) => {
     switch (type) {
       case "VIDEO":
-        return <IconVideo className="h-4 w-4 text-red-500" />;
+        return <IconVideo className="h-4 w-4 text-[#ef4444]" />;
       case "PDF":
-        return <IconFileTypePdf className="h-4 w-4 text-red-600" />;
+        return <IconFileTypePdf className="h-4 w-4 text-[#dc2626]" />;
       case "PPT":
-        return <IconFileTypePpt className="h-4 w-4 text-orange-500" />;
+        return <IconFileTypePpt className="h-4 w-4 text-[#f97316]" />;
       case "IMAGE":
-        return <IconPhoto className="h-4 w-4 text-green-500" />;
+        return <IconPhoto className="h-4 w-4 text-[#22c55e]" />;
       default:
-        return <IconFileText className="h-4 w-4 text-blue-500" />;
+        return <IconFileText className="h-4 w-4 text-[#3b82f6]" />;
     }
   };
 
@@ -189,7 +189,7 @@ const ResourcePanel = ({ moduleId, moduleTitle }) => {
         </CardHeader>
         <CardContent>
           <div className="text-center p-6 border-2 border-dashed rounded-lg">
-            <IconFileText className="h-10 w-10 text-gray-400 mx-auto mb-2" />
+            <IconFileText className="h-10 w-10 text-[#9ca3af] mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">
               No module selected
             </p>
@@ -229,7 +229,7 @@ const ResourcePanel = ({ moduleId, moduleTitle }) => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-red-600">Failed to load resources</p>
+          <p className="text-sm text-[#dc2626]">Failed to load resources</p>
         </CardContent>
       </Card>
     );
@@ -251,7 +251,7 @@ const ResourcePanel = ({ moduleId, moduleTitle }) => {
             <DialogTrigger asChild>
               <Button
                 size="sm"
-                className="h-8 gap-1 bg-blue-600 hover:bg-blue-700 text-white"
+                className="h-8 gap-1 bg-[#2563eb] hover:bg-[#1d4ed8] text-white"
               >
                 <IconPlus className="h-3 w-3" />
                 Add
@@ -274,10 +274,10 @@ const ResourcePanel = ({ moduleId, moduleTitle }) => {
                     value={newResource.title}
                     onChange={handleResourceInputChange}
                     placeholder="Enter resource title"
-                    className={resourceErrors.title ? "border-red-500" : ""}
+                    className={resourceErrors.title ? "border-[#ef4444]" : ""}
                   />
                   {resourceErrors.title && (
-                    <p className="text-sm text-red-600">{resourceErrors.title}</p>
+                    <p className="text-sm text-[#dc2626]">{resourceErrors.title}</p>
                   )}
                 </div>
 
@@ -313,10 +313,10 @@ const ResourcePanel = ({ moduleId, moduleTitle }) => {
                     value={newResource.url}
                     onChange={handleResourceInputChange}
                     placeholder="Enter resource URL"
-                    className={resourceErrors.url ? "border-red-500" : ""}
+                    className={resourceErrors.url ? "border-[#ef4444]" : ""}
                   />
                   {resourceErrors.url && (
-                    <p className="text-sm text-red-600">{resourceErrors.url}</p>
+                    <p className="text-sm text-[#dc2626]">{resourceErrors.url}</p>
                   )}
                 </div>
 
@@ -324,7 +324,7 @@ const ResourcePanel = ({ moduleId, moduleTitle }) => {
                   <Label htmlFor="resource-file">
                     Upload File (Optional if providing URL)
                   </Label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                  <div className="border-2 border-dashed border-[#d1d5db] rounded-lg p-4 text-center">
                     <Input
                       id="resource-file"
                       name="file"
@@ -336,19 +336,19 @@ const ResourcePanel = ({ moduleId, moduleTitle }) => {
                       htmlFor="resource-file"
                       className="flex flex-col items-center justify-center gap-2 cursor-pointer"
                     >
-                      <IconUpload className="h-8 w-8 text-gray-400" />
+                      <IconUpload className="h-8 w-8 text-[#9ca3af]" />
                       <div>
-                        <span className="font-medium text-blue-600">
+                        <span className="font-medium text-[#2563eb]">
                           Click to upload
                         </span>
-                        <span className="text-gray-500"> or drag and drop</span>
+                        <span className="text-[#6b7280]"> or drag and drop</span>
                       </div>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-[#6b7280]">
                         Supported formats: PDF, PPT, Images, Videos
                       </p>
                     </Label>
                     {fileName && (
-                      <div className="mt-3 bg-blue-50 border border-blue-200 rounded-md p-2">
+                      <div className="mt-3 bg-[#eff6ff] border border-[#bfdbfe] rounded-md p-2">
                         <div className="flex items-center justify-between">
                           <TooltipProvider>
                             <Tooltip>
@@ -370,7 +370,7 @@ const ResourcePanel = ({ moduleId, moduleTitle }) => {
                               setNewResource((prev) => ({ ...prev, file: null }));
                               setFileName("");
                             }}
-                            className="h-4 w-4 text-red-500"
+                            className="h-4 w-4 text-[#ef4444]"
                           >
                             <IconX className="h-3 w-3" />
                           </Button>
@@ -414,7 +414,7 @@ const ResourcePanel = ({ moduleId, moduleTitle }) => {
       <CardContent>
         {resources.length === 0 ? (
           <div className="text-center p-6 border-2 border-dashed rounded-lg">
-            <IconFileText className="h-10 w-10 text-gray-400 mx-auto mb-2" />
+            <IconFileText className="h-10 w-10 text-[#9ca3af] mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">
               No resources added yet.
             </p>
@@ -431,7 +431,7 @@ const ResourcePanel = ({ moduleId, moduleTitle }) => {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3 flex-1">
-                    <div className="p-2 bg-slate-100 rounded-md mt-0.5">
+                    <div className="p-2 bg-[#f1f5f9] rounded-md mt-0.5">
                       {getResourceIcon(resource.type)}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -487,7 +487,7 @@ const ResourcePanel = ({ moduleId, moduleTitle }) => {
                         href={resource.url || resource.fileUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 flex items-center gap-1 p-1 rounded hover:bg-blue-50"
+                        className="text-[#2563eb] hover:text-[#1e40af] flex items-center gap-1 p-1 rounded hover:bg-[#eff6ff]"
                         onClick={(e) => e.stopPropagation()}
                         title="View resource"
                       >
@@ -500,7 +500,7 @@ const ResourcePanel = ({ moduleId, moduleTitle }) => {
                       size="icon"
                       onClick={() => handleDeleteResource(resource._id)}
                       disabled={isDeletingResource}
-                      className="h-8 w-8 text-red-600 hover:text-red-800 hover:bg-red-50"
+                      className="h-8 w-8 text-[#dc2626] hover:text-[#991b1b] hover:bg-[#fef2f2]"
                       title="Delete resource"
                     >
                       <IconTrash className="h-4 w-4" />

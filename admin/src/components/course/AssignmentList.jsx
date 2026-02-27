@@ -43,7 +43,7 @@ const AssignmentList = ({ assignments, courseId, modules = [], onRefetch }) => {
     if (p.startsWith('/instructor')) return '/instructor';
     return '/admin';
   }, [location.pathname]);
-  
+
   // Helper function to get module name
   const getModuleName = (moduleId) => {
     const module = modules.find(m => m._id === moduleId || m.id === moduleId);
@@ -77,8 +77,8 @@ const AssignmentList = ({ assignments, courseId, modules = [], onRefetch }) => {
           <p className="text-sm text-muted-foreground mt-1">
             Add assignments for students to complete
           </p>
-          <Button 
-            onClick={() => navigate(`${basePath}/add-assignment/${courseId}`)} 
+          <Button
+            onClick={() => navigate(`${basePath}/add-assignment/${courseId}`)}
             className="mt-4"
           >
             Add Assignment
@@ -125,7 +125,7 @@ const AssignmentList = ({ assignments, courseId, modules = [], onRefetch }) => {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                        className="text-[#dc2626] hover:text-[#991b1b] hover:bg-[#fef2f2]"
                         disabled={isDeleting && deletingId === assignment._id}
                       >
                         {isDeleting && deletingId === assignment._id ? (
@@ -148,7 +148,7 @@ const AssignmentList = ({ assignments, courseId, modules = [], onRefetch }) => {
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
                           onClick={() => handleDeleteAssignment(assignment._id, assignment.title)}
-                          className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+                          className="bg-[#dc2626] hover:bg-[#b91c1c] focus:ring-[#dc2626]"
                         >
                           Delete Assignment
                         </AlertDialogAction>

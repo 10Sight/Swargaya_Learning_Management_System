@@ -272,15 +272,15 @@ const InstructorDepartments = () => {
             )}
 
             {/* Read-only Notice */}
-            <Card className="bg-blue-50 border-blue-200">
+            <Card className="bg-[#eff6ff] border-[#bfdbfe]">
                 <CardContent className="pt-6">
                     <div className="flex items-start space-x-3">
-                        <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center mt-0.5">
+                        <div className="w-5 h-5 bg-[#3b82f6] rounded-full flex items-center justify-center mt-0.5">
                             <IconEye className="h-3 w-3 text-white" />
                         </div>
                         <div>
-                            <h3 className="font-medium text-blue-900">Read-Only Access</h3>
-                            <p className="text-sm text-blue-700 mt-1">
+                            <h3 className="font-medium text-[#1e3a8a]">Read-Only Access</h3>
+                            <p className="text-sm text-[#1d4ed8] mt-1">
                                 You can view department details and student information but cannot make modifications.
                                 All departments assigned to you are visible (you can now be assigned to multiple departments).
                             </p>

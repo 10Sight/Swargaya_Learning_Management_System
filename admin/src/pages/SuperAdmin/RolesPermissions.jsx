@@ -32,14 +32,14 @@ const TabButton = ({ active, onClick, icon: Icon, label, count }) => (
   <button
     onClick={onClick}
     className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-colors duration-200 ${active
-        ? 'bg-blue-600 text-white shadow-sm'
-        : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+      ? 'bg-[#2563eb] text-[#ffffff] shadow-sm'
+      : 'text-[#4b5563] hover:text-[#2563eb] hover:bg-[#eff6ff]'
       }`}
   >
     <Icon size={20} />
     <span>{label}</span>
     {count !== undefined && (
-      <span className={`px-2 py-1 text-xs rounded-full ${active ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-600'
+      <span className={`px-2 py-1 text-xs rounded-full ${active ? 'bg-[#3b82f6] text-[#ffffff]' : 'bg-[#e5e7eb] text-[#4b5563]'
         }`}>
         {count}
       </span>
@@ -49,24 +49,24 @@ const TabButton = ({ active, onClick, icon: Icon, label, count }) => (
 
 const StatCard = ({ icon: Icon, title, value, subtitle, color = 'blue' }) => {
   const colorClasses = {
-    blue: 'text-blue-600 bg-blue-50',
-    green: 'text-green-600 bg-green-50',
-    yellow: 'text-yellow-600 bg-yellow-50',
-    purple: 'text-purple-600 bg-purple-50'
+    blue: 'text-[#2563eb] bg-[#eff6ff]',
+    green: 'text-[#16a34a] bg-[#f0fdf4]',
+    yellow: 'text-[#ca8a04] bg-[#fefce8]',
+    purple: 'text-[#9333ea] bg-[#faf5ff]'
   };
 
   return (
-    <div className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow">
+    <div className="bg-[#ffffff] rounded-lg p-6 border border-[#e5e7eb] hover:shadow-md transition-shadow">
       <div className="flex items-center justify-between mb-4">
         <div className={`p-3 rounded-lg ${colorClasses[color]}`}>
           <Icon size={24} />
         </div>
       </div>
       <div>
-        <h3 className="text-2xl font-bold text-gray-900 mb-1">{value}</h3>
-        <p className="text-gray-600 font-medium">{title}</p>
+        <h3 className="text-2xl font-bold text-[#111827] mb-1">{value}</h3>
+        <p className="text-[#4b5563] font-medium">{title}</p>
         {subtitle && (
-          <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
+          <p className="text-sm text-[#6b7280] mt-1">{subtitle}</p>
         )}
       </div>
     </div>
@@ -179,28 +179,28 @@ const RolesPermissions = () => {
       <div className="flex flex-wrap gap-3">
         <button
           onClick={() => openModal('createRole')}
-          className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center space-x-2 bg-[#2563eb] text-[#ffffff] px-4 py-2 rounded-lg hover:bg-[#1d4ed8] transition-colors"
         >
           <IconPlus size={20} />
           <span>Create Custom Role</span>
         </button>
         <button
           onClick={() => openModal('assignRole')}
-          className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+          className="flex items-center space-x-2 bg-[#16a34a] text-[#ffffff] px-4 py-2 rounded-lg hover:bg-[#15803d] transition-colors"
         >
           <IconUserPlus size={20} />
           <span>Assign Role</span>
         </button>
         <button
           onClick={() => openModal('bulkAssign')}
-          className="flex items-center space-x-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+          className="flex items-center space-x-2 bg-[#9333ea] text-[#ffffff] px-4 py-2 rounded-lg hover:bg-[#7e22ce] transition-colors"
         >
           <IconUsersGroup size={20} />
           <span>Bulk Assign</span>
         </button>
         <button
           onClick={() => setActiveTab('matrix')}
-          className="flex items-center space-x-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+          className="flex items-center space-x-2 bg-[#4b5563] text-[#ffffff] px-4 py-2 rounded-lg hover:bg-[#374151] transition-colors"
         >
           <IconMatrix size={20} />
           <span>View Matrix</span>
@@ -209,7 +209,7 @@ const RolesPermissions = () => {
 
       {/* Roles Grid */}
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">All Roles</h3>
+        <h3 className="text-lg font-semibold text-[#111827] mb-4">All Roles</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {roles.map((role) => (
             <RoleCard
@@ -232,8 +232,8 @@ const RolesPermissions = () => {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
-          <IconLoader className="animate-spin mx-auto mb-4 text-blue-600" size={40} />
-          <p className="text-gray-600">Loading roles and permissions...</p>
+          <IconLoader className="animate-spin mx-auto mb-4 text-[#2563eb]" size={40} />
+          <p className="text-[#4b5563]">Loading roles and permissions...</p>
         </div>
       </div>
     );
@@ -241,10 +241,10 @@ const RolesPermissions = () => {
 
   if (rolesError) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+      <div className="bg-[#fef2f2] border border-[#fecaca] rounded-lg p-4 mb-6">
         <div className="flex items-center">
-          <IconShield className="text-red-500 mr-2" size={20} />
-          <p className="text-red-700">
+          <IconShield className="text-[#ef4444] mr-2" size={20} />
+          <p className="text-[#b91c1c]">
             Failed to load roles and permissions: {rolesError.message}
           </p>
         </div>
@@ -257,15 +257,15 @@ const RolesPermissions = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Roles & Permissions</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl font-bold text-[#111827]">Roles & Permissions</h1>
+          <p className="text-[#4b5563] mt-1">
             Manage user roles, permissions, and access controls across the system
           </p>
         </div>
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex flex-wrap gap-2 border-b border-gray-200 pb-4">
+      <div className="flex flex-wrap gap-2 border-b border-[#e5e7eb] pb-4">
         <TabButton
           active={activeTab === 'overview'}
           onClick={() => setActiveTab('overview')}

@@ -85,12 +85,12 @@ const Reports = () => {
       {/* Header */}
       <div className="text-center space-y-4">
         <div className="flex justify-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+          <div className="w-16 h-16 bg-gradient-to-br from-[#3b82f6] to-[#9333ea] rounded-full flex items-center justify-center">
             <GraduationCap className="h-8 w-8 text-white" />
           </div>
         </div>
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Course Reports</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#111827]">Course Reports</h1>
           <p className="text-base sm:text-lg text-muted-foreground mt-2">
             Download completion certificates and performance reports for your finished courses
           </p>
@@ -101,11 +101,11 @@ const Reports = () => {
       <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         <Card>
           <CardContent className="flex items-center flex-wrap gap-3 sm:gap-4 p-4 sm:p-6">
-            <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-lg mr-4">
-              <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
+            <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-[#dcfce7] rounded-lg mr-4">
+              <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-[#16a34a]" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">{progressData.filter(p => p.progressPercent === 100).length}</p>
+              <p className="text-2xl font-bold text-[#111827]">{progressData.filter(p => p.progressPercent === 100).length}</p>
               <p className="text-sm text-muted-foreground">Completed Courses</p>
             </div>
           </CardContent>
@@ -113,11 +113,11 @@ const Reports = () => {
 
         <Card>
           <CardContent className="flex items-center flex-wrap gap-3 sm:gap-4 p-4 sm:p-6">
-            <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg mr-4">
-              <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+            <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-[#dbeafe] rounded-lg mr-4">
+              <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-[#2563eb]" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">{progressData.length}</p>
+              <p className="text-2xl font-bold text-[#111827]">{progressData.length}</p>
               <p className="text-sm text-muted-foreground">Total Enrolled</p>
             </div>
           </CardContent>
@@ -125,11 +125,11 @@ const Reports = () => {
 
         <Card>
           <CardContent className="flex items-center flex-wrap gap-3 sm:gap-4 p-4 sm:p-6">
-            <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-lg mr-4">
-              <Award className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
+            <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-[#f3e8ff] rounded-lg mr-4">
+              <Award className="h-5 w-5 sm:h-6 sm:w-6 text-[#9333ea]" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">{accessibleReports.length}</p>
+              <p className="text-2xl font-bold text-[#111827]">{accessibleReports.length}</p>
               <p className="text-sm text-muted-foreground">Reports Available</p>
             </div>
           </CardContent>
@@ -140,13 +140,13 @@ const Reports = () => {
       {accessibleReports.length > 0 ? (
         <div className="space-y-6">
           <div className="flex items-center gap-2">
-            <Award className="h-5 w-5 text-yellow-500" />
-            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900">Available Course Reports</h2>
+            <Award className="h-5 w-5 text-[#eab308]" />
+            <h2 className="text-xl sm:text-2xl font-semibold text-[#111827]">Available Course Reports</h2>
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {accessibleReports.map((progress) => (
-              <Card key={progress._id} className="hover:shadow-lg transition-shadow border border-green-200">
+              <Card key={progress._id} className="hover:shadow-lg transition-shadow border border-[#bbf7d0]">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -158,7 +158,7 @@ const Reports = () => {
                         <span>Department: {progress.department?.name || 'N/A'}</span>
                       </div>
                     </div>
-                    <Badge variant="secondary" className="bg-green-100 text-green-800">
+                    <Badge variant="secondary" className="bg-[#dcfce7] text-[#166534]">
                       <CheckCircle className="h-3 w-3 mr-1" />
                       Completed
                     </Badge>
@@ -169,7 +169,7 @@ const Reports = () => {
                   <div className="space-y-2">
                     <div className="flex justify-between text-xs sm:text-sm gap-2">
                       <span className="text-muted-foreground">Progress:</span>
-                      <span className="font-medium text-green-600">{progress.progressPercent}%</span>
+                      <span className="font-medium text-[#16a34a]">{progress.progressPercent}%</span>
                     </div>
 
                     <div className="flex justify-between text-xs sm:text-sm gap-2">
@@ -204,11 +204,11 @@ const Reports = () => {
         <Card className="text-center py-12">
           <CardContent>
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                <GraduationCap className="h-8 w-8 text-gray-400" />
+              <div className="w-16 h-16 bg-[#f3f4f6] rounded-full flex items-center justify-center">
+                <GraduationCap className="h-8 w-8 text-[#9ca3af]" />
               </div>
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Course Reports Available</h3>
+            <h3 className="text-xl font-semibold text-[#111827] mb-2">No Course Reports Available</h3>
             <p className="text-muted-foreground mb-4">
               Complete a course, finish all modules, and pass all required quizzes to generate your first report and certificate!
             </p>
@@ -227,15 +227,15 @@ const Reports = () => {
       {progressData.length > accessibleReports.length && (
         <div className="space-y-6">
           <div className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-blue-500" />
-            <h2 className="text-2xl font-semibold text-gray-900">Courses In Progress</h2>
+            <TrendingUp className="h-5 w-5 text-[#3b82f6]" />
+            <h2 className="text-2xl font-semibold text-[#111827]">Courses In Progress</h2>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {progressData
               .filter(progress => !progress.isCompleted || progress.progressPercent < 100)
               .map((progress) => (
-                <Card key={progress._id} className="border border-blue-200">
+                <Card key={progress._id} className="border border-[#bfdbfe]">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base sm:text-lg">
                       {progress.course?.title || 'Course Title'}
@@ -252,9 +252,9 @@ const Reports = () => {
                         <span className="text-muted-foreground">Progress:</span>
                         <span className="font-medium">{progress.progressPercent}%</span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-[#e5e7eb] rounded-full h-2">
                         <div
-                          className="bg-blue-600 h-2 rounded-full transition-all"
+                          className="bg-[#2563eb] h-2 rounded-full transition-all"
                           style={{ width: `${progress.progressPercent}%` }}
                         />
                       </div>

@@ -37,12 +37,11 @@ export const createModule = asyncHandler(async (req, res) => {
         [courseId, title, slug, description, order || 0]
     );
 
-    const [newModule] = await pool.query("SELECT * FROM modules WHERE id = ?", [result[0].id]);
+    const [newModuleRows] = await pool.query("SELECT * FROM modules WHERE id = ?", [result[0].id]);
+    const module = newModuleRows[0];
+    if (module) module._id = module.id; // Compatibility
 
-    // Note: We do NOT push to course.modules array anymore as relationships are handled via Foreign Key `module.course`.
-    // If the frontend relies on the array in Course object, it should be fetching modules via `getModulesByCourse` or properly populated Course queries.
-
-    res.status(201).json(new ApiResponse(201, newModule[0], "Module created successfully"));
+    res.status(201).json(new ApiResponse(201, module, "Module created successfully"));
 });
 
 // @desc    Get all modules for a course

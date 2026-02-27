@@ -22,10 +22,10 @@ const AdminQuizMonitoring = () => {
   const courses = Array.isArray(coursesData?.data)
     ? coursesData?.data
     : Array.isArray(coursesData?.data?.courses)
-    ? coursesData.data.courses
-    : Array.isArray(coursesData?.data?.docs)
-    ? coursesData.data.docs
-    : [];
+      ? coursesData.data.courses
+      : Array.isArray(coursesData?.data?.docs)
+        ? coursesData.data.docs
+        : [];
 
   const { data: quizzesData, isLoading: quizzesLoading } = useGetQuizzesByCourseQuery(selectedCourseId, { skip: !selectedCourseId });
   const quizzes = quizzesData?.data || [];
@@ -66,7 +66,7 @@ const AdminQuizMonitoring = () => {
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
-            <label className="text-xs text-gray-600">Course</label>
+            <label className="text-xs text-[#4b5563]">Course</label>
             <Select value={selectedCourseId} onValueChange={(v) => { setSelectedCourseId(v); setSelectedQuizId(""); }}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder={coursesLoading ? "Loading..." : "Select course"} />
@@ -81,7 +81,7 @@ const AdminQuizMonitoring = () => {
             </Select>
           </div>
           <div>
-            <label className="text-xs text-gray-600">Quiz</label>
+            <label className="text-xs text-[#4b5563]">Quiz</label>
             <Select value={selectedQuizId} onValueChange={setSelectedQuizId} disabled={!selectedCourseId || quizzesLoading}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder={!selectedCourseId ? "Select course first" : quizzesLoading ? "Loading..." : "Select quiz"} />
@@ -96,7 +96,7 @@ const AdminQuizMonitoring = () => {
             </Select>
           </div>
           <div>
-            <label className="text-xs text-gray-600">Search student</label>
+            <label className="text-xs text-[#4b5563]">Search student</label>
             <div className="flex gap-2">
               <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Name or email" />
               <Button variant="secondary" size="icon"><IconSearch className="h-4 w-4" /></Button>
@@ -118,7 +118,7 @@ const AdminQuizMonitoring = () => {
           ) : attemptsLoading ? (
             <div className="space-y-2">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-12 bg-gray-100 animate-pulse rounded" />
+                <div key={i} className="h-12 bg-[#f3f4f6] animate-pulse rounded" />
               ))}
             </div>
           ) : filteredAttempts.length > 0 ? (

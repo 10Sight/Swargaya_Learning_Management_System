@@ -66,11 +66,11 @@ const AssignRoleModal = ({ open, onClose, roles, users, onSuccess }) => {
 
   const getRoleColor = (roleName) => {
     const colors = {
-      'SUPERADMIN': 'bg-red-100 text-red-700',
-      'ADMIN': 'bg-blue-100 text-blue-700',
-      'INSTRUCTOR': 'bg-green-100 text-green-700',
-      'STUDENT': 'bg-yellow-100 text-yellow-700',
-      default: 'bg-purple-100 text-purple-700'
+      'SUPERADMIN': 'bg-[#fee2e2] text-[#b91c1c]',
+      'ADMIN': 'bg-[#dbeafe] text-[#1d4ed8]',
+      'INSTRUCTOR': 'bg-[#dcfce7] text-[#15803d]',
+      'STUDENT': 'bg-[#fef9c3] text-[#a16207]',
+      default: 'bg-[#f3e8ff] text-[#7e22ce]'
     };
     return colors[roleName] || colors.default;
   };
@@ -81,14 +81,14 @@ const AssignRoleModal = ({ open, onClose, roles, users, onSuccess }) => {
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1300] p-4 text-left">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-[#e5e7eb]">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <IconUserPlus size={24} className="text-green-600" />
+            <div className="p-2 bg-[#dcfce7] rounded-lg">
+              <IconUserPlus size={24} className="text-[#16a34a]" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">Assign Role</h2>
-              <p className="text-sm text-gray-600">Assign a role to a specific user</p>
+              <h2 className="text-xl font-semibold text-[#111827]">Assign Role</h2>
+              <p className="text-sm text-[#4b5563]">Assign a role to a specific user</p>
             </div>
           </div>
           <button
@@ -96,7 +96,7 @@ const AssignRoleModal = ({ open, onClose, roles, users, onSuccess }) => {
               resetForm();
               onClose();
             }}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 text-[#9ca3af] hover:text-[#4b5563] hover:bg-[#f3f4f6] rounded-lg transition-colors"
           >
             <IconX size={20} />
           </button>
@@ -106,28 +106,28 @@ const AssignRoleModal = ({ open, onClose, roles, users, onSuccess }) => {
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {/* User Selection */}
             <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-900">Select User</h3>
+              <h3 className="text-lg font-medium text-[#111827]">Select User</h3>
 
               {/* Search */}
               <div className="relative">
-                <IconSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <IconSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#9ca3af]" size={20} />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-3 py-2 border border-[#d1d5db] rounded-lg focus:ring-2 focus:ring-[#3b82f6] focus:border-transparent"
                   placeholder="Search users by name, email, or current role..."
                 />
               </div>
 
               {/* Users List */}
-              <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg">
+              <div className="max-h-64 overflow-y-auto border border-[#e5e7eb] rounded-lg">
                 {filteredUsers.length > 0 ? (
-                  <div className="divide-y divide-gray-200">
+                  <div className="divide-y divide-[#e5e7eb]">
                     {filteredUsers.map((user) => (
                       <label
                         key={user.id}
-                        className={`flex items-center space-x-3 p-4 cursor-pointer hover:bg-gray-50 ${selectedUser?.id === user.id ? 'bg-blue-50 border-blue-200' : ''
+                        className={`flex items-center space-x-3 p-4 cursor-pointer hover:bg-[#f9fafb] ${selectedUser?.id === user.id ? 'bg-[#eff6ff] border-[#bfdbfe]' : ''
                           }`}
                       >
                         <input
@@ -136,25 +136,25 @@ const AssignRoleModal = ({ open, onClose, roles, users, onSuccess }) => {
                           value={user.id}
                           checked={selectedUser?.id === user.id}
                           onChange={() => setSelectedUser(user)}
-                          className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                          className="w-4 h-4 text-[#2563eb] border-[#d1d5db] focus:ring-[#3b82f6]"
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
                             <div>
-                              <p className="text-sm font-medium text-gray-900 truncate">
+                              <p className="text-sm font-medium text-[#111827] truncate">
                                 {user.fullName || user.userName}
                               </p>
                               <div className="flex items-center space-x-2 mt-1">
-                                <IconMail className="text-gray-400" size={14} />
-                                <p className="text-sm text-gray-600 truncate">{user.email}</p>
+                                <IconMail className="text-[#9ca3af]" size={14} />
+                                <p className="text-sm text-[#4b5563] truncate">{user.email}</p>
                               </div>
                             </div>
                             <div className="flex items-center space-x-2">
                               <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
                                 {user.role}
                               </span>
-                              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                                <IconUser className="text-gray-500" size={16} />
+                              <div className="w-8 h-8 rounded-full bg-[#e5e7eb] flex items-center justify-center">
+                                <IconUser className="text-[#6b7280]" size={16} />
                               </div>
                             </div>
                           </div>
@@ -163,7 +163,7 @@ const AssignRoleModal = ({ open, onClose, roles, users, onSuccess }) => {
                     ))}
                   </div>
                 ) : (
-                  <div className="p-4 text-center text-gray-500">
+                  <div className="p-4 text-center text-[#6b7280]">
                     {searchTerm ? 'No users found matching your search' : 'No users available'}
                   </div>
                 )}
@@ -172,15 +172,15 @@ const AssignRoleModal = ({ open, onClose, roles, users, onSuccess }) => {
 
             {/* Role Selection */}
             <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-900">Select Role</h3>
+              <h3 className="text-lg font-medium text-[#111827]">Select Role</h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {roles.map((role) => (
                   <label
                     key={role.id}
                     className={`flex items-center space-x-3 p-4 border rounded-lg cursor-pointer transition-colors ${selectedRole === role.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      ? 'border-[#3b82f6] bg-[#eff6ff]'
+                      : 'border-[#e5e7eb] hover:border-[#d1d5db] hover:bg-[#f9fafb]'
                       }`}
                   >
                     <input
@@ -189,14 +189,14 @@ const AssignRoleModal = ({ open, onClose, roles, users, onSuccess }) => {
                       value={role.id}
                       checked={selectedRole === role.id}
                       onChange={(e) => setSelectedRole(e.target.value)}
-                      className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      className="w-4 h-4 text-[#2563eb] border-[#d1d5db] focus:ring-[#3b82f6]"
                     />
                     <div className="flex items-center space-x-2">
-                      <IconShield className="text-gray-500" size={20} />
+                      <IconShield className="text-[#6b7280]" size={20} />
                       <div>
-                        <p className="font-medium text-gray-900">{role.name}</p>
+                        <p className="font-medium text-[#111827]">{role.name}</p>
                         {role.description && (
-                          <p className="text-sm text-gray-600 mt-1">{role.description}</p>
+                          <p className="text-sm text-[#4b5563] mt-1">{role.description}</p>
                         )}
                         <div className="flex items-center space-x-2 mt-1">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(role.name)}`}>
@@ -212,16 +212,16 @@ const AssignRoleModal = ({ open, onClose, roles, users, onSuccess }) => {
 
             {/* Current Assignment Info */}
             {selectedUser && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-medium text-blue-900 mb-2">Current Assignment</h4>
-                <p className="text-blue-800">
+              <div className="bg-[#eff6ff] border border-[#bfdbfe] rounded-lg p-4">
+                <h4 className="font-medium text-[#1e3a8a] mb-2">Current Assignment</h4>
+                <p className="text-[#1e40af]">
                   <strong>{selectedUser.fullName || selectedUser.userName}</strong> currently has the role:
                   <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(selectedUser.role)}`}>
                     {selectedUser.role}
                   </span>
                 </p>
                 {selectedRole && selectedRole !== selectedUser.currentRoleId && (
-                  <p className="text-blue-700 mt-2 text-sm">
+                  <p className="text-[#1d4ed8] mt-2 text-sm">
                     This will change their role and update their permissions accordingly.
                   </p>
                 )}
@@ -230,8 +230,8 @@ const AssignRoleModal = ({ open, onClose, roles, users, onSuccess }) => {
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
-            <div className="text-sm text-gray-600">
+          <div className="flex items-center justify-between p-6 border-t border-[#e5e7eb] bg-[#f9fafb]">
+            <div className="text-sm text-[#4b5563]">
               {selectedUser && selectedRole ? (
                 <span>Ready to assign role to {selectedUser.fullName || selectedUser.userName}</span>
               ) : (
@@ -245,7 +245,7 @@ const AssignRoleModal = ({ open, onClose, roles, users, onSuccess }) => {
                   resetForm();
                   onClose();
                 }}
-                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 text-[#374151] bg-white border border-[#d1d5db] rounded-lg hover:bg-[#f9fafb] transition-colors"
                 disabled={isLoading}
               >
                 Cancel
@@ -253,7 +253,7 @@ const AssignRoleModal = ({ open, onClose, roles, users, onSuccess }) => {
               <button
                 type="submit"
                 disabled={isLoading || !selectedUser || !selectedRole}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+                className="px-4 py-2 bg-[#16a34a] text-white rounded-lg hover:bg-[#15803d] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
               >
                 {isLoading ? (
                   <>

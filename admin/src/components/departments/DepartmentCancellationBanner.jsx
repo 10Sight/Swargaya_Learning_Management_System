@@ -42,25 +42,25 @@ const DepartmentCancellationBanner = ({
   return (
     <div className={`w-full ${className}`}>
       {/* Main Cancellation Alert */}
-      <Alert variant={variant} className="border-2 border-red-200 bg-red-50 mb-4">
-        <XCircle className="h-6 w-6 text-red-600" />
-        <AlertTitle className="text-red-800 text-lg font-bold flex items-center gap-2">
+      <Alert variant={variant} className="border-2 border-[#fecaca] bg-[#fef2f2] mb-4">
+        <XCircle className="h-6 w-6 text-[#dc2626]" />
+        <AlertTitle className="text-[#991b1b] text-lg font-bold flex items-center gap-2">
           Department Cancelled
           <AlertTriangle className="h-5 w-5" />
         </AlertTitle>
-        <AlertDescription className="text-red-700 mt-2">
+        <AlertDescription className="text-[#b91c1c] mt-2">
           <div className="space-y-2">
             <p className="font-medium">
               This department "{department.name}" has been cancelled and is no longer active.
             </p>
 
             {hasReason && (
-              <div className="mt-3 p-3 bg-red-100 rounded-md border border-red-200">
+              <div className="mt-3 p-3 bg-[#fee2e2] rounded-md border border-[#fecaca]">
                 <div className="flex items-start gap-2">
-                  <Info className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                  <Info className="h-4 w-4 text-[#dc2626] mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="font-medium text-red-800 text-sm">Cancellation Reason:</p>
-                    <p className="text-red-700 text-sm mt-1">{cancellationReason}</p>
+                    <p className="font-medium text-[#991b1b] text-sm">Cancellation Reason:</p>
+                    <p className="text-[#b91c1c] text-sm mt-1">{cancellationReason}</p>
                   </div>
                 </div>
               </div>
@@ -71,17 +71,17 @@ const DepartmentCancellationBanner = ({
 
       {/* Contact Information Card */}
       {showContactInfo && (
-        <Card className="border-orange-200 bg-orange-50">
+        <Card className="border-[#fed7aa] bg-[#fff7ed]">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
-              <div className="p-2 bg-orange-100 rounded-full">
-                <Phone className="h-5 w-5 text-orange-600" />
+              <div className="p-2 bg-[#ffedd5] rounded-full">
+                <Phone className="h-5 w-5 text-[#ea580c]" />
               </div>
               <div className="flex-1">
-                <h4 className="font-semibold text-orange-800 mb-2">
+                <h4 className="font-semibold text-[#9a3412] mb-2">
                   Need Help?
                 </h4>
-                <p className="text-orange-700 text-sm mb-3">
+                <p className="text-[#c2410c] text-sm mb-3">
                   If you have questions about this cancellation or need assistance with alternative options,
                   please contact our support team.
                 </p>
@@ -89,7 +89,7 @@ const DepartmentCancellationBanner = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-orange-700 border-orange-300 hover:bg-orange-100"
+                    className="text-[#c2410c] border-[#fdba74] hover:bg-[#ffedd5]"
                     onClick={() => window.location.href = 'mailto:support@example.com'}
                   >
                     <Mail className="h-4 w-4 mr-2" />
@@ -98,7 +98,7 @@ const DepartmentCancellationBanner = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-orange-700 border-orange-300 hover:bg-orange-100"
+                    className="text-[#c2410c] border-[#fdba74] hover:bg-[#ffedd5]"
                     onClick={() => window.location.href = 'tel:+1-555-0123'}
                   >
                     <Phone className="h-4 w-4 mr-2" />

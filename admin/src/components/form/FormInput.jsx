@@ -51,8 +51,8 @@ export const FormInput = ({
     <div className={cn("group space-y-2", className)}>
       {label && (
         <div className="flex items-center justify-between">
-          <Label 
-            htmlFor={id} 
+          <Label
+            htmlFor={id}
             className={cn(
               "flex items-center gap-2 font-medium transition-colors",
               "group-focus-within:text-primary",
@@ -62,7 +62,7 @@ export const FormInput = ({
             {icon && <span className="text-muted-foreground">{icon}</span>}
             <span>{label}</span>
             {required && (
-              <span className="text-red-500 ml-1">*</span>
+              <span className="text-[#ef4444] ml-1">*</span>
             )}
             {optional && (
               <Badge variant="secondary" className="text-xs px-1.5 py-0 h-4">
@@ -81,7 +81,7 @@ export const FormInput = ({
           )}
         </div>
       )}
-      
+
       <div className={cn(
         "relative transition-all duration-200 rounded-lg",
         "focus-within:ring-2 focus-within:ring-primary/20",
@@ -95,7 +95,7 @@ export const FormInput = ({
             {icon}
           </div>
         )}
-        
+
         <Input
           id={id}
           value={value}
@@ -115,13 +115,13 @@ export const FormInput = ({
             icon && "pl-10",
             (isPassword || error || (success && showSuccessIndicator) || endIcon) && "pr-10",
             error && "text-destructive placeholder:text-destructive/50",
-            success && "text-green-700",
+            success && "text-[#15803d]",
             isFocused && "placeholder:text-muted-foreground/60",
             disabled && "cursor-not-allowed"
           )}
           {...props}
         />
-        
+
         {/* End Icons Container */}
         <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
           {/* Custom End Icon */}
@@ -130,21 +130,21 @@ export const FormInput = ({
               {endIcon}
             </div>
           )}
-          
+
           {/* Success indicator */}
           {success && showSuccessIndicator && !error && (
-            <div className="text-green-500 animate-in zoom-in duration-200">
+            <div className="text-[#22c55e] animate-in zoom-in duration-200">
               <IconCheck className="h-4 w-4" />
             </div>
           )}
-          
+
           {/* Error indicator */}
           {error && (
             <div className="text-destructive animate-in zoom-in duration-200">
               <IconAlertCircle className="h-4 w-4" />
             </div>
           )}
-          
+
           {/* Password toggle */}
           {isPassword && (
             <button
@@ -165,7 +165,7 @@ export const FormInput = ({
             </button>
           )}
         </div>
-        
+
         {/* Focus indicator */}
         {variant === "minimal" && (
           <div className={cn(
@@ -174,7 +174,7 @@ export const FormInput = ({
           )} />
         )}
       </div>
-      
+
       {/* Helper Text */}
       {helperText && !error && (
         <div className="flex items-start gap-2 text-sm text-muted-foreground">
@@ -182,7 +182,7 @@ export const FormInput = ({
           <p>{helperText}</p>
         </div>
       )}
-      
+
       {/* Error Message */}
       {error && (
         <div className="flex items-start gap-2 text-sm text-destructive animate-in slide-in-from-left-2 duration-200">
@@ -195,10 +195,10 @@ export const FormInput = ({
           </div>
         </div>
       )}
-      
+
       {/* Success Message */}
       {success && !error && (
-        <div className="flex items-start gap-2 text-sm text-green-600 animate-in slide-in-from-left-2 duration-200">
+        <div className="flex items-start gap-2 text-sm text-[#16a34a] animate-in slide-in-from-left-2 duration-200">
           <IconCheck className="h-4 w-4 flex-shrink-0 mt-0.5" />
           <div>
             <p className="font-medium">{success}</p>

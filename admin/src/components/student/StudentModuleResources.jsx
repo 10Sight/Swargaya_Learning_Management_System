@@ -98,18 +98,18 @@ const StudentModuleResources = ({ resources, moduleTitle }) => {
   }
 
   return (
-    <Card className="mt-4 border-blue-300 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg">
-      <CardHeader className="pb-3 sm:pb-4 bg-gradient-to-r from-blue-100 to-indigo-100 border-b border-blue-200">
+    <Card className="mt-4 border-[#93c5fd] bg-gradient-to-br from-[#eff6ff] to-[#eef2ff] shadow-lg">
+      <CardHeader className="pb-3 sm:pb-4 bg-gradient-to-r from-[#dbeafe] to-[#e0e7ff] border-b border-[#bfdbfe]">
         <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-          <div className="p-2 bg-blue-500 rounded-lg">
+          <div className="p-2 bg-[#3b82f6] rounded-lg">
             <Download className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
           </div>
           <span>Module Resources</span>
-          <Badge className="bg-blue-500 text-white border-0 px-3 py-1 text-xs sm:text-sm">
+          <Badge className="bg-[#3b82f6] text-white border-0 px-3 py-1 text-xs sm:text-sm">
             {resources.length} resource{resources.length > 1 ? 's' : ''}
           </Badge>
         </CardTitle>
-        <p className="text-xs sm:text-sm text-blue-700 mt-2">
+        <p className="text-xs sm:text-sm text-[#1d4ed8] mt-2">
           Learning materials and references for this module
         </p>
       </CardHeader>
@@ -122,11 +122,11 @@ const StudentModuleResources = ({ resources, moduleTitle }) => {
             return (
               <div
                 key={resourceId}
-                className="group bg-white rounded-lg border-2 border-blue-200 overflow-hidden hover:shadow-lg hover:border-blue-300 transition-all duration-300"
+                className="group bg-white rounded-lg border-2 border-[#bfdbfe] overflow-hidden hover:shadow-lg hover:border-[#93c5fd] transition-all duration-300"
               >
                 {/* Preview Image Box */}
                 <div
-                  className="relative h-32 sm:h-40 bg-gradient-to-br from-gray-100 to-gray-200 cursor-pointer overflow-hidden"
+                  className="relative h-32 sm:h-40 bg-gradient-to-br from-[#f3f4f6] to-[#e5e7eb] cursor-pointer overflow-hidden"
                   onClick={() => handleResourceView(resource)}
                 >
                   <img
@@ -140,12 +140,12 @@ const StudentModuleResources = ({ resources, moduleTitle }) => {
                     }}
                   />
                   {/* Fallback Icon Display */}
-                  <div className="absolute inset-0 hidden items-center justify-center bg-gradient-to-br from-blue-100 to-blue-200">
+                  <div className="absolute inset-0 hidden items-center justify-center bg-gradient-to-br from-[#dbeafe] to-[#bfdbfe]">
                     <div className="text-center">
-                      <div className="p-4 bg-blue-500 rounded-full mb-2 inline-block">
+                      <div className="p-4 bg-[#3b82f6] rounded-full mb-2 inline-block">
                         {getResourceIcon(resource.type)}
                       </div>
-                      <p className="text-xs text-blue-700 font-medium">
+                      <p className="text-xs text-[#1d4ed8] font-medium">
                         {resource.type?.toUpperCase() || 'FILE'}
                       </p>
                     </div>
@@ -154,18 +154,18 @@ const StudentModuleResources = ({ resources, moduleTitle }) => {
                   {/* Overlay with preview icon */}
                   <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                     <div className="bg-white/90 rounded-full p-2 sm:p-3">
-                      <Maximize2 className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                      <Maximize2 className="h-4 w-4 sm:h-5 sm:w-5 text-[#2563eb]" />
                     </div>
                   </div>
 
                   {/* Type Badge */}
                   <div className="absolute top-2 right-2">
                     <Badge
-                      className={`text-xs font-bold px-2 py-1 ${resource.type === 'video' ? 'bg-red-500 text-white' :
-                          resource.type === 'pdf' ? 'bg-blue-500 text-white' :
-                            resource.type === 'image' ? 'bg-green-500 text-white' :
-                              resource.type === 'link' ? 'bg-purple-500 text-white' :
-                                'bg-gray-500 text-white'
+                      className={`text-xs font-bold px-2 py-1 ${resource.type === 'video' ? 'bg-[#ef4444] text-white' :
+                        resource.type === 'pdf' ? 'bg-[#3b82f6] text-white' :
+                          resource.type === 'image' ? 'bg-[#22c55e] text-white' :
+                            resource.type === 'link' ? 'bg-[#a855f7] text-white' :
+                              'bg-[#6b7280] text-white'
                         }`}
                     >
                       {resource.type?.toUpperCase() || 'FILE'}
@@ -175,12 +175,12 @@ const StudentModuleResources = ({ resources, moduleTitle }) => {
 
                 {/* Resource Info */}
                 <div className="p-4 min-w-0">
-                  <h4 className="text-sm sm:text-base font-semibold text-gray-900 mb-2 line-clamp-2 leading-tight break-words">
+                  <h4 className="text-sm sm:text-base font-semibold text-[#111827] mb-2 line-clamp-2 leading-tight break-words">
                     {resource.title || `Resource ${index + 1}`}
                   </h4>
 
                   {resource.description && (
-                    <p className="text-xs sm:text-sm text-gray-600 mb-3 line-clamp-2 leading-relaxed break-words">
+                    <p className="text-xs sm:text-sm text-[#4b5563] mb-3 line-clamp-2 leading-relaxed break-words">
                       {resource.description}
                     </p>
                   )}
@@ -189,7 +189,7 @@ const StudentModuleResources = ({ resources, moduleTitle }) => {
                   <div className="flex flex-col sm:flex-row gap-2">
                     <Button
                       onClick={() => handleResourceView(resource)}
-                      className="flex-1 h-8 sm:h-9 text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white min-h-[44px] sm:min-h-0"
+                      className="flex-1 h-8 sm:h-9 text-xs sm:text-sm bg-[#2563eb] hover:bg-[#1d4ed8] text-white min-h-[44px] sm:min-h-0"
                       size="sm"
                     >
                       {resource.type === 'video' ? (
@@ -218,7 +218,7 @@ const StudentModuleResources = ({ resources, moduleTitle }) => {
                       <Button
                         onClick={() => handleDownload(resource.url, resource.title)}
                         variant="outline"
-                        className="flex-1 h-8 sm:h-9 text-xs sm:text-sm hover:bg-gray-50"
+                        className="flex-1 h-8 sm:h-9 text-xs sm:text-sm hover:bg-[#f9fafb]"
                         size="sm"
                       >
                         <Download className="h-3 w-3 mr-1.5" />

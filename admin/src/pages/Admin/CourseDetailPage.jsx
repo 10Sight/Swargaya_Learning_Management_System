@@ -144,13 +144,13 @@ const CourseDetailPage = () => {
 
   const getLevelBadge = (level) => {
     const colorMap = {
-      L1: "bg-blue-100 text-blue-800 border-blue-200",
-      L2: "bg-orange-100 text-orange-800 border-orange-200",
-      L3: "bg-green-100 text-green-800 border-green-200",
+      L1: "bg-[#dbeafe] text-[#1e40af] border-[#bfdbfe]",
+      L2: "bg-[#ffedd5] text-[#9a3412] border-[#fed7aa]",
+      L3: "bg-[#dcfce7] text-[#166534] border-[#bbf7d0]",
     };
 
     const raw = typeof level === "string" ? level : (level != null ? `L${level}` : "L1");
-    const color = colorMap[raw] || "bg-gray-100 text-gray-800 border-gray-200";
+    const color = colorMap[raw] || "bg-[#f3f4f6] text-[#1f2937] border-[#e5e7eb]";
 
     return (
       <Badge className={`${color} font-medium text-xs px-2 py-1`}>
@@ -206,10 +206,10 @@ const CourseDetailPage = () => {
   if (courseError) {
     return (
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
-        <div className="text-red-600 text-lg font-medium">
+        <div className="text-[#dc2626] text-lg font-medium">
           Error loading course
         </div>
-        <p className="text-gray-600 text-center">
+        <p className="text-[#4b5563] text-center">
           {courseError?.message || "Failed to fetch course details"}
         </p>
         <div className="flex gap-2">
@@ -353,77 +353,77 @@ const CourseDetailPage = () => {
             <>
               {/* Analytics Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+                <Card className="bg-gradient-to-br from-[#eff6ff] to-[#dbeafe] border-[#bfdbfe]">
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-blue-800">Student Progress</p>
-                        <p className="text-xs text-blue-600">Average completion</p>
+                        <p className="text-sm font-medium text-[#1e40af]">Student Progress</p>
+                        <p className="text-xs text-[#2563eb]">Average completion</p>
                       </div>
-                      <div className="p-2 bg-blue-100 rounded-full">
-                        <IconUsers className="h-4 w-4 text-blue-600" />
+                      <div className="p-2 bg-[#dbeafe] rounded-full">
+                        <IconUsers className="h-4 w-4 text-[#2563eb]" />
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-bold text-blue-900">
+                    <p className="text-2xl font-bold text-[#1e3a8a]">
                       {analyticsData?.data?.progressStats?.averageProgress || 0}%
                     </p>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+                <Card className="bg-gradient-to-br from-[#f0fdf4] to-[#dcfce7] border-[#bbf7d0]">
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-green-800">Assignment Grade</p>
-                        <p className="text-xs text-green-600">Average score</p>
+                        <p className="text-sm font-medium text-[#166534]">Assignment Grade</p>
+                        <p className="text-xs text-[#16a34a]">Average score</p>
                       </div>
-                      <div className="p-2 bg-green-100 rounded-full">
-                        <IconClipboardList className="h-4 w-4 text-green-600" />
+                      <div className="p-2 bg-[#dcfce7] rounded-full">
+                        <IconClipboardList className="h-4 w-4 text-[#16a34a]" />
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-bold text-green-900">
+                    <p className="text-2xl font-bold text-[#14532d]">
                       {analyticsData?.data?.submissionStats?.averageGrade || 0}%
                     </p>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+                <Card className="bg-gradient-to-br from-[#faf5ff] to-[#f3e8ff] border-[#e9d5ff]">
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-purple-800">Quiz Pass Rate</p>
-                        <p className="text-xs text-purple-600">Success percentage</p>
+                        <p className="text-sm font-medium text-[#6b21a8]">Quiz Pass Rate</p>
+                        <p className="text-xs text-[#9333ea]">Success percentage</p>
                       </div>
-                      <div className="p-2 bg-purple-100 rounded-full">
-                        <IconHelpCircle className="h-4 w-4 text-purple-600" />
+                      <div className="p-2 bg-[#f3e8ff] rounded-full">
+                        <IconHelpCircle className="h-4 w-4 text-[#9333ea]" />
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-bold text-purple-900">
+                    <p className="text-2xl font-bold text-[#581c87]">
                       {analyticsData?.data?.quizStats?.passRate || 0}%
                     </p>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200">
+                <Card className="bg-gradient-to-br from-[#fffbeb] to-[#fef3c7] border-[#fde68a]">
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-amber-800">Total Enrollments</p>
-                        <p className="text-xs text-amber-600">Active students</p>
+                        <p className="text-sm font-medium text-[#92400e]">Total Enrollments</p>
+                        <p className="text-xs text-[#d97706]">Active students</p>
                       </div>
-                      <div className="p-2 bg-amber-100 rounded-full">
-                        <IconSchool className="h-4 w-4 text-amber-600" />
+                      <div className="p-2 bg-[#fef3c7] rounded-full">
+                        <IconSchool className="h-4 w-4 text-[#d97706]" />
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-bold text-amber-900">
+                    <p className="text-2xl font-bold text-[#78350f]">
                       {analyticsData?.data?.courseInfo?.totalEnrollments || 0}
                     </p>
                   </CardContent>

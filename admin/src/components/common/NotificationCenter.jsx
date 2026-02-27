@@ -17,16 +17,16 @@ const NotificationCenter = () => {
         switch (type) {
             case 'quiz-started':
             case 'assignment-created':
-                return <Info className="h-4 w-4 text-blue-500" />;
+                return <Info className="h-4 w-4 text-[#3b82f6]" />;
             case 'quiz-submitted':
             case 'assignment-submitted':
-                return <CheckCircle className="h-4 w-4 text-green-500" />;
+                return <CheckCircle className="h-4 w-4 text-[#22c55e]" />;
             case 'grade-updated':
-                return <AlertCircle className="h-4 w-4 text-orange-500" />;
+                return <AlertCircle className="h-4 w-4 text-[#f97316]" />;
             case 'announcement':
-                return <Bell className="h-4 w-4 text-purple-500" />;
+                return <Bell className="h-4 w-4 text-[#a855f7]" />;
             default:
-                return <Clock className="h-4 w-4 text-gray-500" />;
+                return <Clock className="h-4 w-4 text-[#6b7280]" />;
         }
     };
 
@@ -34,16 +34,16 @@ const NotificationCenter = () => {
         switch (type) {
             case 'quiz-started':
             case 'assignment-created':
-                return 'border-l-4 border-blue-500 bg-blue-50';
+                return 'border-l-4 border-[#3b82f6] bg-[#eff6ff]';
             case 'quiz-submitted':
             case 'assignment-submitted':
-                return 'border-l-4 border-green-500 bg-green-50';
+                return 'border-l-4 border-[#22c55e] bg-[#f0fdf4]';
             case 'grade-updated':
-                return 'border-l-4 border-orange-500 bg-orange-50';
+                return 'border-l-4 border-[#f97316] bg-[#fff7ed]';
             case 'announcement':
-                return 'border-l-4 border-purple-500 bg-purple-50';
+                return 'border-l-4 border-[#a855f7] bg-[#f3e8ff]';
             default:
-                return 'border-l-4 border-gray-500 bg-gray-50';
+                return 'border-l-4 border-[#6b7280] bg-[#f9fafb]';
         }
     };
 
@@ -56,7 +56,7 @@ const NotificationCenter = () => {
                         size="sm"
                         className="relative p-2"
                     >
-                        <Bell className={`h-5 w-5 ${isConnected ? 'text-green-600' : 'text-gray-400'}`} />
+                        <Bell className={`h-5 w-5 ${isConnected ? 'text-[#16a34a]' : 'text-[#9ca3af]'}`} />
                         {notifications.length > 0 && (
                             <Badge
                                 variant="destructive"
@@ -73,13 +73,13 @@ const NotificationCenter = () => {
                             <div className="flex items-center justify-between">
                                 <CardTitle className="text-lg">
                                     {t('notify.title')}
-                                    <span className="ml-2 text-sm font-normal text-gray-500">
+                                    <span className="ml-2 text-sm font-normal text-[#6b7280]">
                                         ({notifications.length})
                                     </span>
                                 </CardTitle>
                                 <div className="flex items-center gap-2">
-                                    <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-                                    <span className="text-xs text-gray-500">
+                                    <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-[#22c55e]' : 'bg-[#ef4444]'}`} />
+                                    <span className="text-xs text-[#6b7280]">
                                         {isConnected ? t('notify.connected') : t('notify.disconnected')}
                                     </span>
                                     {notifications.length > 0 && (
@@ -98,10 +98,10 @@ const NotificationCenter = () => {
                         <CardContent className="p-0">
                             <div className="max-h-96 overflow-y-auto">
                                 {notifications.length === 0 ? (
-                                    <div className="p-4 text-center text-gray-500">
-                                        <Bell className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                                    <div className="p-4 text-center text-[#6b7280]">
+                                        <Bell className="h-8 w-8 mx-auto mb-2 text-[#d1d5db]" />
                                         <p className="text-sm">{t('notify.emptyTitle')}</p>
-                                        <p className="text-xs text-gray-400 mt-1">
+                                        <p className="text-xs text-[#9ca3af] mt-1">
                                             {t('notify.emptyDescription')}
                                         </p>
                                     </div>
@@ -110,36 +110,36 @@ const NotificationCenter = () => {
                                         {notifications.map((notification, index) => (
                                             <div
                                                 key={`${notification.timestamp}-${index}`}
-                                                className={`p-4 hover:bg-gray-50 transition-colors ${getNotificationStyle(notification.type)}`}
+                                                className={`p-4 hover:bg-[#f9fafb] transition-colors ${getNotificationStyle(notification.type)}`}
                                             >
                                                 <div className="flex items-start justify-between gap-3">
                                                     <div className="flex items-start gap-3 flex-1">
                                                         {getNotificationIcon(notification.type)}
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-medium text-gray-900 leading-tight">
+                                                            <p className="text-sm font-medium text-[#111827] leading-tight">
                                                                 {notification.message}
                                                             </p>
                                                             {notification.from && (
-                                                                <p className="text-xs text-gray-600 mt-1">
+                                                                <p className="text-xs text-[#4b5563] mt-1">
                                                                     {t('notify.from')} {notification.from}
                                                                 </p>
                                                             )}
-                                                            <p className="text-xs text-gray-500 mt-1">
+                                                            <p className="text-xs text-[#6b7280] mt-1">
                                                                 {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
                                                             </p>
                                                             {/* Additional info based on notification type */}
                                                             {notification.quiz && (
-                                                                <p className="text-xs text-blue-600 mt-1">
+                                                                <p className="text-xs text-[#2563eb] mt-1">
                                                                     {t('notify.quiz')} {notification.quiz.title}
                                                                 </p>
                                                             )}
                                                             {notification.assignment && (
-                                                                <p className="text-xs text-blue-600 mt-1">
+                                                                <p className="text-xs text-[#2563eb] mt-1">
                                                                     {t('notify.assignment')} {notification.assignment.title}
                                                                 </p>
                                                             )}
                                                             {notification.grade && (
-                                                                <p className="text-xs text-orange-600 mt-1">
+                                                                <p className="text-xs text-[#ea580c] mt-1">
                                                                     {t('notify.score')} {notification.grade.score || 'N/A'}
                                                                 </p>
                                                             )}
@@ -149,7 +149,7 @@ const NotificationCenter = () => {
                                                         variant="ghost"
                                                         size="sm"
                                                         onClick={() => removeNotification(index)}
-                                                        className="p-1 h-auto text-gray-400 hover:text-gray-600"
+                                                        className="p-1 h-auto text-[#9ca3af] hover:text-[#4b5563]"
                                                     >
                                                         <X className="h-3 w-3" />
                                                     </Button>

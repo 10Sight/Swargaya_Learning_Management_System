@@ -154,17 +154,17 @@ const CertificateIssuance = () => {
 
   const getEligibilityIcon = (eligible) => {
     return eligible ? (
-      <CheckCircle className="h-5 w-5 text-green-600" />
+      <CheckCircle className="h-5 w-5 text-[#16a34a]" />
     ) : (
-      <XCircle className="h-5 w-5 text-red-600" />
+      <XCircle className="h-5 w-5 text-[#dc2626]" />
     )
   }
 
   const getRequirementIcon = (met) => {
     return met ? (
-      <CheckCircle className="h-4 w-4 text-green-600" />
+      <CheckCircle className="h-4 w-4 text-[#16a34a]" />
     ) : (
-      <XCircle className="h-4 w-4 text-red-600" />
+      <XCircle className="h-4 w-4 text-[#dc2626]" />
     )
   }
 
@@ -303,7 +303,7 @@ const CertificateIssuance = () => {
           ) : eligibilityData?.data ? (
             <div className="space-y-6">
               {/* Overall Eligibility */}
-              <Card className={eligibilityData?.data?.eligible ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}>
+              <Card className={eligibilityData?.data?.eligible ? 'border-[#bbf7d0] bg-[#f0fdf4]' : 'border-[#fecaca] bg-[#fef2f2]'}>
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3">
                     {getEligibilityIcon(eligibilityData?.data?.eligible)}
@@ -426,7 +426,7 @@ const CertificateIssuance = () => {
                     </Button>
                     <Button
                       onClick={() => setShowIssueDialog(true)}
-                      className="bg-green-600 hover:bg-green-700"
+                      className="bg-[#16a34a] hover:bg-[#15803d]"
                     >
                       <Award className="h-4 w-4 mr-2" />
                       Issue Certificate

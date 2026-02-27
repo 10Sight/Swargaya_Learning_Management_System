@@ -517,13 +517,13 @@ const Students = () => {
       case "PRESENT":
         return (
           <Badge variant="success" className="flex items-center gap-1 w-fit">
-            <div className="h-2 w-2 rounded-full bg-green-500"></div> Present
+            <div className="h-2 w-2 rounded-full bg-[#22c55e]"></div> Present
           </Badge>
         );
       case "ON_LEAVE":
         return (
           <Badge variant="warning" className="flex items-center gap-1 w-fit">
-            <div className="h-2 w-2 rounded-full bg-amber-500"></div> On Leave
+            <div className="h-2 w-2 rounded-full bg-[#f59e0b]"></div> On Leave
           </Badge>
         );
       case "LEFT":
@@ -532,13 +532,13 @@ const Students = () => {
             variant="destructive"
             className="flex items-center gap-1 w-fit"
           >
-            <div className="h-2 w-2 rounded-full bg-red-600"></div> Left
+            <div className="h-2 w-2 rounded-full bg-[#dc2626]"></div> Left
           </Badge>
         );
       default:
         return (
           <Badge variant="secondary" className="flex items-center gap-1 w-fit">
-            <div className="h-2 w-2 rounded-full bg-gray-500"></div> {normalized || "Unknown"}
+            <div className="h-2 w-2 rounded-full bg-[#6b7280]"></div> {normalized || "Unknown"}
           </Badge>
         );
     }
@@ -641,10 +641,10 @@ const Students = () => {
     if (studentsError.status === 401) {
       return (
         <div className="flex flex-col justify-center items-center h-64 space-y-4 p-4">
-          <div className="text-red-600 text-lg font-medium">
+          <div className="text-[#dc2626] text-lg font-medium">
             Authentication Required
           </div>
-          <p className="text-gray-600 text-center">
+          <p className="text-[#4b5563] text-center">
             Please log in as an admin to view employees
           </p>
           <Button
@@ -659,10 +659,10 @@ const Students = () => {
 
     return (
       <div className="flex flex-col justify-center items-center h-64 space-y-4 p-4">
-        <div className="text-red-600 text-lg font-medium">
+        <div className="text-[#dc2626] text-lg font-medium">
           Error loading employees
         </div>
-        <p className="text-gray-600 text-center">
+        <p className="text-[#4b5563] text-center">
           {studentsError?.message || "Failed to fetch employees"}
         </p>
         <Button onClick={() => refetch()} variant="outline" className="gap-2">
@@ -682,13 +682,13 @@ const Students = () => {
           value={studentsData?.data?.totalUsers || 0}
           description="All registered employees"
           icon={IconUsers}
-          iconBgColor="bg-blue-100"
-          iconColor="text-blue-600"
-          gradientFrom="from-blue-50"
-          gradientTo="to-blue-100"
-          borderColor="border-blue-200"
-          textColor="text-blue-800"
-          valueColor="text-blue-900"
+          iconBgColor="bg-[#dbeafe]"
+          iconColor="text-[#2563eb]"
+          gradientFrom="from-[#eff6ff]"
+          gradientTo="to-[#dbeafe]"
+          borderColor="border-[#bfdbfe]"
+          textColor="text-[#1e40af]"
+          valueColor="text-[#1e3a8a]"
         />
 
         <StatCard
@@ -696,13 +696,13 @@ const Students = () => {
           value={students.filter((s) => normalizeStatus(s.status) === "PRESENT").length}
           description="Currently present"
           icon={IconUser}
-          iconBgColor="bg-green-100"
-          iconColor="text-green-600"
-          gradientFrom="from-green-50"
-          gradientTo="to-green-100"
-          borderColor="border-green-200"
-          textColor="text-green-800"
-          valueColor="text-green-900"
+          iconBgColor="bg-[#dcfce7]"
+          iconColor="text-[#16a34a]"
+          gradientFrom="from-[#f0fdf4]"
+          gradientTo="to-[#dcfce7]"
+          borderColor="border-[#bbf7d0]"
+          textColor="text-[#166534]"
+          valueColor="text-[#14532d]"
         />
 
         <StatCard
@@ -710,13 +710,13 @@ const Students = () => {
           value={students.filter((s) => s.department).length}
           description="Currently enrolled"
           icon={IconSchool}
-          iconBgColor="bg-purple-100"
-          iconColor="text-purple-600"
-          gradientFrom="from-purple-50"
-          gradientTo="to-purple-100"
-          borderColor="border-purple-200"
-          textColor="text-purple-800"
-          valueColor="text-purple-900"
+          iconBgColor="bg-[#f3e8ff]"
+          iconColor="text-[#9333ea]"
+          gradientFrom="from-[#faf5ff]"
+          gradientTo="to-[#f3e8ff]"
+          borderColor="border-[#e9d5ff]"
+          textColor="text-[#6b21a8]"
+          valueColor="text-[#581c87]"
         />
       </div>
 
@@ -749,7 +749,7 @@ const Students = () => {
 
           <Button
             onClick={() => setIsAddDialogOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+            className="bg-[#2563eb] hover:bg-[#1d4ed8] text-[#ffffff] shadow-sm"
           >
             <IconPlus className="h-4 w-4 mr-2" />
             Add Employee
@@ -900,7 +900,7 @@ const Students = () => {
                             src={student.avatar?.url}
                             alt={student.fullName}
                           />
-                          <AvatarFallback className="bg-blue-100 text-blue-800">
+                          <AvatarFallback className="bg-[#dbeafe] text-[#1e40af]">
                             {student.fullName
                               .split(" ")
                               .map((n) => n[0])
@@ -1024,7 +1024,7 @@ const Students = () => {
                                   e.stopPropagation(); // Stop event propagation
                                   openDeleteDialog(student);
                                 }}
-                                className="h-8 w-8 p-0 text-red-600 hover:text-red-800 hover:bg-red-50"
+                                className="h-8 w-8 p-0 text-[#dc2626] hover:text-[#991b1b] hover:bg-[#fef2f2]"
                               >
                                 <IconTrash className="h-4 w-4" />
                               </Button>
@@ -1127,12 +1127,12 @@ const Students = () => {
                 placeholder="Enter full name"
                 className={
                   formErrors.fullName
-                    ? "border-red-500 focus:border-red-500"
+                    ? "border-[#ef4444] focus:border-[#ef4444]"
                     : ""
                 }
               />
               {formErrors.fullName && (
-                <p className="text-sm text-red-600">{formErrors.fullName}</p>
+                <p className="text-sm text-[#dc2626]">{formErrors.fullName}</p>
               )}
             </div>
 
@@ -1146,12 +1146,12 @@ const Students = () => {
                 placeholder="Enter username"
                 className={
                   formErrors.userName
-                    ? "border-red-500 focus:border-red-500"
+                    ? "border-[#ef4444] focus:border-[#ef4444]"
                     : ""
                 }
               />
               {formErrors.userName && (
-                <p className="text-sm text-red-600">{formErrors.userName}</p>
+                <p className="text-sm text-[#dc2626]">{formErrors.userName}</p>
               )}
             </div>
 
@@ -1165,11 +1165,11 @@ const Students = () => {
                 onChange={handleInputChange}
                 placeholder="Enter email address"
                 className={
-                  formErrors.email ? "border-red-500 focus:border-red-500" : ""
+                  formErrors.email ? "border-[#ef4444] focus:border-[#ef4444]" : ""
                 }
               />
               {formErrors.email && (
-                <p className="text-sm text-red-600">{formErrors.email}</p>
+                <p className="text-sm text-[#dc2626]">{formErrors.email}</p>
               )}
             </div>
 
@@ -1183,12 +1183,12 @@ const Students = () => {
                 placeholder="Enter phone number"
                 className={
                   formErrors.phoneNumber
-                    ? "border-red-500 focus:border-red-500"
+                    ? "border-[#ef4444] focus:border-[#ef4444]"
                     : ""
                 }
               />
               {formErrors.phoneNumber && (
-                <p className="text-sm text-red-600">{formErrors.phoneNumber}</p>
+                <p className="text-sm text-[#dc2626]">{formErrors.phoneNumber}</p>
               )}
             </div>
             <div className="grid gap-2">
@@ -1240,12 +1240,12 @@ const Students = () => {
                 placeholder="Enter password"
                 className={
                   formErrors.password
-                    ? "border-red-500 focus:border-red-500"
+                    ? "border-[#ef4444] focus:border-[#ef4444]"
                     : ""
                 }
               />
               {formErrors.password && (
-                <p className="text-sm text-red-600">{formErrors.password}</p>
+                <p className="text-sm text-[#dc2626]">{formErrors.password}</p>
               )}
             </div>
           </div>
@@ -1373,7 +1373,7 @@ const Students = () => {
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-600">
+            <DialogTitle className="flex items-center gap-2 text-[#dc2626]">
               <IconTrash className="h-5 w-5" />
               Delete Employee
             </DialogTitle>
@@ -1383,9 +1383,9 @@ const Students = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <div className="flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-200">
-              <IconInfoCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
-              <p className="text-sm text-red-800">
+            <div className="flex items-center gap-3 p-3 bg-[#fef2f2] rounded-lg border border-[#dc2626]">
+              <IconInfoCircle className="h-5 w-5 text-[#dc2626] flex-shrink-0" />
+              <p className="text-sm text-[#991b1b]">
                 Are you sure you want to delete{" "}
                 <strong>{selectedStudent?.fullName}</strong>?
               </p>
@@ -1440,7 +1440,7 @@ const Students = () => {
                 </div>
               ) : departmentsError ? (
                 <div className="text-center py-8">
-                  <p className="text-red-500">Error loading departments</p>
+                  <p className="text-[#ef4444]">Error loading departments</p>
                   <p className="text-sm text-muted-foreground mt-1">
                     Please try again later
                   </p>
@@ -1456,9 +1456,9 @@ const Students = () => {
                     <div
                       key={department._id}
                       className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${isCurrentlyAssigned
-                        ? "bg-green-50 border-green-200 cursor-default"
+                        ? "bg-[#f0fdf4] border-[#bbf7d0] cursor-default"
                         : isAtCapacity
-                          ? "bg-red-50 border-red-200 cursor-not-allowed opacity-60"
+                          ? "bg-[#fef2f2] border-[#fecaca] cursor-not-allowed opacity-60"
                           : "hover:bg-muted/50 cursor-pointer"
                         }`}
                       onClick={() => {
@@ -1470,18 +1470,18 @@ const Students = () => {
                       <div className="flex items-center gap-3">
                         <div
                           className={`p-2 rounded-full ${isCurrentlyAssigned
-                            ? "bg-green-100"
+                            ? "bg-[#dcfce7]"
                             : isAtCapacity
-                              ? "bg-red-100"
-                              : "bg-blue-100"
+                              ? "bg-[#fee2e2]"
+                              : "bg-[#dbeafe]"
                             }`}
                         >
                           <IconSchool
                             className={`h-4 w-4 ${isCurrentlyAssigned
-                              ? "text-green-600"
+                              ? "text-[#16a34a]"
                               : isAtCapacity
-                                ? "text-red-600"
-                                : "text-blue-600"
+                                ? "text-[#dc2626]"
+                                : "text-[#2563eb]"
                               }`}
                           />
                         </div>

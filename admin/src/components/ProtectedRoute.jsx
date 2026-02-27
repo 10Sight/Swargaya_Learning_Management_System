@@ -14,7 +14,7 @@ const ProtectedRoute = ({ children }) => {
       // Only check profile if localStorage indicates user should be logged in
       // but Redux state doesn't have user data
       const isLoggedInFromStorage = localStorage.getItem('isLoggedIn') === 'true';
-      
+
       if (isLoggedInFromStorage && !user) {
         try {
           await dispatch(profile()).unwrap();
@@ -30,10 +30,10 @@ const ProtectedRoute = ({ children }) => {
   // Show loading while checking authentication
   if (localStorage.getItem('isLoggedIn') === 'true' && !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-[#f9fafb]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Verifying authentication...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2563eb] mx-auto"></div>
+          <p className="mt-4 text-[#4b5563]">Verifying authentication...</p>
         </div>
       </div>
     );

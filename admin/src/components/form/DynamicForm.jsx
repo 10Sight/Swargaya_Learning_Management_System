@@ -6,10 +6,10 @@ import { FormInput } from "./FormInput";
 import { FormSelect } from "./FormSelect";
 import { FormTextarea } from "./FormTextarea";
 import { FormCard } from "./FormCard";
-import { 
-  IconPlus, 
-  IconTrash, 
-  IconGripVertical, 
+import {
+  IconPlus,
+  IconTrash,
+  IconGripVertical,
   IconCopy,
   IconEye,
   IconEyeOff,
@@ -21,75 +21,75 @@ import { cn } from "@/lib/utils";
 
 // Field Types Configuration
 const FIELD_TYPES = {
-  text: { 
-    label: "Text Input", 
-    icon: "📝", 
+  text: {
+    label: "Text Input",
+    icon: "📝",
     component: FormInput,
     defaultProps: { type: "text" }
   },
-  email: { 
-    label: "Email", 
-    icon: "📧", 
+  email: {
+    label: "Email",
+    icon: "📧",
     component: FormInput,
     defaultProps: { type: "email" }
   },
-  password: { 
-    label: "Password", 
-    icon: "🔒", 
+  password: {
+    label: "Password",
+    icon: "🔒",
     component: FormInput,
     defaultProps: { type: "password" }
   },
-  number: { 
-    label: "Number", 
-    icon: "🔢", 
+  number: {
+    label: "Number",
+    icon: "🔢",
     component: FormInput,
     defaultProps: { type: "number" }
   },
-  textarea: { 
-    label: "Text Area", 
-    icon: "📄", 
+  textarea: {
+    label: "Text Area",
+    icon: "📄",
     component: FormTextarea,
     defaultProps: { rows: 4 }
   },
-  select: { 
-    label: "Select Dropdown", 
-    icon: "📋", 
+  select: {
+    label: "Select Dropdown",
+    icon: "📋",
     component: FormSelect,
     defaultProps: { options: [] }
   },
-  multiselect: { 
-    label: "Multi Select", 
-    icon: "☑️", 
+  multiselect: {
+    label: "Multi Select",
+    icon: "☑️",
     component: FormSelect,
     defaultProps: { multiple: true, options: [] }
   },
-  date: { 
-    label: "Date", 
-    icon: "📅", 
+  date: {
+    label: "Date",
+    icon: "📅",
     component: FormInput,
     defaultProps: { type: "date" }
   },
-  time: { 
-    label: "Time", 
-    icon: "🕐", 
+  time: {
+    label: "Time",
+    icon: "🕐",
     component: FormInput,
     defaultProps: { type: "time" }
   },
-  url: { 
-    label: "URL", 
-    icon: "🔗", 
+  url: {
+    label: "URL",
+    icon: "🔗",
     component: FormInput,
     defaultProps: { type: "url" }
   },
-  tel: { 
-    label: "Phone", 
-    icon: "📞", 
+  tel: {
+    label: "Phone",
+    icon: "📞",
     component: FormInput,
     defaultProps: { type: "tel" }
   },
-  file: { 
-    label: "File Upload", 
-    icon: "📎", 
+  file: {
+    label: "File Upload",
+    icon: "📎",
     component: FormInput,
     defaultProps: { type: "file" }
   }
@@ -143,19 +143,19 @@ export const DynamicForm = ({
   const addField = useCallback((type = "text", index = null) => {
     const newField = createDefaultField(type);
     const newFields = [...fields];
-    
+
     if (index !== null) {
       newFields.splice(index + 1, 0, newField);
     } else {
       newFields.push(newField);
     }
-    
+
     setFields(newFields);
     notifyFieldsChange(newFields);
   }, [fields, notifyFieldsChange]);
 
   const updateField = useCallback((fieldId, updates) => {
-    const newFields = fields.map(field => 
+    const newFields = fields.map(field =>
       field.id === fieldId ? { ...field, ...updates } : field
     );
     setFields(newFields);
@@ -171,7 +171,7 @@ export const DynamicForm = ({
         id: `field_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         label: `${originalField.label} (Copy)`
       };
-      
+
       const newFields = [...fields];
       newFields.splice(fieldIndex + 1, 0, duplicatedField);
       setFields(newFields);
@@ -201,7 +201,7 @@ export const DynamicForm = ({
       ...prev,
       [fieldId]: value
     }));
-    
+
     // Clear error when user starts typing
     if (formErrors[fieldId]) {
       setFormErrors(prev => {
@@ -215,20 +215,20 @@ export const DynamicForm = ({
   // Form validation
   const validateForm = useCallback(() => {
     const errors = {};
-    
+
     fields.forEach(field => {
       const value = formValues[field.id];
-      
+
       // Required field validation
       if (field.required && (!value || value.toString().trim() === "")) {
         errors[field.id] = `${field.label} is required`;
         return;
       }
-      
+
       // Type-specific validation
       if (value && field.validation) {
         const { minLength, maxLength, min, max, pattern } = field.validation;
-        
+
         if (minLength && value.length < minLength) {
           errors[field.id] = `${field.label} must be at least ${minLength} characters`;
         }
@@ -246,7 +246,7 @@ export const DynamicForm = ({
         }
       }
     });
-    
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   }, [fields, formValues]);
@@ -254,7 +254,7 @@ export const DynamicForm = ({
   // Form submission
   const handleSubmit = useCallback((e) => {
     e.preventDefault();
-    
+
     if (validateForm() && onSubmit) {
       const formData = {
         values: formValues,
@@ -285,11 +285,11 @@ export const DynamicForm = ({
 
   const handleDrop = useCallback((e, targetFieldId) => {
     e.preventDefault();
-    
+
     if (draggedField && draggedField !== targetFieldId) {
       const fromIndex = fields.findIndex(f => f.id === draggedField);
       const toIndex = fields.findIndex(f => f.id === targetFieldId);
-      
+
       if (fromIndex !== -1 && toIndex !== -1) {
         moveField(fromIndex, toIndex);
       }
@@ -328,23 +328,23 @@ export const DynamicForm = ({
                 <IconGripVertical className="h-3 w-3" />
               </button>
             )}
-            
+
             {allowFieldDuplication && (
               <button
                 type="button"
                 onClick={() => duplicateField(field.id)}
-                className="p-1 hover:bg-muted rounded text-blue-600 hover:text-blue-700"
+                className="p-1 hover:bg-muted rounded text-[#2563eb] hover:text-[#1d4ed8]"
                 title="Duplicate field"
               >
                 <IconCopy className="h-3 w-3" />
               </button>
             )}
-            
+
             {allowFieldDeletion && fields.length > 1 && (
               <button
                 type="button"
                 onClick={() => deleteField(field.id)}
-                className="p-1 hover:bg-muted rounded text-red-600 hover:text-red-700"
+                className="p-1 hover:bg-muted rounded text-[#dc2626] hover:text-[#b91c1c]"
                 title="Delete field"
               >
                 <IconTrash className="h-3 w-3" />
@@ -361,7 +361,7 @@ export const DynamicForm = ({
             </Badge>
             <select
               value={field.type}
-              onChange={(e) => updateField(field.id, { 
+              onChange={(e) => updateField(field.id, {
                 type: e.target.value,
                 ...FIELD_TYPES[e.target.value]?.defaultProps
               })}
@@ -385,14 +385,14 @@ export const DynamicForm = ({
               onChange={(e) => updateField(field.id, { label: e.target.value })}
               size="sm"
             />
-            
+
             <FormInput
               label="Placeholder"
               value={field.placeholder || ""}
               onChange={(e) => updateField(field.id, { placeholder: e.target.value })}
               size="sm"
             />
-            
+
             <FormTextarea
               label="Helper Text"
               value={field.helperText || ""}
@@ -400,7 +400,7 @@ export const DynamicForm = ({
               rows={2}
               size="sm"
             />
-            
+
             <div className="flex items-center gap-4">
               <label className="flex items-center gap-2 text-sm">
                 <input
@@ -419,7 +419,7 @@ export const DynamicForm = ({
                 Disabled
               </label>
             </div>
-            
+
             {/* Options for select fields */}
             {(field.type === "select" || field.type === "multiselect") && (
               <div className="md:col-span-2">
@@ -530,7 +530,7 @@ export const DynamicForm = ({
             {previewMode ? <IconEyeOff className="h-4 w-4" /> : <IconEye className="h-4 w-4" />}
             <span className="ml-1">{previewMode ? "Edit" : "Preview"}</span>
           </Button>
-          
+
           {previewMode && (
             <Button
               type="button"
@@ -581,11 +581,11 @@ export const DynamicForm = ({
             <Separator />
             <div className="flex items-center justify-between">
               <div className="text-sm text-muted-foreground">
-                {fields.length} field{fields.length !== 1 ? 's' : ''} • 
-                {Object.keys(formValues).length} filled • 
+                {fields.length} field{fields.length !== 1 ? 's' : ''} •
+                {Object.keys(formValues).length} filled •
                 {Object.keys(formErrors).length} error{Object.keys(formErrors).length !== 1 ? 's' : ''}
               </div>
-              
+
               <div className="flex items-center gap-2">
                 <Button
                   type="button"
@@ -595,7 +595,7 @@ export const DynamicForm = ({
                 >
                   Reset
                 </Button>
-                
+
                 <Button
                   type="submit"
                   disabled={isLoading || Object.keys(formErrors).length > 0}

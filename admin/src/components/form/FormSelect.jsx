@@ -54,8 +54,8 @@ export const FormSelect = ({
     <div className={cn("group space-y-2", className)}>
       {label && (
         <div className="flex items-center justify-between">
-          <Label 
-            htmlFor={id} 
+          <Label
+            htmlFor={id}
             className={cn(
               "flex items-center gap-2 font-medium transition-colors",
               "group-focus-within:text-primary",
@@ -82,7 +82,7 @@ export const FormSelect = ({
           )}
         </div>
       )}
-      
+
       <div className={cn(
         "relative transition-all duration-200 rounded-lg",
         "focus-within:ring-2 focus-within:ring-primary/20",
@@ -90,22 +90,22 @@ export const FormSelect = ({
         disabled && "opacity-60 cursor-not-allowed",
         variantClasses[variant]
       )}>
-        <Select 
-          value={value} 
+        <Select
+          value={value}
           onValueChange={onValueChange}
           disabled={disabled}
           onOpenChange={setIsOpen}
           {...props}
         >
-          <SelectTrigger 
-            id={id} 
+          <SelectTrigger
+            id={id}
             className={cn(
               "transition-all duration-200 border-0 bg-transparent shadow-none focus:ring-0",
               sizeClasses[size],
               icon && "pl-10",
               (error || success) && "pr-10",
               error && "text-destructive",
-              success && "text-green-700",
+              success && "text-[#15803d]",
               disabled && "cursor-not-allowed",
               hasValue && "text-foreground",
               !hasValue && "text-muted-foreground"
@@ -117,30 +117,24 @@ export const FormSelect = ({
                 {icon}
               </div>
             )}
-            
+
             <SelectValue placeholder={placeholder} />
-            
+
             {/* Status Icons */}
             <div className="absolute right-8 top-1/2 -translate-y-1/2 flex items-center gap-1">
               {success && !error && (
-                <IconCheck className="h-4 w-4 text-green-500" />
+                <IconCheck className="h-4 w-4 text-[#22c55e]" />
               )}
               {error && (
                 <IconAlertCircle className="h-4 w-4 text-destructive" />
               )}
             </div>
-            
-            {/* Custom chevron */}
-            <IconChevronDown className={cn(
-              "h-4 w-4 text-muted-foreground transition-transform duration-200",
-              isOpen && "rotate-180"
-            )} />
           </SelectTrigger>
-          
+
           <SelectContent className="max-h-60">
             {options.map((option) => (
-              <SelectItem 
-                key={option.value} 
+              <SelectItem
+                key={option.value}
                 value={option.value}
                 disabled={option.disabled}
                 className={cn(
@@ -161,7 +155,7 @@ export const FormSelect = ({
             ))}
           </SelectContent>
         </Select>
-        
+
         {/* Focus indicator for minimal variant */}
         {variant === "minimal" && (
           <div className={cn(
@@ -169,7 +163,7 @@ export const FormSelect = ({
             isOpen ? "w-full" : "w-0"
           )} />
         )}
-        
+
         {/* Clear button */}
         {allowClear && hasValue && !disabled && (
           <button
@@ -188,7 +182,7 @@ export const FormSelect = ({
           </button>
         )}
       </div>
-      
+
       {/* Helper Text */}
       {helperText && !error && (
         <div className="flex items-start gap-2 text-sm text-muted-foreground">
@@ -196,7 +190,7 @@ export const FormSelect = ({
           <p>{helperText}</p>
         </div>
       )}
-      
+
       {/* Error Message */}
       {error && (
         <div className="flex items-start gap-2 text-sm text-destructive animate-in slide-in-from-left-2 duration-200">
@@ -209,10 +203,10 @@ export const FormSelect = ({
           </div>
         </div>
       )}
-      
+
       {/* Success Message */}
       {success && !error && (
-        <div className="flex items-start gap-2 text-sm text-green-600 animate-in slide-in-from-left-2 duration-200">
+        <div className="flex items-start gap-2 text-sm text-[#16a34a] animate-in slide-in-from-left-2 duration-200">
           <IconCheck className="h-4 w-4 flex-shrink-0 mt-0.5" />
           <div>
             <p className="font-medium">{success}</p>

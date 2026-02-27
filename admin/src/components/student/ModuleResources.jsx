@@ -21,18 +21,18 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-const ModuleResources = ({ 
-  resources, 
-  isUnlocked, 
+const ModuleResources = ({
+  resources,
+  isUnlocked,
   completedResourceIds = [],
   onResourceComplete,
   onNext,
-  canProceed 
+  canProceed
 }) => {
   const [viewedResources, setViewedResources] = useState(() => new Set(completedResourceIds));
-  
+
   const getResourceIcon = (type) => {
-    switch(type?.toLowerCase()) {
+    switch (type?.toLowerCase()) {
       case 'video':
         return <Video className="h-5 w-5" />;
       case 'pdf':
@@ -49,16 +49,16 @@ const ModuleResources = ({
 
   const handleResourceView = (resourceId, url, type) => {
     if (!isUnlocked) return;
-    
+
     // Open in new window/tab
     window.open(url, '_blank');
-    
+
     // Mark as viewed
     if (!viewedResources.has(resourceId)) {
       const newViewed = new Set(viewedResources);
       newViewed.add(resourceId);
       setViewedResources(newViewed);
-      
+
       if (onResourceComplete) {
         onResourceComplete(resourceId);
       }
@@ -67,7 +67,7 @@ const ModuleResources = ({
 
   const handleDownload = (url, filename) => {
     if (!isUnlocked) return;
-    
+
     // Create download link
     const link = document.createElement('a');
     link.href = url;
@@ -77,41 +77,41 @@ const ModuleResources = ({
     document.body.removeChild(link);
   };
 
-  const allResourcesViewed = resources.every(resource => 
+  const allResourcesViewed = resources.every(resource =>
     viewedResources.has(resource._id || resource.id)
   );
 
   if (!isUnlocked) {
     return (
       <div className="space-y-6">
-        <Alert className="bg-amber-50 border-amber-200">
-          <Lock className="h-4 w-4 text-amber-600" />
+        <Alert className="bg-[#fffbeb] border-[#fde68a]">
+          <Lock className="h-4 w-4 text-[#d97706]" />
           <AlertDescription>
             <div className="flex items-center justify-between">
-              <span className="text-amber-800">
+              <span className="text-[#92400e]">
                 Complete all lessons first to unlock module resources
               </span>
             </div>
           </AlertDescription>
         </Alert>
-        
+
         <div className="grid gap-4">
           {resources.map((resource, index) => (
             <Card key={index} className="opacity-50">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gray-100 rounded-lg">
-                    <Lock className="h-4 w-4 text-gray-400" />
+                  <div className="p-2 bg-[#f3f4f6] rounded-lg">
+                    <Lock className="h-4 w-4 text-[#9ca3af]" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-medium text-gray-500">
+                    <h3 className="font-medium text-[#6b7280]">
                       {resource.title || `Resource ${index + 1}`}
                     </h3>
-                    <p className="text-sm text-gray-400">
+                    <p className="text-sm text-[#9ca3af]">
                       Locked - Complete lessons first
                     </p>
                   </div>
-                  <Badge variant="outline" className="text-gray-400">
+                  <Badge variant="outline" className="text-[#9ca3af]">
                     {resource.type || 'FILE'}
                   </Badge>
                 </div>
@@ -129,20 +129,20 @@ const ModuleResources = ({
       <div>
         <h2 className="text-2xl font-bold mb-2">Module Resources</h2>
         <p className="text-muted-foreground">
-          Study materials and additional content for this module. 
+          Study materials and additional content for this module.
           View or download resources to continue learning.
         </p>
       </div>
 
       {/* Progress Alert */}
-      <Alert className="bg-blue-50 border-blue-200">
-        <CheckCircle2 className="h-4 w-4 text-blue-600" />
+      <Alert className="bg-[#eff6ff] border-[#bfdbfe]">
+        <CheckCircle2 className="h-4 w-4 text-[#2563eb]" />
         <AlertDescription>
           <div className="flex items-center justify-between">
-            <span className="text-blue-800">
+            <span className="text-[#1e40af]">
               {viewedResources.size} of {resources.length} resources viewed
             </span>
-            <Badge variant="outline" className="text-blue-600">
+            <Badge variant="outline" className="text-[#2563eb]">
               {Math.round((viewedResources.size / resources.length) * 100)}% Complete
             </Badge>
           </div>
@@ -165,44 +165,42 @@ const ModuleResources = ({
           resources.map((resource, index) => {
             const resourceId = resource._id || resource.id;
             const isViewed = viewedResources.has(resourceId);
-            
+
             return (
-              <Card 
-                key={resourceId || index} 
-                className={`transition-all hover:shadow-md ${
-                  isViewed ? 'bg-green-50 border-green-200' : 'hover:bg-gray-50'
-                }`}
+              <Card
+                key={resourceId || index}
+                className={`transition-all hover:shadow-md ${isViewed ? 'bg-[#f0fdf4] border-[#bbf7d0]' : 'hover:bg-[#f9fafb]'
+                  }`}
               >
                 <CardContent className="p-4">
                   <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-lg ${
-                      isViewed ? 'bg-green-100' : 'bg-gray-100'
-                    }`}>
+                    <div className={`p-3 rounded-lg ${isViewed ? 'bg-[#dcfce7]' : 'bg-[#f3f4f6]'
+                      }`}>
                       {isViewed ? (
-                        <CheckCircle2 className="h-5 w-5 text-green-600" />
+                        <CheckCircle2 className="h-5 w-5 text-[#16a34a]" />
                       ) : (
                         getResourceIcon(resource.type)
                       )}
                     </div>
-                    
+
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-medium">
                           {resource.title || `Resource ${index + 1}`}
                         </h3>
                         {isViewed && (
-                          <Badge variant="outline" className="text-xs bg-green-100 text-green-700">
+                          <Badge variant="outline" className="text-xs bg-[#dcfce7] text-[#15803d]">
                             Viewed
                           </Badge>
                         )}
                       </div>
-                      
+
                       {resource.description && (
                         <p className="text-sm text-muted-foreground mb-2">
                           {resource.description}
                         </p>
                       )}
-                      
+
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="text-xs">
                           {resource.type?.toUpperCase() || 'FILE'}
@@ -214,7 +212,7 @@ const ModuleResources = ({
                         )}
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       {/* Preview/View Button */}
                       <Button
@@ -234,7 +232,7 @@ const ModuleResources = ({
                           </>
                         )}
                       </Button>
-                      
+
                       {/* Download Button (for non-link resources) */}
                       {resource.type !== 'link' && (
                         <Button
@@ -258,16 +256,16 @@ const ModuleResources = ({
       {/* Next Button */}
       {resources.length > 0 && allResourcesViewed && canProceed && (
         <div className="flex justify-center pt-6 border-t">
-          <Button onClick={onNext} size="lg" className="bg-green-600 hover:bg-green-700">
+          <Button onClick={onNext} size="lg" className="bg-[#16a34a] hover:bg-[#15803d]">
             <ArrowRight className="h-4 w-4 mr-2" />
             Continue to Next Stage
           </Button>
         </div>
       )}
-      
+
       {resources.length === 0 && canProceed && (
         <div className="flex justify-center pt-6 border-t">
-          <Button onClick={onNext} size="lg" className="bg-green-600 hover:bg-green-700">
+          <Button onClick={onNext} size="lg" className="bg-[#16a34a] hover:bg-[#15803d]">
             <ArrowRight className="h-4 w-4 mr-2" />
             No Resources - Continue
           </Button>

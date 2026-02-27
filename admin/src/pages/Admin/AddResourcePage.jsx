@@ -305,7 +305,7 @@ const AddResourcePage = () => {
                   <SelectItem value="lesson">Specific Lesson</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-[#6b7280]">
                 Current target: <span className="font-medium">{getEntityName()}</span>
               </p>
             </div>
@@ -448,7 +448,7 @@ const AddResourcePage = () => {
             {/* File Upload */}
             <div className="grid gap-2">
               <Label>Upload File</Label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+              <div className="border-2 border-dashed border-[#d1d5db] rounded-lg p-6 text-center hover:border-[#60a5fa] transition-colors">
                 <input
                   type="file"
                   onChange={handleFileSelect}
@@ -457,12 +457,12 @@ const AddResourcePage = () => {
                 />
 
                 {formData.file ? (
-                  <div className="flex items-center justify-between bg-blue-50 p-4 rounded-md">
+                  <div className="flex items-center justify-between bg-[#eff6ff] p-4 rounded-md">
                     <div className="flex items-center gap-3">
-                      <IconFileText className="h-6 w-6 text-blue-600" />
+                      <IconFileText className="h-6 w-6 text-[#2563eb]" />
                       <div className="text-left">
                         <p className="text-sm font-medium truncate">{formData.file.name}</p>
-                        <p className="text-xs text-gray-600">
+                        <p className="text-xs text-[#4b5563]">
                           {(formData.file.size / (1024 * 1024)).toFixed(2)} MB
                         </p>
                       </div>
@@ -472,22 +472,22 @@ const AddResourcePage = () => {
                       variant="ghost"
                       size="sm"
                       onClick={removeFile}
-                      className="h-8 w-8 p-0 text-gray-500 hover:text-red-600"
+                      className="h-8 w-8 p-0 text-[#6b7280] hover:text-[#dc2626]"
                     >
                       ❌
                     </Button>
                   </div>
                 ) : (
                   <label htmlFor="file-upload" className="cursor-pointer block">
-                    <IconUpload className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                    <IconUpload className="h-12 w-12 text-[#9ca3af] mx-auto mb-3" />
                     <div>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-[#4b5563]">
                         Drop a file here or{" "}
-                        <span className="text-blue-600 hover:text-blue-800 font-medium">
+                        <span className="text-[#2563eb] hover:text-[#1e40af] font-medium">
                           browse files
                         </span>
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-[#6b7280] mt-1">
                         File will be uploaded to Cloudinary (Max 50MB)
                       </p>
                     </div>
@@ -508,9 +508,9 @@ const AddResourcePage = () => {
 
             {/* OR separator */}
             <div className="relative flex items-center">
-              <div className="flex-grow border-t border-gray-300"></div>
-              <span className="mx-4 text-sm text-gray-500 bg-white px-2">OR</span>
-              <div className="flex-grow border-t border-gray-300"></div>
+              <div className="flex-grow border-t border-[#d1d5db]"></div>
+              <span className="mx-4 text-sm text-[#6b7280] bg-white px-2">OR</span>
+              <div className="flex-grow border-t border-[#d1d5db]"></div>
             </div>
 
             {/* URL Input */}
@@ -523,7 +523,7 @@ const AddResourcePage = () => {
                 placeholder="https://example.com/resource.pdf"
                 disabled={!!formData.file}
               />
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-[#6b7280]">
                 {formData.file
                   ? "URL input is disabled when a file is selected"
                   : "Provide a URL to an external resource"

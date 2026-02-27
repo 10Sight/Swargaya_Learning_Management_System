@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 
 const TabNavigation = ({ tabs, activeTab, onTabChange, className }) => {
   return (
-    <div className={cn("border-b border-gray-200 mb-6", className)}>
+    <div className={cn("border-b border-[#e5e7eb] mb-6", className)}>
       <nav className="-mb-px flex space-x-8" aria-label="Tabs">
         {tabs.map((tab) => (
           <button
@@ -12,8 +12,8 @@ const TabNavigation = ({ tabs, activeTab, onTabChange, className }) => {
             className={cn(
               "py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors duration-200",
               activeTab === tab.id
-                ? "border-blue-500 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                ? "border-[#3b82f6] text-[#2563eb]"
+                : "border-transparent text-[#6b7280] hover:text-[#374151] hover:border-[#d1d5db]"
             )}
           >
             <div className="flex items-center gap-2">
@@ -23,8 +23,8 @@ const TabNavigation = ({ tabs, activeTab, onTabChange, className }) => {
                 <span className={cn(
                   "inline-flex items-center justify-center px-2 py-1 text-xs font-bold rounded-full",
                   activeTab === tab.id
-                    ? "bg-blue-100 text-blue-800"
-                    : "bg-gray-100 text-gray-800"
+                    ? "bg-[#dbeafe] text-[#1e40af]"
+                    : "bg-[#f3f4f6] text-[#1f2937]"
                 )}>
                   {tab.count}
                 </span>

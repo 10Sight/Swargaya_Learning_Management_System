@@ -64,11 +64,11 @@ const Analytics = ({ pageName = "Analytics" }) => {
 
   const getActivityColor = (action) => {
     const lowerAction = action?.toLowerCase() || '';
-    if (lowerAction.includes('create') || lowerAction.includes('add')) return 'text-green-600';
-    if (lowerAction.includes('update') || lowerAction.includes('edit')) return 'text-blue-600';
-    if (lowerAction.includes('delete') || lowerAction.includes('remove')) return 'text-red-600';
-    if (lowerAction.includes('login')) return 'text-purple-600';
-    return 'text-gray-600';
+    if (lowerAction.includes('create') || lowerAction.includes('add')) return 'text-[#16a34a]';
+    if (lowerAction.includes('update') || lowerAction.includes('edit')) return 'text-[#2563eb]';
+    if (lowerAction.includes('delete') || lowerAction.includes('remove')) return 'text-[#dc2626]';
+    if (lowerAction.includes('login')) return 'text-[#9333ea]';
+    return 'text-[#4b5563]';
   };
 
   return (
@@ -76,8 +76,8 @@ const Analytics = ({ pageName = "Analytics" }) => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{pageName}</h1>
-          <p className="text-gray-600">System analytics and activity monitoring</p>
+          <h1 className="text-2xl font-bold text-[#111827]">{pageName}</h1>
+          <p className="text-[#4b5563]">System analytics and activity monitoring</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <select className="border rounded px-2 py-1 text-sm" value={auditGroupBy} onChange={e => setAuditGroupBy(e.target.value)}>
@@ -114,10 +114,10 @@ const Analytics = ({ pageName = "Analytics" }) => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Activities</p>
-                <p className="text-2xl font-bold text-gray-900">{totalActivities}</p>
+                <p className="text-sm font-medium text-[#4b5563]">Total Activities</p>
+                <p className="text-2xl font-bold text-[#111827]">{totalActivities}</p>
               </div>
-              <IconActivity className="h-8 w-8 text-blue-600" />
+              <IconActivity className="h-8 w-8 text-[#2563eb]" />
             </div>
           </CardContent>
         </Card>
@@ -126,10 +126,10 @@ const Analytics = ({ pageName = "Analytics" }) => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Students</p>
-                <p className="text-2xl font-bold text-gray-900">{totalStudents}</p>
+                <p className="text-sm font-medium text-[#4b5563]">Students</p>
+                <p className="text-2xl font-bold text-[#111827]">{totalStudents}</p>
               </div>
-              <IconUsers className="h-8 w-8 text-green-600" />
+              <IconUsers className="h-8 w-8 text-[#16a34a]" />
             </div>
           </CardContent>
         </Card>
@@ -138,10 +138,10 @@ const Analytics = ({ pageName = "Analytics" }) => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Instructors</p>
-                <p className="text-2xl font-bold text-gray-900">{totalInstructors}</p>
+                <p className="text-sm font-medium text-[#4b5563]">Instructors</p>
+                <p className="text-2xl font-bold text-[#111827]">{totalInstructors}</p>
               </div>
-              <IconSchool className="h-8 w-8 text-purple-600" />
+              <IconSchool className="h-8 w-8 text-[#9333ea]" />
             </div>
           </CardContent>
         </Card>
@@ -150,10 +150,10 @@ const Analytics = ({ pageName = "Analytics" }) => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Departments</p>
-                <p className="text-2xl font-bold text-gray-900">{totalDepartments}</p>
+                <p className="text-sm font-medium text-[#4b5563]">Departments</p>
+                <p className="text-2xl font-bold text-[#111827]">{totalDepartments}</p>
               </div>
-              <IconCalendar className="h-8 w-8 text-orange-600" />
+              <IconCalendar className="h-8 w-8 text-[#ea580c]" />
             </div>
           </CardContent>
         </Card>
@@ -162,10 +162,10 @@ const Analytics = ({ pageName = "Analytics" }) => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Courses</p>
-                <p className="text-2xl font-bold text-gray-900">{totalCourses}</p>
+                <p className="text-sm font-medium text-[#4b5563]">Courses</p>
+                <p className="text-2xl font-bold text-[#111827]">{totalCourses}</p>
               </div>
-              <IconBook className="h-8 w-8 text-red-600" />
+              <IconBook className="h-8 w-8 text-[#dc2626]" />
             </div>
           </CardContent>
         </Card>
@@ -203,16 +203,16 @@ const Analytics = ({ pageName = "Analytics" }) => {
                 const activityColor = getActivityColor(activity.action);
 
                 return (
-                  <div key={activity._id || index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                  <div key={activity._id || index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-[#f9fafb] transition-colors">
                     <div className="flex items-center space-x-4">
-                      <div className="p-2 bg-gray-100 rounded-full">
+                      <div className="p-2 bg-[#f3f4f6] rounded-full">
                         <ActivityIcon className={`h-5 w-5 ${activityColor}`} />
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">
+                        <p className="font-medium text-[#111827]">
                           {activity.action || 'System Activity'}
                         </p>
-                        <div className="flex items-center space-x-2 text-sm text-gray-500">
+                        <div className="flex items-center space-x-2 text-sm text-[#6b7280]">
                           <span>{activity.user?.fullName || 'System'}</span>
                           <span>•</span>
                           <div className="flex items-center space-x-1">
@@ -235,8 +235,8 @@ const Analytics = ({ pageName = "Analytics" }) => {
               })}
             </div>
           ) : (
-            <div className="text-center text-gray-500 py-12">
-              <IconActivity className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+            <div className="text-center text-[#6b7280] py-12">
+              <IconActivity className="h-12 w-12 mx-auto mb-4 text-[#9ca3af]" />
               <p className="text-lg font-medium mb-2">No Activities Found</p>
               <p className="text-sm">System activities will appear here when available</p>
             </div>

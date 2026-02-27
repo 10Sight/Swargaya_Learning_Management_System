@@ -26,7 +26,7 @@ const Handle = ({ pos, onPointerDown, selected }) => (
     data-pos={pos}
     className={clsx(
       "absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-sm border",
-      selected ? "bg-blue-500 border-blue-600" : "bg-white border-slate-300",
+      selected ? "bg-[#3b82f6] border-[#2563eb]" : "bg-white border-[#cbd5e1]",
     )}
     style={{
       left: pos.includes("r") ? "100%" : pos.includes("l") ? 0 : "50%",
@@ -208,10 +208,10 @@ export default function DraggableCanvas({ elements, onChange, className }) {
     >
       {/* Alignment guides */}
       {guide?.x != null && (
-        <div className="absolute top-0 bottom-0 w-px bg-blue-500/60 pointer-events-none" style={{ left: guide.x }} />
+        <div className="absolute top-0 bottom-0 w-px bg-[#3b82f6]/60 pointer-events-none" style={{ left: guide.x }} />
       )}
       {guide?.y != null && (
-        <div className="absolute left-0 right-0 h-px bg-blue-500/60 pointer-events-none" style={{ top: guide.y }} />
+        <div className="absolute left-0 right-0 h-px bg-[#3b82f6]/60 pointer-events-none" style={{ top: guide.y }} />
       )}
 
       {(elements || []).map((el) => {
@@ -224,7 +224,7 @@ export default function DraggableCanvas({ elements, onChange, className }) {
             aria-label={`${el.type} element`}
             className={clsx(
               "absolute pointer-events-auto",
-              selected ? "ring-2 ring-blue-500" : "ring-1 ring-transparent"
+              selected ? "ring-2 ring-[#3b82f6]" : "ring-1 ring-transparent"
             )}
             style={{ left: r.x, top: r.y, width: r.w, height: r.h, cursor: 'move', touchAction: 'none' }}
             onPointerDown={(e) => onPointerDownItem(e, el)}
@@ -257,7 +257,7 @@ export default function DraggableCanvas({ elements, onChange, className }) {
                 <button
                   type="button"
                   aria-label="Delete element"
-                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-600 text-white flex items-center justify-center shadow pointer-events-auto cursor-pointer"
+                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-[#dc2626] text-white flex items-center justify-center shadow pointer-events-auto cursor-pointer"
                   onClick={(ev) => {
                     ev.stopPropagation();
                     const next = (elements || []).filter((x) => x.id !== el.id);

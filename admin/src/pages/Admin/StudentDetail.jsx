@@ -161,13 +161,13 @@ const StudentDetail = () => {
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      ACTIVE: { variant: "success", label: "Active", color: "text-green-700" },
-      SUSPENDED: { variant: "destructive", label: "Suspended", color: "text-red-700" },
-      PENDING: { variant: "warning", label: "Pending", color: "text-amber-700" },
-      BANNED: { variant: "destructive", label: "Banned", color: "text-red-700" },
+      ACTIVE: { variant: "success", label: "Active", color: "text-[#15803d]" },
+      SUSPENDED: { variant: "destructive", label: "Suspended", color: "text-[#b91c1c]" },
+      PENDING: { variant: "warning", label: "Pending", color: "text-[#b45309]" },
+      BANNED: { variant: "destructive", label: "Banned", color: "text-[#b91c1c]" },
     };
 
-    const config = statusConfig[status] || { variant: "secondary", label: status, color: "text-gray-700" };
+    const config = statusConfig[status] || { variant: "secondary", label: status, color: "text-[#374151]" };
 
     return (
       <Badge variant={config.variant} className={`${config.color}`}>
@@ -207,13 +207,13 @@ const StudentDetail = () => {
 
   const getLevelBadge = (level) => {
     const colorMap = {
-      L1: "bg-blue-100 text-blue-800 border-blue-200",
-      L2: "bg-orange-100 text-orange-800 border-orange-200",
-      L3: "bg-green-100 text-green-800 border-green-200",
+      L1: "bg-[#dbeafe] text-[#1e40af] border-[#bfdbfe]",
+      L2: "bg-[#ffedd5] text-[#9a3412] border-[#fed7aa]",
+      L3: "bg-[#dcfce7] text-[#166534] border-[#bbf7d0]",
     };
 
     const raw = typeof level === "string" ? level : (level != null ? `L${level}` : "L1");
-    const color = colorMap[raw] || "bg-gray-100 text-gray-800 border-gray-200";
+    const color = colorMap[raw] || "bg-[#f3f4f6] text-[#1f2937] border-[#e5e7eb]";
 
     return (
       <Badge className={`${color} font-medium text-xs px-2 py-1`}>
@@ -264,10 +264,10 @@ const StudentDetail = () => {
   if (studentError) {
     return (
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
-        <div className="text-red-600 text-lg font-medium">
+        <div className="text-[#dc2626] text-lg font-medium">
           Error loading employee details
         </div>
-        <p className="text-gray-600 text-center">
+        <p className="text-[#4b5563] text-center">
           {studentError?.message || "Failed to fetch employee information"}
         </p>
         <div className="flex gap-2">
@@ -312,7 +312,7 @@ const StudentDetail = () => {
           <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16 border-2">
               <AvatarImage src={student.avatar?.url} alt={student.fullName} />
-              <AvatarFallback className="bg-blue-100 text-blue-800 text-lg">
+              <AvatarFallback className="bg-[#dbeafe] text-[#1e40af] text-lg">
                 {student.fullName
                   .split(" ")
                   .map((n) => n[0])
@@ -355,7 +355,7 @@ const StudentDetail = () => {
                     <span className="text-muted-foreground">{p.progressPercent || 0}%</span>
                   </div>
                   <div className="w-full bg-muted rounded h-2">
-                    <div className="bg-blue-600 h-2 rounded" style={{ width: `${p.progressPercent || 0}%` }} />
+                    <div className="bg-[#2563eb] h-2 rounded" style={{ width: `${p.progressPercent || 0}%` }} />
                   </div>
                   <div className="text-xs text-muted-foreground">
                     Level: {p.currentLevel || 'L1'} • Modules: {p.completedModules?.length || 0}
@@ -370,9 +370,9 @@ const StudentDetail = () => {
       </Card>
 
       {/* Student Info Card */}
-      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+      <Card className="bg-gradient-to-r from-[#eff6ff] to-[#eef2ff] border-[#bfdbfe]">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-blue-800">
+          <CardTitle className="flex items-center gap-2 text-[#1e40af]">
             <IconUser className="h-5 w-5" />
             Employee Information
           </CardTitle>
@@ -422,12 +422,12 @@ const StudentDetail = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <IconBook2 className="h-4 w-4 text-blue-600" />
+              <IconBook2 className="h-4 w-4 text-[#2563eb]" />
               Courses
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{stats.totalCourses}</div>
+            <div className="text-2xl font-bold text-[#2563eb]">{stats.totalCourses}</div>
             <p className="text-xs text-muted-foreground">Total enrolled</p>
           </CardContent>
         </Card>
@@ -435,12 +435,12 @@ const StudentDetail = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <IconTrophy className="h-4 w-4 text-green-600" />
+              <IconTrophy className="h-4 w-4 text-[#16a34a]" />
               Progress
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.completedModules}</div>
+            <div className="text-2xl font-bold text-[#16a34a]">{stats.completedModules}</div>
             <p className="text-xs text-muted-foreground">Modules completed</p>
           </CardContent>
         </Card>
@@ -448,12 +448,12 @@ const StudentDetail = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <IconFileText className="h-4 w-4 text-purple-600" />
+              <IconFileText className="h-4 w-4 text-[#9333ea]" />
               Submissions
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{stats.totalSubmissions}</div>
+            <div className="text-2xl font-bold text-[#9333ea]">{stats.totalSubmissions}</div>
             <p className="text-xs text-muted-foreground">Assignment submissions</p>
           </CardContent>
         </Card>
@@ -461,12 +461,12 @@ const StudentDetail = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <IconChartBar className="h-4 w-4 text-orange-600" />
+              <IconChartBar className="h-4 w-4 text-[#ea580c]" />
               Quiz Avg
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{stats.averageQuizScore}%</div>
+            <div className="text-2xl font-bold text-[#ea580c]">{stats.averageQuizScore}%</div>
             <p className="text-xs text-muted-foreground">Average quiz score</p>
           </CardContent>
         </Card>
@@ -487,7 +487,7 @@ const StudentDetail = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <IconSchool className="h-5 w-5 text-blue-600" />
+                <IconSchool className="h-5 w-5 text-[#2563eb]" />
                 Course Progress Overview
               </CardTitle>
               <CardDescription>
@@ -673,7 +673,7 @@ const StudentDetail = () => {
                             </p>
                           </div>
                           <div className="text-right">
-                            <div className="text-2xl font-bold text-blue-600">{progressPercentage}%</div>
+                            <div className="text-2xl font-bold text-[#2563eb]">{progressPercentage}%</div>
                             <p className="text-xs text-muted-foreground">Complete</p>
                           </div>
                         </div>

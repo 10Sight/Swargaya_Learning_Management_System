@@ -75,8 +75,8 @@ const InstructorDashboard = () => {
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+      <div className="bg-gradient-to-r from-[#eff6ff] to-[#eef2ff] rounded-lg p-6 border">
+        <h2 className="text-2xl font-bold text-[#111827] mb-2">
           Welcome to your Instructor Dashboard
         </h2>
         <p className="text-muted-foreground">
@@ -229,15 +229,15 @@ const InstructorDashboard = () => {
       </div>
 
       {/* Content Management Capabilities */}
-      <Card className="bg-green-50 border-green-200">
+      <Card className="bg-[#f0fdf4] border-[#bbf7d0]">
         <CardContent className="pt-6">
           <div className="flex items-start space-x-3">
-            <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center mt-0.5">
+            <div className="w-5 h-5 bg-[#22c55e] rounded-full flex items-center justify-center mt-0.5">
               <span className="text-white text-xs font-bold">✓</span>
             </div>
             <div>
-              <h3 className="font-medium text-green-900">Full Content Management</h3>
-              <p className="text-sm text-green-700 mt-1">
+              <h3 className="font-medium text-[#14532d]">Full Content Management</h3>
+              <p className="text-sm text-[#15803d] mt-1">
                 You now have full authority to create, edit, and delete courses, modules, lessons,
                 resources, quizzes, and assignments. You can also manage student departments,
                 grade submissions, and issue certificates for your courses.

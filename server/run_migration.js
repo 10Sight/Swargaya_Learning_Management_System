@@ -1,30 +1,28 @@
+
+
 import { pool } from "./db/connectDB.js";
 
 const runMigration = async () => {
-    try {
-        console.log("Starting migration...");
-        const query = `
-            IF NOT EXISTS (
-              SELECT * FROM sys.columns 
-              WHERE object_id = OBJECT_ID(N'[dbo].[progress]') 
-              AND name = 'levelHistory'
-            )
+  try {
+    console.log("Starting migration: Dropping unique_email constraint...");
+    const query = `
+            IF EXISTS (SELECT * FROM sys.objects WHERE type = 'UQ' AND name = 'unique_email')
             BEGIN
-              ALTER TABLE progress ADD levelHistory VARCHAR(MAX);
-              PRINT 'Column levelHistory added successfully.';
+                ALTER TABLE users DROP CONSTRAINT unique_email;
+                PRINT 'Constraint unique_email dropped.';
             END
             ELSE
             BEGIN
-              PRINT 'Column levelHistory already exists.';
+                PRINT 'Constraint unique_email does not exist.';
             END
         `;
-        await pool.query(query);
-        console.log("Migration completed successfully.");
-        process.exit(0);
-    } catch (error) {
-        console.error("Migration failed:", error);
-        process.exit(1);
-    }
+    await pool.query(query);
+    console.log("Migration completed successfully.");
+    process.exit(0);
+  } catch (error) {
+    console.error("Migration failed:", error);
+    process.exit(1);
+  }
 };
 
 runMigration();

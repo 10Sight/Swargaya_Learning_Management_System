@@ -42,7 +42,7 @@ DialogHeader.displayName = "DialogHeader"
 const DialogTitle = React.forwardRef(({ className, ...props }, ref) => (
   <h2
     ref={ref}
-    className={cn("text-lg font-semibold text-gray-900", className)}
+    className={cn("text-lg font-semibold text-[#111827]", className)}
     {...props}
   />
 ))
@@ -51,7 +51,7 @@ DialogTitle.displayName = "DialogTitle"
 const DialogDescription = React.forwardRef(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn("text-sm text-gray-600", className)}
+    className={cn("text-sm text-[#4b5563]", className)}
     {...props}
   />
 ))

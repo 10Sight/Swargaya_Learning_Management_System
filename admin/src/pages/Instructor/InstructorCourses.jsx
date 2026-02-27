@@ -166,10 +166,10 @@ const InstructorCourses = () => {
   if (coursesError) {
     return (
       <div className="flex flex-col justify-center items-center h-64 space-y-4 p-4">
-        <div className="text-red-600 text-lg font-medium">
+        <div className="text-[#dc2626] text-lg font-medium">
           Error loading courses
         </div>
-        <p className="text-gray-600 text-center">
+        <p className="text-[#4b5563] text-center">
           {coursesError?.message || "Failed to fetch courses"}
         </p>
         <Button onClick={() => refetch()} variant="outline" className="gap-2">
@@ -189,13 +189,13 @@ const InstructorCourses = () => {
           value={totalCount}
           description="Courses you can access"
           icon={IconBook}
-          iconBgColor="bg-blue-100"
-          iconColor="text-blue-600"
-          gradientFrom="from-blue-50"
-          gradientTo="to-blue-100"
-          borderColor="border-blue-200"
-          textColor="text-blue-800"
-          valueColor="text-blue-900"
+          iconBgColor="bg-[#dbeafe]"
+          iconColor="text-[#2563eb]"
+          gradientFrom="from-[#eff6ff]"
+          gradientTo="to-[#dbeafe]"
+          borderColor="border-[#bfdbfe]"
+          textColor="text-[#1e40af]"
+          valueColor="text-[#1e3a8a]"
         />
 
         <StatCard
@@ -206,13 +206,13 @@ const InstructorCourses = () => {
           )}
           description="Learning materials available"
           icon={IconFileText}
-          iconBgColor="bg-purple-100"
-          iconColor="text-purple-600"
-          gradientFrom="from-purple-50"
-          gradientTo="to-purple-100"
-          borderColor="border-purple-200"
-          textColor="text-purple-800"
-          valueColor="text-purple-900"
+          iconBgColor="bg-[#f3e8ff]"
+          iconColor="text-[#9333ea]"
+          gradientFrom="from-[#faf5ff]"
+          gradientTo="to-[#f3e8ff]"
+          borderColor="border-[#e9d5ff]"
+          textColor="text-[#6b21a8]"
+          valueColor="text-[#581c87]"
         />
 
         <StatCard
@@ -223,13 +223,13 @@ const InstructorCourses = () => {
           )}
           description="Across all courses"
           icon={IconUsers}
-          iconBgColor="bg-green-100"
-          iconColor="text-green-600"
-          gradientFrom="from-green-50"
-          gradientTo="to-green-100"
-          borderColor="border-green-200"
-          textColor="text-green-800"
-          valueColor="text-green-900"
+          iconBgColor="bg-[#dcfce7]"
+          iconColor="text-[#16a34a]"
+          gradientFrom="from-[#f0fdf4]"
+          gradientTo="to-[#dcfce7]"
+          borderColor="border-[#bbf7d0]"
+          textColor="text-[#166534]"
+          valueColor="text-[#14532d]"
         />
       </div>
 
@@ -270,8 +270,8 @@ const InstructorCourses = () => {
                   >
                     <TableCell>
                       <div className="flex items-center space-x-3">
-                        <Avatar className="h-10 w-10 border bg-blue-100">
-                          <AvatarFallback className="bg-blue-100 text-blue-800">
+                        <Avatar className="h-10 w-10 border bg-[#dbeafe]">
+                          <AvatarFallback className="bg-[#dbeafe] text-[#1e40af]">
                             <IconBook className="h-5 w-5" />
                           </AvatarFallback>
                         </Avatar>

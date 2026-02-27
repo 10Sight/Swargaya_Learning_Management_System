@@ -55,7 +55,7 @@ const AttemptRequests = ({ canApprove = true }) => {
           {isLoading ? (
             <div className="space-y-2">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-12 bg-gray-100 animate-pulse rounded" />
+                <div key={i} className="h-12 bg-[#f3f4f6] animate-pulse rounded" />
               ))}
             </div>
           ) : requests.length > 0 ? (

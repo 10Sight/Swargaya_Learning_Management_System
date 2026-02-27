@@ -90,12 +90,12 @@ const AttemptReviewModal = ({ attemptId, isOpen, onClose, canEdit = false }) => 
                   const marksObtained = override.marksObtained ?? ans.marksObtained;
 
                   return (
-                    <div key={idx} className={`p-3 rounded border ${isCorrect ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                    <div key={idx} className={`p-3 rounded border ${isCorrect ? 'bg-[#f0fdf4] border-[#bbf7d0]' : 'bg-[#fef2f2] border-[#fecaca]'}`}>
                       <div className="flex items-start gap-2">
                         {isCorrect ? (
-                          <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" />
+                          <CheckCircle2 className="h-4 w-4 text-[#16a34a] mt-0.5" />
                         ) : (
-                          <AlertCircle className="h-4 w-4 text-red-600 mt-0.5" />
+                          <AlertCircle className="h-4 w-4 text-[#dc2626] mt-0.5" />
                         )}
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-sm">Q{idx + 1}: {q?.questionText}</div>

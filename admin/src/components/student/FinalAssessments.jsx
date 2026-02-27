@@ -25,7 +25,7 @@ export default function FinalAssessments({ finalQuiz, finalAssignment, onFinalCo
             <div className="flex items-center gap-2">
               <span className="font-semibold">Final Quiz</span>
               {quizDone ? (
-                <Badge variant="outline" className="bg-green-100 text-green-700">Completed</Badge>
+                <Badge variant="outline" className="bg-[#dcfce7] text-[#15803d]">Completed</Badge>
               ) : (
                 <Badge variant="outline">Questions: {finalQuiz?.questions?.length || 'N/A'}</Badge>
               )}
@@ -51,7 +51,7 @@ export default function FinalAssessments({ finalQuiz, finalAssignment, onFinalCo
             <div className="flex items-center gap-2">
               <span className="font-semibold">Final Assignment</span>
               {assignmentDone ? (
-                <Badge variant="outline" className="bg-green-100 text-green-700">Submitted</Badge>
+                <Badge variant="outline" className="bg-[#dcfce7] text-[#15803d]">Submitted</Badge>
               ) : (
                 <Badge variant="outline">Due: {finalAssignment?.dueDate ? new Date(finalAssignment.dueDate).toLocaleDateString() : 'N/A'}</Badge>
               )}
@@ -72,7 +72,7 @@ export default function FinalAssessments({ finalQuiz, finalAssignment, onFinalCo
 
       {/* Finish Course */}
       <div className="flex justify-center pt-2">
-        <Button onClick={() => onFinalComplete && onFinalComplete()} disabled={!canFinish} className="bg-green-600 hover:bg-green-700">
+        <Button onClick={() => onFinalComplete && onFinalComplete()} disabled={!canFinish} className="bg-[#16a34a] hover:bg-[#15803d]">
           <CheckCircle2 className="h-4 w-4 mr-2" /> Complete Course
         </Button>
       </div>

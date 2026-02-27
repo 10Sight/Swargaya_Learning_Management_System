@@ -35,8 +35,8 @@ export default function ModuleAssignment({
 
   if (!isUnlocked) {
     return (
-      <Alert className="bg-amber-50 border-amber-200">
-        <Lock className="h-4 w-4 text-amber-600" />
+      <Alert className="bg-[#fffbeb] border-[#fde68a]">
+        <Lock className="h-4 w-4 text-[#d97706]" />
         <AlertDescription>
           Complete prior stages to unlock the assignment.
         </AlertDescription>
@@ -66,7 +66,7 @@ export default function ModuleAssignment({
             <div className="flex items-center gap-2">
               <Badge variant="outline">Due: {assignment?.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : 'N/A'}</Badge>
               {markedComplete && (
-                <Badge variant="outline" className="bg-green-100 text-green-700">Submitted</Badge>
+                <Badge variant="outline" className="bg-[#dcfce7] text-[#15803d]">Submitted</Badge>
               )}
             </div>
             {!markedComplete && (
@@ -84,7 +84,7 @@ export default function ModuleAssignment({
 
           <div className="flex gap-2">
             {!markedComplete && (
-              <Button onClick={handleComplete} className="bg-green-600 hover:bg-green-700">
+              <Button onClick={handleComplete} className="bg-[#16a34a] hover:bg-[#15803d]">
                 <CheckCircle2 className="h-4 w-4 mr-2" /> Mark as Submitted
               </Button>
             )}
