@@ -5,9 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { IconBook, IconExternalLink, IconClock } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
+import { useGetActiveConfigQuery } from "@/Redux/AllApi/CourseLevelConfigApi";
 
 const DepartmentCourseCard = ({ course, departmentId }) => {
   const navigate = useNavigate();
+  const { data: configData } = useGetActiveConfigQuery();
+  const activeLevels = configData?.data?.levels || [];
 
   if (!course) {
     return (
@@ -35,10 +38,22 @@ const DepartmentCourseCard = ({ course, departmentId }) => {
   }
 
   const getDifficultyBadge = (difficulty) => {
+    const activeLevel = activeLevels.find(l => l.name.toUpperCase() === (difficulty || "").toUpperCase());
+    if (activeLevel) {
+      return {
+        variant: "default",
+        label: activeLevel.name,
+        style: { backgroundColor: activeLevel.color, color: "#fff" }
+      };
+    }
+
     const difficultyConfig = {
-      BEGINNER: { variant: "secondary", label: "Beginner" },
-      INTERMEDIATE: { variant: "default", label: "Intermediate" },
-      ADVANCED: { variant: "destructive", label: "Advanced" },
+      BEGINNER: { variant: "secondary", label: "L1" },
+      INTERMEDIATE: { variant: "default", label: "L2" },
+      ADVANCED: { variant: "destructive", label: "L3" },
+      L1: { variant: "secondary", label: "L1" },
+      L2: { variant: "default", label: "L2" },
+      L3: { variant: "destructive", label: "L3" },
     };
 
     return difficultyConfig[difficulty] || { variant: "outline", label: difficulty };
@@ -68,7 +83,10 @@ const DepartmentCourseCard = ({ course, departmentId }) => {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Badge variant={getDifficultyBadge(course.difficulty).variant}>
+            <Badge
+              variant={getDifficultyBadge(course.difficulty).variant}
+              style={getDifficultyBadge(course.difficulty).style}
+            >
               {getDifficultyBadge(course.difficulty).label}
             </Badge>
 

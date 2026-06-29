@@ -14,7 +14,7 @@ const initialState = {
         title: "",
         description: "",
         category: "",
-        level: "BEGINNER",
+        level: "L1",
         modules: [],
         instructor: "",
         quizzes: [],

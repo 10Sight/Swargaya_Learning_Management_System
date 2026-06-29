@@ -15,7 +15,7 @@ class Course {
         this.instructor = data.instructor;
         this.students = typeof data.students === 'string' ? JSON.parse(data.students) : (data.students || []);
         this.price = data.price !== undefined ? data.price : 0;
-        this.difficulty = data.difficulty || "BEGGINER";
+        this.difficulty = data.difficulty || data.level || "L1";
         this.status = data.status || "DRAFT";
         this.modules = typeof data.modules === 'string' ? JSON.parse(data.modules) : (data.modules || []);
         this.reviews = typeof data.reviews === 'string' ? JSON.parse(data.reviews) : (data.reviews || []);
@@ -51,7 +51,7 @@ class Course {
                     instructor NVARCHAR(255) NOT NULL,
                     students NVARCHAR(MAX),
                     price DECIMAL(10, 2) DEFAULT 0,
-                    difficulty NVARCHAR(50) DEFAULT 'BEGGINER',
+                    difficulty NVARCHAR(50) DEFAULT 'L1',
                     status NVARCHAR(50) DEFAULT 'DRAFT',
                     modules NVARCHAR(MAX),
                     reviews NVARCHAR(MAX),

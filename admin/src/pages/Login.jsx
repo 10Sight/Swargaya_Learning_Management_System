@@ -34,7 +34,30 @@ const usernameLoginSchema = z.object({
     .min(6, 'Password must be at least 6 characters')
 });
 
+const useWindowSize = () => {
+  const [windowSize, setWindowSize] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 0,
+    height: typeof window !== 'undefined' ? window.innerHeight : 0,
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return windowSize;
+};
+
 const Login = () => {
+  const { width } = useWindowSize();
+  const isLargeScreen = width >= 1024;
   const [loginMethod, setLoginMethod] = useState('email');
   const [rememberMe, setRememberMe] = useState(false);
   const dispatch = useDispatch();
@@ -99,7 +122,10 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f8fafc] via-[#eff6ff] to-[#e0e7ff] relative overflow-hidden">
+    <div
+      className="min-h-screen relative overflow-hidden"
+      style={{ background: 'linear-gradient(to bottom right, #f8fafc, #eff6ff, #e0e7ff)' }}
+    >
       {/* Background Pattern */}
       <div
         className="absolute inset-0 opacity-30"
@@ -108,51 +134,125 @@ const Login = () => {
         }}
       ></div>
 
-      <div className="relative z-10 min-h-screen flex">
+      <div
+        className="relative z-10"
+        style={{
+          position: 'relative',
+          zIndex: 10,
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: isLargeScreen ? 'row' : 'column'
+        }}
+      >
         {/* Left Side - Branding */}
-        <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-white">
-          <img
-            src="/marelli-motherson.webp"
-            alt="Marelli Motherson"
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-        </div>
+        {isLargeScreen && (
+          <div
+            style={{
+              display: 'flex',
+              width: '50%',
+              position: 'relative',
+              overflow: 'hidden',
+              backgroundColor: '#ffffff'
+            }}
+          >
+            <img
+              src="/marelli-motherson.webp"
+              alt="Marelli Motherson"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover'
+              }}
+            />
+          </div>
+        )}
 
         {/* Right Side - Login Form */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
-          <Card className="w-full max-w-md shadow-2xl border-0 bg-white/80 backdrop-blur-sm relative">
+        <div
+          style={{
+            width: isLargeScreen ? '50%' : '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '2rem'
+          }}
+        >
+          <Card
+            className="border-0 shadow-2xl relative"
+            style={{
+              width: '100%',
+              maxWidth: '28rem',
+              backgroundColor: 'rgba(255, 255, 255, 0.8)',
+              backdropFilter: 'blur(4px)',
+              position: 'relative'
+            }}
+          >
             {/* Logo in top right */}
-            <div className="absolute top-6 right-6 z-20">
+            <div style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', zIndex: 20 }}>
               <img
                 src="/motherson+marelli.png"
                 alt="Logo"
-                className="h-8 w-auto object-contain"
+                style={{ height: '2rem', width: 'auto', objectFit: 'contain' }}
               />
             </div>
 
-            <CardHeader className="text-center space-y-4 pb-8 pt-12">
-              <div className="w-16 h-16 bg-gradient-to-r from-[#3b82f6] to-[#4f46e5] rounded-2xl flex items-center justify-center mx-auto shadow-lg">
-                <GraduationCap className="h-8 w-8 text-white" />
+            <CardHeader style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '1rem', paddingBottom: '2rem', paddingTop: '3rem' }}>
+              <div
+                className="rounded-2xl shadow-lg"
+                style={{
+                  width: '4rem',
+                  height: '4rem',
+                  background: 'linear-gradient(to right, #3b82f6, #4f46e5)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto'
+                }}
+              >
+                <GraduationCap className="h-8 w-8 text-[#ffffff]" />
               </div>
-              <div className="space-y-2">
-                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-[#2563eb] to-[#4f46e5] bg-clip-text text-transparent">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <CardTitle className="text-2xl font-bold bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(to right, #2563eb, #4f46e5)' }}>
                   Welcome Back
                 </CardTitle>
-                <CardDescription className="text-[#4b5563]">
+                <CardDescription style={{ color: '#4b5563' }}>
                   Sign in to access your learning dashboard
                 </CardDescription>
               </div>
             </CardHeader>
 
-            <CardContent className="space-y-6">
+            <CardContent style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               {/* Login Method Selector */}
-              <div className="flex rounded-lg bg-[#f1f5f9]/80 p-1 backdrop-blur-sm">
+              <div
+                className="rounded-lg"
+                style={{
+                  display: 'flex',
+                  padding: '0.25rem',
+                  backgroundColor: 'rgba(241, 245, 249, 0.8)',
+                  backdropFilter: 'blur(4px)'
+                }}
+              >
                 <button
                   type="button"
-                  className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 ${loginMethod === 'email'
-                    ? 'bg-white text-[#2563eb] shadow-sm ring-1 ring-[#dbeafe]'
-                    : 'text-[#4b5563] hover:text-[#1f2937] hover:bg-white/50'
-                    }`}
+                  className="rounded-md transition-all duration-300"
+                  style={{
+                    flex: 1,
+                    padding: '0.625rem 1rem',
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    ...(loginMethod === 'email'
+                      ? { backgroundColor: '#ffffff', color: '#2563eb', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', border: '1px solid #dbeafe' }
+                      : { color: '#4b5563' })
+                  }}
+                  onMouseEnter={(e) => { if (loginMethod !== 'email') { e.currentTarget.style.color = '#1f2937'; e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.5)' } }}
+                  onMouseLeave={(e) => { if (loginMethod !== 'email') { e.currentTarget.style.color = '#4b5563'; e.currentTarget.style.backgroundColor = 'transparent' } }}
                   onClick={() => handleLoginMethodChange('email')}
                 >
                   <Mail size={16} />
@@ -160,10 +260,22 @@ const Login = () => {
                 </button>
                 <button
                   type="button"
-                  className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 ${loginMethod === 'username'
-                    ? 'bg-white text-[#2563eb] shadow-sm ring-1 ring-[#dbeafe]'
-                    : 'text-[#4b5563] hover:text-[#1f2937] hover:bg-white/50'
-                    }`}
+                  className="rounded-md transition-all duration-300"
+                  style={{
+                    flex: 1,
+                    padding: '0.625rem 1rem',
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    ...(loginMethod === 'username'
+                      ? { backgroundColor: '#ffffff', color: '#2563eb', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', border: '1px solid #dbeafe' }
+                      : { color: '#4b5563' })
+                  }}
+                  onMouseEnter={(e) => { if (loginMethod !== 'username') { e.currentTarget.style.color = '#1f2937'; e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.5)' } }}
+                  onMouseLeave={(e) => { if (loginMethod !== 'username') { e.currentTarget.style.color = '#4b5563'; e.currentTarget.style.backgroundColor = 'transparent' } }}
                   onClick={() => handleLoginMethodChange('username')}
                 >
                   <User size={16} />
@@ -171,7 +283,7 @@ const Login = () => {
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 {loginMethod === 'email' ? (
                   <FormInput
                     type="email"
@@ -204,7 +316,7 @@ const Login = () => {
                   />
                 )}
 
-                <div className="space-y-2">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   <FormInput
                     type="password"
                     label="Password"
@@ -221,14 +333,21 @@ const Login = () => {
                   />
                 </div>
 
-                <div className="flex items-center space-x-2">
+                <div
+                  className="cursor-pointer"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                >
                   <Checkbox
                     id="rememberMe"
                     checked={rememberMe}
                     onCheckedChange={(checked) => setRememberMe(checked === true)}
                     disabled={isLoading}
                   />
-                  <Label htmlFor="rememberMe" className="text-[#374151] cursor-pointer text-sm">
+                  <Label
+                    htmlFor="rememberMe"
+                    className="cursor-pointer"
+                    style={{ color: '#374151', fontSize: '0.875rem' }}
+                  >
                     Remember me for 30 days
                   </Label>
                 </div>
@@ -236,7 +355,17 @@ const Login = () => {
                 <Button
                   type="submit"
                   size="lg"
-                  className={`w-full bg-gradient-to-r from-[#2563eb] to-[#4f46e5] hover:from-[#1d4ed8] hover:to-[#4338ca] text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] disabled:scale-100 disabled:opacity-70`}
+                  className="font-semibold shadow-lg transition-all duration-300 transform"
+                  style={{
+                    width: '100%',
+                    color: '#ffffff',
+                    background: 'linear-gradient(to right, #2563eb, #4f46e5)',
+                    opacity: isLoading ? 0.7 : 1,
+                    cursor: isLoading ? 'not-allowed' : 'pointer',
+                    transform: 'none'
+                  }}
+                  onMouseEnter={(e) => { if (!isLoading) { e.currentTarget.style.background = 'linear-gradient(to right, #1d4ed8, #4338ca)'; e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'; e.currentTarget.style.transform = 'scale(1.02)' } }}
+                  onMouseLeave={(e) => { if (!isLoading) { e.currentTarget.style.background = 'linear-gradient(to right, #2563eb, #4f46e5)'; e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'; e.currentTarget.style.transform = 'none' } }}
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -245,20 +374,32 @@ const Login = () => {
                       Signing you in...
                     </>
                   ) : (
-                    <>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
                       <span>Sign In</span>
-                      <svg className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg
+                        className="ml-2 h-4 w-4 transition-transform"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        style={{ marginLeft: '0.5rem' }}
+                      >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                       </svg>
-                    </>
+                    </div>
                   )}
                 </Button>
               </form>
 
-              <div className="mt-8 text-center">
-                <p className="text-[#4b5563] text-sm">
+              <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+                <p style={{ color: '#4b5563', fontSize: '0.875rem' }}>
                   Don't have an account?{' '}
-                  <a href="#" className="text-[#2563eb] font-semibold hover:text-[#1d4ed8] hover:underline transition-colors">
+                  <a
+                    href="#"
+                    className="font-semibold transition-colors"
+                    style={{ color: '#2563eb', textDecoration: 'none' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = '#1d4ed8'; e.currentTarget.style.textDecoration = 'underline' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = '#2563eb'; e.currentTarget.style.textDecoration = 'none' }}
+                  >
                     Contact Administrator
                   </a>
                 </p>

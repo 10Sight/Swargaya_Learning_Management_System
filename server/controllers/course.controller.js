@@ -141,7 +141,7 @@ export const getCourses = asyncHandler(async (req, res) => {
 
     return res
         .status(200)
-        .json(new ApiResponse(200, { total, page, limit, courses }, "Courses fetched successfully"));
+        .json(new ApiResponse(200, { total, totalPages: Math.ceil(total / limitInt), page: pageInt, limit: limitInt, courses }, "Courses fetched successfully"));
 });
 
 export const getCourseById = asyncHandler(async (req, res) => {
@@ -177,7 +177,7 @@ export const updatedCourse = asyncHandler(async (req, res) => {
     // Update using model wrapper or raw SQL
     // req.body contains fields.
     // Filter allowed fields?
-    const allowed = ['title', 'description', 'category', 'level', 'modules', 'instructor', 'quizzes', 'assignments', 'status'];
+    const allowed = ['title', 'description', 'category', 'level', 'difficulty', 'modules', 'instructor', 'quizzes', 'assignments', 'status'];
     Object.keys(req.body).forEach(k => {
         if (allowed.includes(k)) course[k] = req.body[k];
     });
@@ -492,7 +492,7 @@ export const getSoftDeletedCourses = asyncHandler(async (req, res) => {
 
     const courses = await Promise.all(rows.map(row => populateCourse(new Course(row))));
 
-    res.json(new ApiResponse(200, { total, page, limit, courses }, "Soft-deleted fetched"));
+    res.json(new ApiResponse(200, { total, totalPages: Math.ceil(total / limitInt), page: pageInt, limit: limitInt, courses }, "Soft-deleted fetched"));
 });
 
 export const restoreCourse = asyncHandler(async (req, res) => {

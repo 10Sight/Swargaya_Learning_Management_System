@@ -10,13 +10,14 @@ class Machine {
         this.line = data.line;
         this.description = data.description;
         this.isActive = data.isActive !== undefined ? !!data.isActive : true;
+        this.operatorId = data.operatorId ?? null;
 
         this.createdAt = data.createdAt;
         this.updatedAt = data.updatedAt;
     }
 
     static async init() {
-        const query = `
+        const createQuery = `
             IF OBJECT_ID(N'dbo.machines', N'U') IS NULL
             BEGIN
                 CREATE TABLE dbo.machines (
@@ -25,16 +26,49 @@ class Machine {
                     line VARCHAR(255) NOT NULL,
                     description VARCHAR(MAX),
                     isActive BIT DEFAULT 1,
+                    operatorId INT NULL,
                     createdAt DATETIME DEFAULT GETDATE(),
                     updatedAt DATETIME DEFAULT GETDATE(),
                     CONSTRAINT unique_line_machine UNIQUE (name, line)
                 );
-                
+
                 CREATE INDEX idx_line ON dbo.machines(line);
             END
         `;
+        const migrateQuery = `
+            IF COL_LENGTH(N'dbo.machines', N'operatorId') IS NULL
+            BEGIN
+                ALTER TABLE dbo.machines ADD operatorId INT NULL;
+            END
+        `;
+        const createJunctionQuery = `
+            IF OBJECT_ID(N'dbo.machine_operators', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.machine_operators (
+                    machineId INT NOT NULL,
+                    operatorId INT NOT NULL,
+                    assignedAt DATETIME DEFAULT GETDATE(),
+                    PRIMARY KEY (machineId, operatorId)
+                );
+                CREATE INDEX idx_mo_machineId ON dbo.machine_operators(machineId);
+                CREATE INDEX idx_mo_operatorId ON dbo.machine_operators(operatorId);
+            END
+        `;
+        const migrateToJunctionQuery = `
+            INSERT INTO dbo.machine_operators (machineId, operatorId)
+            SELECT m.id, m.operatorId
+            FROM dbo.machines m
+            WHERE m.operatorId IS NOT NULL
+              AND NOT EXISTS (
+                  SELECT 1 FROM dbo.machine_operators mo
+                  WHERE mo.machineId = m.id AND mo.operatorId = m.operatorId
+              );
+        `;
         try {
-            await pool.query(query);
+            await pool.query(createQuery);
+            await pool.query(migrateQuery);
+            await pool.query(createJunctionQuery);
+            await pool.query(migrateToJunctionQuery);
         } catch (error) {
             logger.error("Failed to initialize Machine table", error);
         }
@@ -44,7 +78,7 @@ class Machine {
         const machine = new Machine(data);
 
         const fields = [
-            "name", "line", "description", "isActive", "createdAt"
+            "name", "line", "description", "isActive", "operatorId", "createdAt"
         ];
 
         if (!machine.createdAt) machine.createdAt = new Date();
@@ -114,7 +148,7 @@ class Machine {
         this.updatedAt = new Date(); // Manually update timestamp
 
         const fields = [
-            "name", "line", "description", "isActive", "updatedAt"
+            "name", "line", "description", "isActive", "operatorId", "updatedAt"
         ];
 
         const setClause = fields.map(field => `${field} = ?`).join(", ");

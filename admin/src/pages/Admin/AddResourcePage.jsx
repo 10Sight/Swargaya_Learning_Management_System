@@ -24,6 +24,9 @@ import {
   IconPhoto,
   IconLoader,
   IconPlus,
+  IconFileTypeDocx,
+  IconFileTypeXls,
+  IconFileTypePpt
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import {
@@ -244,6 +247,12 @@ const AddResourcePage = () => {
         return <IconLink className="h-5 w-5" />;
       case "TEXT":
         return <IconFileText className="h-5 w-5" />;
+      case "msword":
+        return <IconFileTypeDocx className="h-5 w-5" />;
+      case "msexcel":
+        return <IconFileTypeXls className="h-5 w-5" />;
+      case "msppt":
+        return <IconFileTypePpt className="h-5 w-5" />;
       default:
         return <IconFileText className="h-5 w-5" />;
     }
@@ -419,6 +428,9 @@ const AddResourcePage = () => {
                   <SelectItem value="image">Image</SelectItem>
                   <SelectItem value="text">Text Document</SelectItem>
                   <SelectItem value="link">External Link</SelectItem>
+                  <SelectItem value="msword">Word Document</SelectItem>
+                  <SelectItem value="msexcel">Excel Spreadsheet</SelectItem>
+                  <SelectItem value="msppt">PowerPoint</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -4,6 +4,8 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../config/cloudinary.js";
 import fs from 'fs';
+import path from 'path';
+import ENV from "../configs/env.config.js";
 
 // Create Resource
 export const createResource = asyncHandler(async (req, res) => {
@@ -23,24 +25,44 @@ export const createResource = asyncHandler(async (req, res) => {
     let finalLessonId = null;
 
     // Validate Existence & Set IDs
+    const isNumeric = (str) => /^\d+$/.test(String(str));
+
     if (scope === 'course') {
         if (!courseId) throw new ApiError("Valid Course ID is required", 400);
-        const [rows] = await pool.query("SELECT id FROM courses WHERE id = ?", [courseId]);
+        let courseQuery = "SELECT id FROM courses WHERE slug = ?";
+        let courseParams = [courseId];
+        if (isNumeric(courseId)) {
+            courseQuery += " OR id = ?";
+            courseParams.push(courseId);
+        }
+        const [rows] = await pool.query(courseQuery, courseParams);
         if (rows.length === 0) throw new ApiError("Course not found", 404);
-        parentId = courseId;
-        finalCourseId = courseId;
+        parentId = rows[0].id;
+        finalCourseId = rows[0].id;
     } else if (scope === 'module') {
         if (!moduleId) throw new ApiError("Valid Module ID is required", 400);
-        const [rows] = await pool.query("SELECT id FROM modules WHERE id = ?", [moduleId]);
+        let moduleQuery = "SELECT id FROM modules WHERE slug = ?";
+        let moduleParams = [moduleId];
+        if (isNumeric(moduleId)) {
+            moduleQuery += " OR id = ?";
+            moduleParams.push(moduleId);
+        }
+        const [rows] = await pool.query(moduleQuery, moduleParams);
         if (rows.length === 0) throw new ApiError("Module not found", 404);
-        parentId = moduleId;
-        finalModuleId = moduleId;
+        parentId = rows[0].id;
+        finalModuleId = rows[0].id;
     } else if (scope === 'lesson') {
         if (!lessonId) throw new ApiError("Valid Lesson ID is required", 400);
-        const [rows] = await pool.query("SELECT id FROM lessons WHERE id = ?", [lessonId]);
+        let lessonQuery = "SELECT id FROM lessons WHERE slug = ?";
+        let lessonParams = [lessonId];
+        if (isNumeric(lessonId)) {
+            lessonQuery += " OR id = ?";
+            lessonParams.push(lessonId);
+        }
+        const [rows] = await pool.query(lessonQuery, lessonParams);
         if (rows.length === 0) throw new ApiError("Lesson not found", 404);
-        parentId = lessonId;
-        finalLessonId = lessonId;
+        parentId = rows[0].id;
+        finalLessonId = rows[0].id;
     }
 
     if (!file && !url) throw new ApiError("Either file or URL must be provided", 400);
@@ -54,19 +76,17 @@ export const createResource = asyncHandler(async (req, res) => {
 
     if (file) {
         try {
-            const uploadResult = await uploadToCloudinary(file.path, `learning-management/resources/${scope}s`);
-            if (uploadResult.success) {
-                resourceData.url = uploadResult.url;
-                resourceData.publicId = uploadResult.public_id;
-                resourceData.fileSize = uploadResult.size;
-                resourceData.format = uploadResult.format;
-                resourceData.fileName = file.originalname;
-            } else {
-                throw new Error(uploadResult.error);
-            }
+            // Local Storage Logic
+            const publicUrl = `${ENV.BACKEND_URL}/uploads/${file.filename}`;
+            
+            resourceData.url = publicUrl;
+            resourceData.publicId = file.filename; // Using filename as identifier for deletion
+            resourceData.fileSize = file.size;
+            resourceData.format = path.extname(file.originalname).substring(1);
+            resourceData.fileName = file.originalname;
         } catch (error) {
             if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
-            throw new ApiError(`File upload failed: ${error.message}`, 500);
+            throw new ApiError(`File storage failed: ${error.message}`, 500);
         }
     }
 
@@ -91,14 +111,6 @@ export const getResourcesByModule = asyncHandler(async (req, res) => {
     const rawModuleId = req.params?.moduleId ?? req.body?.moduleId;
     if (!rawModuleId) return res.status(400).json(new ApiResponse(400, [], "Module ID is required"));
 
-    // Resolve slug if string
-    // Assuming purely checking against ID first or slug
-    // Simple approach: try ID check in DB, fallback to slug logic via SQL query
-    let rows;
-
-    // We can do one query that covers both ID and Slug check by JOIN or subquery logic, 
-    // OR just resolve slug first. 
-    // Given previous pattern:
     let moduleId = rawModuleId;
 
     // Check if UUID/ID format
@@ -107,7 +119,14 @@ export const getResourcesByModule = asyncHandler(async (req, res) => {
     // Simplifying: If user passes slug, this fails if we don't resolve.
     // Let's resolve safely.
 
-    const [mods] = await pool.query("SELECT id FROM modules WHERE id = ? OR slug = ?", [rawModuleId, rawModuleId]);
+    const isNumeric = (str) => /^\d+$/.test(String(str));
+    let modQuery = "SELECT id FROM modules WHERE slug = ?";
+    let modParams = [rawModuleId];
+    if (isNumeric(rawModuleId)) {
+        modQuery += " OR id = ?";
+        modParams.push(rawModuleId);
+    }
+    const [mods] = await pool.query(modQuery, modParams);
     if (mods.length === 0) return res.status(400).json(new ApiResponse(400, [], "Invalid module identifier"));
     moduleId = mods[0].id;
 
@@ -121,6 +140,7 @@ export const getResourcesByModule = asyncHandler(async (req, res) => {
 
     const formatted = resources.map(r => ({
         ...r,
+        _id: r.id,
         createdBy: { id: r.createdBy, name: r.creatorName, email: r.creatorEmail },
     })).map(r => { delete r.creatorName; delete r.creatorEmail; return r; });
 
@@ -132,7 +152,14 @@ export const getResourcesByCourse = asyncHandler(async (req, res) => {
     const rawCourseId = req.params?.courseId ?? req.body?.courseId;
     if (!rawCourseId) return res.status(400).json(new ApiResponse(400, [], "Course ID is required"));
 
-    const [courses] = await pool.query("SELECT id FROM courses WHERE id = ? OR slug = ?", [rawCourseId, rawCourseId]);
+    const isNumeric = (str) => /^\d+$/.test(String(str));
+    let courseQuery = "SELECT id FROM courses WHERE slug = ?";
+    let courseParams = [rawCourseId];
+    if (isNumeric(rawCourseId)) {
+        courseQuery += " OR id = ?";
+        courseParams.push(rawCourseId);
+    }
+    const [courses] = await pool.query(courseQuery, courseParams);
     if (courses.length === 0) return res.status(400).json(new ApiResponse(400, [], "Invalid course identifier"));
     const courseId = courses[0].id;
 
@@ -157,7 +184,14 @@ export const getResourcesByLesson = asyncHandler(async (req, res) => {
     const rawLessonId = req.params?.lessonId ?? req.body?.lessonId;
     if (!rawLessonId) return res.status(400).json(new ApiResponse(400, [], "Lesson ID is required"));
 
-    const [lessons] = await pool.query("SELECT id FROM lessons WHERE id = ? OR slug = ?", [rawLessonId, rawLessonId]);
+    const isNumeric = (str) => /^\d+$/.test(String(str));
+    let lessonQuery = "SELECT id FROM lessons WHERE slug = ?";
+    let lessonParams = [rawLessonId];
+    if (isNumeric(rawLessonId)) {
+        lessonQuery += " OR id = ?";
+        lessonParams.push(rawLessonId);
+    }
+    const [lessons] = await pool.query(lessonQuery, lessonParams);
     if (lessons.length === 0) return res.status(400).json(new ApiResponse(400, [], "Invalid lesson identifier"));
     const lessonId = lessons[0].id;
 
@@ -185,7 +219,12 @@ export const deleteResource = asyncHandler(async (req, res) => {
     const resource = rows[0];
 
     if (resource.publicId) {
-        try { await deleteFromCloudinary(resource.publicId); } catch (e) { }
+        try { 
+            const filePath = path.join('uploads', resource.publicId);
+            if (fs.existsSync(filePath)) fs.unlinkSync(filePath); 
+        } catch (e) { 
+            console.error("Failed to delete local file:", e);
+        }
     }
 
     await pool.query("DELETE FROM resources WHERE id = ?", [resourceId]);
@@ -214,22 +253,26 @@ export const updateResource = asyncHandler(async (req, res) => {
 
     if (file) {
         try {
-            if (resource.publicId) await deleteFromCloudinary(resource.publicId);
-            const uploadResult = await uploadToCloudinary(file.path, 'learning-management/resources');
-            if (uploadResult.success) {
-                updateData.url = uploadResult.url;
-                updateData.publicId = uploadResult.public_id;
-                updateData.fileSize = uploadResult.size;
-                updateData.format = uploadResult.format;
-            } else {
-                throw new Error(uploadResult.error);
+            // Delete old file if exists
+            if (resource.publicId) {
+                const oldPath = path.join('uploads', resource.publicId);
+                if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
             }
+
+            const publicUrl = `${ENV.BACKEND_URL}/uploads/${file.filename}`;
+            updateData.url = publicUrl;
+            updateData.publicId = file.filename;
+            updateData.fileSize = file.size;
+            updateData.format = path.extname(file.originalname).substring(1);
         } catch (e) {
             if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
             throw new ApiError(`Upload failed: ${e.message}`, 500);
         }
     } else if (url) {
-        if (resource.publicId) await deleteFromCloudinary(resource.publicId);
+        if (resource.publicId) {
+            const oldPath = path.join('uploads', resource.publicId);
+            if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+        }
         updateData.url = url;
         updateData.publicId = null;
         updateData.fileSize = null;

@@ -37,7 +37,7 @@ const AddCourse = () => {
     title: "",
     description: "",
     category: "",
-    level: "BEGINNER",
+    level: "L1",
     instructor: "",
   });
 
@@ -490,6 +490,7 @@ const AddCourse = () => {
     }
   };
 
+
   const { data: configData } = useGetActiveConfigQuery();
   const activeLevels = configData?.data?.levels || [];
 
@@ -499,14 +500,14 @@ const AddCourse = () => {
       label: level.name
     }))
     : [
-      { value: "BEGINNER", label: "Beginner" },
-      { value: "INTERMEDIATE", label: "Intermediate" },
-      { value: "ADVANCED", label: "Advanced" }
+      { value: "L1", label: "L1" },
+      { value: "L2", label: "L2" },
+      { value: "L3", label: "L3" }
     ];
 
-  // If formData.level is empty and we have active levels, set default to first level
+  // If formData.level is empty or still "BEGINNER", and we have active levels, set default to first level
   useEffect(() => {
-    if (activeLevels.length > 0 && formData.level === "BEGINNER") {
+    if (activeLevels.length > 0 && (formData.level === "BEGINNER" || formData.level === "L1")) {
       setFormData(prev => ({ ...prev, level: activeLevels[0].name }));
     }
   }, [activeLevels, formData.level]);

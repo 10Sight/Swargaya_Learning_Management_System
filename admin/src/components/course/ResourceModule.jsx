@@ -23,6 +23,8 @@ import {
   IconFileTypePdf,
   IconLink,
   IconEye,
+  IconFileTypeDocx,
+  IconFileTypeXls,
 } from "@tabler/icons-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useDeleteResourceMutation } from "@/Redux/AllApi/resourceApi";
@@ -88,6 +90,12 @@ const ResourceModule = ({ module, courseId }) => {
         return <IconLink className="h-4 w-4 text-[#3b82f6]" />;
       case 'text':
         return <IconFileText className="h-4 w-4 text-[#6b7280]" />;
+      case 'msword':
+        return <IconFileTypeDocx className="h-4 w-4 text-[#3b82f6]" />;
+      case 'msexcel':
+        return <IconFileTypeXls className="h-4 w-4 text-[#22c55e]" />;
+      case 'msppt':
+        return <IconFileTypePpt className="h-4 w-4 text-[#f97316]" />;
     }
 
     // Fallback to format if type doesn't match
@@ -96,13 +104,13 @@ const ResourceModule = ({ module, courseId }) => {
         return <IconFileTypePdf className="h-4 w-4 text-[#ef4444]" />;
       case 'doc':
       case 'docx':
-        return <IconFileText className="h-4 w-4 text-[#3b82f6]" />;
+        return <IconFileTypeDocx className="h-4 w-4 text-[#3b82f6]" />;
       case 'xls':
       case 'xlsx':
-        return <IconFileText className="h-4 w-4 text-[#22c55e]" />;
+        return <IconFileTypeXls className="h-4 w-4 text-[#22c55e]" />;
       case 'ppt':
       case 'pptx':
-        return <IconFileText className="h-4 w-4 text-[#f97316]" />;
+        return <IconFileTypePpt className="h-4 w-4 text-[#f97316]" />;
       case 'jpg':
       case 'jpeg':
       case 'png':

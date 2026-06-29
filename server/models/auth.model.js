@@ -31,6 +31,8 @@ class User {
         this.department = data.department;
         this.departments = typeof data.departments === 'string' ? JSON.parse(data.departments) : (data.departments || []);
         this.unit = data.unit;
+        this.doj = data.doj ? new Date(data.doj) : null;
+        this.dob = data.dob ? new Date(data.dob) : null;
         this.createdAt = data.createdAt;
         this.updatedAt = data.updatedAt;
 
@@ -65,11 +67,23 @@ class User {
                     department NVARCHAR(255),
                     departments NVARCHAR(MAX),
                     unit NVARCHAR(50) NOT NULL,
+                    doj DATETIME,
+                    dob DATETIME,
                     createdAt DATETIME DEFAULT GETDATE(),
                     updatedAt DATETIME DEFAULT GETDATE(),
                     CONSTRAINT unique_username UNIQUE (userName),
                     CONSTRAINT unique_slug UNIQUE (slug)
                 );
+            END
+            ELSE
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'dob'
+                )
+                BEGIN
+                    ALTER TABLE dbo.users ADD dob DATETIME NULL;
+                END
             END
         `;
         try {
@@ -100,7 +114,7 @@ class User {
             "fullName", "userName", "slug", "email", "phoneNumber", "password",
             "avatar", "refreshToken", "role", "currentLevel", "status", "isVerified",
             "enrolledCourses", "createdCourses", "lastLogin", "loginHistory",
-            "isDeleted", "department", "departments", "unit", "createdAt"
+            "isDeleted", "department", "departments", "unit", "doj", "dob", "createdAt"
         ];
 
         // Apply defaults if fields are missing in userData
@@ -197,7 +211,7 @@ class User {
             "fullName", "userName", "slug", "email", "phoneNumber", "password",
             "avatar", "refreshToken", "role", "currentLevel", "status", "isVerified",
             "enrolledCourses", "createdCourses", "lastLogin", "loginHistory",
-            "isDeleted", "department", "departments", "unit", "resetPasswordToken", "resetPasswordExpiry", "updatedAt"
+            "isDeleted", "department", "departments", "unit", "doj", "dob", "resetPasswordToken", "resetPasswordExpiry", "updatedAt"
         ];
 
         // Only update fields that are defined on the instance

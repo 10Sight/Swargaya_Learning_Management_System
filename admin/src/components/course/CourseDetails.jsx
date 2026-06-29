@@ -1,4 +1,5 @@
 import React from "react";
+import { useGetActiveConfigQuery } from "@/Redux/AllApi/CourseLevelConfigApi";
 import {
   Card,
   CardContent,
@@ -16,11 +17,29 @@ import {
 } from "@tabler/icons-react";
 
 const CourseDetails = ({ course }) => {
+  const { data: configData } = useGetActiveConfigQuery();
+  const activeLevels = configData?.data?.levels || [];
+
   const getDifficultyBadge = (difficulty) => {
+    const activeLevel = activeLevels.find(l => l.name.toUpperCase() === (difficulty || "").toUpperCase());
+    if (activeLevel) {
+      return (
+        <Badge
+          style={{ backgroundColor: activeLevel.color, color: "#fff" }}
+          className="w-fit border-none shadow-sm"
+        >
+          {activeLevel.name}
+        </Badge>
+      );
+    }
+
     const difficultyConfig = {
-      BEGINNER: { variant: "success", label: "BEGINNER" },
-      INTERMEDIATE: { variant: "warning", label: "INTERMEDIATE" },
-      ADVANCED: { variant: "destructive", label: "ADVANCED" },
+      BEGINNER: { variant: "success", label: "L1" },
+      INTERMEDIATE: { variant: "warning", label: "L2" },
+      ADVANCED: { variant: "destructive", label: "L3" },
+      L1: { variant: "success", label: "L1" },
+      L2: { variant: "warning", label: "L2" },
+      L3: { variant: "destructive", label: "L3" },
     };
 
     const config = difficultyConfig[difficulty] || {

@@ -16,6 +16,15 @@ export const MachineApi = createApi({
             invalidatesTags: ["Machine"],
         }),
 
+        // Get Machine by ID
+        getMachineById: builder.query({
+            query: (id) => ({
+                url: `/api/machines/${id}`,
+                method: "GET",
+            }),
+            providesTags: ["Machine"],
+        }),
+
         // Get Machines by Line
         getMachinesByLine: builder.query({
             query: (lineId) => ({
@@ -48,6 +57,7 @@ export const MachineApi = createApi({
 
 export const {
     useCreateMachineMutation,
+    useGetMachineByIdQuery,
     useGetMachinesByLineQuery,
     useUpdateMachineMutation,
     useDeleteMachineMutation,

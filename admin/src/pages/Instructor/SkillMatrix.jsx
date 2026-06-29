@@ -84,7 +84,7 @@ const InstructorSkillMatrix = () => {
                 users.push({
                     ...inst,
                     type: 'TNR',
-                    level: 'L-5'
+                    level: 'L5'
                 });
             });
         } else if (selectedDept.instructor && typeof selectedDept.instructor === 'object') {
@@ -92,7 +92,7 @@ const InstructorSkillMatrix = () => {
             users.push({
                 ...selectedDept.instructor,
                 type: 'TNR',
-                level: 'L-5'
+                level: 'L5'
             });
         }
 
@@ -103,12 +103,48 @@ const InstructorSkillMatrix = () => {
                 users.push({
                     ...student,
                     type: 'EMP',
-                    level: 'L-1'
+                    level: 'L1'
                 });
             });
         }
 
         return users;
+    }, [selectedDepartment, departmentsData]);
+
+    // Filtered Users for the selected line
+    const lineAssignedUsers = React.useMemo(() => {
+        if (!selectedLine || selectedLine === "undefined" || !machinesData?.data) {
+            return departmentUsers;
+        }
+
+        const assignedIds = new Set();
+        machinesData.data.forEach(machine => {
+            if (machine.operators && Array.isArray(machine.operators)) {
+                machine.operators.forEach(op => {
+                    assignedIds.add(String(op.id || op._id));
+                });
+            }
+        });
+
+        return departmentUsers.filter(user => {
+            if (user.type === 'TNR') return true;
+            return assignedIds.has(String(user._id));
+        });
+    }, [selectedLine, machinesData, departmentUsers]);
+
+    // Derived Course Levels for Skill Matrix Minimum Requirements
+    const courseLevels = React.useMemo(() => {
+        if (!selectedDepartment || !departmentsData?.data?.departments) return [];
+        const selectedDept = departmentsData.data.departments.find(d => String(d.id || d._id) === String(selectedDepartment));
+        if (!selectedDept || !selectedDept.courses) return [];
+
+        // Extract difficulty levels from courses
+        const levels = selectedDept.courses
+            .map(c => c.difficulty || c.level)
+            .filter(Boolean);
+
+        // Return unique levels, sorted or at least distinct
+        return [...new Set(levels)].sort();
     }, [selectedDepartment, departmentsData]);
 
     // Initialize Matrix on Line Selection (Merge Logic)
@@ -117,8 +153,10 @@ const InstructorSkillMatrix = () => {
             const activeMachines = machinesData.data;
             const savedEntries = savedMatrixData?.data?.entries || [];
 
-            // 1. Map Current Department Users (The Source of Truth for *Who* is here)
-            const mappedData = departmentUsers.map((user, index) => {
+            const defaultMinLevel = courseLevels.length > 0 ? courseLevels[0] : "L1";
+
+            // 1. Map Current Line Assigned Users (The Source of Truth for *Who* is here)
+            const mappedData = lineAssignedUsers.map((user, index) => {
                 // Check if we have saved data for this user
                 const savedUserEntry = savedEntries.find(e => e.userId === user._id);
 
@@ -127,7 +165,7 @@ const InstructorSkillMatrix = () => {
                     _id: machine.id || machine._id,
                     name: machine.name,
                     critical: "Non-Critical",
-                    min: "L-1",
+                    min: defaultMinLevel,
                     curr: user.level,
                 }));
 
@@ -140,7 +178,7 @@ const InstructorSkillMatrix = () => {
                         _id: machine.id || machine._id,
                         name: machine.name,
                         critical: savedStation?.critical || "Non-Critical",
-                        min: savedStation?.min || "L-1",
+                        min: savedStation?.min || defaultMinLevel,
                         curr: savedStation?.curr || user.level, // Prefer saved level, fallback to user default
                     };
                 });
@@ -163,7 +201,7 @@ const InstructorSkillMatrix = () => {
                     department: displayDepartment,
                     type: user.type,
                     detCas: savedUserEntry?.detCas || "",
-                    doj: user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-GB') : "-",
+                    doj: user.doj ? new Date(user.doj).toLocaleDateString('en-GB') : (user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-GB') : "-"),
                     assignedStationId: assignedStationId,
                     stations: savedUserEntry ? mergedStations : defaultStations,
                     isManual: false
@@ -179,8 +217,8 @@ const InstructorSkillMatrix = () => {
                         _id: machine.id || machine._id,
                         name: machine.name,
                         critical: savedStation?.critical || "Non-Critical",
-                        min: savedStation?.min || "L-1",
-                        curr: savedStation?.curr || "L-0",
+                        min: savedStation?.min || defaultMinLevel,
+                        curr: savedStation?.curr || "L0",
                     };
                 });
 
@@ -206,7 +244,7 @@ const InstructorSkillMatrix = () => {
         } else if (!selectedLine) {
             setMatrixEntries([]);
         }
-    }, [selectedLine, machinesData, departmentUsers, savedMatrixData]);
+    }, [selectedLine, machinesData, lineAssignedUsers, savedMatrixData]);
 
     const handleSave = async () => {
         if (!selectedDepartment || !selectedLine || selectedLine === "undefined" || selectedDepartment === "undefined") {
@@ -261,12 +299,13 @@ const InstructorSkillMatrix = () => {
         if (!machinesData?.data) return;
         const activeMachines = machinesData.data;
 
+        const defaultMinLevel = courseLevels.length > 0 ? courseLevels[0] : "L1";
         const stations = activeMachines.map(machine => ({
             _id: machine.id || machine._id,
             name: machine.name,
             critical: "Non-Critical",
-            min: "L-1",
-            curr: "L-1",
+            min: defaultMinLevel,
+            curr: "L1",
         }));
 
         const firstMachineId = activeMachines.length > 0 ? (activeMachines[0].id || activeMachines[0]._id) : "";
@@ -308,8 +347,8 @@ const InstructorSkillMatrix = () => {
             name: user.fullName,
             department: displayDepartment,
             type: user.type,
-            doj: user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-GB') : "-",
-            stations: row.stations.map(s => ({ ...s, curr: user.level || 'L-1' })), // Reset stations to user level
+            doj: user.doj ? new Date(user.doj).toLocaleDateString('en-GB') : (user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-GB') : "-"),
+            stations: row.stations.map(s => ({ ...s, curr: user.level || 'L1' })), // Reset stations to user level
             isManual: false // Lock it after selection? Or keep true to allow changing? 
             // "operator name have to drop down" implies it might stay a dropdown. 
             // Let's keep isManual true if we want it to remain editable, 
@@ -323,6 +362,12 @@ const InstructorSkillMatrix = () => {
     const handleLevelChange = (rowIdx, stationIdx, newLevel) => {
         const updatedEntries = [...matrixEntries];
         updatedEntries[rowIdx].stations[stationIdx].curr = newLevel;
+        setMatrixEntries(updatedEntries);
+    };
+
+    const handleMinLevelChange = (rowIdx, stationIdx, newLevel) => {
+        const updatedEntries = [...matrixEntries];
+        updatedEntries[rowIdx].stations[stationIdx].min = newLevel;
         setMatrixEntries(updatedEntries);
     };
 
@@ -496,8 +541,8 @@ const InstructorSkillMatrix = () => {
                 const station = entry.stations.find(s => s._id === (machine.id || machine._id));
                 // In UI it shows icon. In Excel we can show Level No (e.g. 4)
                 if (station) {
-                    const levelNum = station.curr ? parseInt(station.curr.replace('L-', '')) || 0 : 0;
-                    rowData.push(levelNum > 0 ? `L-${levelNum}` : "");
+                    const levelNum = station.curr ? parseInt(station.curr.replace('L', '').split('-')[0]) || 0 : 0;
+                    rowData.push(levelNum > 0 ? `L${levelNum}` : "");
                 } else {
                     rowData.push("-");
                 }
@@ -536,7 +581,7 @@ const InstructorSkillMatrix = () => {
         worksheet.mergeCells(`I${footerStartRow}:K${footerStartRow + 6}`);
         const legendCell = worksheet.getCell(`I${footerStartRow}`);
         legendCell.value = "LEVEL LEGEND:\n" +
-            "L-0: No Skill\nL-1: Learner\nL-2: Executor\nL-3: Trainer\nL-4: Expert\n\nNote: " + (legendNote || "-");
+            "L0: No Skill\nL1: Learner\nL2: Executor\nL3: Trainer\nL4: Expert\n\nNote: " + (legendNote || "-");
         legendCell.alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
         legendCell.border = borderStyle;
 
@@ -756,9 +801,9 @@ const InstructorSkillMatrix = () => {
                 </div>
             ) : isMachinesLoading || isLinesLoading ? (
                 <div className="flex justify-center py-10"><IconLoader className="animate-spin" /></div>
-            ) : matrixEntries.length === 0 ? (
+            ) : !machinesData?.data?.length ? (
                 <div className="text-center py-10 text-[#6b7280] border-2 border-dashed rounded-lg">
-                    No users or machines found for this selection.
+                    No machines found for this line.
                 </div>
             ) : (
                 <div id="printable-matrix" className="bg-white text-xs text-black border-2 border-black">
@@ -809,9 +854,9 @@ const InstructorSkillMatrix = () => {
                         <div className="w-16 border-r border-black p-2 flex items-center justify-center bg-[#f3f4f6] text-[9px] leading-tight">Current Skill Level</div>
 
                         <div className="flex-1 flex overflow-x-auto">
-                            {matrixEntries[0]?.stations?.map((station) => (
-                                <div key={String(station._id)} className="w-20 border-r border-black p-1 flex items-center justify-center text-[9px] font-bold break-words text-center min-w-[60px]">
-                                    {station.name}
+                            {(machinesData?.data || []).map((machine) => (
+                                <div key={String(machine.id ?? machine._id)} className="w-20 border-r border-black p-1 flex items-center justify-center text-[9px] font-bold break-words text-center min-w-[60px]">
+                                    {machine.name}
                                 </div>
                             ))}
                             <div className="w-16 p-1 flex items-center justify-center text-[9px] font-bold">EOSH & EnMS</div>
@@ -889,7 +934,28 @@ const InstructorSkillMatrix = () => {
                                                 </Select>
                                             )}
                                         </div>
-                                        <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold">{assignedStation?.min || "-"}</div>
+                                        <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold">
+                                            {row.type === 'TNR' ? (
+                                                "L5"
+                                            ) : (
+                                                <Select value={String(assignedStation?.min || "")} onValueChange={(val) => {
+                                                    let sIdx = row.stations.findIndex(s => String(s._id) === String(row.assignedStationId));
+                                                    if (sIdx === -1 && row.stations.length > 0) sIdx = 0;
+                                                    if (sIdx !== -1) handleMinLevelChange(idx, sIdx, val);
+                                                }}>
+                                                    <SelectTrigger className="w-full h-full border-none p-0 text-[10px] font-bold bg-transparent">
+                                                        <SelectValue placeholder="-" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {(courseLevels.length > 0 ? courseLevels.map(lvl => ({ name: lvl })) : availableLevels).map((lvl) => (
+                                                            <SelectItem key={lvl.name} value={lvl.name} className="text-xs">
+                                                                {lvl.name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
+                                        </div>
                                         <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold">{assignedStation?.curr || "-"}</div>
                                     </>
                                 );
@@ -897,7 +963,7 @@ const InstructorSkillMatrix = () => {
 
                             <div className="flex-1 flex overflow-x-auto">
                                 {row.stations.map((station, sIdx) => {
-                                    const currentLevelStr = station.curr || "L-0";
+                                    const currentLevelStr = station.curr || "L0";
                                     const level = parseLevel(currentLevelStr);
 
                                     return (

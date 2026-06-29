@@ -12,7 +12,10 @@ import {
   IconDownload,
   IconPlus,
   IconLoader,
-  IconExternalLink
+  IconExternalLink,
+  IconFileTypeDocx,
+  IconFileTypeXls,
+  IconFileTypePpt
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import {
@@ -30,6 +33,9 @@ const getResourceIcon = (type) => {
     case "link": return IconLink;
     case "pdf": return IconFileText;
     case "text": return IconFileText;
+    case "msword": return IconFileTypeDocx;
+    case "msexcel": return IconFileTypeXls;
+    case "msppt": return IconFileTypePpt;
     default: return IconFile;
   }
 };
@@ -47,7 +53,10 @@ const getResourceTypeBadge = (type) => {
     image: "bg-[#dcfce7] text-[#166534]",
     pdf: "bg-[#dbeafe] text-[#1e40af]",
     link: "bg-[#f3e8ff] text-[#6b21a8]",
-    text: "bg-[#f3f4f6] text-[#1f2937]"
+    text: "bg-[#f3f4f6] text-[#1f2937]",
+    msword: "bg-[#e0f2fe] text-[#0369a1]",
+    msexcel: "bg-[#dcfce7] text-[#166534]",
+    msppt: "bg-[#ffedd5] text-[#9a3412]"
   };
 
   return colors[type?.toLowerCase()] || "bg-[#f3f4f6] text-[#1f2937]";
@@ -65,20 +74,15 @@ export const UniversalResourceList = ({
   const [deleteResource, { isLoading: isDeletingResource }] = useDeleteResourceMutation();
 
   // Use the appropriate query hook based on scope
-  const getResourcesQuery = () => {
-    switch (scope) {
-      case "course":
-        return useGetResourcesByCourseQuery(courseId, { skip: !courseId });
-      case "module":
-        return useGetResourcesByModuleQuery(moduleId, { skip: !moduleId });
-      case "lesson":
-        return useGetResourcesByLessonQuery(lessonId, { skip: !lessonId });
-      default:
-        throw new Error(`Invalid scope: ${scope}`);
-    }
-  };
+  const courseQuery = useGetResourcesByCourseQuery(courseId, { skip: scope !== "course" || !courseId });
+  const moduleQuery = useGetResourcesByModuleQuery(moduleId, { skip: scope !== "module" || !moduleId });
+  const lessonQuery = useGetResourcesByLessonQuery(lessonId, { skip: scope !== "lesson" || !lessonId });
 
-  const { data: resourcesResponse, isLoading, error, refetch } = getResourcesQuery();
+  const { data: resourcesResponse, isLoading, error, refetch } = 
+    scope === "course" ? courseQuery : 
+    scope === "module" ? moduleQuery : 
+    lessonQuery;
+
   const resources = resourcesResponse?.data || [];
 
   const handleDeleteResource = async (resourceId) => {
@@ -207,7 +211,7 @@ export const UniversalResourceList = ({
 
                 return (
                   <div
-                    key={resource._id}
+                    key={resource._id || resource.id}
                     className="flex items-center justify-between p-4 border rounded-lg hover:bg-[#f9fafb] transition-colors group"
                   >
                     <div className="flex items-center gap-4 flex-1 min-w-0">
@@ -267,7 +271,7 @@ export const UniversalResourceList = ({
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleDeleteResource(resource._id)}
+                        onClick={() => handleDeleteResource(resource._id || resource.id)}
                         disabled={isDeletingResource}
                         className="text-[#dc2626] hover:text-[#991b1b] hover:bg-[#fef2f2]"
                       >

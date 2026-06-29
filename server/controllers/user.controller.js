@@ -5,6 +5,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadToCloudinary } from "../config/cloudinary.js"; // Standardized helper
 import { AvailableUserRoles, AvailableUnits } from "../constants.js";
+import Unit from "../models/unit.model.js";
 import logAudit from "../utils/auditLogger.js";
 import sendMail from "../utils/mail.util.js";
 import { generateWelcomeEmail } from "../utils/emailTemplates.js";
@@ -51,7 +52,7 @@ export const getAllUsers = asyncHandler(async (req, res) => {
     params.push(req.query.role);
   }
 
-  if (req.query.unit && AvailableUnits.includes(req.query.unit)) {
+  if (req.query.unit) {
     whereClauses.push("u.unit = ?");
     params.push(req.query.unit);
   }
@@ -64,7 +65,7 @@ export const getAllUsers = asyncHandler(async (req, res) => {
 
   // Fetch
   const [users] = await pool.query(`
-        SELECT u.id, u.fullName, u.userName, u.slug, u.email, u.phoneNumber, u.role, u.status, u.unit, u.createdAt, u.avatar,
+        SELECT u.id, u.fullName, u.userName, u.slug, u.email, u.phoneNumber, u.role, u.status, u.unit, u.doj, u.createdAt, u.avatar,
                d.name as departmentName, d.id as departmentId
         FROM users u
         LEFT JOIN departments d ON u.department = d.id
@@ -95,8 +96,6 @@ export const getUserById = asyncHandler(async (req, res) => {
   const rawId = String(req.params.id || "");
   let user = null;
 
-  // Try by ID first if numeric/uuid, else slug/username
-  // Simplest SQL strategy: Check ID OR slugs
   const term = rawId.toLowerCase();
 
   const [rows] = await pool.query(`
@@ -108,6 +107,14 @@ export const getUserById = asyncHandler(async (req, res) => {
 
   if (rows.length === 0) throw new ApiError("User not found!", 404);
   user = rows[0];
+
+  if (
+    req.user.role === 'ADMIN' &&
+    String(user.id) !== String(req.user.id) &&
+    user.unit !== req.user.unit
+  ) {
+    throw new ApiError("You are not authorized to view users outside your unit", 403);
+  }
 
   // Clean sensitive
   delete user.password;
@@ -213,15 +220,19 @@ export const updateAvatar = asyncHandler(async (req, res) => {
 
 // Create User
 export const createUser = asyncHandler(async (req, res) => {
-  const { fullName, userName, email, phoneNumber, role = "STUDENT", password, unit } = req.body;
+  const { fullName, userName, email, phoneNumber, role = "STUDENT", password, unit, doj, dob } = req.body;
 
   if (!fullName || !userName || !email || !phoneNumber || !password || !unit) {
     throw new ApiError("All fields are required", 400);
   }
+
+  if (req.user.role === 'ADMIN' && unit !== req.user.unit) {
+    throw new ApiError("You are not authorized to create users outside your unit", 403);
+  }
   if (!validator.isEmail(email)) throw new ApiError("Invalid email address", 400);
   if (!validator.isMobilePhone(phoneNumber, "any")) throw new ApiError("Invalid phone number", 400);
   if (!AvailableUserRoles.includes(role)) throw new ApiError("Invalid role", 400);
-  if (!AvailableUnits.includes(unit)) throw new ApiError("Invalid unit", 400);
+  if (!AvailableUnits.includes(unit) && !(await Unit.exists({ title: unit }))) throw new ApiError("Invalid unit", 400);
 
   // Check duplicates
   const [dupes] = await pool.query("SELECT id FROM users WHERE email = ? OR userName = ?", [email.toLowerCase(), userName.toLowerCase()]);
@@ -238,9 +249,9 @@ export const createUser = asyncHandler(async (req, res) => {
   const slug = userName.toLowerCase().replace(/ /g, '-');
 
   const [result] = await pool.query(`
-        INSERT INTO users (fullName, userName, slug, email, phoneNumber, role, password, unit, status, createdAt, updatedAt)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PRESENT', GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;
-    `, [fullName, userName.toLowerCase(), slug, email.toLowerCase(), phoneNumber, role, hashedPassword, unit]);
+        INSERT INTO users (fullName, userName, slug, email, phoneNumber, role, password, unit, status, doj, dob, createdAt, updatedAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PRESENT', ?, ?, GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;
+    `, [fullName, userName.toLowerCase(), slug, email.toLowerCase(), phoneNumber, role, hashedPassword, unit, doj || null, dob || null]);
 
   const newUserId = result[0].id;
   const [newUser] = await pool.query("SELECT * FROM users WHERE id = ?", [newUserId]);
@@ -269,11 +280,23 @@ export const createUser = asyncHandler(async (req, res) => {
 // Update User
 export const updateUser = asyncHandler(async (req, res) => {
   const userId = req.params.id;
-  const { fullName, userName, email, phoneNumber, role, status, unit } = req.body;
+  const { fullName, userName, email, phoneNumber, role, status, unit, doj, dob } = req.body;
 
   const [rows] = await pool.query("SELECT * FROM users WHERE id = ?", [userId]);
   if (rows.length === 0) throw new ApiError("User not found", 404);
   const user = rows[0];
+
+  if (req.user.role === 'ADMIN') {
+    if (user.unit !== req.user.unit) {
+      throw new ApiError("You are not authorized to modify users outside your unit", 403);
+    }
+    if (unit && unit !== req.user.unit) {
+      throw new ApiError("You are not authorized to move users outside your unit", 403);
+    }
+    if (role && ['ADMIN', 'SUPERADMIN'].includes(role)) {
+      throw new ApiError("You are not authorized to assign this role", 403);
+    }
+  }
 
   let updates = ["updatedAt = GETDATE()"];
   let values = [];
@@ -297,9 +320,11 @@ export const updateUser = asyncHandler(async (req, res) => {
   if (role && AvailableUserRoles.includes(role)) { updates.push("role = ?"); values.push(role); }
   if (status) { updates.push("status = ?"); values.push(status); }
   if (unit) {
-    if (!AvailableUnits.includes(unit)) throw new ApiError("Invalid unit", 400);
+    if (!AvailableUnits.includes(unit) && !(await Unit.exists({ title: unit }))) throw new ApiError("Invalid unit", 400);
     updates.push("unit = ?"); values.push(unit);
   }
+  if (doj !== undefined) { updates.push("doj = ?"); values.push(doj || null); }
+  if (dob !== undefined) { updates.push("dob = ?"); values.push(dob || null); }
 
   if (values.length > 0) {
     await pool.query(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`, [...values, userId]);
@@ -338,7 +363,10 @@ export const getAllInstructors = asyncHandler(async (req, res) => {
     params.push(t, t, t);
   }
   if (req.query.status) { whereSQL += " AND u.status = ?"; params.push(req.query.status); }
-  if (req.query.unit) { whereSQL += " AND u.unit = ?"; params.push(req.query.unit); }
+
+  const instructorUnitFilter = req.user.role === 'ADMIN' ? req.user.unit : req.query.unit;
+  if (instructorUnitFilter) { whereSQL += " AND u.unit = ?"; params.push(instructorUnitFilter); }
+
   if (req.query.departmentId) {
     whereSQL += " AND u.department = ?"; // Assuming single department link for Instructor in SQL schema for simplicity or main dept
     params.push(req.query.departmentId);
@@ -385,7 +413,10 @@ export const getAllStudents = asyncHandler(async (req, res) => {
     params.push(t, t, t);
   }
   if (req.query.status) { whereSQL += " AND u.status = ?"; params.push(req.query.status); }
-  if (req.query.unit) { whereSQL += " AND u.unit = ?"; params.push(req.query.unit); }
+
+  const studentUnitFilter = req.user.role === 'ADMIN' ? req.user.unit : req.query.unit;
+  if (studentUnitFilter) { whereSQL += " AND u.unit = ?"; params.push(studentUnitFilter); }
+
   if (req.query.departmentId) { whereSQL += " AND u.department = ?"; params.push(req.query.departmentId); }
 
   // Instructor Limitation
@@ -435,6 +466,11 @@ export const deleteUser = asyncHandler(async (req, res) => {
   const [rows] = await pool.query("SELECT * FROM users WHERE id = ?", [userId]);
   if (rows.length === 0) throw new ApiError("User not found", 404);
   const user = rows[0];
+
+  if (req.user.role === 'ADMIN' && user.unit !== req.user.unit) {
+    throw new ApiError("You are not authorized to delete users outside your unit", 403);
+  }
+
   const avatar = parseJSON(user.avatar);
 
   if (avatar?.publicId) {
@@ -458,7 +494,7 @@ export const getSoftDeletedUsers = asyncHandler(async (req, res) => {
   const [users] = await pool.query("SELECT TOP 20 * FROM users WHERE isDeleted = 1");
   const formatted = users.map(u => ({ ...u, avatar: parseJSON(u.avatar), _id: u.id }));
 
-  res.json(new ApiResponse(200, { users: formatted, totalUsers: users.length }, "Soft-deleted users fetched"));
+  res.json(new ApiResponse(200, { users: formatted, totalUsers: users.length, totalPages: 1 }, "Soft-deleted users fetched"));
 });
 
 export const restoreUser = asyncHandler(async (req, res) => {

@@ -1,5 +1,7 @@
 import axiosBaseQuery from "@/Helper/axiosBaseQuery";
 import { createApi } from "@reduxjs/toolkit/query/react";
+import { moduleApi } from "./moduleApi";
+import { courseApi } from "./CourseApi";
 
 export const resourceApi = createApi({
     reducerPath: "resourceApi",
@@ -16,21 +18,28 @@ export const resourceApi = createApi({
                 },
             }),
             invalidatesTags: ['Resource'],
+            onQueryStarted: async (args, { dispatch, queryFulfilled }) => {
+                try {
+                    await queryFulfilled;
+                    dispatch(moduleApi.util.invalidateTags(['Module']));
+                    dispatch(courseApi.util.invalidateTags(['Course']));
+                } catch (error) {}
+            },
         }),
         getResourcesByModule: builder.query({
-            query: (moduleId) => `/api/resources/module/${moduleId}`,
+            query: (moduleId) => ({ url: `/api/resources/module/${moduleId}` }),
             providesTags: (result, error, moduleId) => [
                 { type: 'Resource', id: `module-${moduleId}` },
             ],
         }),
         getResourcesByCourse: builder.query({
-            query: (courseId) => `/api/resources/course/${courseId}`,
+            query: (courseId) => ({ url: `/api/resources/course/${courseId}` }),
             providesTags: (result, error, courseId) => [
                 { type: 'Resource', id: `course-${courseId}` },
             ],
         }),
         getResourcesByLesson: builder.query({
-            query: (lessonId) => `/api/resources/lesson/${lessonId}`,
+            query: (lessonId) => ({ url: `/api/resources/lesson/${lessonId}` }),
             providesTags: (result, error, lessonId) => [
                 { type: 'Resource', id: `lesson-${lessonId}` },
             ],
@@ -41,6 +50,13 @@ export const resourceApi = createApi({
                 method: "DELETE",
             }),
             invalidatesTags: ['Resource'],
+            onQueryStarted: async (args, { dispatch, queryFulfilled }) => {
+                try {
+                    await queryFulfilled;
+                    dispatch(moduleApi.util.invalidateTags(['Module']));
+                    dispatch(courseApi.util.invalidateTags(['Course']));
+                } catch (error) {}
+            },
         }),
         updateResource: builder.mutation({
             query: ({ resourceId, data }) => ({
@@ -52,6 +68,13 @@ export const resourceApi = createApi({
                 },
             }),
             invalidatesTags: ['Resource'],
+            onQueryStarted: async (args, { dispatch, queryFulfilled }) => {
+                try {
+                    await queryFulfilled;
+                    dispatch(moduleApi.util.invalidateTags(['Module']));
+                    dispatch(courseApi.util.invalidateTags(['Course']));
+                } catch (error) {}
+            },
         }),
     }),
 });

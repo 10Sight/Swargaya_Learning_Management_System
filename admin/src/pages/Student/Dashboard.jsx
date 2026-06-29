@@ -223,17 +223,23 @@ const StudentDashboard = () => {
     <AccountStatusWrapper allowPending={false}>
       <div className="space-y-4 sm:space-y-6">
         {/* Welcome Header */}
-        <Card className="bg-gradient-to-br from-[#eff6ff] via-[#eef2ff] to-[#faf5ff] border-[#bfdbfe] shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden">
+        <Card
+          className="border shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden"
+          style={{
+            background: 'linear-gradient(to bottom right, #eff6ff, #eef2ff, #faf5ff)',
+            borderColor: '#bfdbfe'
+          }}
+        >
           <CardHeader className="relative">
             {/* Background decoration */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-[#bfdbfe]/30 to-transparent rounded-bl-full transform translate-x-8 -translate-y-8"></div>
 
             <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex-1 min-w-0">
-                <CardTitle className="text-lg sm:text-xl lg:text-2xl text-[#1e3a8a] font-bold leading-tight">
+                <CardTitle className="text-lg sm:text-xl lg:text-2xl font-bold leading-tight" style={{ color: '#1e3a8a' }}>
                   Welcome back, {user?.fullName?.split(' ')[0] || 'Student'}! 👋
                 </CardTitle>
-                <CardDescription className="text-[#1d4ed8] text-sm sm:text-base mt-1 leading-relaxed">
+                <CardDescription className="text-sm sm:text-base mt-1 leading-relaxed" style={{ color: '#1d4ed8' }}>
                   Ready to continue your learning journey?
                 </CardDescription>
               </div>
@@ -247,7 +253,7 @@ const StudentDashboard = () => {
                   <span className="sm:hidden">{currentLevel}</span>
                 </Badge>
                 {dashboardData.department && (
-                  <Badge variant="outline" className="bg-white/80 backdrop-blur-sm text-xs sm:text-sm px-3 py-1.5 rounded-full border-[#bfdbfe] text-[#1d4ed8]">
+                  <Badge variant="outline" className="backdrop-blur-sm text-xs sm:text-sm px-3 py-1.5 rounded-full" style={{ backgroundColor: 'rgba(255, 255, 255, 0.8)', borderColor: '#bfdbfe', color: '#1d4ed8' }}>
                     <Users className="w-3 h-3 mr-1 sm:hidden" />
                     <span className="truncate max-w-24 sm:max-w-none">
                       {dashboardData.department.name}
@@ -261,74 +267,109 @@ const StudentDashboard = () => {
 
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <Card className="group hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-l-4 border-l-[#3b82f6]" onClick={() => navigate('/student/course')}>
+          <Card
+            className="group hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-l-4"
+            style={{ borderLeftColor: '#3b82f6' }}
+            onClick={() => navigate('/student/course')}
+          >
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Course Progress</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-[#2563eb] mt-1">{courseProgress}%</p>
+                  <p className="text-2xl sm:text-3xl font-bold mt-1" style={{ color: '#2563eb' }}>{courseProgress}%</p>
                   <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                     {dashboardData.progress?.completedModules?.length || 0} of {dashboardData.course?.modules?.length || 0} modules
                   </p>
                 </div>
-                <div className="p-2 sm:p-3 bg-[#dbeafe] rounded-full shrink-0 group-hover:bg-[#bfdbfe] transition-colors duration-300">
-                  <Target className="h-5 w-5 sm:h-6 sm:w-6 text-[#2563eb]" />
+                <div
+                  className="p-2 sm:p-3 rounded-full shrink-0 transition-colors duration-300"
+                  style={{ backgroundColor: '#dbeafe' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#bfdbfe' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#dbeafe' }}
+                >
+                  <Target className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: '#2563eb' }} />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="group hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-l-4 border-l-[#22c55e]" onClick={() => navigate('/student/course')}>
+          <Card
+            className="group hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-l-4"
+            style={{ borderLeftColor: '#22c55e' }}
+            onClick={() => navigate('/student/course')}
+          >
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Lessons Completed</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-[#16a34a] mt-1">{completedLessons}</p>
+                  <p className="text-2xl sm:text-3xl font-bold mt-1" style={{ color: '#16a34a' }}>{completedLessons}</p>
                   <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                     of {totalLessons} total lessons
                   </p>
                 </div>
-                <div className="p-2 sm:p-3 bg-[#dcfce7] rounded-full shrink-0 group-hover:bg-[#bbf7d0] transition-colors duration-300">
-                  <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 text-[#16a34a]" />
+                <div
+                  className="p-2 sm:p-3 rounded-full shrink-0 transition-colors duration-300"
+                  style={{ backgroundColor: '#dcfce7' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#bbf7d0' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#dcfce7' }}
+                >
+                  <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: '#16a34a' }} />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="group hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-default border-l-4 border-l-[#a855f7]">
+          <Card
+            className="group hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-default border-l-4"
+            style={{ borderLeftColor: '#a855f7' }}
+          >
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Current Level</p>
                   <div className="flex items-center gap-2 mt-1">
-                    <p className="text-xl sm:text-2xl font-bold text-[#9333ea]">{currentLevel}</p>
+                    <p className="text-xl sm:text-2xl font-bold" style={{ color: '#9333ea' }}>{currentLevel}</p>
                     <span className="text-sm">{levelInfo.icon}</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1 truncate">
                     {levelInfo.name}
                   </p>
                 </div>
-                <div className="p-2 sm:p-3 bg-[#f3e8ff] rounded-full shrink-0 group-hover:bg-[#e9d5ff] transition-colors duration-300">
-                  <Trophy className="h-5 w-5 sm:h-6 sm:w-6 text-[#9333ea]" />
+                <div
+                  className="p-2 sm:p-3 rounded-full shrink-0 transition-colors duration-300"
+                  style={{ backgroundColor: '#f3e8ff' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#e9d5ff' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#f3e8ff' }}
+                >
+                  <Trophy className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: '#9333ea' }} />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="group hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-l-4 border-l-[#f97316]" onClick={() => navigate('/student/department')}>
+          <Card
+            className="group hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-l-4"
+            style={{ borderLeftColor: '#f97316' }}
+            onClick={() => navigate('/student/department')}
+          >
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Department Status</p>
-                  <p className="text-lg sm:text-xl font-bold text-[#ea580c] mt-1 truncate">
+                  <p className="text-lg sm:text-xl font-bold mt-1 truncate" style={{ color: '#ea580c' }}>
                     {dashboardData.department?.status || 'N/A'}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1 truncate">
                     {dashboardData.department?.name || 'No department'}
                   </p>
                 </div>
-                <div className="p-2 sm:p-3 bg-[#ffedd5] rounded-full shrink-0 group-hover:bg-[#fed7aa] transition-colors duration-300">
-                  <Users className="h-5 w-5 sm:h-6 sm:w-6 text-[#ea580c]" />
+                <div
+                  className="p-2 sm:p-3 rounded-full shrink-0 transition-colors duration-300"
+                  style={{ backgroundColor: '#ffedd5' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#fed7aa' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#ffedd5' }}
+                >
+                  <Users className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: '#ea580c' }} />
                 </div>
               </div>
             </CardContent>
@@ -376,7 +417,10 @@ const StudentDashboard = () => {
 
                   <Button
                     onClick={() => navigate('/student/course')}
-                    className="w-full bg-[#2563eb] hover:bg-[#1d4ed8] text-[#ffffff]"
+                    className="w-full"
+                    style={{ backgroundColor: '#2563eb', color: '#ffffff' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#1d4ed8' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#2563eb' }}
                     size="lg"
                   >
                     <PlayCircle className="h-4 w-4 mr-2" />
@@ -439,7 +483,10 @@ const StudentDashboard = () => {
 
                   <Button
                     onClick={() => navigate('/student/course')}
-                    className="w-full bg-[#16a34a] hover:bg-[#15803d] text-white"
+                    className="w-full text-white"
+                    style={{ backgroundColor: '#16a34a' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#15803d' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#16a34a' }}
                     size="lg"
                   >
                     <PlayCircle className="h-4 w-4 mr-2" />
@@ -568,8 +615,13 @@ const StudentDashboard = () => {
                 className="h-auto p-3 sm:p-4 justify-start hover:shadow-md transition-all duration-300 hover:scale-105 group"
               >
                 <div className="flex items-center gap-3 w-full">
-                  <div className="p-2 bg-[#dbeafe] rounded-lg group-hover:bg-[#bfdbfe] transition-colors duration-300">
-                    <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-[#2563eb]" />
+                  <div
+                    className="p-2 rounded-lg transition-colors duration-300"
+                    style={{ backgroundColor: '#dbeafe' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#bfdbfe' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#dbeafe' }}
+                  >
+                    <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: '#2563eb' }} />
                   </div>
                   <div className="text-left flex-1 min-w-0">
                     <p className="font-medium text-sm sm:text-base truncate">Continue Course</p>
@@ -589,8 +641,13 @@ const StudentDashboard = () => {
                 className="h-auto p-3 sm:p-4 justify-start hover:shadow-md transition-all duration-300 hover:scale-105 group"
               >
                 <div className="flex items-center gap-3 w-full">
-                  <div className="p-2 bg-[#ffedd5] rounded-lg group-hover:bg-[#fed7aa] transition-colors duration-300">
-                    <Users className="h-4 w-4 sm:h-5 sm:w-5 text-[#ea580c]" />
+                  <div
+                    className="p-2 rounded-lg transition-colors duration-300"
+                    style={{ backgroundColor: '#ffedd5' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#fed7aa' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#ffedd5' }}
+                  >
+                    <Users className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: '#ea580c' }} />
                   </div>
                   <div className="text-left flex-1 min-w-0">
                     <p className="font-medium text-sm sm:text-base truncate">View Department</p>

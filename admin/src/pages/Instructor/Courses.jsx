@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useGetInstructorAssignedCoursesQuery } from '@/Redux/AllApi/InstructorApi'
+import { useGetActiveConfigQuery } from '@/Redux/AllApi/CourseLevelConfigApi'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -24,6 +25,9 @@ const InstructorCourses = () => {
     search
   })
 
+  const { data: configData } = useGetActiveConfigQuery();
+  const activeLevels = configData?.data?.levels || [];
+
   const courses = data?.data?.courses || []
   const totalPages = data?.data?.totalPages || 1
 
@@ -41,16 +45,31 @@ const InstructorCourses = () => {
   }
 
   const getLevelColor = (level) => {
+    const activeLevel = activeLevels.find(l => l.name.toUpperCase() === (level || "").toUpperCase());
+    if (activeLevel) return activeLevel.color;
+
     switch (level) {
       case 'BEGINNER':
-        return 'text-[#16a34a]'
+      case 'L1':
+        return '#16a34a'
       case 'INTERMEDIATE':
-        return 'text-[#ca8a04]'
+      case 'L2':
+        return '#ca8a04'
       case 'ADVANCED':
-        return 'text-[#dc2626]'
+      case 'L3':
+        return '#dc2626'
       default:
-        return 'text-[#4b5563]'
+        return '#4b5563'
     }
+  }
+
+  const getLevelName = (level) => {
+    const difficultyMapping = {
+      BEGINNER: 'L1',
+      INTERMEDIATE: 'L2',
+      ADVANCED: 'L3'
+    };
+    return difficultyMapping[level] || level;
   }
 
   if (isLoading) {
@@ -149,8 +168,8 @@ const InstructorCourses = () => {
 
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Level:</span>
-                    <span className={`font-medium ${getLevelColor(course.level)}`}>
-                      {course.level}
+                    <span className="font-medium" style={{ color: getLevelColor(course.level) }}>
+                      {getLevelName(course.level)}
                     </span>
                   </div>
 

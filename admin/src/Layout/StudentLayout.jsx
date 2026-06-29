@@ -225,12 +225,13 @@ export function StudentLayout() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-[#f8fafc] via-[#f0fdf4]/30 to-[#ecfdf5]/20">
+    <div className="flex min-h-screen" style={{ background: 'linear-gradient(to bottom right, #f8fafc, rgba(240, 253, 244, 0.3), rgba(236, 253, 245, 0.2))' }}>
       {/* Mobile Overlay */}
       {(isMobileMenuOpen || (!collapsed && !isMobile)) && (
         <div
-          className={`fixed inset-0 bg-[#000000]/60 backdrop-blur-sm z-40 transition-opacity duration-300 animate-in fade-in ${isMobile ? '' : 'md:hidden'
+          className={`fixed inset-0 backdrop-blur-sm z-40 transition-opacity duration-300 animate-in fade-in ${isMobile ? '' : 'md:hidden'
             }`}
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}
           onClick={() => {
             if (isMobile) {
               setIsMobileMenuOpen(false);
@@ -243,12 +244,22 @@ export function StudentLayout() {
 
       {/* Sidebar */}
       <nav
-        className={`fixed top-0 left-0 h-screen bg-[#ffffff]/95 backdrop-blur-xl text-[#000000] shadow-2xl transition-all duration-300 z-50 border-r border-[#e5e7eb]/50 ${isMobile
+        className={`fixed top-0 left-0 h-screen backdrop-blur-xl transition-all duration-300 z-50 shadow-2xl ${isMobile
           ? `${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} w-64`
           : `${collapsed ? 'w-16' : 'w-64'}`
           }`}
+        style={{
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          color: '#000000',
+          borderRight: '1px solid rgba(229, 231, 231, 0.5)'
+        }}
       >
-        <div className="relative h-16 items-center flex transition-all px-4 duration-300 border-b border-[#e5e7eb]/80 bg-[#ffffff]/50 backdrop-blur-sm">
+        <div className="relative h-16 items-center flex transition-all px-4 duration-300 backdrop-blur-sm"
+          style={{
+            borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
+            backgroundColor: 'rgba(255, 255, 255, 0.5)'
+          }}
+        >
           <ToggleButton
             opened={isMobile ? isMobileMenuOpen : !collapsed}
             onClick={toggleSidebar}
@@ -274,13 +285,29 @@ export function StudentLayout() {
                 <button
                   key={item.label}
                   onClick={() => handleNavigate(item.link)}
-                  className={`group relative flex items-center w-full px-3 py-3 text-sm font-medium rounded-xl transition-all duration-300 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-[#22c55e] focus:ring-offset-2 ${isActive
-                    ? "bg-gradient-to-r from-[#16a34a] to-[#2563eb] text-[#ffffff] shadow-lg shadow-[#bbf7d0]"
-                    : "text-[#374151] hover:bg-gradient-to-r hover:from-[#f0fdf4] hover:to-[#eff6ff] hover:text-[#15803d] hover:shadow-md active:bg-[#dcfce7]"
-                    } ${(collapsed && !isMobile) ? "justify-center px-2 mx-1" : ""}`}
+                  className={`group relative flex items-center w-full px-3 py-3 text-sm font-medium rounded-xl transition-all duration-300 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-[#22c55e] focus:ring-offset-2 ${(collapsed && !isMobile) ? "justify-center px-2 mx-1" : ""}`}
+                  style={{
+                    background: isActive ? 'linear-gradient(to right, #16a34a, #2563eb)' : 'transparent',
+                    color: isActive ? '#ffffff' : '#374151',
+                    boxShadow: isActive ? '0 10px 15px -3px rgba(187, 247, 208, 1)' : 'none'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = 'linear-gradient(to right, #f0fdf4, #eff6ff)';
+                      e.currentTarget.style.color = '#15803d';
+                      e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.color = '#374151';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }
+                  }}
                 >
                   {isActive && ((!collapsed && !isMobile) || isMobile) && (
-                    <div className="absolute left-0 top-0 h-full w-1 bg-[#ffffff] rounded-r-full" />
+                    <div className="absolute left-0 top-0 h-full w-1 rounded-r-full" style={{ backgroundColor: '#ffffff' }} />
                   )}
                   <item.icon
                     className={`shrink-0 transition-all duration-300 group-hover:scale-110 ${(collapsed && !isMobile) ? "w-6 h-6" : "w-5 h-5"

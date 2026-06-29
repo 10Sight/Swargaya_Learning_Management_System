@@ -352,7 +352,8 @@ const PermissionMatrix = ({ roles, permissions }) => {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

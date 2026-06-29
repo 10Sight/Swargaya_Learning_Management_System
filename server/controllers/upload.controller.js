@@ -1,5 +1,6 @@
-import { uploadToCloudinary } from "../config/cloudinary.js";
 import fs from "fs";
+import path from "path";
+import ENV from "../configs/env.config.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -11,33 +12,19 @@ export const uploadSingleFile = asyncHandler(async (req, res) => {
   }
 
   try {
-    const result = await uploadToCloudinary(req.file.path, "uploads");
-
-    if (!result.success) {
-      throw new Error(result.error || "Upload failed");
-    }
-
-    // uploadToCloudinary typically handles unlink if we look at common implementations, 
-    // but for safety in this controller refactor where we don't see the helper code:
-    // We will assume helper MIGHT not unlink on success in all versions, 
-    // but usually it does. 
-    // However, looking at resource.controller pattern, we unlinked on catch.
-    // Let's rely on helper or manual unlink? 
-    // Best practice: Helper usually does it. If not, we can do it here. 
-    // I'll check if file still exists before unlinking to be safe.
-    try { if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path); } catch (_) { }
+    const publicUrl = `${ENV.BACKEND_URL}/uploads/${req.file.filename}`;
 
     return res
       .status(200)
       .json(
         new ApiResponse(200, {
-          url: result.url,
-          public_id: result.public_id,
+          url: publicUrl,
+          public_id: req.file.filename,
         }, "File uploaded successfully")
       );
   } catch (err) {
     try { if (req.file?.path && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path); } catch (_) { }
-    throw new ApiError(err?.message || "Failed to upload file", 500);
+    throw new ApiError(err?.message || "Failed to store file", 500);
   }
 });
 
@@ -53,19 +40,13 @@ export const uploadMultipleFiles = asyncHandler(async (req, res) => {
   // Parallel uploads could be faster but serial is safer for resource limits
   for (const file of req.files) {
     try {
-      const result = await uploadToCloudinary(file.path, "uploads");
+      const publicUrl = `${ENV.BACKEND_URL}/uploads/${file.filename}`;
 
-      try { if (fs.existsSync(file.path)) fs.unlinkSync(file.path); } catch (_) { }
-
-      if (result.success) {
-        results.push({
-          url: result.url,
-          public_id: result.public_id,
-          originalName: file.originalname
-        });
-      } else {
-        errors.push({ file: file.originalname, error: result.error });
-      }
+      results.push({
+        url: publicUrl,
+        public_id: file.filename,
+        originalName: file.originalname
+      });
     } catch (err) {
       try { if (fs.existsSync(file.path)) fs.unlinkSync(file.path); } catch (_) { }
       errors.push({ file: file.originalname, error: err.message });

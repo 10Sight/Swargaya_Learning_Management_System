@@ -35,6 +35,7 @@ import {
   IconClock,
   IconLayersIntersect,
   IconUserPlus,
+  IconBuilding,
 } from "@tabler/icons-react";
 import { HomeIcon } from "lucide-react";
 import useTranslate from "@/hooks/useTranslate";
@@ -72,6 +73,7 @@ const tabs = [
   {
     category: "System Management",
     items: [
+      { link: "/superadmin/units", label: "Manage Units", icon: IconBuilding },
       { link: "/superadmin/audit-logs", labelKey: "nav.auditLogs", icon: IconFileAnalytics },
       { link: "/superadmin/system-settings", labelKey: "nav.systemSettings", icon: IconSettings },
       { link: "/superadmin/analytics-reports", labelKey: "nav.analyticsReports", icon: IconReport },
@@ -159,14 +161,22 @@ export function SuperAdminLayout() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-[#f8fafc] via-[#faf5ff]/30 to-[#eef2ff]/20">
+    <div className="flex min-h-screen" style={{ background: 'linear-gradient(to bottom right, #f8fafc, rgba(250, 245, 255, 0.3), rgba(238, 242, 255, 0.2))' }}>
       {/* Sidebar */}
       <nav
-        className={`fixed top-0 left-0 h-screen bg-white/95 backdrop-blur-xl border-r border-[#e5e7eb]/50 text-black shadow-2xl transition-all duration-300 z-20
-                ${collapsed ? "w-16" : "w-64"} `}
+        className={`fixed top-0 left-0 h-screen backdrop-blur-xl transition-all duration-300 z-20 shadow-2xl ${collapsed ? "w-16" : "w-64"} `}
+        style={{
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          borderRight: '1px solid rgba(229, 231, 235, 0.5)',
+          color: '#000000'
+        }}
       >
         <div
-          className={`relative h-16 items-center flex transition-all p-4 duration-300 z-50 border-b border-[#e5e7eb]/80 bg-white/50 backdrop-blur-sm`}
+          className={`relative h-16 items-center flex transition-all p-4 duration-300 z-50 backdrop-blur-sm`}
+          style={{
+            borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
+            backgroundColor: 'rgba(255, 255, 255, 0.5)'
+          }}
         >
           <ToggleButton
             opened={!collapsed}
@@ -201,17 +211,32 @@ export function SuperAdminLayout() {
                   return (
                     <div
                       className={`group relative flex items-center cursor-pointer w-full overflow-hidden h-10 rounded-xl transition-all duration-300 hover:scale-[1.02]
-                      ${isActive
-                          ? "bg-gradient-to-r from-[#9333ea] to-[#2563eb] text-white shadow-lg shadow-[#e9d5ff]"
-                          : "text-[#4b5563] hover:bg-gradient-to-r hover:from-[#faf5ff] hover:to-[#eff6ff] hover:text-[#7e22ce] hover:shadow-md"
-                        }
                       ${collapsed ? "justify-center mx-1" : "items-center px-3"}`}
                       key={item.label}
                       onClick={() => navigate(item.link)}
                       title={collapsed ? item.label : ''}
+                      style={{
+                        background: isActive ? 'linear-gradient(to right, #9333ea, #2563eb)' : 'transparent',
+                        color: isActive ? '#ffffff' : '#4b5563',
+                        boxShadow: isActive ? '0 10px 15px -3px rgba(233, 213, 255, 1)' : 'none'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isActive) {
+                          e.currentTarget.style.background = 'linear-gradient(to right, #faf5ff, #eff6ff)';
+                          e.currentTarget.style.color = '#7e22ce';
+                          e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isActive) {
+                          e.currentTarget.style.background = 'transparent';
+                          e.currentTarget.style.color = '#4b5563';
+                          e.currentTarget.style.boxShadow = 'none';
+                        }
+                      }}
                     >
                       {isActive && !collapsed && (
-                        <div className="absolute left-0 top-0 h-full w-1 bg-white rounded-r-full" />
+                        <div className="absolute left-0 top-0 h-full w-1 rounded-r-full" style={{ backgroundColor: '#ffffff' }} />
                       )}
                       <item.icon
                         className={`${collapsed ? "w-5 h-5" : "min-w-4 min-h-4"
@@ -268,8 +293,12 @@ export function SuperAdminLayout() {
       >
         {/* Header */}
         <header
-          className={`px-4 sm:px-6 bg-white/95 backdrop-blur-lg shadow-sm border-b border-[#e5e7eb]/80 flex h-16 items-center justify-between gap-2 sm:gap-4 fixed right-0 top-0 z-30 transition-all duration-300 ${collapsed ? "w-[calc(100%-4rem)]" : "w-[calc(100%-16rem)]"
+          className={`px-4 sm:px-6 backdrop-blur-lg shadow-sm flex h-16 items-center justify-between gap-2 sm:gap-4 fixed right-0 top-0 z-30 transition-all duration-300 ${collapsed ? "w-[calc(100%-4rem)]" : "w-[calc(100%-16rem)]"
             }`}
+          style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            borderBottom: '1px solid rgba(229, 231, 235, 0.8)'
+          }}
         >
           {/* Left side (Breadcrumb) */}
           <Breadcrumb>
@@ -330,7 +359,12 @@ export function SuperAdminLayout() {
 
         {/* Page Content */}
         <div className="pt-20 pb-6 px-4 sm:px-6 min-h-screen">
-          <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-sm border border-[#e5e7eb]/50 p-4 sm:p-6 transition-all duration-300 hover:shadow-md">
+          <div className="backdrop-blur-sm rounded-xl shadow-sm p-4 sm:p-6 transition-all duration-300 hover:shadow-md"
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+              border: '1px solid rgba(229, 231, 235, 0.5)'
+            }}
+          >
             <Outlet />
           </div>
         </div>

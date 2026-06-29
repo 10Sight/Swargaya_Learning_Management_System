@@ -31,6 +31,8 @@ const fileFilter = (req, file, cb) => {
         "text/plain",
         "application/vnd.ms-powerpoint",
         "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "application/zip",
         "application/x-rar-compressed"
     ];
@@ -38,7 +40,7 @@ const fileFilter = (req, file, cb) => {
     if (allowedTypes.includes(file.mimetype)) {
         cb(null, true);
     } else {
-        cb(new Error("Invalid file type. Allowed: images, PDFs, videos, documents, presentations, and archives"), false);
+        cb(new Error("Invalid file type. Allowed: images, PDFs, videos, documents (Word, Excel), presentations (PPT), and archives"), false);
     }
 };
 

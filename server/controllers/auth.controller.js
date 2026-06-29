@@ -10,6 +10,7 @@ import sendMail from "../utils/mail.util.js";
 import ENV from "../configs/env.config.js";
 import logAudit from "../utils/auditLogger.js";
 import { AvailableUserRoles, AvailableUnits } from "../constants.js";
+import Unit from "../models/unit.model.js";
 import validator from "validator";
 import { generateWelcomeEmail } from "../utils/emailTemplates.js";
 
@@ -67,12 +68,23 @@ export const register = asyncHandler(async (req, res) => {
     throw new ApiError("Invalid role provided", 400);
   }
 
-  // Validate unit
-  if (!AvailableUnits.includes(unit)) {
+  // Validate unit — accept legacy static values or any title in the units table
+  const unitValid = AvailableUnits.includes(unit) || await Unit.exists({ title: unit });
+  if (!unitValid) {
     throw new ApiError("Invalid unit provided", 400);
   }
 
-  const user = await User.create({ fullName, userName, email, phoneNumber, password, role, unit });
+  const user = await User.create({ 
+    fullName, 
+    userName, 
+    email, 
+    phoneNumber, 
+    password, 
+    role, 
+    unit,
+    doj: req.body.doj || null,
+    dob: req.body.dob || null
+  });
 
   // Sanitize for response
   const createdUser = sanitizeUser(user);

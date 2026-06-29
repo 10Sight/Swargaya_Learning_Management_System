@@ -21,7 +21,10 @@ import {
   IconFileText,
   IconPhoto,
   IconLink,
-  IconFileZip
+  IconFileZip,
+  IconFileTypeDocx,
+  IconFileTypeXls,
+  IconFileTypePpt
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { useCreateResourceMutation } from "@/Redux/AllApi/resourceApi";
@@ -32,6 +35,9 @@ const resourceTypeOptions = [
   { value: "image", label: "Image", icon: IconPhoto },
   { value: "link", label: "External Link", icon: IconLink },
   { value: "text", label: "Text Document", icon: IconFileText },
+  { value: "msword", label: "Word Document", icon: IconFileTypeDocx },
+  { value: "msexcel", label: "Excel Spreadsheet", icon: IconFileTypeXls },
+  { value: "msppt", label: "PowerPoint", icon: IconFileTypePpt },
 ];
 
 export const ResourceManagementModal = ({
@@ -177,7 +183,10 @@ export const ResourceManagementModal = ({
       case "pdf": return ".pdf";
       case "image": return "image/*";
       case "video": return "video/*";
-      case "text": return ".txt,.doc,.docx";
+      case "text": return ".txt";
+      case "msword": return ".doc,.docx";
+      case "msexcel": return ".xls,.xlsx";
+      case "msppt": return ".ppt,.pptx";
       default: return "*";
     }
   };

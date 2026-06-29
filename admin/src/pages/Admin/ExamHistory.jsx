@@ -6,11 +6,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input'
 import { IconChartBar, IconDownload } from '@tabler/icons-react'
 
-const Bar = ({ value = 0, max = 1, color = 'bg-[#2563eb]' }) => {
+const Bar = ({ value = 0, max = 1, color = '#2563eb' }) => {
   const pct = max > 0 ? Math.round((value / max) * 100) : 0
   return (
-    <div className="w-full bg-muted rounded h-2">
-      <div className={`${color} h-2 rounded`} style={{ width: `${pct}%` }} />
+    <div className="w-full rounded h-2" style={{ backgroundColor: '#f3f4f6' }}>
+      <div className="h-2 rounded" style={{ width: `${pct}%`, backgroundColor: color }} />
     </div>
   )
 }
@@ -103,15 +103,15 @@ const ExamHistory = () => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
                       <div className="flex justify-between text-xs"><span>Passed</span><span>{series.passed[idx]}</span></div>
-                      <Bar value={series.passed[idx]} max={maxValue} color="bg-[#16a34a]" />
+                      <Bar value={series.passed[idx]} max={maxValue} color="#16a34a" />
                     </div>
                     <div>
                       <div className="flex justify-between text-xs"><span>Failed</span><span>{series.failed[idx]}</span></div>
-                      <Bar value={series.failed[idx]} max={maxValue} color="bg-[#dc2626]" />
+                      <Bar value={series.failed[idx]} max={maxValue} color="#dc2626" />
                     </div>
                     <div>
                       <div className="flex justify-between text-xs"><span>Total</span><span>{series.total[idx]}</span></div>
-                      <Bar value={series.total[idx]} max={maxValue} color="bg-[#2563eb]" />
+                      <Bar value={series.total[idx]} max={maxValue} color="#2563eb" />
                     </div>
                   </div>
                 </div>

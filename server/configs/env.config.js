@@ -4,6 +4,7 @@ config();
 
 const ENV = {
     PORT: process.env.PORT || 3000,
+    BACKEND_URL: process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 3000}`,
     MONGO_URI: process.env.MONGO_URI,
 
     NODE_ENV: process.env.NODE_ENV || "development",
@@ -21,16 +22,16 @@ const ENV = {
     SMTP_PASSWORD: process.env.SMTP_PASSWORD,
 
     // Database configuration
-    DB_HOST: process.env.DB_HOST || "localhost",
-    DB_USER: process.env.DB_USER || "LMS_USER",
-    DB_PASSWORD: process.env.DB_PASSWORD || "LMS@12345",
-    DB_NAME: process.env.DB_NAME || "LMS",
+    DB_HOST: process.env.DB_HOST,
+    DB_USER: process.env.DB_USER,
+    DB_PASSWORD: process.env.DB_PASSWORD,
+    DB_NAME: process.env.DB_NAME,
 
-    FRONTEND_URL: process.env.FRONTEND_URL || "http://localhost:5173",
-    ADMIN_URL: process.env.ADMIN_URL || "http://localhost:5174",
-    INSTRUCTOR_URL: process.env.INSTRUCTOR_URL || "http://localhost:5175",
-    STUDENT_URL: process.env.STUDENT_URL || "http://localhost:5176",
-    SUPERADMIN_URL: process.env.SUPERADMIN_URL || "http://localhost:5177",
+    FRONTEND_URL: process.env.FRONTEND_URL,
+    ADMIN_URL: process.env.ADMIN_URL,
+    INSTRUCTOR_URL: process.env.INSTRUCTOR_URL,
+    STUDENT_URL: process.env.STUDENT_URL,
+    SUPERADMIN_URL: process.env.SUPERADMIN_URL,
     ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176", "http://localhost:5177"]
 }
 

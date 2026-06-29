@@ -1,5 +1,6 @@
 // src/pages/Admin/Students.jsx
 import React, { useState, useCallback, useMemo, useEffect } from "react";
+import { useSelector } from "react-redux";
 import {
   useGetAllStudentsQuery,
 } from "@/Redux/AllApi/InstructorApi";
@@ -8,6 +9,7 @@ import {
   useUpdateUserMutation,
   useDeleteUserMutation,
 } from "@/Redux/AllApi/UserApi";
+import { useGetAllUnitsQuery } from "@/Redux/AllApi/UnitApi";
 import {
   useGetAllDepartmentsQuery,
   useAddStudentToDepartmentMutation,
@@ -94,6 +96,9 @@ const normalizeStatus = (status) => {
 };
 
 const Students = () => {
+  const currentUser = useSelector((state) => state.auth.user);
+  const isAdmin = currentUser?.role === "ADMIN";
+
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -111,13 +116,15 @@ const Students = () => {
     phoneNumber: "",
     password: "",
     status: "PRESENT",
-    unit: "UNIT_1",
+    unit: "UNIT 1",
+    doj: "",
   });
   const [formErrors, setFormErrors] = useState({});
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [departmentFilter, setDepartmentFilter] = useState("ALL");
   const [unitFilter, setUnitFilter] = useState("ALL");
   const [activeTab, setActiveTab] = useState("all");
+  const [hoveredBtn, setHoveredBtn] = useState(null);
 
   const navigate = useNavigate();
 
@@ -148,7 +155,7 @@ const Students = () => {
       limit: 10,
       search: debouncedSearchTerm || "",
       status: statusFilter !== "ALL" ? statusFilter : "",
-      unit: unitFilter !== "ALL" ? unitFilter : "",
+      unit: isAdmin ? (currentUser?.unit || "") : (unitFilter !== "ALL" ? unitFilter : ""),
     },
     {
       // Prevent unnecessary refetches
@@ -192,13 +199,10 @@ const Students = () => {
     { value: "NO_DEPARTMENT", label: "No Department" },
   ];
 
+  const { data: unitsResponse } = useGetAllUnitsQuery();
   const unitOptions = [
     { value: "ALL", label: "All Units" },
-    { value: "UNIT_1", label: "Unit 1" },
-    { value: "UNIT_2", label: "Unit 2" },
-    { value: "UNIT_3", label: "Unit 3" },
-    { value: "UNIT_4", label: "Unit 4" },
-    { value: "UNIT_5", label: "Unit 5" },
+    ...(unitsResponse?.data || []).map((u) => ({ value: u.title, label: u.title })),
   ];
 
   // Active filters for FilterBar
@@ -219,7 +223,7 @@ const Students = () => {
       filters.push({ label: "Department", value: departmentLabel });
     }
 
-    if (unitFilter !== "ALL") {
+    if (!isAdmin && unitFilter !== "ALL") {
       const unitLabel = unitOptions.find((opt) => opt.value === unitFilter)?.label;
       filters.push({ label: "Unit", value: unitLabel });
     }
@@ -229,7 +233,7 @@ const Students = () => {
     }
 
     return filters;
-  }, [statusFilter, departmentFilter, searchTerm, statusOptions, departmentOptions]);
+  }, [statusFilter, departmentFilter, searchTerm, statusOptions, departmentOptions, isAdmin, unitFilter]);
 
   // Filter students based on department and unit (status handled by API)
   const filteredStudents = useMemo(() => {
@@ -239,12 +243,13 @@ const Students = () => {
         (departmentFilter === "HAS_DEPARTMENT" && student.department) ||
         (departmentFilter === "NO_DEPARTMENT" && !student.department);
 
-      const unitMatch =
-        unitFilter === "ALL" || student.unit === unitFilter;
+      const unitMatch = isAdmin
+        ? student.unit === currentUser?.unit
+        : (unitFilter === "ALL" || student.unit === unitFilter);
 
       return departmentMatch && unitMatch;
     });
-  }, [students, departmentFilter, unitFilter]);
+  }, [students, departmentFilter, unitFilter, isAdmin, currentUser?.unit]);
 
   // Toast helpers to prevent spam
   const showToast = useCallback(
@@ -284,10 +289,17 @@ const Students = () => {
       phoneNumber: "",
       password: "",
       status: "PRESENT",
-      unit: "UNIT_1",
+      unit: isAdmin ? (currentUser?.unit || "UNIT 1") : "UNIT 1",
+      doj: "",
     });
     setFormErrors({});
   };
+
+  useEffect(() => {
+    if (isAdmin && currentUser?.unit) {
+      setFormData((prev) => ({ ...prev, unit: currentUser.unit }));
+    }
+  }, [isAdmin, currentUser?.unit]);
 
   const handleAddStudent = async () => {
     // Reset previous errors
@@ -312,6 +324,9 @@ const Students = () => {
     }
     if (!formData.unit) {
       errors.unit = "Unit is required";
+    }
+    if (!formData.doj) {
+      errors.doj = "Date of joining is required";
     }
 
     // Validate email format
@@ -356,6 +371,7 @@ const Students = () => {
         password: formData.password.trim(),
         role: "STUDENT",
         unit: formData.unit,
+        doj: formData.doj,
       };
 
       const result = await registerStudent(studentData).unwrap();
@@ -423,6 +439,7 @@ const Students = () => {
         phoneNumber: updateData.phoneNumber.trim(),
         status: updateData.status,
         unit: updateData.unit,
+        doj: updateData.doj,
       };
 
       await updateStudent({
@@ -496,7 +513,8 @@ const Students = () => {
       phoneNumber: student.phoneNumber,
       password: "",
       status: normalizeStatus(student.status),
-      unit: student.unit || "UNIT_1",
+      unit: student.unit || "UNIT 1",
+      doj: student.doj ? new Date(student.doj).toISOString().split('T')[0] : "",
     });
     setIsEditDialogOpen(true);
   };
@@ -749,7 +767,14 @@ const Students = () => {
 
           <Button
             onClick={() => setIsAddDialogOpen(true)}
-            className="bg-[#2563eb] hover:bg-[#1d4ed8] text-[#ffffff] shadow-sm"
+            style={{
+              backgroundColor: hoveredBtn === 'add-employee' ? '#1d4ed8' : '#2563eb',
+              color: '#ffffff',
+              boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={() => setHoveredBtn('add-employee')}
+            onMouseLeave={() => setHoveredBtn(null)}
           >
             <IconPlus className="h-4 w-4 mr-2" />
             Add Employee
@@ -786,18 +811,20 @@ const Students = () => {
                 className="w-[160px]"
               />
 
-              <FilterSelect
-                value={unitFilter}
-                onValueChange={setUnitFilter}
-                options={unitOptions}
-                placeholder="Unit"
-                icon={IconUsers}
-                className="w-[140px]"
-              />
+              {!isAdmin && (
+                <FilterSelect
+                  value={unitFilter}
+                  onValueChange={setUnitFilter}
+                  options={unitOptions}
+                  placeholder="Unit"
+                  icon={IconUsers}
+                  className="w-[140px]"
+                />
+              )}
 
               {(statusFilter !== "ALL" ||
                 departmentFilter !== "ALL" ||
-                unitFilter !== "ALL" ||
+                (!isAdmin && unitFilter !== "ALL") ||
                 searchTerm) && (
                   <Button
                     variant="outline"
@@ -953,7 +980,7 @@ const Students = () => {
                     </TableCell>
                     <TableCell>
                       <div className="text-sm text-muted-foreground">
-                        {student.unit ? student.unit.replace("UNIT_", "Unit ") : "No unit"}
+                        {student.unit || "No unit"}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -969,9 +996,15 @@ const Students = () => {
                                   e.stopPropagation(); // Stop event propagation
                                   openDepartmentDialog(student);
                                 }}
-                                className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="h-7 w-7 p-0 transition-opacity"
+                                style={{
+                                  opacity: 0,
+                                  backgroundColor: hoveredBtn === `dept-${student._id}` ? '#f1f5f9' : 'transparent'
+                                }}
+                                onMouseEnter={() => setHoveredBtn(`dept-${student._id}`)}
+                                onMouseLeave={() => setHoveredBtn(null)}
                               >
-                                <IconPencil className="h-3 w-3" />
+                                <IconPencil className="h-3 w-3" style={{ color: '#64748b' }} />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -1004,8 +1037,13 @@ const Students = () => {
                                   openEditDialog(student);
                                 }}
                                 className="h-8 w-8 p-0"
+                                style={{
+                                  backgroundColor: hoveredBtn === `edit-${student._id}` ? '#f1f5f9' : 'transparent'
+                                }}
+                                onMouseEnter={() => setHoveredBtn(`edit-${student._id}`)}
+                                onMouseLeave={() => setHoveredBtn(null)}
                               >
-                                <IconPencil className="h-4 w-4" />
+                                <IconPencil className="h-4 w-4" style={{ color: '#64748b' }} />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -1024,7 +1062,13 @@ const Students = () => {
                                   e.stopPropagation(); // Stop event propagation
                                   openDeleteDialog(student);
                                 }}
-                                className="h-8 w-8 p-0 text-[#dc2626] hover:text-[#991b1b] hover:bg-[#fef2f2]"
+                                className="h-8 w-8 p-0"
+                                style={{
+                                  color: hoveredBtn === `delete-${student._id}` ? '#991b1b' : '#dc2626',
+                                  backgroundColor: hoveredBtn === `delete-${student._id}` ? '#fef2f2' : 'transparent'
+                                }}
+                                onMouseEnter={() => setHoveredBtn(`delete-${student._id}`)}
+                                onMouseLeave={() => setHoveredBtn(null)}
                               >
                                 <IconTrash className="h-4 w-4" />
                               </Button>
@@ -1209,25 +1253,43 @@ const Students = () => {
                 </SelectContent>
               </Select>
             </div>
+            {!isAdmin && (
+              <div className="grid gap-2">
+                <Label htmlFor="edit-unit">Unit</Label>
+                <Select
+                  value={formData.unit}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, unit: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select unit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(unitsResponse?.data || []).map((u) => (
+                      <SelectItem key={u.id} value={u.title}>{u.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="grid gap-2">
-              <Label htmlFor="edit-unit">Unit</Label>
-              <Select
-                value={formData.unit}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, unit: value })
+              <Label htmlFor="doj">Date of Joining</Label>
+              <Input
+                id="doj"
+                name="doj"
+                type="date"
+                value={formData.doj}
+                onChange={handleInputChange}
+                className={
+                  formErrors.doj
+                    ? "border-[#ef4444] focus:border-[#ef4444]"
+                    : ""
                 }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select unit" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="UNIT_1">Unit 1</SelectItem>
-                  <SelectItem value="UNIT_2">Unit 2</SelectItem>
-                  <SelectItem value="UNIT_3">Unit 3</SelectItem>
-                  <SelectItem value="UNIT_4">Unit 4</SelectItem>
-                  <SelectItem value="UNIT_5">Unit 5</SelectItem>
-                </SelectContent>
-              </Select>
+              />
+              {formErrors.doj && (
+                <p className="text-sm text-[#dc2626]">{formErrors.doj}</p>
+              )}
             </div>
             <div className="grid gap-2">
               <Label htmlFor="password">Password</Label>
@@ -1325,25 +1387,35 @@ const Students = () => {
                 placeholder="Enter phone number"
               />
             </div>
+            {!isAdmin && (
+              <div className="grid gap-2">
+                <Label htmlFor="edit-unit-edit">Unit</Label>
+                <Select
+                  value={formData.unit}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, unit: value })
+                  }
+                >
+                  <SelectTrigger id="edit-unit-edit">
+                    <SelectValue placeholder="Select unit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(unitsResponse?.data || []).map((u) => (
+                      <SelectItem key={u.id} value={u.title}>{u.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="grid gap-2">
-              <Label htmlFor="edit-unit-edit">Unit</Label>
-              <Select
-                value={formData.unit}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, unit: value })
-                }
-              >
-                <SelectTrigger id="edit-unit-edit">
-                  <SelectValue placeholder="Select unit" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="UNIT_1">Unit 1</SelectItem>
-                  <SelectItem value="UNIT_2">Unit 2</SelectItem>
-                  <SelectItem value="UNIT_3">Unit 3</SelectItem>
-                  <SelectItem value="UNIT_4">Unit 4</SelectItem>
-                  <SelectItem value="UNIT_5">Unit 5</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="edit-doj">Date of Joining</Label>
+              <Input
+                id="edit-doj"
+                name="doj"
+                type="date"
+                value={formData.doj}
+                onChange={handleInputChange}
+              />
             </div>
           </div>
           <DialogFooter>

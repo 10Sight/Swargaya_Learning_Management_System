@@ -46,12 +46,14 @@ import departmentStatusScheduler from "./services/departmentStatusScheduler.js";
 import machineRoutes from "./routes/machine.routes.js";
 import lineRoutes from "./routes/line.routes.js";
 import skillMatrixRoutes from "./routes/skillMatrix.route.js";
+import unitRoutes from "./routes/unit.routes.js";
 import Machine from "./models/machine.model.js";
 import Line from "./models/line.model.js";
 import SkillMatrix from "./models/skillMatrix.model.js";
 import SystemSettings from "./models/systemSettings.model.js";
 import Resource from "./models/resource.model.js";
 import Certificate from "./models/certificate.model.js";
+import Unit from "./models/unit.model.js";
 
 const app = express();
 const server = createServer(app);
@@ -101,6 +103,9 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
     next();
 });
+
+// Serve static files from uploads directory
+app.use("/uploads", express.static("uploads"));
 
 const PORT = ENV.PORT;
 
@@ -169,6 +174,7 @@ app.use("/api/on-job-training", onJobTrainingRoutes);
 app.use("/api/machines", machineRoutes);
 app.use("/api/lines", lineRoutes);
 app.use("/api/skill-matrix", skillMatrixRoutes);
+app.use("/api/units", unitRoutes);
 
 // Initialize Socket.IO service
 socketIOService.initialize(io);

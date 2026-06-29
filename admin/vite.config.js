@@ -108,6 +108,7 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000
   },
   server: {
+    host: true,
     // Hot reload optimization
     hmr: {
       overlay: false // Disable error overlay for better performance

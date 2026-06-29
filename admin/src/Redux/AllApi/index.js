@@ -294,6 +294,16 @@ export {
     useGetSkillMatrixQuery,
 } from './SkillMatrixApi';
 
+// Unit API exports
+export {
+    unitApi,
+    useGetAllUnitsQuery,
+    useGetUnitByIdQuery,
+    useCreateUnitMutation,
+    useUpdateUnitMutation,
+    useDeleteUnitMutation,
+} from './UnitApi';
+
 // CourseLevelConfig API exports
 export {
     useGetActiveConfigQuery,

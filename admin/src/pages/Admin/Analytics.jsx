@@ -64,11 +64,11 @@ const Analytics = ({ pageName = "Analytics" }) => {
 
   const getActivityColor = (action) => {
     const lowerAction = action?.toLowerCase() || '';
-    if (lowerAction.includes('create') || lowerAction.includes('add')) return 'text-[#16a34a]';
-    if (lowerAction.includes('update') || lowerAction.includes('edit')) return 'text-[#2563eb]';
-    if (lowerAction.includes('delete') || lowerAction.includes('remove')) return 'text-[#dc2626]';
-    if (lowerAction.includes('login')) return 'text-[#9333ea]';
-    return 'text-[#4b5563]';
+    if (lowerAction.includes('create') || lowerAction.includes('add')) return '#16a34a';
+    if (lowerAction.includes('update') || lowerAction.includes('edit')) return '#2563eb';
+    if (lowerAction.includes('delete') || lowerAction.includes('remove')) return '#dc2626';
+    if (lowerAction.includes('login')) return '#9333ea';
+    return '#4b5563';
   };
 
   return (
@@ -117,7 +117,7 @@ const Analytics = ({ pageName = "Analytics" }) => {
                 <p className="text-sm font-medium text-[#4b5563]">Total Activities</p>
                 <p className="text-2xl font-bold text-[#111827]">{totalActivities}</p>
               </div>
-              <IconActivity className="h-8 w-8 text-[#2563eb]" />
+              <IconActivity className="h-8 w-8" style={{ color: '#2563eb' }} />
             </div>
           </CardContent>
         </Card>
@@ -129,7 +129,7 @@ const Analytics = ({ pageName = "Analytics" }) => {
                 <p className="text-sm font-medium text-[#4b5563]">Students</p>
                 <p className="text-2xl font-bold text-[#111827]">{totalStudents}</p>
               </div>
-              <IconUsers className="h-8 w-8 text-[#16a34a]" />
+              <IconUsers className="h-8 w-8" style={{ color: '#16a34a' }} />
             </div>
           </CardContent>
         </Card>
@@ -141,7 +141,7 @@ const Analytics = ({ pageName = "Analytics" }) => {
                 <p className="text-sm font-medium text-[#4b5563]">Instructors</p>
                 <p className="text-2xl font-bold text-[#111827]">{totalInstructors}</p>
               </div>
-              <IconSchool className="h-8 w-8 text-[#9333ea]" />
+              <IconSchool className="h-8 w-8" style={{ color: '#9333ea' }} />
             </div>
           </CardContent>
         </Card>
@@ -153,7 +153,7 @@ const Analytics = ({ pageName = "Analytics" }) => {
                 <p className="text-sm font-medium text-[#4b5563]">Departments</p>
                 <p className="text-2xl font-bold text-[#111827]">{totalDepartments}</p>
               </div>
-              <IconCalendar className="h-8 w-8 text-[#ea580c]" />
+              <IconCalendar className="h-8 w-8" style={{ color: '#ea580c' }} />
             </div>
           </CardContent>
         </Card>
@@ -165,7 +165,7 @@ const Analytics = ({ pageName = "Analytics" }) => {
                 <p className="text-sm font-medium text-[#4b5563]">Courses</p>
                 <p className="text-2xl font-bold text-[#111827]">{totalCourses}</p>
               </div>
-              <IconBook className="h-8 w-8 text-[#dc2626]" />
+              <IconBook className="h-8 w-8" style={{ color: '#dc2626' }} />
             </div>
           </CardContent>
         </Card>
@@ -203,10 +203,14 @@ const Analytics = ({ pageName = "Analytics" }) => {
                 const activityColor = getActivityColor(activity.action);
 
                 return (
-                  <div key={activity._id || index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-[#f9fafb] transition-colors">
+                  <div key={activity._id || index}
+                    className="flex items-center justify-between p-4 border rounded-lg transition-colors"
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f9fafb' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
+                  >
                     <div className="flex items-center space-x-4">
-                      <div className="p-2 bg-[#f3f4f6] rounded-full">
-                        <ActivityIcon className={`h-5 w-5 ${activityColor}`} />
+                      <div className="p-2 rounded-full" style={{ backgroundColor: '#f3f4f6' }}>
+                        <ActivityIcon className="h-5 w-5" style={{ color: activityColor }} />
                       </div>
                       <div>
                         <p className="font-medium text-[#111827]">
@@ -225,7 +229,7 @@ const Analytics = ({ pageName = "Analytics" }) => {
                     <div className="flex items-center space-x-2">
                       <Badge
                         variant="outline"
-                        className={`${activityColor.replace('text-', 'border-').replace('-600', '-200')} ${activityColor.replace('text-', 'text-').replace('-600', '-700')}`}
+                        style={{ color: activityColor, borderColor: activityColor + '40' }}
                       >
                         {activity.action?.split(' ')[0] || 'Activity'}
                       </Badge>

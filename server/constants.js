@@ -69,11 +69,11 @@ export const AvailableStudentStatus = Object.values(StudentStatus);
 
 // Units (e.g., for grouping users by unit)
 export const UnitEnum = {
-    UNIT_1: "UNIT_1",
-    UNIT_2: "UNIT_2",
-    UNIT_3: "UNIT_3",
-    UNIT_4: "UNIT_4",
-    UNIT_5: "UNIT_5",
+    UNIT_1: "UNIT 1",
+    UNIT_2: "UNIT 2",
+    UNIT_3: "UNIT 3",
+    UNIT_4: "UNIT 4",
+    UNIT_5: "UNIT 5",
 };
 
 export const AvailableUnits = Object.values(UnitEnum);

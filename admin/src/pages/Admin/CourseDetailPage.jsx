@@ -4,6 +4,7 @@ import { useGetCourseByIdQuery, useGetCourseAnalyticsQuery, useGetCourseStudents
 import { useGetModulesByCourseQuery } from "@/Redux/AllApi/moduleApi";
 import { useGetQuizzesByCourseQuery } from "@/Redux/AllApi/QuizApi";
 import { useGetAllAssignmentsQuery } from "@/Redux/AllApi/AssignmentApi";
+import { useGetActiveConfigQuery } from "@/Redux/AllApi/CourseLevelConfigApi";
 import {
   Card,
   CardContent,
@@ -91,6 +92,9 @@ const CourseDetailPage = () => {
     refetch: refetchAnalytics,
   } = useGetCourseAnalyticsQuery(courseId);
 
+  const { data: configData } = useGetActiveConfigQuery();
+  const activeLevels = configData?.data?.levels || [];
+
 
 
   const course = courseData?.data || {};
@@ -124,10 +128,28 @@ const CourseDetailPage = () => {
   };
 
   const getDifficultyBadge = (difficulty) => {
+    // Check for dynamic level config first
+    const activeLevel = activeLevels.find(l => l.name.toUpperCase() === (difficulty || "").toUpperCase());
+
+    if (activeLevel) {
+      return (
+        <Badge
+          style={{ backgroundColor: activeLevel.color, color: "#fff" }}
+          className="w-fit border-none shadow-sm"
+        >
+          {activeLevel.name}
+        </Badge>
+      );
+    }
+
+    // Fallback to defaults
     const difficultyConfig = {
-      BEGINNER: { variant: "success", label: "Beginner" },
-      INTERMEDIATE: { variant: "warning", label: "Intermediate" },
-      ADVANCED: { variant: "destructive", label: "Advanced" },
+      BEGINNER: { variant: "success", label: "L1" },
+      INTERMEDIATE: { variant: "warning", label: "L2" },
+      ADVANCED: { variant: "destructive", label: "L3" },
+      L1: { variant: "success", label: "L1" },
+      L2: { variant: "warning", label: "L2" },
+      L3: { variant: "destructive", label: "L3" },
     };
 
     const config = difficultyConfig[difficulty] || {

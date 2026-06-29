@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGetCoursesQuery } from "@/Redux/AllApi/CourseApi";
+import { useGetActiveConfigQuery } from "@/Redux/AllApi/CourseLevelConfigApi";
 import {
   Table,
   TableBody,
@@ -38,6 +39,8 @@ const InstructorCourses = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const { data: configData } = useGetActiveConfigQuery();
+  const activeLevels = configData?.data?.levels || [];
 
   // Debounce search term
   useEffect(() => {
@@ -77,24 +80,42 @@ const InstructorCourses = () => {
   };
 
   const getDifficultyBadge = (difficulty) => {
+    // Check for dynamic level config first
+    const activeLevel = activeLevels.find(l => l.name.toUpperCase() === (difficulty || "").toUpperCase() || (difficulty === "BEGGINER" && l.name.toUpperCase() === "BEGINNER"));
+
+    if (activeLevel) {
+      return (
+        <Badge
+          style={{ backgroundColor: activeLevel.color, color: "#fff" }}
+          className="w-fit border-none shadow-sm"
+        >
+          {activeLevel.name}
+        </Badge>
+      );
+    }
+
+    // Fallback to defaults
     const difficultyMapping = {
-      BEGGINER: "BEGINNER",
-      BEGINNER: "BEGINNER",
-      INTERMEDIATE: "INTERMEDIATE",
-      ADVANCED: "ADVANCED",
+      BEGGINER: "L1",
+      BEGINNER: "L1",
+      INTERMEDIATE: "L2",
+      ADVANCED: "L3",
+      L1: "L1",
+      L2: "L2",
+      L3: "L3",
     };
 
-    const normalizedDifficulty = difficultyMapping[difficulty] || difficulty;
+    const label = difficultyMapping[difficulty] || difficulty;
 
     const difficultyConfig = {
-      BEGINNER: { variant: "success", label: "Beginner" },
-      INTERMEDIATE: { variant: "warning", label: "Intermediate" },
-      ADVANCED: { variant: "destructive", label: "Advanced" },
+      L1: { variant: "success", label: "L1" },
+      L2: { variant: "warning", label: "L2" },
+      L3: { variant: "destructive", label: "L3" },
     };
 
-    const config = difficultyConfig[normalizedDifficulty] || {
+    const config = difficultyConfig[label] || {
       variant: "secondary",
-      label: difficulty,
+      label: label,
     };
 
     return (

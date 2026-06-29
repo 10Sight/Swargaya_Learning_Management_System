@@ -40,6 +40,8 @@ import {
   IconVideo,
   IconFileTypePdf,
   IconFileTypePpt,
+  IconFileTypeDocx,
+  IconFileTypeXls,
   IconPhoto,
   IconUpload,
   IconX,
@@ -165,6 +167,10 @@ const ResourcePanel = ({ moduleId, moduleTitle }) => {
         return <IconFileTypePdf className="h-4 w-4 text-[#dc2626]" />;
       case "PPT":
         return <IconFileTypePpt className="h-4 w-4 text-[#f97316]" />;
+      case "WORD":
+        return <IconFileTypeDocx className="h-4 w-4 text-[#3b82f6]" />;
+      case "EXCEL":
+        return <IconFileTypeXls className="h-4 w-4 text-[#22c55e]" />;
       case "IMAGE":
         return <IconPhoto className="h-4 w-4 text-[#22c55e]" />;
       default:
@@ -296,6 +302,8 @@ const ResourcePanel = ({ moduleId, moduleTitle }) => {
                       <SelectItem value="VIDEO">Video</SelectItem>
                       <SelectItem value="PDF">PDF Document</SelectItem>
                       <SelectItem value="PPT">PowerPoint</SelectItem>
+                      <SelectItem value="WORD">Word Document</SelectItem>
+                      <SelectItem value="EXCEL">Excel Spreadsheet</SelectItem>
                       <SelectItem value="IMAGE">Image</SelectItem>
                       <SelectItem value="TEXT">Text</SelectItem>
                       <SelectItem value="LINK">External Link</SelectItem>

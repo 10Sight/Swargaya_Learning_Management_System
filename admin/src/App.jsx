@@ -50,6 +50,7 @@ const ModuleTimelines = lazy(() => import("./pages/Admin/ModuleTimelines"));
 const AuditLogs = lazy(() => import("./pages/Admin/AuditLogs"));
 const CourseLevelSettings = lazy(() => import("./pages/Admin/CourseLevelSettings"));
 const SkillMatrix = lazy(() => import("./pages/Admin/SkillMatrix"));
+const AssignMachineOperator = lazy(() => import("./pages/Admin/AssignMachineOperator"));
 
 
 // Instructor Pages
@@ -78,6 +79,7 @@ const RolesPermissions = lazy(() => import("./pages/SuperAdmin/RolesPermissions"
 const SystemMonitoring = lazy(() => import("./pages/SuperAdmin/SystemMonitoring"));
 const BulkOperations = lazy(() => import("./pages/SuperAdmin/BulkOperations"));
 const CertificateManagement = lazy(() => import("./pages/SuperAdmin/CertificateManagement"));
+const UnitManagement = lazy(() => import("./pages/SuperAdmin/UnitManagement"));
 
 // Student Pages
 const StudentDashboard = lazy(() => import("./pages/Student/Dashboard"));
@@ -148,6 +150,7 @@ const App = () => {
             <Route path="employees/:studentId" element={<StudentDetail />} />
             <Route path="departments/:departmentId" element={<DepartmentDetail pageName="Department Detail" />} />
             <Route path="departments/:departmentId/lines/:lineId" element={<LineDetail />} />
+            <Route path="departments/:departmentId/lines/:lineId/machines/:machineId/assign" element={<AssignMachineOperator />} />
             <Route path="add-quiz/:courseId" element={<AddQuizPage />} />
             <Route path="edit-quiz/:quizId" element={<EditQuizPage />} />
             <Route path="add-module/:courseId" element={<AddModulePage />} />
@@ -233,10 +236,12 @@ const App = () => {
             <Route path="departments" element={<Departments pageName="Departments" />} />
             <Route path="departments/:departmentId" element={<DepartmentDetail pageName="Department Detail" />} />
             <Route path="departments/:departmentId/lines/:lineId" element={<LineDetail />} />
+            <Route path="departments/:departmentId/lines/:lineId/machines/:machineId/assign" element={<AssignMachineOperator />} />
             <Route path="certificates" element={<CertificateManagement />} />
             <Route path="module-timelines" element={<ModuleTimelines pageName="Module Timelines" />} />
 
             {/* System Management Routes */}
+            <Route path="units" element={<UnitManagement />} />
             <Route path="audit-logs" element={<SystemAuditLogs />} />
             <Route path="system-settings" element={<SystemSettings />} />
             <Route path="analytics-reports" element={<AdvancedAnalytics />} />

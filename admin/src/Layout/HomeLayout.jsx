@@ -187,23 +187,34 @@ export function HomeLayout() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-[#f9fafb] via-[#eff6ff]/30 to-[#eef2ff]/20">
+    <div className="flex min-h-screen" style={{ background: 'linear-gradient(to bottom right, #f9fafb, rgba(239, 246, 255, 0.3), rgba(238, 242, 255, 0.2))' }}>
       {/* Mobile overlay */}
       {!collapsed && isMobile && (
         <div
-          className="fixed inset-0 bg-[#000000]/60 backdrop-blur-sm z-10 md:hidden animate-in fade-in duration-300"
+          className="fixed inset-0 backdrop-blur-sm z-10 md:hidden animate-in fade-in duration-300"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}
           onClick={toggleSidebar}
         />
       )}
 
       {/* Sidebar */}
       <nav
-        className={`fixed top-0 left-0 h-screen bg-[#ffffff]/95 backdrop-blur-xl border-r border-[#e5e7eb]/50 text-[#000000] shadow-2xl transition-all duration-300 z-20
+        className={`fixed top-0 left-0 h-screen backdrop-blur-xl transition-all duration-300 z-20
                 ${collapsed ? "w-16" : "w-64"} 
                 ${isMobile && !collapsed ? 'shadow-3xl border-r-2' : ''}`}
+        style={{
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          borderRight: '1px solid rgba(229, 231, 235, 0.5)',
+          color: '#000000',
+          boxShadow: 'var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), 0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+        }}
       >
         <div
-          className={`relative h-16 items-center flex transition-all p-4 duration-300 z-50 border-b border-[#e5e7eb]/80 bg-[#ffffff]/50`}
+          className={`relative h-16 items-center flex transition-all p-4 duration-300 z-50`}
+          style={{
+            borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
+            backgroundColor: 'rgba(255, 255, 255, 0.5)'
+          }}
         >
           <ToggleButton
             opened={!collapsed}
@@ -230,11 +241,26 @@ export function HomeLayout() {
             return (
               <div
                 className={`group relative flex items-center cursor-pointer w-full overflow-hidden h-12 rounded-xl transition-all duration-300 hover:scale-[1.02]
-                ${isActive
-                    ? "bg-gradient-to-r from-[#2563eb] to-[#1d4ed8] text-[#ffffff] shadow-lg shadow-[#bfdbfe]"
-                    : "text-[#4b5563] hover:bg-gradient-to-r hover:from-[#eff6ff] hover:to-[#eef2ff] hover:text-[#1d4ed8] hover:shadow-md"
-                  }
                 ${collapsed ? "justify-center mx-1" : "items-center px-4"}`}
+                style={{
+                  background: isActive ? 'linear-gradient(to right, #2563eb, #1d4ed8)' : 'transparent',
+                  color: isActive ? '#ffffff' : '#4b5563',
+                  boxShadow: isActive ? '0 10px 15px -3px rgba(191, 219, 254, 1)' : 'none'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = 'linear-gradient(to right, #eff6ff, #eef2ff)';
+                    e.currentTarget.style.color = '#1d4ed8';
+                    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = '#4b5563';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }
+                }}
                 key={item.label}
                 onClick={() => {
                   navigate(item.link);
@@ -242,7 +268,7 @@ export function HomeLayout() {
                 }}
               >
                 {isActive && !collapsed && (
-                  <div className="absolute left-0 top-0 h-full w-1 bg-[#ffffff] rounded-r-full" />
+                  <div className="absolute left-0 top-0 h-full w-1 rounded-r-full" style={{ backgroundColor: '#ffffff' }} />
                 )}
                 <item.icon
                   className={`${collapsed ? "w-5 h-5" : "min-w-5 min-h-5"
@@ -298,8 +324,12 @@ export function HomeLayout() {
       >
         {/* Header */}
         <header
-          className={`px-4 sm:px-6 bg-[#ffffff]/95 backdrop-blur-lg shadow-sm border-b border-[#e5e7eb]/80 flex h-16 items-center justify-between gap-2 sm:gap-4 fixed right-0 top-0 z-30 transition-all duration-300 ${collapsed ? "w-[calc(100%-4rem)]" : "w-[calc(100%-16rem)]"
+          className={`px-4 sm:px-6 backdrop-blur-lg shadow-sm flex h-16 items-center justify-between gap-2 sm:gap-4 fixed right-0 top-0 z-30 transition-all duration-300 ${collapsed ? "w-[calc(100%-4rem)]" : "w-[calc(100%-16rem)]"
             }`}
+          style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            borderBottom: '1px solid rgba(229, 231, 235, 0.8)'
+          }}
         >
           {/* Mobile menu button */}
           <div className="flex items-center gap-3">
@@ -430,7 +460,12 @@ export function HomeLayout() {
 
         {/* Page Content */}
         <div className="pt-20 pb-6 px-4 sm:px-6 min-h-screen">
-          <div className="bg-[#ffffff]/80 backdrop-blur-sm rounded-xl shadow-sm border border-[#e5e7eb]/50 p-4 sm:p-6 transition-all duration-300 hover:shadow-md">
+          <div className="backdrop-blur-sm rounded-xl shadow-sm p-4 sm:p-6 transition-all duration-300 hover:shadow-md"
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.8)',
+              border: '1px solid rgba(229, 231, 235, 0.5)'
+            }}
+          >
             <Outlet />
           </div>
         </div>

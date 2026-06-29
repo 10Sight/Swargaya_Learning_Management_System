@@ -95,8 +95,8 @@ const CourseReport = () => {
 
   const getQuizStatusColor = (status) => {
     return status === 'PASSED'
-      ? 'bg-[#dcfce7] text-[#166534]'
-      : 'bg-[#fee2e2] text-[#991b1b]'
+      ? { backgroundColor: '#dcfce7', color: '#166534' }
+      : { backgroundColor: '#fee2e2', color: '#991b1b' };
   }
 
   const generatePDF = () => {
@@ -211,26 +211,26 @@ const CourseReport = () => {
 
       {/* Report Content */}
       <div id="report-content" ref={reportRef} className="bg-white">
-        <Card className="border-2 border-primary/20">
-          <CardHeader className="text-center bg-gradient-to-r from-[#eff6ff] to-[#e0e7ff] border-b">
+        <Card className="border-2" style={{ borderColor: 'rgba(37, 99, 235, 0.2)' }}>
+          <CardHeader className="text-center border-b" style={{ background: 'linear-gradient(to right, #eff6ff, #e0e7ff)' }}>
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center">
-                <GraduationCap className="h-8 w-8 text-white" />
+              <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: '#2563eb' }}>
+                <GraduationCap className="h-8 w-8 text-[#ffffff]" />
               </div>
             </div>
-            <CardTitle className="text-2xl text-primary">Course Completion Report</CardTitle>
-            <p className="text-muted-foreground">Learning Management System</p>
+            <CardTitle className="text-2xl" style={{ color: '#2563eb' }}>Course Completion Report</CardTitle>
+            <p style={{ color: '#6b7280' }}>Learning Management System</p>
           </CardHeader>
 
           <CardContent className="space-y-6 p-4 sm:p-6 md:p-8">
             {/* Student Information */}
             <div className="text-center space-y-4">
               <h2 className="text-xl font-semibold">This is to certify that</h2>
-              <h1 className="text-2xl sm:text-3xl font-bold text-primary">{reportData.student.fullName}</h1>
-              <p className="text-muted-foreground">(@{reportData.student.userName})</p>
+              <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: '#2563eb' }}>{reportData.student.fullName}</h1>
+              <p style={{ color: '#6b7280' }}>(@{reportData.student.userName})</p>
               <p className="text-base sm:text-lg">has successfully completed the course</p>
               <h2 className="text-xl sm:text-2xl font-bold">{reportData.course.title}</h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto px-4">{reportData.course.description}</p>
+              <p className="max-w-2xl mx-auto px-4" style={{ color: '#6b7280' }}>{reportData.course.description}</p>
             </div>
 
             <Separator />
@@ -246,19 +246,19 @@ const CourseReport = () => {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
-                    <span className="text-muted-foreground">Department:</span>
+                    <span style={{ color: '#6b7280' }}>Department:</span>
                     <span className="font-medium">{reportData.department.name}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
-                    <span className="text-muted-foreground">Instructor:</span>
+                    <span style={{ color: '#6b7280' }}>Instructor:</span>
                     <span className="font-medium">{reportData.instructor.fullName}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
-                    <span className="text-muted-foreground">Start Date:</span>
+                    <span style={{ color: '#6b7280' }}>Start Date:</span>
                     <span className="font-medium">{formatDate(reportData.department.startDate)}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
-                    <span className="text-muted-foreground">Completion Date:</span>
+                    <span style={{ color: '#6b7280' }}>Completion Date:</span>
                     <span className="font-medium">{formatDate(reportData.progress.completedAt)}</span>
                   </div>
                 </CardContent>
@@ -273,22 +273,22 @@ const CourseReport = () => {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
-                    <span className="text-muted-foreground">Modules Completed:</span>
+                    <span style={{ color: '#6b7280' }}>Modules Completed:</span>
                     <span className="font-medium">
                       {reportData.progress.completedModules}/{reportData.progress.totalModules}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
-                    <span className="text-muted-foreground">Lessons Completed:</span>
+                    <span style={{ color: '#6b7280' }}>Lessons Completed:</span>
                     <span className="font-medium">{reportData.progress.completedLessons}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
-                    <span className="text-muted-foreground">Current Level:</span>
+                    <span style={{ color: '#6b7280' }}>Current Level:</span>
                     <Badge variant="secondary">{reportData.progress.currentLevel}</Badge>
                   </div>
                   <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
-                    <span className="text-muted-foreground">Progress:</span>
-                    <span className="font-medium text-[#16a34a]">{reportData.progress.progressPercent}%</span>
+                    <span style={{ color: '#6b7280' }}>Progress:</span>
+                    <span className="font-medium" style={{ color: '#16a34a' }}>{reportData.progress.progressPercent}%</span>
                   </div>
                 </CardContent>
               </Card>
@@ -365,7 +365,7 @@ const CourseReport = () => {
                                 {quiz.scorePercent}%
                               </td>
                               <td className="py-3 text-center">
-                                <Badge className={getQuizStatusColor(quiz.status)}>
+                                <Badge style={getQuizStatusColor(quiz.status)}>
                                   {quiz.status === 'PASSED' ? (
                                     <CheckCircle className="h-3 w-3 mr-1" />
                                   ) : (

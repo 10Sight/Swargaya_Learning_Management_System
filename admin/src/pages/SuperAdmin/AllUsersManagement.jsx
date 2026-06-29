@@ -27,6 +27,7 @@ import {
   useUpdateUserMutation as useSuperAdminUpdateUserMutation,
   usePermanentDeleteUserMutation
 } from "@/Redux/AllApi/SuperAdminApi";
+import { useGetAllUnitsQuery } from "@/Redux/AllApi/UnitApi";
 import { toast } from "sonner";
 
 // shadcn/ui components
@@ -74,10 +75,13 @@ const AllUsersManagement = () => {
     role: "STUDENT",
     password: "",
     status: "ACTIVE",
-    unit: "UNIT_1",
+    unit: "UNIT 1",
   });
 
   // API hooks
+  const { data: unitsResponse } = useGetAllUnitsQuery();
+  const unitOptions = unitsResponse?.data || [];
+
   const {
     data: usersData,
     isLoading,
@@ -125,7 +129,7 @@ const AllUsersManagement = () => {
         role: "STUDENT",
         password: "",
         status: "ACTIVE",
-        unit: "UNIT_1",
+        unit: "UNIT 1",
       });
       refetch();
     } catch (error) {
@@ -344,11 +348,9 @@ const AllUsersManagement = () => {
                           <SelectValue placeholder="Select unit" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="UNIT_1">Unit 1</SelectItem>
-                          <SelectItem value="UNIT_2">Unit 2</SelectItem>
-                          <SelectItem value="UNIT_3">Unit 3</SelectItem>
-                          <SelectItem value="UNIT_4">Unit 4</SelectItem>
-                          <SelectItem value="UNIT_5">Unit 5</SelectItem>
+                          {unitOptions.map((u) => (
+                            <SelectItem key={u.id} value={u.title}>{u.title}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -509,11 +511,9 @@ const AllUsersManagement = () => {
                 className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
               >
                 <option value="">All Units</option>
-                <option value="UNIT_1">Unit 1</option>
-                <option value="UNIT_2">Unit 2</option>
-                <option value="UNIT_3">Unit 3</option>
-                <option value="UNIT_4">Unit 4</option>
-                <option value="UNIT_5">Unit 5</option>
+                {unitOptions.map((u) => (
+                  <option key={u.id} value={u.title}>{u.title}</option>
+                ))}
               </select>
             </div>
 

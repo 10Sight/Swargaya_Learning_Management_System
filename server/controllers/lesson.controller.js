@@ -21,7 +21,14 @@ export const createLesson = asyncHandler(async (req, res) => {
     throw new ApiError("Module ID is required", 400);
   }
 
-  const [modules] = await pool.query("SELECT id FROM modules WHERE id = ?", [rawModuleId]);
+  const isNumeric = (str) => /^\d+$/.test(String(str));
+  let modQuery = "SELECT id FROM modules WHERE slug = ?";
+  let modParams = [rawModuleId];
+  if (isNumeric(rawModuleId)) {
+    modQuery += " OR id = ?";
+    modParams.push(rawModuleId);
+  }
+  const [modules] = await pool.query(modQuery, modParams);
   if (modules.length === 0) throw new ApiError("Module not found", 404);
 
   // Normalize slides if provided
@@ -164,9 +171,17 @@ export const updateLesson = asyncHandler(async (req, res) => {
 
   if (!rawLessonId) throw new ApiError("Lesson ID is required", 400);
 
-  const [rows] = await pool.query("SELECT * FROM lessons WHERE id = ?", [rawLessonId]);
+  const isNumeric = (str) => /^\d+$/.test(String(str));
+  let selectQuery = "SELECT * FROM lessons WHERE slug = ?";
+  let selectParams = [rawLessonId];
+  if (isNumeric(rawLessonId)) {
+    selectQuery += " OR id = ?";
+    selectParams.push(rawLessonId);
+  }
+  const [rows] = await pool.query(selectQuery, selectParams);
   if (rows.length === 0) throw new ApiError("Lesson not found", 404);
   const existing = rows[0];
+  const lessonId = existing.id; // Use actual numeric ID for subsequent operations
 
   let updateFields = [];
   let updateValues = [];
@@ -223,11 +238,11 @@ export const updateLesson = asyncHandler(async (req, res) => {
 
   if (updateFields.length > 0) {
     updateFields.push("updatedAt = GETDATE()");
-    await pool.query(`UPDATE lessons SET ${updateFields.join(', ')} WHERE id = ?`, [...updateValues, rawLessonId]);
+    await pool.query(`UPDATE lessons SET ${updateFields.join(', ')} WHERE id = ?`, [...updateValues, lessonId]);
   }
 
   // Return updated
-  const [updatedRows] = await pool.query("SELECT * FROM lessons WHERE id = ?", [rawLessonId]);
+  const [updatedRows] = await pool.query("SELECT * FROM lessons WHERE id = ?", [lessonId]);
   const updated = updatedRows[0];
   updated.slides = parseJSON(updated.slides);
 
@@ -239,8 +254,18 @@ export const deleteLesson = asyncHandler(async (req, res) => {
 
   if (!rawLessonId) throw new ApiError("Lesson ID is required", 400);
 
-  const [result] = await pool.query("DELETE FROM lessons WHERE id = ?", [rawLessonId]);
-  if (result.affectedRows === 0) throw new ApiError("Lesson not found", 404);
+  const isNumeric = (str) => /^\d+$/.test(String(str));
+  let selectQuery = "SELECT id FROM lessons WHERE slug = ?";
+  let selectParams = [rawLessonId];
+  if (isNumeric(rawLessonId)) {
+    selectQuery += " OR id = ?";
+    selectParams.push(rawLessonId);
+  }
+  const [rows] = await pool.query(selectQuery, selectParams);
+  if (rows.length === 0) throw new ApiError("Lesson not found", 404);
+  const actualLessonId = rows[0].id;
+
+  const [result] = await pool.query("DELETE FROM lessons WHERE id = ?", [actualLessonId]);
 
   res.status(200).json(new ApiResponse(200, null, "Lesson deleted successfully"));
 });

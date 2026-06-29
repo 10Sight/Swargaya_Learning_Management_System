@@ -97,7 +97,7 @@ const Course = () => {
     title: "",
     description: "",
     category: "",
-    difficulty: "BEGINNER",
+    difficulty: "L1",
     status: "DRAFT",
   });
   const [formErrors, setFormErrors] = useState({});
@@ -222,7 +222,7 @@ const Course = () => {
       title: "",
       description: "",
       category: "",
-      difficulty: "BEGINNER",
+      difficulty: "L1",
       status: "DRAFT",
     });
     setFormErrors({});
@@ -301,13 +301,41 @@ const Course = () => {
     }
   };
 
+  const getNormalizedDifficulty = useCallback((difficulty) => {
+    if (!difficulty) return activeLevels[0]?.name || "L1";
+
+    const difficultyUpper = difficulty.toUpperCase();
+
+    // 1. Try to find exact match in activeLevels
+    const match = activeLevels.find(l => l.name.toUpperCase() === difficultyUpper);
+    if (match) return match.name;
+
+    // 2. Map legacy names to standard L names
+    const legacyMap = {
+      BEGINNER: "L1",
+      BEGGINER: "L1",
+      INTERMEDIATE: "L2",
+      ADVANCED: "L3",
+    };
+
+    const standardName = legacyMap[difficultyUpper];
+    if (standardName) {
+      // Check if standard name exists in activeLevels
+      const standardMatch = activeLevels.find(l => l.name.toUpperCase() === standardName);
+      if (standardMatch) return standardMatch.name;
+      return standardName;
+    }
+
+    return difficulty;
+  }, [activeLevels]);
+
   const openEditDialog = (course) => {
     setSelectedCourse(course);
     setFormData({
       title: course.title,
       description: course.description,
       category: course.category,
-      difficulty: course.difficulty,
+      difficulty: getNormalizedDifficulty(course.difficulty),
       status: course.status,
     });
     setIsEditDialogOpen(true);
@@ -346,15 +374,32 @@ const Course = () => {
   };
 
   const getDifficultyBadge = (difficulty) => {
+    const normalized = getNormalizedDifficulty(difficulty);
+
+    // Check for dynamic level config first
+    const activeLevel = activeLevels.find(l => l.name.toUpperCase() === normalized.toUpperCase());
+
+    if (activeLevel) {
+      return (
+        <Badge
+          style={{ backgroundColor: activeLevel.color, color: "#fff" }}
+          className="w-fit border-none shadow-sm"
+        >
+          {activeLevel.name}
+        </Badge>
+      );
+    }
+
+    // Fallback to defaults
     const difficultyConfig = {
-      BEGINNER: { variant: "success", label: "Beginner" },
-      INTERMEDIATE: { variant: "warning", label: "Intermediate" },
-      ADVANCED: { variant: "destructive", label: "Advanced" },
+      L1: { variant: "success", label: "L1" },
+      L2: { variant: "warning", label: "L2" },
+      L3: { variant: "destructive", label: "L3" },
     };
 
-    const config = difficultyConfig[difficulty] || {
+    const config = difficultyConfig[normalized] || {
       variant: "secondary",
-      label: difficulty,
+      label: normalized,
     };
 
     return (
@@ -1012,9 +1057,9 @@ const Course = () => {
                     ))
                   ) : (
                     <>
-                      <SelectItem value="BEGINNER">Beginner</SelectItem>
-                      <SelectItem value="INTERMEDIATE">Intermediate</SelectItem>
-                      <SelectItem value="ADVANCED">Advanced</SelectItem>
+                      <SelectItem value="L1">L1</SelectItem>
+                      <SelectItem value="L2">L2</SelectItem>
+                      <SelectItem value="L3">L3</SelectItem>
                     </>
                   )}
                 </SelectContent>

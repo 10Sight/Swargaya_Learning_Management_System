@@ -78,8 +78,8 @@ export const getModulesByCourse = asyncHandler(async (req, res) => {
             // Check if resources table likely exists. If verified structure, uncomment. 
             // Logic: "SELECT * FROM resources WHERE module = ?"
             // Previous Mongoose `populate('resources')` implies relation.
-            const [resources] = await pool.query("SELECT * FROM resources WHERE module = ?", [m.id]);
-            m.resources = resources;
+            const [resources] = await pool.query("SELECT * FROM resources WHERE moduleId = ? OR lessonId IN (SELECT id FROM lessons WHERE module = ?)", [m.id, m.id]);
+            m.resources = resources.map(r => ({ ...r, _id: r.id }));
         } catch (e) {
             m.resources = []; // Table might not exist or be different
         }
@@ -98,7 +98,14 @@ export const getModuleById = asyncHandler(async (req, res) => {
         return res.status(400).json(new ApiResponse(400, null, "Module ID is required"));
     }
 
-    const [rows] = await pool.query("SELECT * FROM modules WHERE id = ?", [moduleId]);
+    const isNumeric = (str) => /^\d+$/.test(String(str));
+    let query = "SELECT * FROM modules WHERE slug = ?";
+    let params = [moduleId];
+    if (isNumeric(moduleId)) {
+        query += " OR id = ?";
+        params.push(moduleId);
+    }
+    const [rows] = await pool.query(query, params);
     if (rows.length === 0) {
         return res.status(404).json(new ApiResponse(404, null, "Module not found"));
     }
@@ -114,8 +121,8 @@ export const getModuleById = asyncHandler(async (req, res) => {
 
     // Populate Resources
     try {
-        const [resources] = await pool.query("SELECT * FROM resources WHERE module = ?", [moduleId]);
-        module.resources = resources;
+        const [resources] = await pool.query("SELECT * FROM resources WHERE moduleId = ? OR lessonId IN (SELECT id FROM lessons WHERE module = ?)", [moduleId, moduleId]);
+        module.resources = resources.map(r => ({ ...r, _id: r.id }));
     } catch (e) {
         module.resources = [];
     }
@@ -130,8 +137,16 @@ export const updateModule = asyncHandler(async (req, res) => {
     const { moduleId } = req.params;
     const { title, description, order } = req.body;
 
-    const [existing] = await pool.query("SELECT * FROM modules WHERE id = ?", [moduleId]);
-    if (existing.length === 0) throw new ApiError("Module not found", 404);
+    const isNumeric = (str) => /^\d+$/.test(String(str));
+    let selectQuery = "SELECT * FROM modules WHERE slug = ?";
+    let selectParams = [moduleId];
+    if (isNumeric(moduleId)) {
+        selectQuery += " OR id = ?";
+        selectParams.push(moduleId);
+    }
+    const [rows] = await pool.query(selectQuery, selectParams);
+    if (rows.length === 0) throw new ApiError("Module not found", 404);
+    const existing = rows[0];
 
     let updateFields = [];
     let updateValues = [];
@@ -156,16 +171,26 @@ export const updateModule = asyncHandler(async (req, res) => {
 export const deleteModule = asyncHandler(async (req, res) => {
     const { moduleId } = req.params;
 
-    const [result] = await pool.query("DELETE FROM modules WHERE id = ?", [moduleId]);
-    if (result.affectedRows === 0) throw new ApiError("Module not found", 404);
+    const isNumeric = (str) => /^\d+$/.test(String(str));
+    let selectQuery = "SELECT id FROM modules WHERE slug = ?";
+    let selectParams = [moduleId];
+    if (isNumeric(moduleId)) {
+        selectQuery += " OR id = ?";
+        selectParams.push(moduleId);
+    }
+    const [rows] = await pool.query(selectQuery, selectParams);
+    if (rows.length === 0) throw new ApiError("Module not found", 404);
+    const actualId = rows[0].id;
+
+    const [result] = await pool.query("DELETE FROM modules WHERE id = ?", [actualId]);
 
     // Note: Implicitly, ON DELETE CASCADE usually handles lessons/resources if configured in SQL.
     // Otherwise, we might need to manual delete lessons.
     // Mongoose implicitly didn't cascade unless middleware.
     // Assuming DB Constraints or manual cleanup required?
     // Safe bet: Delete lessons for this module to be sure if no CASCADE.
-    await pool.query("DELETE FROM lessons WHERE module = ?", [moduleId]);
-    try { await pool.query("DELETE FROM resources WHERE module = ?", [moduleId]); } catch (e) { }
+    await pool.query("DELETE FROM lessons WHERE module = ?", [actualId]);
+    try { await pool.query("DELETE FROM resources WHERE moduleId = ?", [actualId]); } catch (e) { }
 
     res.status(200).json(new ApiResponse(200, {}, "Module deleted successfully"));
 });

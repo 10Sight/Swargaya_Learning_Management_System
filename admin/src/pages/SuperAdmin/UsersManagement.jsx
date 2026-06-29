@@ -29,6 +29,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useGetAllUnitsQuery } from "@/Redux/AllApi/UnitApi";
 
 const UsersManagement = () => {
   const [activeTab, setActiveTab] = useState('active');
@@ -78,6 +79,8 @@ const UsersManagement = () => {
   const [deleteUser, { isLoading: deleteLoading }] = useDeleteUserMutation();
   const [restoreUser, { isLoading: restoreLoading }] = useRestoreUserMutation();
 
+  const { data: unitsResponse } = useGetAllUnitsQuery();
+
   const currentData = activeTab === 'active' ? activeUsersData : deletedUsersData;
   const isLoading = activeTab === 'active' ? activeLoading : deletedLoading;
 
@@ -105,11 +108,7 @@ const UsersManagement = () => {
 
   const unitOptions = [
     { value: '', label: 'All Units' },
-    { value: 'UNIT_1', label: 'Unit 1' },
-    { value: 'UNIT_2', label: 'Unit 2' },
-    { value: 'UNIT_3', label: 'Unit 3' },
-    { value: 'UNIT_4', label: 'Unit 4' },
-    { value: 'UNIT_5', label: 'Unit 5' },
+    ...(unitsResponse?.data || []).map((u) => ({ value: u.title, label: u.title })),
   ];
 
   const handleSearch = (e) => {
@@ -326,7 +325,7 @@ const UsersManagement = () => {
                         {getRoleBadge(user.role)}
                       </TableCell>
                       <TableCell>
-                        {user.unit ? user.unit.replace("UNIT_", "Unit ") : (
+                        {user.unit || (
                           <span className="text-[#9ca3af]">No unit</span>
                         )}
                       </TableCell>

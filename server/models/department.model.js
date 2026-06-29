@@ -18,6 +18,7 @@ class Department {
         this.course = data.course;
         this.courses = typeof data.courses === 'string' ? JSON.parse(data.courses) : (data.courses || []);
         this.instructors = typeof data.instructors === 'string' ? JSON.parse(data.instructors) : (data.instructors || (data.instructor ? [data.instructor] : []));
+        this.instructor = data.instructor;
         this.students = typeof data.students === 'string' ? JSON.parse(data.students) : (data.students || []);
         this.startDate = data.startDate ? new Date(data.startDate) : null;
         this.endDate = data.endDate ? new Date(data.endDate) : null;
@@ -28,6 +29,7 @@ class Department {
         this.statusUpdatedAt = data.statusUpdatedAt ? new Date(data.statusUpdatedAt) : new Date();
         this.departmentQuiz = data.departmentQuiz;
         this.departmentAssignment = data.departmentAssignment;
+        this.unit = data.unit || null;
         this.isDeleted = !!data.isDeleted;
 
         this.createdAt = data.createdAt;
@@ -45,6 +47,7 @@ class Department {
                     course NVARCHAR(255),
                     courses NVARCHAR(MAX),
                     instructors NVARCHAR(MAX),
+                    instructor INT,
                     students NVARCHAR(MAX),
                     startDate DATETIME,
                     endDate DATETIME,
@@ -55,14 +58,19 @@ class Department {
                     statusUpdatedAt DATETIME,
                     departmentQuiz NVARCHAR(255),
                     departmentAssignment NVARCHAR(255),
+                    unit NVARCHAR(50) NULL,
                     isDeleted BIT DEFAULT 0,
                     createdAt DATETIME DEFAULT GETDATE(),
                     updatedAt DATETIME DEFAULT GETDATE(),
                     CONSTRAINT unique_department_slug UNIQUE (slug)
                 );
-                
+
                 CREATE INDEX idx_status ON dbo.departments(status);
                 CREATE INDEX idx_statusUpdatedAt ON dbo.departments(statusUpdatedAt);
+            END
+            ELSE IF COL_LENGTH(N'dbo.departments', N'unit') IS NULL
+            BEGIN
+                ALTER TABLE dbo.departments ADD unit NVARCHAR(50) NULL;
             END
         `;
         try {
@@ -132,7 +140,7 @@ class Department {
             "name", "slug", "course", "courses", "instructors",
             "students", "startDate", "endDate", "capacity", "status",
             "schedule", "notes", "statusUpdatedAt", "departmentQuiz",
-            "departmentAssignment", "isDeleted", "createdAt"
+            "departmentAssignment", "unit", "isDeleted", "createdAt"
         ];
 
         if (!data.statusUpdatedAt) data.statusUpdatedAt = new Date();
@@ -262,7 +270,7 @@ class Department {
             "name", "slug", "course", "courses", "instructors", "instructor",
             "students", "startDate", "endDate", "capacity", "status",
             "schedule", "notes", "statusUpdatedAt", "departmentQuiz",
-            "departmentAssignment", "isDeleted", "updatedAt"
+            "departmentAssignment", "unit", "isDeleted", "updatedAt"
         ];
 
         const setClause = fields.map(field => `${field} = ?`).join(", ");

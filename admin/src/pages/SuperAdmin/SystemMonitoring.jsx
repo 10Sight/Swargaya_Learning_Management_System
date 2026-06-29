@@ -50,28 +50,28 @@ const SystemMonitoring = () => {
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
       case 'healthy':
-        return 'text-[#16a34a]';
+        return '#16a34a';
       case 'warning':
-        return 'text-[#ca8a04]';
+        return '#ca8a04';
       case 'critical':
       case 'unhealthy':
-        return 'text-[#dc2626]';
+        return '#dc2626';
       default:
-        return 'text-[#4b5563]';
+        return '#4b5563';
     }
   };
 
   const getStatusBgColor = (status) => {
     switch (status?.toLowerCase()) {
       case 'healthy':
-        return 'bg-[#dcfce7]';
+        return '#dcfce7';
       case 'warning':
-        return 'bg-[#fef9c3]';
+        return '#fef9c3';
       case 'critical':
       case 'unhealthy':
-        return 'bg-[#fee2e2]';
+        return '#fee2e2';
       default:
-        return 'bg-[#f3f4f6]';
+        return '#f3f4f6';
     }
   };
 
@@ -133,7 +133,10 @@ const SystemMonitoring = () => {
           <button
             onClick={handleRefreshAll}
             disabled={healthLoading}
-            className="inline-flex items-center px-4 py-2 bg-[#4f46e5] text-[#ffffff] text-sm font-medium rounded-lg hover:bg-[#4338ca] disabled:opacity-50"
+            className="inline-flex items-center px-4 py-2 text-[#ffffff] text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+            style={{ backgroundColor: '#4f46e5' }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#4338ca'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#4f46e5'}
           >
             <RefreshCcw className={`h-4 w-4 mr-2 ${healthLoading ? 'animate-spin' : ''}`} />
             Refresh
@@ -144,14 +147,17 @@ const SystemMonitoring = () => {
       {/* System Health Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Overall Health Status */}
-        <div className={`rounded-lg shadow-sm border p-6 ${getStatusBgColor(systemHealth?.data?.status)}`}>
+        <div
+          className={`rounded-lg shadow-sm border p-6`}
+          style={{ backgroundColor: getStatusBgColor(systemHealth?.data?.status) }}
+        >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-[#4b5563]">System Health</p>
-              <p className={`text-2xl font-bold ${getStatusColor(systemHealth?.data?.status)}`}>
+              <p className="text-sm font-medium" style={{ color: '#4b5563' }}>System Health</p>
+              <p className={`text-2xl font-bold`} style={{ color: getStatusColor(systemHealth?.data?.status) }}>
                 {systemHealth?.data?.score || 0}%
               </p>
-              <p className={`text-sm font-medium ${getStatusColor(systemHealth?.data?.status)}`}>
+              <p className={`text-sm font-medium`} style={{ color: getStatusColor(systemHealth?.data?.status) }}>
                 {systemHealth?.data?.status?.toUpperCase() || 'UNKNOWN'}
               </p>
             </div>
@@ -165,32 +171,35 @@ const SystemMonitoring = () => {
         <div className="bg-[#ffffff] rounded-lg shadow-sm border p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-[#4b5563]">Server Status</p>
-              <p className="text-2xl font-bold text-[#16a34a]">
+              <p className="text-sm font-medium" style={{ color: '#4b5563' }}>Server Status</p>
+              <p className="text-2xl font-bold" style={{ color: '#16a34a' }}>
                 {formatUptime(systemHealth?.data?.server?.uptime || 0)}
               </p>
-              <p className="text-sm text-[#6b7280]">Uptime</p>
+              <p className="text-sm" style={{ color: '#6b7280' }}>Uptime</p>
             </div>
-            <div className="p-3 bg-[#dbeafe] rounded-full">
-              <Server className="h-6 w-6 text-[#2563eb]" />
+            <div className="p-3 rounded-full" style={{ backgroundColor: '#dbeafe' }}>
+              <Server className="h-6 w-6" style={{ color: '#2563eb' }} />
             </div>
           </div>
         </div>
 
         {/* Database Status */}
-        <div className={`rounded-lg shadow-sm border p-6 ${getStatusBgColor(systemHealth?.data?.database?.status)}`}>
+        <div
+          className={`rounded-lg shadow-sm border p-6`}
+          style={{ backgroundColor: getStatusBgColor(systemHealth?.data?.database?.status) }}
+        >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-[#4b5563]">Database</p>
-              <p className={`text-2xl font-bold ${getStatusColor(systemHealth?.data?.database?.status)}`}>
+              <p className="text-sm font-medium" style={{ color: '#4b5563' }}>Database</p>
+              <p className={`text-2xl font-bold`} style={{ color: getStatusColor(systemHealth?.data?.database?.status) }}>
                 {systemHealth?.data?.database?.responseTime || 0}ms
               </p>
-              <p className={`text-sm font-medium ${getStatusColor(systemHealth?.data?.database?.status)}`}>
+              <p className={`text-sm font-medium`} style={{ color: getStatusColor(systemHealth?.data?.database?.status) }}>
                 {systemHealth?.data?.database?.status?.toUpperCase() || 'UNKNOWN'}
               </p>
             </div>
             <div className="p-3 rounded-full bg-[#ffffff]">
-              <Database className="h-6 w-6 text-[#16a34a]" />
+              <Database className="h-6 w-6" style={{ color: '#16a34a' }} />
             </div>
           </div>
         </div>
@@ -199,14 +208,14 @@ const SystemMonitoring = () => {
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-[#4b5563]">Active Alerts</p>
-              <p className="text-2xl font-bold text-[#dc2626]">
+              <p className="text-sm font-medium" style={{ color: '#4b5563' }}>Active Alerts</p>
+              <p className="text-2xl font-bold" style={{ color: '#dc2626' }}>
                 {systemAlerts?.data?.count || 0}
               </p>
-              <p className="text-sm text-[#6b7280]">Alerts</p>
+              <p className="text-sm" style={{ color: '#6b7280' }}>Alerts</p>
             </div>
-            <div className="p-3 bg-[#fee2e2] rounded-full">
-              <AlertTriangle className="h-6 w-6 text-[#dc2626]" />
+            <div className="p-3 rounded-full" style={{ backgroundColor: '#fee2e2' }}>
+              <AlertTriangle className="h-6 w-6" style={{ color: '#dc2626' }} />
             </div>
           </div>
         </div>
@@ -269,28 +278,31 @@ const SystemMonitoring = () => {
             {serverMetrics?.data?.memory && (
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-[#4b5563]">Heap Used</span>
-                  <span className="text-sm text-[#111827]">
+                  <span className="text-sm font-medium" style={{ color: '#4b5563' }}>Heap Used</span>
+                  <span className="text-sm" style={{ color: '#111827' }}>
                     {serverMetrics.data.memory.heapUsed}MB / {serverMetrics.data.memory.heapTotal}MB
                   </span>
                 </div>
-                <div className="w-full bg-[#e5e7eb] rounded-full h-2">
+                <div className="w-full rounded-full h-2" style={{ backgroundColor: '#e5e7eb' }}>
                   <div
-                    className="bg-[#2563eb] h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${serverMetrics.data.memory.heapUsagePercent}%` }}
+                    className="h-2 rounded-full transition-all duration-300"
+                    style={{
+                      width: `${serverMetrics.data.memory.heapUsagePercent}%`,
+                      backgroundColor: '#2563eb'
+                    }}
                   ></div>
                 </div>
-                <div className="text-center text-sm font-medium text-[#374151]">
+                <div className="text-center text-sm font-medium" style={{ color: '#374151' }}>
                   {serverMetrics.data.memory.heapUsagePercent}% Used
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 mt-4 text-xs">
                   <div>
-                    <p className="text-[#4b5563]">RSS</p>
+                    <p style={{ color: '#4b5563' }}>RSS</p>
                     <p className="font-medium">{serverMetrics.data.memory.rss}MB</p>
                   </div>
                   <div>
-                    <p className="text-[#4b5563]">External</p>
+                    <p style={{ color: '#4b5563' }}>External</p>
                     <p className="font-medium">{serverMetrics.data.memory.external}MB</p>
                   </div>
                 </div>
@@ -501,48 +513,48 @@ const SystemMonitoring = () => {
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-[#4b5563]">Active Users</p>
-              <p className="text-2xl font-bold text-[#2563eb]">
+              <p className="text-sm font-medium" style={{ color: '#4b5563' }}>Active Users</p>
+              <p className="text-2xl font-bold" style={{ color: '#2563eb' }}>
                 {systemHealth?.data?.activeUsers || 0}
               </p>
             </div>
-            <Users className="h-8 w-8 text-[#2563eb]" />
+            <Users className="h-8 w-8" style={{ color: '#2563eb' }} />
           </div>
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-[#4b5563]">Recent Errors</p>
-              <p className="text-2xl font-bold text-[#dc2626]">
+              <p className="text-sm font-medium" style={{ color: '#4b5563' }}>Recent Errors</p>
+              <p className="text-2xl font-bold" style={{ color: '#dc2626' }}>
                 {systemHealth?.data?.recentErrors || 0}
               </p>
             </div>
-            <AlertTriangle className="h-8 w-8 text-[#dc2626]" />
+            <AlertTriangle className="h-8 w-8" style={{ color: '#dc2626' }} />
           </div>
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-[#4b5563]">Total Collections</p>
-              <p className="text-2xl font-bold text-[#16a34a]">
+              <p className="text-sm font-medium" style={{ color: '#4b5563' }}>Total Collections</p>
+              <p className="text-2xl font-bold" style={{ color: '#16a34a' }}>
                 {systemHealth?.data?.collections ? Object.keys(systemHealth.data.collections).length : 0}
               </p>
             </div>
-            <Database className="h-8 w-8 text-[#16a34a]" />
+            <Database className="h-8 w-8" style={{ color: '#16a34a' }} />
           </div>
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-[#4b5563]">Health Score</p>
-              <p className={`text-2xl font-bold ${getStatusColor(systemHealth?.data?.status)}`}>
+              <p className="text-sm font-medium" style={{ color: '#4b5563' }}>Health Score</p>
+              <p className={`text-2xl font-bold`} style={{ color: getStatusColor(systemHealth?.data?.status) }}>
                 {systemHealth?.data?.score || 0}%
               </p>
             </div>
-            <Activity className={`h-8 w-8 ${getStatusColor(systemHealth?.data?.status)}`} />
+            <Activity className={`h-8 w-8`} style={{ color: getStatusColor(systemHealth?.data?.status) }} />
           </div>
         </div>
       </div>

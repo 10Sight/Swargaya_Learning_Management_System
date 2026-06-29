@@ -31,6 +31,7 @@ import { onJobTrainingApi } from "./AllApi/OnJobTrainingApi";
 import { LineApi } from "./AllApi/LineApi";
 import { MachineApi } from "./AllApi/MachineApi";
 import { skillMatrixApi } from "./AllApi/SkillMatrixApi";
+import { unitApi } from "./AllApi/UnitApi";
 
 
 const store = configureStore({
@@ -66,6 +67,7 @@ const store = configureStore({
         [LineApi.reducerPath]: LineApi.reducer,
         [MachineApi.reducerPath]: MachineApi.reducer,
         [skillMatrixApi.reducerPath]: skillMatrixApi.reducer,
+        [unitApi.reducerPath]: unitApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware().concat(
@@ -93,6 +95,7 @@ const store = configureStore({
             LineApi.middleware,
             MachineApi.middleware,
             skillMatrixApi.middleware,
+            unitApi.middleware,
         ),
 });
 

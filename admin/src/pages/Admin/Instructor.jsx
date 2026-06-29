@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from "react";
+import { useSelector } from "react-redux";
 import {
   useGetAllInstructorsQuery,
   useUpdateInstructorMutation,
@@ -75,8 +76,12 @@ import FilterSelect from "@/components/common/FilterSelect";
 import StatCard from "@/components/common/StatCard";
 import FilterBar from "@/components/common/FilterBar";
 import { useNavigate } from "react-router-dom";
+import { useGetAllUnitsQuery } from "@/Redux/AllApi/UnitApi";
 
 const Instructor = () => {
+  const currentUser = useSelector((state) => state.auth.user);
+  const isAdmin = currentUser?.role === "ADMIN";
+
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -94,13 +99,15 @@ const Instructor = () => {
     phoneNumber: "",
     password: "",
     status: "PRESENT",
-    unit: "UNIT_1",
+    unit: "UNIT 1",
+    doj: "",
   });
   const [formErrors, setFormErrors] = useState({});
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [departmentFilter, setDepartmentFilter] = useState("ALL");
   const [unitFilter, setUnitFilter] = useState("ALL");
   const [activeTab, setActiveTab] = useState("all");
+  const [hoveredBtn, setHoveredBtn] = useState(null);
 
   const navigate = useNavigate();
 
@@ -131,7 +138,7 @@ const Instructor = () => {
       limit: 10,
       search: debouncedSearchTerm || "",
       status: statusFilter !== "ALL" ? statusFilter : "",
-      unit: unitFilter !== "ALL" ? unitFilter : "",
+      unit: isAdmin ? (currentUser?.unit || "") : (unitFilter !== "ALL" ? unitFilter : ""),
     },
     {
       // Prevent unnecessary refetches
@@ -218,13 +225,10 @@ const Instructor = () => {
     { value: "NO_DEPARTMENT", label: "No Department" },
   ];
 
+  const { data: unitsResponse } = useGetAllUnitsQuery();
   const unitOptions = [
     { value: "ALL", label: "All Units" },
-    { value: "UNIT_1", label: "Unit 1" },
-    { value: "UNIT_2", label: "Unit 2" },
-    { value: "UNIT_3", label: "Unit 3" },
-    { value: "UNIT_4", label: "Unit 4" },
-    { value: "UNIT_5", label: "Unit 5" },
+    ...(unitsResponse?.data || []).map((u) => ({ value: u.title, label: u.title })),
   ];
 
   // Active filters for FilterBar
@@ -245,7 +249,7 @@ const Instructor = () => {
       filters.push({ label: "Department", value: departmentLabel });
     }
 
-    if (unitFilter !== "ALL") {
+    if (!isAdmin && unitFilter !== "ALL") {
       const unitLabel = unitOptions.find((opt) => opt.value === unitFilter)?.label;
       filters.push({ label: "Unit", value: unitLabel });
     }
@@ -255,7 +259,7 @@ const Instructor = () => {
     }
 
     return filters;
-  }, [statusFilter, departmentFilter, searchTerm, statusOptions, departmentOptions]);
+  }, [statusFilter, departmentFilter, searchTerm, statusOptions, departmentOptions, isAdmin, unitFilter]);
 
   // Filter instructors based on department and unit (status handled by API)
   const filteredInstructors = useMemo(() => {
@@ -269,12 +273,13 @@ const Instructor = () => {
         (departmentFilter === "HAS_DEPARTMENT" && hasDepartment) ||
         (departmentFilter === "NO_DEPARTMENT" && !hasDepartment);
 
-      const unitMatch =
-        unitFilter === "ALL" || instructor.unit === unitFilter;
+      const unitMatch = isAdmin
+        ? instructor.unit === currentUser?.unit
+        : (unitFilter === "ALL" || instructor.unit === unitFilter);
 
       return departmentMatch && unitMatch;
     });
-  }, [instructors, departmentFilter, unitFilter, instructorDepartmentMap]);
+  }, [instructors, departmentFilter, unitFilter, instructorDepartmentMap, isAdmin, currentUser?.unit]);
 
   // Toast helpers to prevent spam
   const showToast = useCallback(
@@ -314,10 +319,17 @@ const Instructor = () => {
       phoneNumber: "",
       password: "",
       status: "PRESENT",
-      unit: "UNIT_1",
+      unit: isAdmin ? (currentUser?.unit || "UNIT 1") : "UNIT 1",
+      doj: "",
     });
     setFormErrors({});
   };
+
+  useEffect(() => {
+    if (isAdmin && currentUser?.unit) {
+      setFormData((prev) => ({ ...prev, unit: currentUser.unit }));
+    }
+  }, [isAdmin, currentUser?.unit]);
 
   const handleAddInstructor = async () => {
     // Reset previous errors
@@ -342,6 +354,9 @@ const Instructor = () => {
     }
     if (!formData.unit) {
       errors.unit = "Unit is required";
+    }
+    if (!formData.doj) {
+      errors.doj = "Date of joining is required";
     }
 
     // Validate email format
@@ -386,6 +401,7 @@ const Instructor = () => {
         password: formData.password.trim(),
         role: "INSTRUCTOR",
         unit: formData.unit,
+        doj: formData.doj,
       };
 
       const result = await registerInstructor(instructorData).unwrap();
@@ -453,6 +469,7 @@ const Instructor = () => {
         phoneNumber: updateData.phoneNumber.trim(),
         status: updateData.status,
         unit: updateData.unit,
+        doj: updateData.doj,
       };
 
       await updateInstructor({
@@ -529,7 +546,8 @@ const Instructor = () => {
       phoneNumber: instructor.phoneNumber,
       password: "",
       status: instructor.status,
-      unit: instructor.unit || "UNIT_1",
+      unit: instructor.unit || "UNIT 1",
+      doj: instructor.doj ? new Date(instructor.doj).toISOString().split('T')[0] : "",
     });
     setIsEditDialogOpen(true);
   };
@@ -813,7 +831,14 @@ const Instructor = () => {
 
           <Button
             onClick={() => setIsAddDialogOpen(true)}
-            className="bg-[#2563eb] hover:bg-[#1d4ed8] text-white shadow-sm"
+            style={{
+              backgroundColor: hoveredBtn === "add-trainer" ? "#1d4ed8" : "#2563eb",
+              color: "#ffffff",
+              boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={() => setHoveredBtn("add-trainer")}
+            onMouseLeave={() => setHoveredBtn(null)}
           >
             <IconPlus className="h-4 w-4 mr-2" />
             Add Trainer
@@ -850,18 +875,20 @@ const Instructor = () => {
                 className="w-[160px]"
               />
 
-              <FilterSelect
-                value={unitFilter}
-                onValueChange={setUnitFilter}
-                options={unitOptions}
-                placeholder="Unit"
-                icon={IconUsers}
-                className="w-[140px]"
-              />
+              {!isAdmin && (
+                <FilterSelect
+                  value={unitFilter}
+                  onValueChange={setUnitFilter}
+                  options={unitOptions}
+                  placeholder="Unit"
+                  icon={IconUsers}
+                  className="w-[140px]"
+                />
+              )}
 
               {(statusFilter !== "ALL" ||
                 departmentFilter !== "ALL" ||
-                unitFilter !== "ALL" ||
+                (!isAdmin && unitFilter !== "ALL") ||
                 searchTerm) && (
                   <Button
                     variant="outline"
@@ -972,7 +999,7 @@ const Instructor = () => {
                     </TableCell>
                     <TableCell>
                       <div className="text-sm text-muted-foreground">
-                        {instructor.unit ? instructor.unit.replace("UNIT_", "Unit ") : "No unit"}
+                        {instructor.unit || "No unit"}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -988,9 +1015,15 @@ const Instructor = () => {
                                   e.stopPropagation(); // Prevent row click
                                   openDepartmentDialog(instructor);
                                 }}
-                                className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity action-button"
+                                className="h-7 w-7 p-0 transition-opacity"
+                                style={{
+                                  opacity: 0,
+                                  backgroundColor: hoveredBtn === `dept-${instructor._id}` ? '#f1f5f9' : 'transparent'
+                                }}
+                                onMouseEnter={() => setHoveredBtn(`dept-${instructor._id}`)}
+                                onMouseLeave={() => setHoveredBtn(null)}
                               >
-                                <IconPencil className="h-3 w-3" />
+                                <IconPencil className="h-3 w-3" style={{ color: '#64748b' }} />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -1022,9 +1055,14 @@ const Instructor = () => {
                                   e.stopPropagation(); // Prevent row click
                                   openEditDialog(instructor);
                                 }}
-                                className="h-8 w-8 p-0 action-button"
+                                className="h-8 w-8 p-0"
+                                style={{
+                                  backgroundColor: hoveredBtn === `edit-${instructor._id}` ? '#f1f5f9' : 'transparent'
+                                }}
+                                onMouseEnter={() => setHoveredBtn(`edit-${instructor._id}`)}
+                                onMouseLeave={() => setHoveredBtn(null)}
                               >
-                                <IconPencil className="h-4 w-4" />
+                                <IconPencil className="h-4 w-4" style={{ color: '#64748b' }} />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -1043,7 +1081,13 @@ const Instructor = () => {
                                   e.stopPropagation(); // Prevent row click
                                   openDeleteDialog(instructor);
                                 }}
-                                className="h-8 w-8 p-0 text-[#dc2626] hover:text-[#991b1b] hover:bg-[#fef2f2] action-button"
+                                className="h-8 w-8 p-0"
+                                style={{
+                                  color: hoveredBtn === `delete-${instructor._id}` ? '#991b1b' : '#dc2626',
+                                  backgroundColor: hoveredBtn === `delete-${instructor._id}` ? '#fef2f2' : 'transparent'
+                                }}
+                                onMouseEnter={() => setHoveredBtn(`delete-${instructor._id}`)}
+                                onMouseLeave={() => setHoveredBtn(null)}
                               >
                                 <IconTrash className="h-4 w-4" />
                               </Button>
@@ -1228,25 +1272,43 @@ const Instructor = () => {
                 </SelectContent>
               </Select>
             </div>
+            {!isAdmin && (
+              <div className="grid gap-2">
+                <Label htmlFor="edit-unit">Unit</Label>
+                <Select
+                  value={formData.unit}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, unit: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select unit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(unitsResponse?.data || []).map((u) => (
+                      <SelectItem key={u.id} value={u.title}>{u.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="grid gap-2">
-              <Label htmlFor="edit-unit">Unit</Label>
-              <Select
-                value={formData.unit}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, unit: value })
+              <Label htmlFor="doj">Date of Joining</Label>
+              <Input
+                id="doj"
+                name="doj"
+                type="date"
+                value={formData.doj}
+                onChange={handleInputChange}
+                className={
+                  formErrors.doj
+                    ? "border-[#ef4444] focus:border-[#ef4444]"
+                    : ""
                 }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select unit" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="UNIT_1">Unit 1</SelectItem>
-                  <SelectItem value="UNIT_2">Unit 2</SelectItem>
-                  <SelectItem value="UNIT_3">Unit 3</SelectItem>
-                  <SelectItem value="UNIT_4">Unit 4</SelectItem>
-                  <SelectItem value="UNIT_5">Unit 5</SelectItem>
-                </SelectContent>
-              </Select>
+              />
+              {formErrors.doj && (
+                <p className="text-sm text-[#dc2626]">{formErrors.doj}</p>
+              )}
             </div>
 
             <div className="grid gap-2">
@@ -1363,25 +1425,35 @@ const Instructor = () => {
                 </SelectContent>
               </Select>
             </div>
+            {!isAdmin && (
+              <div className="grid gap-2">
+                <Label htmlFor="edit-unit">Unit</Label>
+                <Select
+                  value={formData.unit}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, unit: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select unit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(unitsResponse?.data || []).map((u) => (
+                      <SelectItem key={u.id} value={u.title}>{u.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="grid gap-2">
-              <Label htmlFor="edit-unit">Unit</Label>
-              <Select
-                value={formData.unit}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, unit: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select unit" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="UNIT_1">Unit 1</SelectItem>
-                  <SelectItem value="UNIT_2">Unit 2</SelectItem>
-                  <SelectItem value="UNIT_3">Unit 3</SelectItem>
-                  <SelectItem value="UNIT_4">Unit 4</SelectItem>
-                  <SelectItem value="UNIT_5">Unit 5</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="edit-doj">Date of Joining</Label>
+              <Input
+                id="edit-doj"
+                name="doj"
+                type="date"
+                value={formData.doj}
+                onChange={handleInputChange}
+              />
             </div>
           </div>
           <DialogFooter>

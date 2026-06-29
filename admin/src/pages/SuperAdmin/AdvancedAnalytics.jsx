@@ -261,7 +261,10 @@ const AdvancedAnalytics = () => {
           <button
             onClick={() => refetch()}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-[#2563eb] text-[#ffffff] rounded-md hover:bg-[#1d4ed8] transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 text-[#ffffff] rounded-md transition-colors disabled:opacity-50"
+            style={{ backgroundColor: '#2563eb' }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1d4ed8'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
           >
             <IconRefresh className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
@@ -274,30 +277,33 @@ const AdvancedAnalytics = () => {
         {keyMetrics.map((metric, index) => {
           const Icon = metric.icon;
           const colorClasses = {
-            blue: "bg-[#dbeafe] text-[#2563eb]",
-            green: "bg-[#dcfce7] text-[#16a34a]",
-            purple: "bg-[#f3e8ff] text-[#9333ea]",
-            orange: "bg-[#ffedd5] text-[#ea580c]"
+            blue: { bg: "#dbeafe", text: "#2563eb" },
+            green: { bg: "#dcfce7", text: "#16a34a" },
+            purple: { bg: "#f3e8ff", text: "#9333ea" },
+            orange: { bg: "#ffedd5", text: "#ea580c" }
           };
 
           return (
-            <div key={index} className="bg-white rounded-lg border border-[#e5e7eb] p-6">
+            <div key={index} className="bg-white rounded-lg p-6" style={{ border: '1px solid #e5e7eb' }}>
               <div className="flex items-center justify-between">
-                <div className={`p-3 rounded-lg ${colorClasses[metric.color]}`}>
+                <div
+                  className={`p-3 rounded-lg`}
+                  style={{ backgroundColor: colorClasses[metric.color].bg, color: colorClasses[metric.color].text }}
+                >
                   <Icon className="w-6 h-6" />
                 </div>
                 <div className="flex items-center text-sm font-medium">
-                  {metric.trend === 'up' && <IconArrowUp className="w-4 h-4 text-[#22c55e] mr-1" />}
-                  {metric.trend === 'down' && <IconArrowDown className="w-4 h-4 text-[#ef4444] mr-1" />}
-                  {metric.trend === 'neutral' && <IconMinus className="w-4 h-4 text-[#6b7280] mr-1" />}
-                  <span className={metric.trend === 'up' ? 'text-[#16a34a]' : metric.trend === 'down' ? 'text-[#dc2626]' : 'text-[#4b5563]'}>
+                  {metric.trend === 'up' && <IconArrowUp className="w-4 h-4 mr-1" style={{ color: '#22c55e' }} />}
+                  {metric.trend === 'down' && <IconArrowDown className="w-4 h-4 mr-1" style={{ color: '#ef4444' }} />}
+                  {metric.trend === 'neutral' && <IconMinus className="w-4 h-4 mr-1" style={{ color: '#6b7280' }} />}
+                  <span style={{ color: metric.trend === 'up' ? '#16a34a' : metric.trend === 'down' ? '#dc2626' : '#4b5563' }}>
                     {metric.change}
                   </span>
                 </div>
               </div>
               <div className="mt-4">
-                <h3 className="text-sm font-medium text-[#4b5563]">{metric.title}</h3>
-                <p className="text-2xl font-bold text-[#111827] mt-1">{metric.value}</p>
+                <h3 className="text-sm font-medium" style={{ color: '#4b5563' }}>{metric.title}</h3>
+                <p className="text-2xl font-bold mt-1" style={{ color: '#111827' }}>{metric.value}</p>
               </div>
             </div>
           );
@@ -314,10 +320,23 @@ const AdvancedAnalytics = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 py-4 border-b-2 font-medium text-sm transition-colors ${activeTab === tab.id
-                    ? "border-[#3b82f6] text-[#2563eb]"
-                    : "border-transparent text-[#6b7280] hover:text-[#374151] hover:border-[#d1d5db]"
-                    }`}
+                  className={`flex items-center space-x-2 py-4 border-b-2 font-medium text-sm transition-colors`}
+                  style={{
+                    borderColor: activeTab === tab.id ? '#3b82f6' : 'transparent',
+                    color: activeTab === tab.id ? '#2563eb' : '#6b7280'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (activeTab !== tab.id) {
+                      e.currentTarget.style.color = '#374151';
+                      e.currentTarget.style.borderColor = '#d1d5db';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (activeTab !== tab.id) {
+                      e.currentTarget.style.color = '#6b7280';
+                      e.currentTarget.style.borderColor = 'transparent';
+                    }
+                  }}
                 >
                   <Icon className="w-4 h-4" />
                   <span>{tab.label}</span>
@@ -401,13 +420,13 @@ const AdvancedAnalytics = () => {
               <h3 className="text-lg font-semibold text-[#111827]">Top Performing Students</h3>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-[#f9fafb]">
+                  <thead style={{ backgroundColor: '#f9fafb' }}>
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">Student</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">Email</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">Avg Score</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">Quiz Attempts</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">Progress</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: '#6b7280' }}>Student</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: '#6b7280' }}>Email</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: '#6b7280' }}>Avg Score</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: '#6b7280' }}>Quiz Attempts</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: '#6b7280' }}>Progress</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -432,19 +451,19 @@ const AdvancedAnalytics = () => {
               <h3 className="text-lg font-semibold text-[#111827]">Course Performance Analytics</h3>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {analyticsData?.coursePerformance?.map((course, index) => (
-                  <div key={index} className="bg-[#f9fafb] rounded-lg p-6">
-                    <h4 className="font-semibold text-[#111827] mb-4">{course.title}</h4>
+                  <div key={index} className="rounded-lg p-6" style={{ backgroundColor: '#f9fafb' }}>
+                    <h4 className="font-semibold mb-4" style={{ color: '#111827' }}>{course.title}</h4>
                     <div className="space-y-3">
                       <div className="flex justify-between">
-                        <span className="text-[#4b5563]">Enrolled Students:</span>
+                        <span style={{ color: '#4b5563' }}>Enrolled Students:</span>
                         <span className="font-medium">{course.totalEnrolledStudents}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-[#4b5563]">Avg Quiz Score:</span>
+                        <span style={{ color: '#4b5563' }}>Avg Quiz Score:</span>
                         <span className="font-medium">{Math.round(course.averageQuizScore || 0)}%</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-[#4b5563]">Avg Progress:</span>
+                        <span style={{ color: '#4b5563' }}>Avg Progress:</span>
                         <span className="font-medium">{Math.round(course.averageProgress || 0)}%</span>
                       </div>
                     </div>
@@ -480,11 +499,11 @@ const AdvancedAnalytics = () => {
               <h3 className="text-lg font-semibold text-[#111827]">Custom Reports & Data Export</h3>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-[#f9fafb] rounded-lg p-6">
-                  <h4 className="font-semibold text-[#111827] mb-4">Generate Custom Report</h4>
+                <div className="rounded-lg p-6" style={{ backgroundColor: '#f9fafb' }}>
+                  <h4 className="font-semibold mb-4" style={{ color: '#111827' }}>Generate Custom Report</h4>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-[#374151] mb-2">Report Type</label>
+                      <label className="block text-sm font-medium mb-2" style={{ color: '#374151' }}>Report Type</label>
                       <select
                         value={reportType}
                         onChange={(e) => setReportType(e.target.value)}
@@ -500,7 +519,10 @@ const AdvancedAnalytics = () => {
                     <button
                       onClick={handleGenerateReport}
                       disabled={isGeneratingReport}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#2563eb] text-[#ffffff] rounded-md hover:bg-[#1d4ed8] transition-colors disabled:opacity-50"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2 text-[#ffffff] rounded-md transition-colors disabled:opacity-50"
+                      style={{ backgroundColor: '#2563eb' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1d4ed8'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
                     >
                       <IconFileText className="w-4 h-4" />
                       {isGeneratingReport ? 'Generating...' : 'Generate Report'}
@@ -508,11 +530,11 @@ const AdvancedAnalytics = () => {
                   </div>
                 </div>
 
-                <div className="bg-[#f9fafb] rounded-lg p-6">
-                  <h4 className="font-semibold text-[#111827] mb-4">Export Analytics Data</h4>
+                <div className="rounded-lg p-6" style={{ backgroundColor: '#f9fafb' }}>
+                  <h4 className="font-semibold mb-4" style={{ color: '#111827' }}>Export Analytics Data</h4>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-[#374151] mb-2">Export Format</label>
+                      <label className="block text-sm font-medium mb-2" style={{ color: '#374151' }}>Export Format</label>
                       <select
                         value={exportFormat}
                         onChange={(e) => setExportFormat(e.target.value)}
@@ -527,7 +549,10 @@ const AdvancedAnalytics = () => {
                     <button
                       onClick={handleExportData}
                       disabled={isExporting}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#16a34a] text-[#ffffff] rounded-md hover:bg-[#15803d] transition-colors disabled:opacity-50"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2 text-[#ffffff] rounded-md transition-colors disabled:opacity-50"
+                      style={{ backgroundColor: '#16a34a' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#15803d'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#16a34a'}
                     >
                       <IconDownload className="w-4 h-4" />
                       {isExporting ? 'Exporting...' : 'Export Data'}

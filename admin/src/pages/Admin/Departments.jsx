@@ -20,6 +20,7 @@ import {
 } from "@/Redux/AllApi/DepartmentApi";
 import { useGetAllUsersQuery } from "@/Redux/AllApi/UserApi";
 import { useGetCoursesQuery } from "@/Redux/AllApi/CourseApi";
+import { useGetAllUnitsQuery } from "@/Redux/AllApi/UnitApi";
 import {
   Table,
   TableBody,
@@ -104,6 +105,7 @@ const Departments = () => {
   const [lastToastId, setLastToastId] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
+    unit: "",
     instructorId: "",
     courseId: "",
     startDate: "",
@@ -113,10 +115,12 @@ const Departments = () => {
   });
   const [formErrors, setFormErrors] = useState({});
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [unitFilter, setUnitFilter] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [selectedCourses, setSelectedCourses] = useState([]);
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [cancelReason, setCancelReason] = useState("");
+  const [hoveredBtn, setHoveredBtn] = useState(null);
 
   const navigate = useNavigate();
 
@@ -134,6 +138,11 @@ const Departments = () => {
   }, [searchTerm]);
 
   // API Hooks
+  const isSuperAdmin = user?.role === "SUPERADMIN";
+
+  const { data: unitsData } = useGetAllUnitsQuery(undefined, { skip: !isSuperAdmin });
+  const allUnits = Array.isArray(unitsData?.data) ? unitsData.data : [];
+
   const {
     data: departmentsData,
     isLoading,
@@ -144,6 +153,7 @@ const Departments = () => {
       page: currentPage,
       limit: 10,
       search: debouncedSearchTerm || "",
+      ...(isSuperAdmin && unitFilter ? { unit: unitFilter } : {}),
     },
     {
       refetchOnMountOrArgChange: true,
@@ -300,6 +310,7 @@ const Departments = () => {
   const resetForm = () => {
     setFormData({
       name: "",
+      unit: "",
       instructorId: "",
       courseId: "",
       startDate: "",
@@ -486,6 +497,7 @@ const Departments = () => {
 
     setFormData({
       name: department.name,
+      unit: department.unit || "",
       instructorId: department.instructor?._id ? String(department.instructor._id) : "",
       courseId: "", // Legacy field cleared
       startDate: department.startDate
@@ -686,6 +698,7 @@ const Departments = () => {
 
   const clearFilters = () => {
     setStatusFilter("ALL");
+    setUnitFilter("");
     setSearchTerm("");
     setActiveTab("all");
   };
@@ -847,7 +860,14 @@ const Departments = () => {
 
           <Button
             onClick={() => setIsAddDialogOpen(true)}
-            className="bg-[#2563eb] hover:bg-[#1d4ed8] text-[#ffffff] shadow-sm"
+            style={{
+              backgroundColor: hoveredBtn === 'create-dept' ? '#1d4ed8' : '#2563eb',
+              color: '#ffffff',
+              boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={() => setHoveredBtn('create-dept')}
+            onMouseLeave={() => setHoveredBtn(null)}
           >
             <IconPlus className="h-4 w-4 mr-2" />
             Create Department
@@ -875,7 +895,23 @@ const Departments = () => {
                 icon={IconFilter}
               />
 
-              {(statusFilter !== "ALL" || searchTerm) && (
+              {isSuperAdmin && (
+                <Select value={unitFilter || "ALL"} onValueChange={(v) => { setUnitFilter(v === "ALL" ? "" : v); setCurrentPage(1); }}>
+                  <SelectTrigger className="w-36">
+                    <SelectValue placeholder="All Units" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Units</SelectItem>
+                    {allUnits.map((u) => (
+                      <SelectItem key={u._id || u.id} value={u.title}>
+                        {u.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
+              {(statusFilter !== "ALL" || searchTerm || unitFilter) && (
                 <Button
                   variant="outline"
                   onClick={clearFilters}
@@ -956,6 +992,7 @@ const Departments = () => {
                 <TableHead>Course</TableHead>
                 <TableHead>Instructor</TableHead>
                 <TableHead>Trainees</TableHead>
+                {isSuperAdmin && <TableHead>Unit</TableHead>}
                 <TableHead>Status</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -971,15 +1008,27 @@ const Departments = () => {
                   >
                     <TableCell>
                       <div className="flex items-center space-x-3">
-                        <div className="p-2 rounded-full bg-[#dbeafe]">
-                          <IconSchool className="h-5 w-5 text-[#2563eb]" />
+                        <div
+                          className="p-2 rounded-full"
+                          style={{ backgroundColor: '#dbeafe' }}
+                        >
+                          <IconSchool
+                            className="h-5 w-5"
+                            style={{ color: '#2563eb' }}
+                          />
                         </div>
                         <div>
-                          <p className="font-medium text-foreground">
+                          <p className="font-medium" style={{ color: '#0f172a' }}>
                             {department.name}
                           </p>
                         </div>
-                        <IconExternalLink className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <IconExternalLink
+                          className="h-4 w-4 transition-opacity"
+                          style={{
+                            color: '#64748b',
+                            opacity: 0
+                          }}
+                        />
                       </div>
                     </TableCell>
                     <TableCell>{getCourseInfo(department)}</TableCell>
@@ -996,9 +1045,15 @@ const Departments = () => {
                                   e.stopPropagation();
                                   openAssignInstructorDialog(department);
                                 }}
-                                className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="h-7 w-7 p-0 transition-opacity"
+                                style={{
+                                  opacity: 0,
+                                  backgroundColor: hoveredBtn === `assign-${department._id}` ? '#f1f5f9' : 'transparent'
+                                }}
+                                onMouseEnter={() => setHoveredBtn(`assign-${department._id}`)}
+                                onMouseLeave={() => setHoveredBtn(null)}
                               >
-                                <IconPencil className="h-3 w-3" />
+                                <IconPencil className="h-3 w-3" style={{ color: '#64748b' }} />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -1026,9 +1081,15 @@ const Departments = () => {
                               }}
                               variant="ghost"
                               size="sm"
-                              className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="h-7 w-7 p-0 transition-opacity"
+                              style={{
+                                opacity: 0,
+                                backgroundColor: hoveredBtn === `manage-${department._id}` ? '#f1f5f9' : 'transparent'
+                              }}
+                              onMouseEnter={() => setHoveredBtn(`manage-${department._id}`)}
+                              onMouseLeave={() => setHoveredBtn(null)}
                             >
-                              <IconUserPlus className="h-3 w-3" />
+                              <IconUserPlus className="h-3 w-3" style={{ color: '#64748b' }} />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
@@ -1054,7 +1115,8 @@ const Departments = () => {
                                         e.stopPropagation();
                                         handleRemoveStudent({ departmentId: department._id, studentId: student._id, studentName: student.fullName });
                                       }}
-                                      className="text-[#dc2626] focus:text-[#dc2626]"
+                                      style={{ color: '#dc2626' }}
+                                      className="focus:bg-[#fef2f2] focus:text-[#dc2626]"
                                     >
                                       <IconTrash className="h-4 w-4 mr-2" />
                                       Remove {student.fullName}
@@ -1067,6 +1129,13 @@ const Departments = () => {
                         </DropdownMenu>
                       </div>
                     </TableCell>
+                    {isSuperAdmin && (
+                      <TableCell>
+                        {department.unit
+                          ? <Badge variant="outline" className="text-xs">{department.unit}</Badge>
+                          : <span className="text-xs text-muted-foreground">Global</span>}
+                      </TableCell>
+                    )}
                     <TableCell>{getStatusBadge(department.status)}</TableCell>
                     <TableCell>
                       <div className="flex flex-col">
@@ -1091,8 +1160,13 @@ const Departments = () => {
                                   openEditDialog(department);
                                 }}
                                 className="h-8 w-8 p-0"
+                                style={{
+                                  backgroundColor: hoveredBtn === `edit-${department._id}` ? '#f1f5f9' : 'transparent'
+                                }}
+                                onMouseEnter={() => setHoveredBtn(`edit-${department._id}`)}
+                                onMouseLeave={() => setHoveredBtn(null)}
                               >
-                                <IconPencil className="h-4 w-4" />
+                                <IconPencil className="h-4 w-4" style={{ color: '#64748b' }} />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -1113,7 +1187,13 @@ const Departments = () => {
                                     setSelectedDepartment(department);
                                     setIsCancelDepartmentDialogOpen(true);
                                   }}
-                                  className="h-8 w-8 p-0 text-[#ea580c] hover:text-[#9a3412] hover:bg-[#fff7ed]"
+                                  className="h-8 w-8 p-0"
+                                  style={{
+                                    color: hoveredBtn === `cancel-${department._id}` ? '#9a3412' : '#ea580c',
+                                    backgroundColor: hoveredBtn === `cancel-${department._id}` ? '#fff7ed' : 'transparent'
+                                  }}
+                                  onMouseEnter={() => setHoveredBtn(`cancel-${department._id}`)}
+                                  onMouseLeave={() => setHoveredBtn(null)}
                                 >
                                   <IconX className="h-4 w-4" />
                                 </Button>
@@ -1135,7 +1215,13 @@ const Departments = () => {
                                   e.stopPropagation();
                                   openDeleteDialog(department);
                                 }}
-                                className="h-8 w-8 p-0 text-[#dc2626] hover:text-[#991b1b] hover:bg-[#fef2f2]"
+                                className="h-8 w-8 p-0"
+                                style={{
+                                  color: hoveredBtn === `delete-${department._id}` ? '#991b1b' : '#dc2626',
+                                  backgroundColor: hoveredBtn === `delete-${department._id}` ? '#fef2f2' : 'transparent'
+                                }}
+                                onMouseEnter={() => setHoveredBtn(`delete-${department._id}`)}
+                                onMouseLeave={() => setHoveredBtn(null)}
                               >
                                 <IconTrash className="h-4 w-4" />
                               </Button>
@@ -1151,7 +1237,7 @@ const Departments = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-10">
+                  <TableCell colSpan={isSuperAdmin ? 8 : 7} className="text-center py-10">
                     <div className="flex flex-col items-center space-y-3">
                       <IconSchool className="h-12 w-12 text-muted-foreground/60" />
                       <p className="text-muted-foreground font-medium">
@@ -1239,6 +1325,28 @@ const Departments = () => {
                 <p className="text-sm text-[#dc2626]">{formErrors.name}</p>
               )}
             </div>
+
+            {isSuperAdmin && (
+              <div className="grid gap-2">
+                <Label>Unit (Optional)</Label>
+                <Select
+                  value={formData.unit || "none"}
+                  onValueChange={(v) => setFormData({ ...formData, unit: v === "none" ? "" : v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select unit (Global if none)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Global (No unit)</SelectItem>
+                    {allUnits.map((u) => (
+                      <SelectItem key={u._id || u.id} value={u.title}>
+                        {u.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="grid gap-2">
               <Label>Courses (Optional)</Label>
@@ -1418,6 +1526,28 @@ const Departments = () => {
                 placeholder="Enter department name"
               />
             </div>
+
+            {isSuperAdmin && (
+              <div className="grid gap-2">
+                <Label>Unit</Label>
+                <Select
+                  value={formData.unit || "none"}
+                  onValueChange={(v) => setFormData({ ...formData, unit: v === "none" ? "" : v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select unit (Global if none)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Global (No unit)</SelectItem>
+                    {allUnits.map((u) => (
+                      <SelectItem key={u._id || u.id} value={u.title}>
+                        {u.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="grid gap-2">
               <Label>Courses</Label>

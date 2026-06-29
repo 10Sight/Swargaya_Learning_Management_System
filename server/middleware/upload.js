@@ -23,23 +23,30 @@ const storage = multer.diskStorage({
 
 // File filter to check file types
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|txt|mp4|mov|avi|wmv|webm/;
-  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = allowedTypes.test(file.mimetype);
+  // Broaden allowed types to include MS Office and other documents
+  const allowedExtensions = /jpeg|jpg|png|gif|pdf|doc|docx|xls|xlsx|ppt|pptx|txt|mp4|mov|avi|wmv|webm/;
+  const extname = allowedExtensions.test(path.extname(file.originalname).toLowerCase());
+  
+  // For mimetypes, we'll be more inclusive for application types (Office docs)
+  const isDocument = file.mimetype.includes('application/vnd') || 
+                     file.mimetype.includes('application/msword') ||
+                     file.mimetype.includes('application/pdf') ||
+                     file.mimetype.includes('text/plain');
+                     
+  const isImage = file.mimetype.startsWith('image/');
+  const isVideo = file.mimetype.startsWith('video/');
 
-  if (mimetype && extname) {
+  if (extname && (isDocument || isImage || isVideo)) {
     return cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Only images, documents, and videos are allowed.'));
+    cb(new Error('Invalid file type. Only images, documents (PDF, Word, Excel, PPT), and videos are allowed.'));
   }
 };
 
 // Configure multer
 const upload = multer({
   storage: storage,
-  limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB limit
-  },
+  // fileSize limit removed for local storage migration
   fileFilter: fileFilter
 });
 

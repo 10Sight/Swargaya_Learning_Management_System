@@ -119,6 +119,12 @@ export const createDepartment = asyncHandler(async (req, res) => {
     const { name, instructorId, instructorIds, courseIds, startDate, endDate, capacity } = req.body;
     if (!name) throw new ApiError("Department name is required", 400);
 
+    // Resolve unit: ADMINs are always scoped to their own unit
+    let unit = req.body.unit || null;
+    if (req.user.role === 'ADMIN') {
+        unit = req.user.unit || null;
+    }
+
     // Handle Instructors
     let instructors = [];
     if (instructorIds && Array.isArray(instructorIds)) {
@@ -142,6 +148,7 @@ export const createDepartment = asyncHandler(async (req, res) => {
     }
     const departmentData = {
         name,
+        unit,
         instructors,
         courses,
         course: courses.length > 0 ? courses[0] : null,
@@ -356,6 +363,14 @@ export const getAllDepartments = asyncHandler(async (req, res) => {
     if (!req.query.includeDeleted || req.user.role !== "SUPERADMIN") {
         whereSql += " AND (isDeleted IS NULL OR isDeleted = 0)";
     }
+    // ADMINs see their unit + global (NULL) departments; SUPERADMINs can filter by unit via query param
+    if (req.user.role === "ADMIN") {
+        whereSql += " AND (unit = ? OR unit IS NULL)";
+        params.push(req.user.unit);
+    } else if (req.user.role === "SUPERADMIN" && req.query.unit) {
+        whereSql += " AND unit = ?";
+        params.push(req.query.unit);
+    }
     const [countRows] = await pool.query(`SELECT COUNT(*) as total FROM departments ${whereSql}`, params);
     const total = countRows[0].total;
     const [rows] = await pool.query(`SELECT * FROM departments ${whereSql} ORDER BY createdAt DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY`, [...params, offset, limit]);
@@ -371,6 +386,9 @@ export const getDepartmentById = asyncHandler(async (req, res) => {
     if (!id) throw new ApiError("Invalid ID", 400);
     let department = await Department.findById(id);
     if (!department) throw new ApiError("Department not found", 404);
+    if (req.user.role === "ADMIN" && department.unit !== null && department.unit !== req.user.unit) {
+        throw new ApiError("Access denied: department belongs to a different unit", 403);
+    }
     department = await populateDepartment(department, ['instructors', 'students', 'courses', 'course']);
     res.json(new ApiResponse(200, department, "Fetched"));
 });
@@ -381,8 +399,14 @@ export const updateDepartment = asyncHandler(async (req, res) => {
     if (!id) throw new ApiError("Department not found", 404);
     const department = await Department.findById(id);
     if (!department) throw new ApiError("Department not found", 404);
+    if (req.user.role === "ADMIN" && department.unit !== null && department.unit !== req.user.unit) {
+        throw new ApiError("Access denied: department belongs to a different unit", 403);
+    }
     if (name) department.name = name;
     if (status) department.status = status;
+    if (req.user.role === "SUPERADMIN" && req.body.unit !== undefined) {
+        department.unit = req.body.unit || null;
+    }
     if (req.body.courseIds && Array.isArray(req.body.courseIds)) {
         const uniqueIds = [...new Set(req.body.courseIds.map(id => parseInt(id)).filter(id => !isNaN(id)))];
         if (uniqueIds.length > 0) {
@@ -412,6 +436,9 @@ export const deleteDepartment = asyncHandler(async (req, res) => {
     const id = await resolveDepartmentId(req.params.id);
     const department = await Department.findById(id);
     if (!department) throw new ApiError("Not found", 404);
+    if (req.user.role === "ADMIN" && department.unit !== null && department.unit !== req.user.unit) {
+        throw new ApiError("Access denied: department belongs to a different unit", 403);
+    }
     if (req.user.role === "SUPERADMIN") {
         await pool.query("DELETE FROM departments WHERE id = ?", [id]);
         res.json(new ApiResponse(200, null, "Deleted Permanently"));

@@ -85,8 +85,11 @@ const Reports = () => {
       {/* Header */}
       <div className="text-center space-y-4">
         <div className="flex justify-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-[#3b82f6] to-[#9333ea] rounded-full flex items-center justify-center">
-            <GraduationCap className="h-8 w-8 text-white" />
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center"
+            style={{ background: 'linear-gradient(to bottom right, #3b82f6, #9333ea)' }}
+          >
+            <GraduationCap className="h-8 w-8 text-[#ffffff]" />
           </div>
         </div>
         <div>
@@ -101,36 +104,45 @@ const Reports = () => {
       <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         <Card>
           <CardContent className="flex items-center flex-wrap gap-3 sm:gap-4 p-4 sm:p-6">
-            <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-[#dcfce7] rounded-lg mr-4">
-              <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-[#16a34a]" />
+            <div
+              className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-lg mr-4"
+              style={{ backgroundColor: '#dcfce7' }}
+            >
+              <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: '#16a34a' }} />
             </div>
             <div>
               <p className="text-2xl font-bold text-[#111827]">{progressData.filter(p => p.progressPercent === 100).length}</p>
-              <p className="text-sm text-muted-foreground">Completed Courses</p>
+              <p className="text-sm" style={{ color: '#4b5563' }}>Completed Courses</p>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="flex items-center flex-wrap gap-3 sm:gap-4 p-4 sm:p-6">
-            <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-[#dbeafe] rounded-lg mr-4">
-              <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-[#2563eb]" />
+            <div
+              className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-lg mr-4"
+              style={{ backgroundColor: '#dbeafe' }}
+            >
+              <BookOpen className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: '#2563eb' }} />
             </div>
             <div>
               <p className="text-2xl font-bold text-[#111827]">{progressData.length}</p>
-              <p className="text-sm text-muted-foreground">Total Enrolled</p>
+              <p className="text-sm" style={{ color: '#4b5563' }}>Total Enrolled</p>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="flex items-center flex-wrap gap-3 sm:gap-4 p-4 sm:p-6">
-            <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-[#f3e8ff] rounded-lg mr-4">
-              <Award className="h-5 w-5 sm:h-6 sm:w-6 text-[#9333ea]" />
+            <div
+              className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-lg mr-4"
+              style={{ backgroundColor: '#f3e8ff' }}
+            >
+              <Award className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: '#9333ea' }} />
             </div>
             <div>
               <p className="text-2xl font-bold text-[#111827]">{accessibleReports.length}</p>
-              <p className="text-sm text-muted-foreground">Reports Available</p>
+              <p className="text-sm" style={{ color: '#4b5563' }}>Reports Available</p>
             </div>
           </CardContent>
         </Card>
@@ -146,19 +158,19 @@ const Reports = () => {
 
           <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {accessibleReports.map((progress) => (
-              <Card key={progress._id} className="hover:shadow-lg transition-shadow border border-[#bbf7d0]">
+              <Card key={progress._id} className="hover:shadow-lg transition-shadow border" style={{ borderColor: '#bbf7d0' }}>
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <CardTitle className="text-base sm:text-lg leading-6 mb-2 break-words">
                         {progress.course?.title || 'Course Title'}
                       </CardTitle>
-                      <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground mb-2">
+                      <div className="flex items-center gap-2 flex-wrap text-sm" style={{ color: '#6b7280' }} mb-2>
                         <Users className="h-4 w-4" />
                         <span>Department: {progress.department?.name || 'N/A'}</span>
                       </div>
                     </div>
-                    <Badge variant="secondary" className="bg-[#dcfce7] text-[#166534]">
+                    <Badge variant="secondary" style={{ backgroundColor: '#dcfce7', color: '#166534' }}>
                       <CheckCircle className="h-3 w-3 mr-1" />
                       Completed
                     </Badge>
@@ -249,13 +261,16 @@ const Reports = () => {
                   <CardContent>
                     <div className="space-y-2">
                       <div className="flex justify-between text-xs sm:text-sm gap-2">
-                        <span className="text-muted-foreground">Progress:</span>
+                        <span style={{ color: '#6b7280' }}>Progress:</span>
                         <span className="font-medium">{progress.progressPercent}%</span>
                       </div>
-                      <div className="w-full bg-[#e5e7eb] rounded-full h-2">
+                      <div className="w-full rounded-full h-2" style={{ backgroundColor: '#e5e7eb' }}>
                         <div
-                          className="bg-[#2563eb] h-2 rounded-full transition-all"
-                          style={{ width: `${progress.progressPercent}%` }}
+                          className="h-2 rounded-full transition-all"
+                          style={{
+                            width: `${progress.progressPercent}%`,
+                            backgroundColor: '#2563eb'
+                          }}
                         />
                       </div>
                     </div>

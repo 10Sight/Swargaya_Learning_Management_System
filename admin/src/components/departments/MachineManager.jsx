@@ -17,11 +17,16 @@ import {
     useUpdateMachineMutation,
     useDeleteMachineMutation,
 } from "@/Redux/AllApi/MachineApi";
-import { IconPlus, IconEdit, IconLoader, IconCheck, IconX, IconTrash } from "@tabler/icons-react";
+import { IconPlus, IconEdit, IconLoader, IconCheck, IconX, IconTrash, IconUserCheck } from "@tabler/icons-react";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { useNavigate, useLocation } from 'react-router-dom';
 
-const MachineManager = ({ lineId }) => {
+const MachineManager = ({ lineId, departmentId }) => {
+    const navigate = useNavigate();
+    const { pathname } = useLocation();
+    const basePath = pathname.startsWith('/superadmin') ? '/superadmin' : '/admin';
     const { data: machinesData, isLoading, error } = useGetMachinesByLineQuery(lineId);
     const [createMachine, { isLoading: isCreating }] = useCreateMachineMutation();
     const [updateMachine, { isLoading: isUpdating }] = useUpdateMachineMutation();
@@ -163,6 +168,7 @@ const MachineManager = ({ lineId }) => {
                             <TableRow>
                                 <TableHead>Machine Name</TableHead>
                                 <TableHead>Description</TableHead>
+                                <TableHead>Assigned Operator</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -170,7 +176,8 @@ const MachineManager = ({ lineId }) => {
                             {machinesData?.data?.map((machine) => (
                                 <TableRow
                                     key={machine.id || machine._id}
-                                    className="hover:bg-[#f3f4f6]"
+                                    className="hover:bg-[#f3f4f6] cursor-pointer"
+                                    onClick={() => navigate(`${basePath}/departments/${departmentId}/lines/${lineId}/machines/${machine.id || machine._id}/assign`)}
                                 >
                                     <TableCell className="font-medium">
                                         {editingMachineId === (machine.id || machine._id) ? (
@@ -185,6 +192,25 @@ const MachineManager = ({ lineId }) => {
                                         )}
                                     </TableCell>
                                     <TableCell>{machine.description || "-"}</TableCell>
+                                    <TableCell>
+                                        {machine.operators?.length > 0 ? (
+                                            <div className="flex items-center gap-1 flex-wrap">
+                                                {machine.operators.slice(0, 2).map((op) => (
+                                                    <Badge key={op.id} className="bg-[#dcfce7] text-[#16a34a] hover:bg-[#dcfce7] text-xs">
+                                                        <IconUserCheck className="h-3 w-3 mr-1" />
+                                                        {op.fullName}
+                                                    </Badge>
+                                                ))}
+                                                {machine.operators.length > 2 && (
+                                                    <Badge variant="outline" className="text-xs text-[#6b7280]">
+                                                        +{machine.operators.length - 2} more
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <span className="text-[#9ca3af]">Unassigned</span>
+                                        )}
+                                    </TableCell>
                                     <TableCell className="text-right">
                                         {editingMachineId === (machine.id || machine._id) ? (
                                             <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>

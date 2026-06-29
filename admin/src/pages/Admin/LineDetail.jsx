@@ -38,7 +38,7 @@ const LineDetail = () => {
                 </div>
             </div>
 
-            <MachineManager lineId={lineId} />
+            <MachineManager lineId={lineId} departmentId={departmentId} />
         </div>
     );
 };
