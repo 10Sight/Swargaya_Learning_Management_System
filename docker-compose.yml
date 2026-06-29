@@ -7,9 +7,6 @@ services:
       - "3000:3000"
     env_file:
       - ./server/.env
-    environment:
-      - DB_HOST=host.docker.internal # Default to host for Windows if DB is local
-      # Override other env vars here if needed
     volumes:
       - ./server:/app
       - /app/node_modules
