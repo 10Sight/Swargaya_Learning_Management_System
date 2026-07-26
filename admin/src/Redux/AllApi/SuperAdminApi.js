@@ -284,20 +284,6 @@ export const superAdminApi = createApi({
 
     // === DATA MANAGEMENT ENDPOINTS ===
 
-    // Initiate database backup
-    createDatabaseBackup: builder.mutation({
-      query: (options = {}) => ({
-        url: "/api/data-management/backup",
-        method: "POST",
-        data: {
-          includeFiles: options.includeFiles || false,
-          compression: options.compression || true,
-          encryption: options.encryption || false,
-        },
-      }),
-      invalidatesTags: ["DataManagement"],
-    }),
-
     // Get backup history
     getBackupHistory: builder.query({
       query: (params = {}) => ({
@@ -313,9 +299,10 @@ export const superAdminApi = createApi({
 
     // Restore from backup
     restoreFromBackup: builder.mutation({
-      query: (backupId) => ({
+      query: ({ backupId, confirmRestore = true } = {}) => ({
         url: `/api/data-management/backup/${backupId}/restore`,
         method: "POST",
+        data: { confirmRestore },
       }),
       invalidatesTags: ["DataManagement"],
     }),
@@ -658,7 +645,6 @@ export const {
   useExportAnalyticsMutation,
 
   // Data Management
-  useCreateDatabaseBackupMutation,
   useGetBackupHistoryQuery,
   useRestoreFromBackupMutation,
   useDeleteBackupMutation,

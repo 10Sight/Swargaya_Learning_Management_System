@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import React, { useState } from "react";
+import { useDispatch } from "react-redux";
 import {
   IconFileAnalytics,
   IconSearch,
@@ -18,8 +18,9 @@ import {
   IconArrowUp,
   IconArrowDown,
   IconExclamationMark,
-  IconInfoCircle,
-  IconTrash
+  IconMapPin,
+  IconDeviceDesktop,
+  IconTag
 } from "@tabler/icons-react";
 import {
   useGetAllAuditLogsQuery,
@@ -28,9 +29,47 @@ import {
 } from "@/Redux/AllApi/SuperAdminApi";
 import { toast } from "sonner";
 
+const AVATAR_PALETTE = [
+  "bg-blue-100 text-blue-700",
+  "bg-purple-100 text-purple-700",
+  "bg-emerald-100 text-emerald-700",
+  "bg-amber-100 text-amber-700",
+  "bg-rose-100 text-rose-700",
+  "bg-indigo-100 text-indigo-700",
+  "bg-teal-100 text-teal-700",
+];
+
+const getInitials = (name) => {
+  if (!name) return "?";
+  const parts = name.trim().split(/\s+/);
+  return parts.length > 1
+    ? (parts[0][0] + parts[1][0]).toUpperCase()
+    : name.slice(0, 2).toUpperCase();
+};
+
+const getAvatarColor = (name) => {
+  if (!name) return AVATAR_PALETTE[0];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length];
+};
+
+const InfoField = ({ icon: Icon, label, value, mono = false }) => (
+  <div className="rounded-lg border border-[#eef0f2] bg-[#f9fafb] p-3">
+    <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#9ca3af] mb-1">
+      {Icon && <Icon className="w-3.5 h-3.5" />}
+      {label}
+    </div>
+    <div className={`text-sm text-[#111827] ${mono ? "font-mono break-all" : "break-words"}`}>
+      {value ?? "N/A"}
+    </div>
+  </div>
+);
+
 const SystemAuditLogs = () => {
   const dispatch = useDispatch();
-  const { user: currentUser } = useSelector((state) => state.auth);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLogs, setSelectedLogs] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -40,7 +79,6 @@ const SystemAuditLogs = () => {
   const [sortBy, setSortBy] = useState("createdAt");
   const [sortOrder, setSortOrder] = useState("desc");
   const [dateRange, setDateRange] = useState("all");
-  const [showDebugInfo, setShowDebugInfo] = useState(true); // Temporarily enabled for debugging
 
   const [filters, setFilters] = useState({
     action: "",
@@ -131,33 +169,6 @@ const SystemAuditLogs = () => {
     auditLogsData?.total ||
     auditLogs.length;
 
-
-  // Manual API test - for debugging
-  const testApiCall = async () => {
-    try {
-      // Use fetch with credentials: 'include' to send HTTP-only cookies
-      const response = await fetch('https://swargaya-learning-management-system-3vcz.onrender.com/api/audits?page=1&limit=5', {
-        method: 'GET',
-        credentials: 'include', // This ensures cookies are sent
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.error('[Manual API Test] Failed:', data);
-      }
-    } catch (error) {
-      console.error('[Manual API Test] Error:', error);
-    }
-  };
-
-  // Run manual API test on component mount
-  useEffect(() => {
-    testApiCall();
-  }, []);
-
   const handleExportLogs = async () => {
     try {
       // Create a CSV export of visible logs
@@ -193,29 +204,29 @@ const SystemAuditLogs = () => {
     }
   };
 
-  const getSeverityColor = (severity) => {
+  const getSeverityStyles = (severity) => {
     switch (severity) {
       case "high":
-        return "bg-[#fee2e2] text-[#991b1b]";
+        return "bg-rose-50 text-rose-700 border-l-2 border-rose-500";
       case "medium":
-        return "bg-[#fef9c3] text-[#854d0e]";
+        return "bg-amber-50 text-amber-700 border-l-2 border-amber-500";
       case "low":
-        return "bg-[#dcfce7] text-[#166534]";
+        return "bg-emerald-50 text-emerald-700 border-l-2 border-emerald-500";
       default:
-        return "bg-[#f3f4f6] text-[#1f2937]";
+        return "bg-gray-50 text-gray-700 border-l-2 border-gray-400";
     }
   };
 
-  const getStatusColor = (status) => {
+  const getStatusStyles = (status) => {
     switch (status) {
       case "success":
-        return "bg-[#dcfce7] text-[#166534]";
+        return "bg-emerald-50 text-emerald-700";
       case "failed":
-        return "bg-[#fee2e2] text-[#991b1b]";
+        return "bg-rose-50 text-rose-700";
       case "pending":
-        return "bg-[#fef9c3] text-[#854d0e]";
+        return "bg-amber-50 text-amber-700";
       default:
-        return "bg-[#f3f4f6] text-[#1f2937]";
+        return "bg-gray-50 text-gray-700";
     }
   };
 
@@ -227,14 +238,62 @@ const SystemAuditLogs = () => {
     return IconFileAnalytics;
   };
 
+  const timeRangeOptions = [
+    { value: 'all', label: 'All Time' },
+    { value: 'today', label: 'Today' },
+    { value: 'week', label: 'Week' },
+    { value: 'month', label: 'Month' },
+    { value: 'custom', label: 'Custom' }
+  ];
+
+  const statCards = [
+    {
+      label: "Total Events",
+      value: totalLogs,
+      icon: IconFileAnalytics,
+      gradient: "from-blue-500/10 to-indigo-500/5",
+      iconWrap: "bg-blue-500/10 text-blue-600",
+      accent: "bg-blue-500"
+    },
+    {
+      label: "Delete Actions",
+      value: auditLogs.filter(log => log.action?.includes('DELETE')).length,
+      icon: IconAlertTriangle,
+      gradient: "from-rose-500/10 to-red-500/5",
+      iconWrap: "bg-rose-500/10 text-rose-600",
+      accent: "bg-rose-500"
+    },
+    {
+      label: "Login Actions",
+      value: auditLogs.filter(log => log.action?.includes('LOGIN')).length,
+      icon: IconExclamationMark,
+      gradient: "from-amber-500/10 to-yellow-500/5",
+      iconWrap: "bg-amber-500/10 text-amber-600",
+      accent: "bg-amber-500"
+    },
+    {
+      label: "Unique Users",
+      value: new Set(auditLogs.filter(log => log.user).map(log => log.user._id)).size,
+      icon: IconUser,
+      gradient: "from-emerald-500/10 to-teal-500/5",
+      iconWrap: "bg-emerald-500/10 text-emerald-600",
+      accent: "bg-emerald-500"
+    }
+  ];
+
   const LogDetailModal = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
-      <div className="bg-white rounded-lg w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-[#e5e7eb]">
-          <h3 className="text-base sm:text-lg font-semibold text-[#111827]">Audit Log Details</h3>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-white rounded-2xl shadow-2xl border border-[#e5e7eb] w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-[#e5e7eb] bg-gradient-to-r from-[#f9fafb] to-white rounded-t-2xl">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600">
+              <IconFileAnalytics className="w-4 h-4" />
+            </div>
+            <h3 className="text-base sm:text-lg font-semibold text-[#111827]">Audit Log Details</h3>
+          </div>
           <button
             onClick={() => setShowLogDetail(false)}
-            className="text-[#9ca3af] hover:text-[#4b5563]"
+            className="text-[#9ca3af] hover:text-[#4b5563] hover:bg-[#f3f4f6] rounded-full p-1.5 transition-colors"
           >
             <IconX className="w-5 h-5" />
           </button>
@@ -243,89 +302,68 @@ const SystemAuditLogs = () => {
         {selectedLog && (
           <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
             {/* Header Info */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-[#374151] mb-1">Action</label>
-                <div className="flex items-center space-x-2">
-                  {React.createElement(getActionIcon(selectedLog.action), { className: "w-4 h-4 text-[#2563eb]" })}
-                  <span className="font-medium text-sm">{selectedLog.action}</span>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="col-span-2 rounded-lg border border-[#eef0f2] bg-[#f9fafb] p-3">
+                <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#9ca3af] mb-1">
+                  <IconTag className="w-3.5 h-3.5" />
+                  Action
+                </div>
+                <div className="flex items-center gap-2">
+                  {React.createElement(getActionIcon(selectedLog.action), { className: "w-4 h-4 text-[#2563eb] flex-shrink-0" })}
+                  <span className="font-medium text-sm text-[#111827] break-words">{selectedLog.action}</span>
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-[#374151] mb-1">Severity</label>
-                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getSeverityColor(selectedLog.severity || 'low')}`}>
+              <div className="rounded-lg border border-[#eef0f2] bg-[#f9fafb] p-3">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-[#9ca3af] mb-1">Severity</div>
+                <span className={`inline-flex px-2.5 py-1 text-xs font-semibold rounded-md ${getSeverityStyles(selectedLog.severity || 'low')}`}>
                   {(selectedLog.severity || 'LOW').toUpperCase()}
                 </span>
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-[#374151] mb-1">Date & Time</label>
-                <div className="text-sm text-[#111827]">
-                  {new Date(selectedLog.createdAt).toLocaleString()}
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[#374151] mb-1">Status</label>
-                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedLog.status || 'success')}`}>
+              <div className="rounded-lg border border-[#eef0f2] bg-[#f9fafb] p-3">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-[#9ca3af] mb-1">Status</div>
+                <span className={`inline-flex px-2.5 py-1 text-xs font-semibold rounded-md ${getStatusStyles(selectedLog.status || 'success')}`}>
                   {(selectedLog.status || 'SUCCESS').toUpperCase()}
                 </span>
               </div>
             </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <InfoField icon={IconClock} label="Date & Time" value={new Date(selectedLog.createdAt).toLocaleString()} />
+              <InfoField icon={IconMapPin} label="IP Address" value={selectedLog.ip} mono />
+            </div>
+
             {/* User Info */}
             {selectedLog.user && (
-              <div className="bg-[#f9fafb] rounded-lg p-4">
-                <h4 className="font-medium text-[#111827] mb-3">User Information</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                  <div className="break-words">
-                    <span className="font-medium">Name:</span> {selectedLog.user.fullName}
-                  </div>
-                  <div className="break-words">
-                    <span className="font-medium">Email:</span> {selectedLog.user.email}
-                  </div>
-                  <div>
-                    <span className="font-medium">Role:</span> {selectedLog.user.role}
-                  </div>
-                  <div className="break-all">
-                    <span className="font-medium">User ID:</span> {selectedLog.user._id}
-                  </div>
+              <div className="rounded-lg border border-[#eef0f2] bg-[#f9fafb] p-4">
+                <h4 className="font-medium text-[#111827] mb-3 flex items-center gap-2">
+                  <IconUser className="w-4 h-4 text-[#6b7280]" />
+                  User Information
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                  <InfoField label="Name" value={selectedLog.user.fullName} />
+                  <InfoField label="Email" value={selectedLog.user.email} />
+                  <InfoField label="Role" value={selectedLog.user.role} />
+                  <InfoField label="User ID" value={selectedLog.user._id} mono />
                 </div>
               </div>
             )}
 
             {/* Resource Info */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-[#374151] mb-1">Resource Type</label>
-                <div className="text-sm text-[#111827] break-words">{selectedLog.resourceType || 'N/A'}</div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[#374151] mb-1">Resource ID</label>
-                <div className="text-sm text-[#111827] break-all">{selectedLog.resourceId || 'N/A'}</div>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <InfoField label="Resource Type" value={selectedLog.resourceType} />
+              <InfoField label="Resource ID" value={selectedLog.resourceId} mono />
             </div>
 
             {/* Network Info */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-[#374151] mb-1">IP Address</label>
-                <div className="text-sm text-[#111827]">{selectedLog.ip || 'N/A'}</div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[#374151] mb-1">User Agent</label>
-                <div className="text-sm text-[#111827] break-all" title={selectedLog.userAgent}>
-                  {selectedLog.userAgent || 'N/A'}
-                </div>
-              </div>
+            <div>
+              <InfoField icon={IconDeviceDesktop} label="User Agent" value={selectedLog.userAgent} mono />
             </div>
 
             {/* Details */}
             <div>
               <h4 className="font-medium text-[#111827] mb-3">Additional Details</h4>
-              <div className="bg-[#f9fafb] rounded-lg p-4 overflow-x-auto">
-                <pre className="text-xs sm:text-sm text-[#374151] whitespace-pre-wrap break-words">
+              <div className="audit-detail-scroll bg-[#0f172a] rounded-lg p-4 overflow-x-auto max-h-64 overflow-y-auto border border-[#1e293b]">
+                <pre className="text-xs sm:text-sm text-[#e2e8f0] whitespace-pre-wrap break-words font-mono">
                   {JSON.stringify(selectedLog.details, null, 2)}
                 </pre>
               </div>
@@ -354,6 +392,13 @@ const SystemAuditLogs = () => {
 
   return (
     <div className="space-y-6">
+      <style>{`
+        .audit-detail-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+        .audit-detail-scroll::-webkit-scrollbar-track { background: #0f172a; }
+        .audit-detail-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+        .audit-detail-scroll::-webkit-scrollbar-thumb:hover { background: #475569; }
+      `}</style>
+
       {/* Header */}
       <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
         <div>
@@ -362,285 +407,146 @@ const SystemAuditLogs = () => {
             Monitor and track all system activities and security events
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <button
-            onClick={() => setShowDebugInfo(!showDebugInfo)}
-            className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 rounded-md transition-colors text-xs sm:text-sm ${showDebugInfo ? 'bg-[#fef9c3] text-[#a16207]' : 'bg-[#f3f4f6] text-[#374151] hover:bg-[#e5e7eb]'
-              }`}
-            title="Debug Info"
-          >
-            <IconInfoCircle className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span className="hidden sm:inline">Debug</span>
-          </button>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-2 rounded-md transition-colors text-xs sm:text-sm ${showFilters ? 'bg-[#dbeafe] text-[#1d4ed8]' : 'bg-[#f3f4f6] text-[#374151] hover:bg-[#e5e7eb]'
-              }`}
-          >
-            <IconFilter className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span>Filters</span>
-          </button>
-          <button
-            onClick={handleExportLogs}
-            className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-2 bg-[#16a34a] text-[#ffffff] rounded-md hover:bg-[#15803d] transition-colors text-xs sm:text-sm"
-          >
-            <IconDownload className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span>Export</span>
-          </button>
-        </div>
       </div>
 
-      {/* Debug Information Panel */}
-      {showDebugInfo && (
-        <div className="bg-[#fffbeb] border border-[#fde68a] rounded-lg p-6">
-          <div className="flex items-start space-x-3">
-            <IconInfoCircle className="w-5 h-5 text-[#ca8a04] mt-1" />
-            <div className="flex-1">
-              <h3 className="text-[#854d0e] font-medium mb-3">Debug Information</h3>
-              <div className="space-y-3 text-sm">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <strong className="text-[#854d0e]">Current User:</strong>
-                    <div className="text-[#a16207] mt-1">
-                      {currentUser ? (
-                        <div>
-                          <div>Name: {currentUser.fullName}</div>
-                          <div>Email: {currentUser.email}</div>
-                          <div>Role: {currentUser.role}</div>
-                          <div>Status: {currentUser.status}</div>
-                        </div>
-                      ) : (
-                        <div className="text-[#dc2626]">No user data found in Redux state</div>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <strong className="text-[#854d0e]">Authentication:</strong>
-                    <div className="text-[#a16207] mt-1">
-                      <div>Token exists: {localStorage.getItem('token') ? 'Yes' : 'No'}</div>
-                      <div>IsLoggedIn: {localStorage.getItem('isLoggedIn')}</div>
-                    </div>
-                  </div>
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+        {statCards.map((card) => (
+          <div
+            key={card.label}
+            className="group relative overflow-hidden rounded-xl border border-[#e5e7eb] bg-white p-3 sm:p-4 md:p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300"
+          >
+            <div className={`absolute inset-0 bg-gradient-to-br ${card.gradient} opacity-80`} />
+            <div className={`absolute top-0 left-0 h-1 w-full ${card.accent}`} />
+            <div className="relative flex items-center justify-between">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm font-medium text-[#6b7280] truncate">{card.label}</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-[#111827] mt-1">{card.value}</p>
+              </div>
+              <div className={`flex-shrink-0 rounded-lg p-2 sm:p-3 ${card.iconWrap}`}>
+                <card.icon className="w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Unified Toolbar */}
+      <div className="bg-white rounded-xl shadow-sm border border-[#e5e7eb] overflow-hidden">
+        <div className="p-4 sm:p-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative flex-1 max-w-full sm:max-w-md">
+            <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9ca3af]" />
+            <input
+              type="text"
+              placeholder="Search audit logs..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 text-sm border border-[#e5e7eb] bg-[#f9fafb] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3b82f6] focus:bg-white transition-colors"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-lg transition-colors text-xs sm:text-sm font-medium ${showFilters ? 'bg-[#dbeafe] text-[#1d4ed8]' : 'bg-[#f3f4f6] text-[#374151] hover:bg-[#e5e7eb]'
+                }`}
+            >
+              <IconFilter className="w-4 h-4" />
+              <span>Filters</span>
+              <IconChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${showFilters ? 'rotate-180' : ''}`} />
+            </button>
+            <button
+              onClick={() => refetch()}
+              title="Refresh"
+              className="flex items-center gap-1.5 px-3 py-2.5 bg-[#f3f4f6] text-[#374151] rounded-lg hover:bg-[#e5e7eb] transition-colors text-xs sm:text-sm font-medium"
+            >
+              <IconRefresh className="w-4 h-4" />
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
+            <button
+              onClick={handleExportLogs}
+              className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 bg-[#16a34a] text-white rounded-lg hover:bg-[#15803d] transition-colors text-xs sm:text-sm font-medium"
+            >
+              <IconDownload className="w-4 h-4" />
+              <span>Export</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Collapsible Filter Panel */}
+        <div className={`grid transition-all duration-300 ease-in-out ${showFilters ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+          <div className="overflow-hidden">
+            <div className="border-t border-[#e5e7eb] bg-[#fafbfc] p-4 sm:p-5 space-y-4">
+              <div>
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-[#6b7280] uppercase tracking-wider mb-2">
+                  <IconCalendar className="w-3.5 h-3.5" />
+                  Time Range
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {timeRangeOptions.map((range) => (
+                    <button
+                      key={range.value}
+                      onClick={() => setDateRange(range.value)}
+                      className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${dateRange === range.value
+                        ? 'bg-[#2563eb] text-white'
+                        : 'bg-white border border-[#e5e7eb] text-[#374151] hover:bg-[#f3f4f6]'
+                        }`}
+                    >
+                      {range.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#374151] mb-2">Action</label>
+                  <select
+                    value={filters.action}
+                    onChange={(e) => setFilters({ ...filters, action: e.target.value })}
+                    className="w-full px-3 py-2 text-sm border border-[#d1d5db] bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
+                  >
+                    <option value="">All Actions</option>
+                    <option value="LOGIN_ATTEMPT">Login Attempt</option>
+                    <option value="LOGIN_FAILED">Login Failed</option>
+                    <option value="DELETE_USER">Delete User</option>
+                    <option value="CREATE_USER">Create User</option>
+                    <option value="UPDATE_USER">Update User</option>
+                    <option value="SYSTEM_BACKUP">System Backup</option>
+                  </select>
                 </div>
 
                 <div>
-                  <strong className="text-[#854d0e]">API Request Status:</strong>
-                  <div className="text-[#a16207] mt-1">
-                    <div>Loading: {isLoading ? 'Yes' : 'No'}</div>
-                    <div>Error: {isError ? 'Yes' : 'No'}</div>
-                    {error && (
-                      <div className="mt-2">
-                        <strong>Error Details:</strong>
-                        <div className="bg-[#fef2f2] border border-[#fecaca] rounded p-2 mt-1">
-                          <div>Status: {error.status}</div>
-                          <div>Message: {error.message || error.data?.message}</div>
-                          {error.data && (
-                            <div>Data: {JSON.stringify(error.data, null, 2)}</div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <label className="block text-sm font-medium text-[#374151] mb-2">Severity</label>
+                  <select
+                    value={filters.severity}
+                    onChange={(e) => setFilters({ ...filters, severity: e.target.value })}
+                    className="w-full px-3 py-2 text-sm border border-[#d1d5db] bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
+                  >
+                    <option value="">All Severities</option>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
                 </div>
 
-                <div>
-                  <strong className="text-[#854d0e]">API Endpoint:</strong>
-                  <div className="text-[#a16207] mt-1">
-                    <div>URL: /api/audits</div>
-                    <div>Parameters: {JSON.stringify({
-                      page: currentPage,
-                      limit: 20,
-                      sortBy,
-                      order: sortOrder,
-                      search: searchTerm,
-                      action: filters.action,
-                      userId: filters.userId,
-                      dateFrom: dateFrom?.toISOString(),
-                      dateTo: dateTo?.toISOString(),
-                      ipAddress: filters.ipAddress,
-                      userAgent: filters.userAgent
-                    }, null, 2)}</div>
-                  </div>
-                </div>
-
-                <div>
-                  <strong className="text-[#854d0e]">Response Data Structure:</strong>
-                  <div className="text-[#a16207] mt-1">
-                    <div>Raw Response: {auditLogsData ? 'Available' : 'No Data'}</div>
-                    <div>Audit Logs Count: {auditLogs.length}</div>
-                    <div>Total Pages: {totalPages}</div>
-                    <div>Total Logs: {totalLogs}</div>
-                    {auditLogsData && (
-                      <div className="bg-[#f9fafb] border border-[#e5e7eb] rounded p-2 mt-1 max-h-40 overflow-y-auto">
-                        <div>Response Structure: {JSON.stringify(Object.keys(auditLogsData), null, 2)}</div>
-                        {auditLogsData.data && (
-                          <div>Data Keys: {JSON.stringify(Object.keys(auditLogsData.data), null, 2)}</div>
-                        )}
-                        <div className="mt-2">
-                          <strong>Full Raw Response:</strong>
-                          <pre className="text-xs">{JSON.stringify(auditLogsData, null, 2)}</pre>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                <div className="sm:col-span-2 lg:col-span-1">
+                  <label className="block text-sm font-medium text-[#374151] mb-2">User</label>
+                  <input
+                    type="text"
+                    value={filters.userId}
+                    onChange={(e) => setFilters({ ...filters, userId: e.target.value })}
+                    placeholder="User ID or email"
+                    className="w-full px-3 py-2 text-sm border border-[#d1d5db] bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
+                  />
                 </div>
               </div>
             </div>
           </div>
         </div>
-      )}
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-        <div className="bg-white rounded-lg shadow-sm border border-[#e5e7eb] p-3 sm:p-4">
-          <div className="flex items-center justify-between">
-            <div className="min-w-0 flex-1">
-              <p className="text-xs sm:text-sm font-medium text-[#4b5563] truncate">Total Events</p>
-              <p className="text-lg sm:text-xl lg:text-2xl font-bold text-[#111827]">{totalLogs}</p>
-            </div>
-            <IconFileAnalytics className="w-6 h-6 sm:w-8 sm:h-8 text-[#2563eb] flex-shrink-0" />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-[#e5e7eb] p-3 sm:p-4">
-          <div className="flex items-center justify-between">
-            <div className="min-w-0 flex-1">
-              <p className="text-xs sm:text-sm font-medium text-[#4b5563] truncate">Delete Actions</p>
-              <p className="text-lg sm:text-xl lg:text-2xl font-bold text-[#111827]">
-                {auditLogs.filter(log => log.action?.includes('DELETE')).length}
-              </p>
-            </div>
-            <IconAlertTriangle className="w-6 h-6 sm:w-8 sm:h-8 text-[#dc2626] flex-shrink-0" />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-[#e5e7eb] p-3 sm:p-4">
-          <div className="flex items-center justify-between">
-            <div className="min-w-0 flex-1">
-              <p className="text-xs sm:text-sm font-medium text-[#4b5563] truncate">Login Actions</p>
-              <p className="text-lg sm:text-xl lg:text-2xl font-bold text-[#111827]">
-                {auditLogs.filter(log => log.action?.includes('LOGIN')).length}
-              </p>
-            </div>
-            <IconExclamationMark className="w-6 h-6 sm:w-8 sm:h-8 text-[#ca8a04] flex-shrink-0" />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-[#e5e7eb] p-3 sm:p-4">
-          <div className="flex items-center justify-between">
-            <div className="min-w-0 flex-1">
-              <p className="text-xs sm:text-sm font-medium text-[#4b5563] truncate">Unique Users</p>
-              <p className="text-lg sm:text-xl lg:text-2xl font-bold text-[#111827]">
-                {new Set(auditLogs.filter(log => log.user).map(log => log.user._id)).size}
-              </p>
-            </div>
-            <IconUser className="w-6 h-6 sm:w-8 sm:h-8 text-[#16a34a] flex-shrink-0" />
-          </div>
-        </div>
-      </div>
-
-      {/* Date Range Selector */}
-      <div className="bg-white rounded-lg shadow-sm border border-[#e5e7eb] p-4">
-        <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
-          <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
-            <span className="text-sm font-medium text-[#374151]">Time Range:</span>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { value: 'all', label: 'All Time' },
-                { value: 'today', label: 'Today' },
-                { value: 'week', label: 'Week' },
-                { value: 'month', label: 'Month' },
-                { value: 'custom', label: 'Custom' }
-              ].map((range) => (
-                <button
-                  key={range.value}
-                  onClick={() => setDateRange(range.value)}
-                  className={`px-2 sm:px-3 py-1 rounded-md text-xs sm:text-sm transition-colors whitespace-nowrap ${dateRange === range.value
-                    ? 'bg-[#dbeafe] text-[#1d4ed8]'
-                    : 'bg-[#f3f4f6] text-[#374151] hover:bg-[#e5e7eb]'
-                    }`}
-                >
-                  {range.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <button
-            onClick={() => refetch()}
-            className="flex items-center justify-center space-x-2 px-3 py-1 bg-[#f3f4f6] text-[#374151] rounded-md hover:bg-[#e5e7eb] transition-colors text-sm"
-          >
-            <IconRefresh className="w-4 h-4" />
-            <span>Refresh</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Filters */}
-      {showFilters && (
-        <div className="bg-white rounded-lg shadow-sm border border-[#e5e7eb] p-4 sm:p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-[#374151] mb-2">Action</label>
-              <select
-                value={filters.action}
-                onChange={(e) => setFilters({ ...filters, action: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
-              >
-                <option value="">All Actions</option>
-                <option value="LOGIN_ATTEMPT">Login Attempt</option>
-                <option value="LOGIN_FAILED">Login Failed</option>
-                <option value="DELETE_USER">Delete User</option>
-                <option value="CREATE_USER">Create User</option>
-                <option value="UPDATE_USER">Update User</option>
-                <option value="SYSTEM_BACKUP">System Backup</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-[#374151] mb-2">Severity</label>
-              <select
-                value={filters.severity}
-                onChange={(e) => setFilters({ ...filters, severity: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
-              >
-                <option value="">All Severities</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
-            </div>
-
-            <div className="sm:col-span-2 lg:col-span-1">
-              <label className="block text-sm font-medium text-[#374151] mb-2">User</label>
-              <input
-                type="text"
-                value={filters.userId}
-                onChange={(e) => setFilters({ ...filters, userId: e.target.value })}
-                placeholder="User ID or email"
-                className="w-full px-3 py-2 text-sm border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Search */}
-      <div className="bg-white rounded-lg shadow-sm border border-[#e5e7eb] p-4 sm:p-6">
-        <div className="relative max-w-full sm:max-w-md">
-          <IconSearch className="absolute left-3 top-3 w-4 h-4 text-[#9ca3af]" />
-          <input
-            type="text"
-            placeholder="Search audit logs..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 text-sm border border-[#d1d5db] rounded-md focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
-          />
-        </div>
       </div>
 
       {/* Audit Logs Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-[#e5e7eb]">
+      <div className="bg-white rounded-xl shadow-sm border border-[#e5e7eb]">
         {/* Mobile Card View */}
         <div className="block md:hidden">
           <div className="p-4 space-y-4">
@@ -673,7 +579,7 @@ const SystemAuditLogs = () => {
                           setSelectedLog(log);
                           setShowLogDetail(true);
                         }}
-                        className="text-[#2563eb] hover:text-[#1e40af]"
+                        className="text-[#2563eb] hover:text-[#1e40af] hover:scale-110 transition-transform"
                       >
                         <IconEye className="w-4 h-4" />
                       </button>
@@ -682,16 +588,14 @@ const SystemAuditLogs = () => {
                       <div className="flex items-center space-x-2">
                         {log.user ? (
                           <>
-                            <img
-                              className="h-6 w-6 rounded-full"
-                              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(log.user.fullName)}&background=2563eb&color=fff`}
-                              alt={log.user.fullName}
-                            />
+                            <div className={`h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-semibold ${getAvatarColor(log.user.fullName)}`}>
+                              {getInitials(log.user.fullName)}
+                            </div>
                             <span className="text-sm text-[#111827]">{log.user.fullName}</span>
                           </>
                         ) : (
                           <>
-                            <div className="h-6 w-6 rounded-full bg-[#e5e7eb] flex items-center justify-center">
+                            <div className="h-6 w-6 rounded-full bg-[#f3f4f6] flex items-center justify-center">
                               <IconShield className="w-3 h-3 text-[#6b7280]" />
                             </div>
                             <span className="text-sm text-[#111827]">System</span>
@@ -704,10 +608,10 @@ const SystemAuditLogs = () => {
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="flex space-x-2">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getSeverityColor(log.severity || 'low')}`}>
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-md ${getSeverityStyles(log.severity || 'low')}`}>
                           {(log.severity || 'LOW').toUpperCase()}
                         </span>
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(log.status || 'success')}`}>
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-md ${getStatusStyles(log.status || 'success')}`}>
                           {(log.status || 'SUCCESS').toUpperCase()}
                         </span>
                       </div>
@@ -792,34 +696,31 @@ const SystemAuditLogs = () => {
                 auditLogs.map((log) => {
                   const ActionIcon = getActionIcon(log.action);
                   return (
-                    <tr key={log._id} className="hover:bg-[#f9fafb]">
-                      <td className="px-3 lg:px-6 py-4">
-                        <div className="text-sm text-[#111827]">
+                    <tr key={log._id} className="hover:bg-[#f9fafb] transition-colors duration-150">
+                      <td className="px-3 lg:px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5 text-sm text-[#111827]">
+                          <IconClock className="w-3.5 h-3.5 text-[#9ca3af] flex-shrink-0" />
                           {new Date(log.createdAt).toLocaleDateString()}
                         </div>
-                        <div className="text-xs text-[#6b7280]">
+                        <div className="text-xs text-[#6b7280] ml-5">
                           {new Date(log.createdAt).toLocaleTimeString()}
                         </div>
                       </td>
                       <td className="px-3 lg:px-6 py-4">
                         {log.user ? (
                           <div className="flex items-center">
-                            <div className="flex-shrink-0 h-6 lg:h-8 w-6 lg:w-8">
-                              <img
-                                className="h-6 lg:h-8 w-6 lg:w-8 rounded-full"
-                                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(log.user.fullName)}&background=2563eb&color=fff`}
-                                alt={log.user.fullName}
-                              />
+                            <div className={`flex-shrink-0 h-7 lg:h-8 w-7 lg:w-8 rounded-full flex items-center justify-center text-xs font-semibold ${getAvatarColor(log.user.fullName)}`}>
+                              {getInitials(log.user.fullName)}
                             </div>
-                            <div className="ml-2 lg:ml-3 min-w-0">
-                              <div className="text-xs lg:text-sm font-medium text-[#111827] truncate">{log.user.fullName}</div>
+                            <div className="ml-2 lg:ml-3 min-w-0 max-w-[120px] lg:max-w-[160px]">
+                              <div className="text-xs lg:text-sm font-medium text-[#111827] truncate" title={log.user.fullName}>{log.user.fullName}</div>
                               <div className="text-xs text-[#6b7280] truncate">{log.user.role}</div>
                             </div>
                           </div>
                         ) : (
                           <div className="flex items-center">
-                            <div className="flex-shrink-0 h-6 lg:h-8 w-6 lg:w-8">
-                              <div className="h-6 lg:h-8 w-6 lg:w-8 rounded-full bg-[#e5e7eb] flex items-center justify-center">
+                            <div className="flex-shrink-0 h-7 lg:h-8 w-7 lg:w-8">
+                              <div className="h-7 lg:h-8 w-7 lg:w-8 rounded-full bg-[#f3f4f6] flex items-center justify-center">
                                 <IconShield className="w-3 lg:w-4 h-3 lg:h-4 text-[#6b7280]" />
                               </div>
                             </div>
@@ -830,23 +731,23 @@ const SystemAuditLogs = () => {
                           </div>
                         )}
                       </td>
-                      <td className="px-3 lg:px-6 py-4">
-                        <div className="flex items-center space-x-1 lg:space-x-2">
+                      <td className="px-3 lg:px-6 py-4 max-w-[140px] lg:max-w-[200px]">
+                        <div className="flex items-center space-x-1 lg:space-x-2" title={log.action}>
                           <ActionIcon className="w-3 lg:w-4 h-3 lg:h-4 text-[#6b7280] flex-shrink-0" />
                           <span className="text-xs lg:text-sm font-medium text-[#111827] truncate">{log.action}</span>
                         </div>
                       </td>
-                      <td className="hidden lg:table-cell px-6 py-4">
-                        <div className="text-sm text-[#111827]">{log.resourceType || 'System'}</div>
+                      <td className="hidden lg:table-cell px-6 py-4 max-w-[160px]">
+                        <div className="text-sm text-[#111827] truncate">{log.resourceType || 'System'}</div>
                       </td>
                       <td className="px-3 lg:px-6 py-4">
-                        <span className={`inline-flex px-1.5 lg:px-2 py-1 text-xs font-semibold rounded-full ${getSeverityColor(log.severity || 'low')}`}>
+                        <span className={`inline-flex px-1.5 lg:px-2.5 py-1 text-xs font-semibold rounded-md ${getSeverityStyles(log.severity || 'low')}`}>
                           <span className="hidden lg:inline">{(log.severity || 'LOW').toUpperCase()}</span>
                           <span className="lg:hidden">{(log.severity || 'L')[0]}</span>
                         </span>
                       </td>
                       <td className="hidden lg:table-cell px-6 py-4">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(log.status || 'success')}`}>
+                        <span className={`inline-flex px-2.5 py-1 text-xs font-semibold rounded-md ${getStatusStyles(log.status || 'success')}`}>
                           {(log.status || 'SUCCESS').toUpperCase()}
                         </span>
                       </td>
@@ -856,7 +757,7 @@ const SystemAuditLogs = () => {
                             setSelectedLog(log);
                             setShowLogDetail(true);
                           }}
-                          className="text-[#2563eb] hover:text-[#1e40af] transition-colors"
+                          className="text-[#2563eb] hover:text-[#1e40af] hover:bg-blue-50 rounded-full p-1.5 hover:scale-110 transition-all duration-150 inline-flex"
                           title="View Details"
                         >
                           <IconEye className="w-4 h-4" />

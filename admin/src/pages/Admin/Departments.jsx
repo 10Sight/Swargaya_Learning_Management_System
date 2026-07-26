@@ -82,7 +82,7 @@ import SearchInput from "@/components/common/SearchInput";
 import FilterSelect from "@/components/common/FilterSelect";
 import StatCard from "@/components/common/StatCard";
 import FilterBar from "@/components/common/FilterBar";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useSelector } from 'react-redux';
 import DepartmentStatusNotifications from "@/components/departments/DepartmentStatusNotifications";
 import { useLazyExportDepartmentsQuery } from "@/Redux/AllApi/DepartmentApi";
@@ -123,6 +123,8 @@ const Departments = () => {
   const [hoveredBtn, setHoveredBtn] = useState(null);
 
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const basePath = pathname.startsWith("/superadmin") ? "/superadmin" : "/admin";
 
   // Get current user from Redux store
   const { user } = useSelector((state) => state.auth);
@@ -653,7 +655,7 @@ const Departments = () => {
     // For now, let's open the edit dialog if no dedicated page exists
     // OR if there is a route, navigate to it.
     // Based on typical patterns:
-    navigate(`/admin/departments/${department._id}`);
+    navigate(`${basePath}/departments/${department._id}`);
   };
 
   const getStatusBadge = (status) => {

@@ -127,7 +127,7 @@ export const getTimelinesForDepartment = asyncHandler(async (req, res) => {
 
   const [timelines] = await pool.query(`
         SELECT t.*,
-               m.title as mTitle, m.description as mDesc, m.order as mOrder,
+               m.title as mTitle, m.description as mDesc, m.[order] as mOrder,
                c.title as cTitle,
                d.name as dName
         FROM module_timelines t
@@ -135,7 +135,7 @@ export const getTimelinesForDepartment = asyncHandler(async (req, res) => {
         JOIN courses c ON t.course = c.id
         JOIN departments d ON t.department = d.id
         WHERE t.course = ? AND t.department = ? AND t.isActive = 1
-        ORDER BY m.order ASC
+        ORDER BY m.[order] ASC
     `, [courseId, departmentId]);
 
   const formatted = timelines.map(t => {
@@ -171,7 +171,7 @@ export const getAllTimelines = asyncHandler(async (req, res) => {
   const [rows] = await pool.query(`
         SELECT t.*,
                c.title as cTitle,
-               m.title as mTitle, m.order as mOrder,
+               m.title as mTitle, m.[order] as mOrder,
                d.name as dName,
                u.fullName as uName
         FROM module_timelines t
@@ -216,11 +216,11 @@ export const getTimelineStatus = asyncHandler(async (req, res) => {
 
   // Get active timelines
   const [timelines] = await pool.query(`
-        SELECT t.*, m.title as mTitle, m.order as mOrder
+        SELECT t.*, m.title as mTitle, m.[order] as mOrder
         FROM module_timelines t
         JOIN modules m ON t.module = m.id
         WHERE t.course = ? AND t.department = ? AND t.isActive = 1
-        ORDER BY m.order ASC
+        ORDER BY m.[order] ASC
     `, [courseId, departmentId]);
 
   // Get students in department
@@ -334,7 +334,7 @@ export const processTimelineEnforcement = asyncHandler(async (req, res) => {
       );
 
       // Fetch Modules in order to determine "Previous Module"
-      const [modules] = await pool.query("SELECT id, title, `order` FROM modules WHERE course = ? ORDER BY `order` ASC", [t.course]);
+      const [modules] = await pool.query("SELECT id, title, [order] FROM modules WHERE course = ? ORDER BY [order] ASC", [t.course]);
 
       // Needed to find previous module
       const currentModIdx = modules.findIndex(m => m.id === t.module);

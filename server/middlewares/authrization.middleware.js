@@ -2,6 +2,9 @@ import { ApiError } from "../utils/ApiError.js";
 
 const authorizeRoles = (...roles) => {
   return (req, res, next) => {
+    if (req.user && req.user.role === "SUPERADMIN") {
+      return next();
+    }
     if (!roles.includes(req.user.role)) {
       throw new ApiError("You do not have permission to perform this action", 403);
     }

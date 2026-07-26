@@ -59,6 +59,7 @@ export const {
     useCreateMachineMutation,
     useGetMachineByIdQuery,
     useGetMachinesByLineQuery,
+    useLazyGetMachinesByLineQuery,
     useUpdateMachineMutation,
     useDeleteMachineMutation,
 } = MachineApi;

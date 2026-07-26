@@ -4,11 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { IconBook, IconExternalLink, IconClock } from "@tabler/icons-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useGetActiveConfigQuery } from "@/Redux/AllApi/CourseLevelConfigApi";
 
 const DepartmentCourseCard = ({ course, departmentId }) => {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const basePath = pathname.startsWith("/superadmin") ? "/superadmin" : "/admin";
   const { data: configData } = useGetActiveConfigQuery();
   const activeLevels = configData?.data?.levels || [];
 
@@ -69,7 +71,7 @@ const DepartmentCourseCard = ({ course, departmentId }) => {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => navigate(`/admin/courses/${course._id}`)}
+          onClick={() => navigate(`${basePath}/courses/${course._id}`)}
         >
           <IconExternalLink className="h-4 w-4 mr-2" />
           View

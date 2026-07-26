@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useGetUserByIdQuery } from "@/Redux/AllApi/UserApi";
 import { useGetStudentProgressQuery } from "@/Redux/AllApi/ProgressApi";
 import { useGetStudentSubmissionsQuery } from "@/Redux/AllApi/SubmissionApi";
@@ -47,16 +47,37 @@ import {
   IconMail,
   IconPhone,
   IconRefresh,
+  IconBuilding,
+  IconRoute,
+  IconCpu,
+  IconCalendarOff,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
+const VALID_TABS = ["overview", "progress", "submissions", "quizzes", "ojt"];
+
 const StudentDetail = () => {
   const { studentId } = useParams();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState(
+    VALID_TABS.includes(tabFromUrl) ? tabFromUrl : "overview"
+  );
   const [viewAttemptId, setViewAttemptId] = useState(null);
   const [attemptModalOpen, setAttemptModalOpen] = useState(false);
+
+  // Keep the URL's ?tab= param in sync with the active tab, so refreshing
+  // (or sharing the link) lands back on the same tab.
+  const handleTabChange = (value) => {
+    setActiveTab(value);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("tab", value);
+      return next;
+    }, { replace: true });
+  };
 
   // OJT State
   const [selectedOjtId, setSelectedOjtId] = useState(null);
@@ -161,13 +182,17 @@ const StudentDetail = () => {
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      ACTIVE: { variant: "success", label: "Active", color: "text-[#15803d]" },
-      SUSPENDED: { variant: "destructive", label: "Suspended", color: "text-[#b91c1c]" },
-      PENDING: { variant: "warning", label: "Pending", color: "text-[#b45309]" },
-      BANNED: { variant: "destructive", label: "Banned", color: "text-[#b91c1c]" },
+      PRESENT: { variant: "success", label: "Present", color: "text-[#15803d]" },
+      ON_LEAVE: { variant: "warning", label: "On Leave", color: "text-[#b45309]" },
+      LEFT: { variant: "destructive", label: "Left", color: "text-[#b91c1c]" },
+      // Legacy values kept for backward compatibility with older records
+      ACTIVE: { variant: "success", label: "Present", color: "text-[#15803d]" },
+      SUSPENDED: { variant: "destructive", label: "Left", color: "text-[#b91c1c]" },
+      PENDING: { variant: "warning", label: "On Leave", color: "text-[#b45309]" },
+      BANNED: { variant: "destructive", label: "Left", color: "text-[#b91c1c]" },
     };
 
-    const config = statusConfig[status] || { variant: "secondary", label: status, color: "text-[#374151]" };
+    const config = statusConfig[status] || { variant: "secondary", label: status || "Unknown", color: "text-[#374151]" };
 
     return (
       <Badge variant={config.variant} className={`${config.color}`}>
@@ -394,25 +419,78 @@ const StudentDetail = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <IconCalendar className="h-4 w-4 text-muted-foreground" />
+              <IconBuilding className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-sm font-medium">Joined</p>
+                <p className="text-sm font-medium">Unit</p>
+                <p className="text-sm text-muted-foreground">{student.unit || "-"}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <IconSchool className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">Department</p>
                 <p className="text-sm text-muted-foreground">
-                  {new Date(student.createdAt).toLocaleDateString()}
+                  {student.department?.name || student.department || "No Department"}
                 </p>
               </div>
             </div>
-            {student.department && (
-              <div className="flex items-center gap-2">
-                <IconSchool className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-sm font-medium">Department</p>
-                  <p className="text-sm text-muted-foreground">
-                    {student.department.name || student.department}
-                  </p>
-                </div>
+            <div className="flex items-center gap-2">
+              <IconCalendar className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">Registered On</p>
+                <p className="text-sm text-muted-foreground">
+                  {student.createdAt ? new Date(student.createdAt).toLocaleDateString() : "-"}
+                </p>
               </div>
-            )}
+            </div>
+            <div className="flex items-center gap-2">
+              <IconCalendar className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">Joining Date</p>
+                <p className="text-sm text-muted-foreground">
+                  {student.doj ? new Date(student.doj).toLocaleDateString() : "-"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <IconCalendarOff className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">Leaving Date</p>
+                <p className="text-sm text-muted-foreground">
+                  {student.leavingDate ? new Date(student.leavingDate).toLocaleDateString() : "-"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <IconRoute className="h-4 w-4 text-muted-foreground mt-0.5" />
+              <div>
+                <p className="text-sm font-medium">Lines</p>
+                {Array.isArray(student.lines) && student.lines.length > 0 ? (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {student.lines.map((line) => (
+                      <Badge key={line.id} variant="outline">{line.name}</Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">-</p>
+                )}
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <IconCpu className="h-4 w-4 text-muted-foreground mt-0.5" />
+              <div>
+                <p className="text-sm font-medium">Machines</p>
+                {Array.isArray(student.machines) && student.machines.length > 0 ? (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {student.machines.map((machine) => (
+                      <Badge key={machine.id} variant="outline">{machine.name}</Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">-</p>
+                )}
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -473,7 +551,7 @@ const StudentDetail = () => {
       </div>
 
       {/* Main Content Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid grid-cols-2 md:grid-cols-5 mb-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="progress">Progress ({stats.totalCourses})</TabsTrigger>
@@ -578,7 +656,7 @@ const StudentDetail = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setActiveTab("submissions")}
+                        onClick={() => handleTabChange("submissions")}
                         className="w-full mt-2"
                       >
                         View All Submissions
@@ -622,7 +700,7 @@ const StudentDetail = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setActiveTab("quizzes")}
+                        onClick={() => handleTabChange("quizzes")}
                         className="w-full mt-2"
                       >
                         View All Attempts

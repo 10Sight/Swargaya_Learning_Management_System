@@ -1,6 +1,5 @@
 import { Router } from "express";
 import {
-    createDatabaseBackup,
     getBackupHistory,
     restoreFromBackup,
     deleteBackup,
@@ -21,9 +20,7 @@ router.use(verifyJWT);
 router.use(authorizeRoles("SUPERADMIN"));
 
 // === DATABASE BACKUP ROUTES ===
-
-// Create database backup
-router.post("/backup", createDatabaseBackup);
+// Backups are produced by a scheduled SQL Server job, not by this app — see getBackupHistory/restoreFromBackup
 
 // Get backup history
 router.get("/backup/history", getBackupHistory);

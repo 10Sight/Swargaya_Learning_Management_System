@@ -30,7 +30,7 @@ export const generateWelcomeEmail = (userData, loginUrl) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to 10Sight Learning Management System</title>
+    <title>Welcome to Marelli Motherson</title>
     <style>
         body {
             font-family: Arial, sans-serif;

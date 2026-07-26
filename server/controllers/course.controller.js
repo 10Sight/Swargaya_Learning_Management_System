@@ -69,6 +69,12 @@ export const createCourse = asyncHandler(async (req, res) => {
         throw new ApiError("Title and description are required", 400);
     }
 
+    // Resolve unit: ADMINs are always scoped to their own unit
+    let unit = req.body.unit || null;
+    if (req.user.role === 'ADMIN') {
+        unit = req.user.unit || null;
+    }
+
     const courseData = {
         title,
         description,
@@ -80,7 +86,8 @@ export const createCourse = asyncHandler(async (req, res) => {
         assignments: assignments || [],
         createdBy: req.user.id,
         status: 'DRAFT', // Default
-        students: []
+        students: [],
+        unit
     };
 
     const course = await Course.create(courseData);
@@ -181,6 +188,11 @@ export const updatedCourse = asyncHandler(async (req, res) => {
     Object.keys(req.body).forEach(k => {
         if (allowed.includes(k)) course[k] = req.body[k];
     });
+
+    // Unit can only be reassigned by SUPERADMIN; ADMIN-created courses stay scoped to their unit
+    if (req.user.role === "SUPERADMIN" && req.body.unit !== undefined) {
+        course.unit = req.body.unit || null;
+    }
 
     course.updatedBy = req.user.id; // if exists in schema
 

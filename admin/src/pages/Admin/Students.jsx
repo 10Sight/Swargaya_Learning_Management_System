@@ -14,6 +14,8 @@ import {
   useGetAllDepartmentsQuery,
   useAddStudentToDepartmentMutation,
 } from "@/Redux/AllApi/DepartmentApi";
+import { useGetLinesByDepartmentQuery } from "@/Redux/AllApi/LineApi";
+import { useLazyGetMachinesByLineQuery } from "@/Redux/AllApi/MachineApi";
 import {
   Table,
   TableBody,
@@ -71,6 +73,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Import reusable components
 import SearchInput from "@/components/common/SearchInput";
@@ -118,6 +121,9 @@ const Students = () => {
     status: "PRESENT",
     unit: "UNIT 1",
     doj: "",
+    department: "",
+    lines: [],
+    machines: [],
   });
   const [formErrors, setFormErrors] = useState({});
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -164,12 +170,19 @@ const Students = () => {
       refetchOnReconnect: false,
     }
   );
+  // Unit whose departments should populate the dialog currently in view:
+  // the "assign to department" dialog is scoped to the selected student's unit,
+  // while Add/Edit dialogs are scoped to whichever unit is chosen in the form.
+  const departmentUnitFilter = isDepartmentDialogOpen
+    ? selectedStudent?.unit
+    : formData.unit;
+
   const {
     data: departmentsData,
     isLoading: departmentsLoading,
     error: departmentsError,
   } = useGetAllDepartmentsQuery(
-    {},
+    departmentUnitFilter ? { unit: departmentUnitFilter } : {},
     {
       refetchOnFocus: false,
       refetchOnReconnect: false,
@@ -184,6 +197,116 @@ const Students = () => {
   const [triggerExportStudents, { isFetching: isExportingStudents }] = useLazyExportStudentsQuery();
   const totalPages = studentsData?.data?.totalPages || 1;
   const departments = departmentsData?.data?.departments || [];
+
+  // Lines available for the currently selected department (Add/Edit dialogs)
+  const { data: linesData, isFetching: linesLoading } = useGetLinesByDepartmentQuery(
+    formData.department,
+    { skip: !formData.department }
+  );
+  const availableLines = linesData?.data || [];
+
+  // Machines available for the currently selected lines (Add/Edit dialogs)
+  const [triggerGetMachinesByLine] = useLazyGetMachinesByLineQuery();
+  const [availableMachines, setAvailableMachines] = useState([]);
+  const [machinesLoading, setMachinesLoading] = useState(false);
+
+  const selectedLineIds = useMemo(
+    () => (formData.lines || []).map((l) => l.id),
+    [formData.lines]
+  );
+  const selectedLineIdsKey = selectedLineIds.join(",");
+
+  useEffect(() => {
+    if (selectedLineIds.length === 0) {
+      setAvailableMachines([]);
+      return;
+    }
+
+    let cancelled = false;
+    setMachinesLoading(true);
+
+    (async () => {
+      try {
+        const results = await Promise.all(
+          selectedLineIds.map((lineId) =>
+            triggerGetMachinesByLine(lineId)
+              .unwrap()
+              .then((res) => res?.data || [])
+              .catch(() => [])
+          )
+        );
+        if (cancelled) return;
+
+        const merged = results.flat();
+        const deduped = Array.from(new Map(merged.map((m) => [m.id, m])).values());
+        setAvailableMachines(deduped);
+
+        // Drop any previously-selected machines whose line is no longer selected
+        setFormData((prev) => ({
+          ...prev,
+          machines: (prev.machines || []).filter((m) =>
+            selectedLineIds.includes(m.lineId)
+          ),
+        }));
+      } finally {
+        if (!cancelled) setMachinesLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedLineIdsKey]);
+
+  const handleUnitChange = (value) => {
+    setFormData((prev) => ({
+      ...prev,
+      unit: value,
+      // Department/lines/machines are unit-scoped, so switching units invalidates them
+      department: "",
+      lines: [],
+      machines: [],
+    }));
+    setAvailableMachines([]);
+  };
+
+  const handleDepartmentChange = (value) => {
+    setFormData((prev) => ({
+      ...prev,
+      department: value,
+      lines: [],
+      machines: [],
+    }));
+    setAvailableMachines([]);
+  };
+
+  const toggleLineSelection = (line) => {
+    setFormData((prev) => {
+      const isSelected = (prev.lines || []).some((l) => l.id === line.id);
+      return {
+        ...prev,
+        lines: isSelected
+          ? prev.lines.filter((l) => l.id !== line.id)
+          : [...(prev.lines || []), { id: line.id, name: line.name }],
+      };
+    });
+  };
+
+  const toggleMachineSelection = (machine) => {
+    setFormData((prev) => {
+      const isSelected = (prev.machines || []).some((m) => m.id === machine.id);
+      return {
+        ...prev,
+        machines: isSelected
+          ? prev.machines.filter((m) => m.id !== machine.id)
+          : [
+              ...(prev.machines || []),
+              { id: machine.id, name: machine.name, lineId: machine.line },
+            ],
+      };
+    });
+  };
 
   // Filter options for reusable components
   const statusOptions = [
@@ -291,8 +414,12 @@ const Students = () => {
       status: "PRESENT",
       unit: isAdmin ? (currentUser?.unit || "UNIT 1") : "UNIT 1",
       doj: "",
+      department: "",
+      lines: [],
+      machines: [],
     });
     setFormErrors({});
+    setAvailableMachines([]);
   };
 
   useEffect(() => {
@@ -372,6 +499,9 @@ const Students = () => {
         role: "STUDENT",
         unit: formData.unit,
         doj: formData.doj,
+        department: formData.department || null,
+        lines: formData.lines || [],
+        machines: formData.machines || [],
       };
 
       const result = await registerStudent(studentData).unwrap();
@@ -440,6 +570,9 @@ const Students = () => {
         status: updateData.status,
         unit: updateData.unit,
         doj: updateData.doj,
+        department: updateData.department || null,
+        lines: updateData.lines || [],
+        machines: updateData.machines || [],
       };
 
       await updateStudent({
@@ -506,6 +639,7 @@ const Students = () => {
 
   const openEditDialog = (student) => {
     setSelectedStudent(student);
+    const departmentId = student.department?._id ?? student.department ?? "";
     setFormData({
       fullName: student.fullName,
       userName: student.userName,
@@ -515,6 +649,9 @@ const Students = () => {
       status: normalizeStatus(student.status),
       unit: student.unit || "UNIT 1",
       doj: student.doj ? new Date(student.doj).toISOString().split('T')[0] : "",
+      department: departmentId ? String(departmentId) : "",
+      lines: Array.isArray(student.lines) ? student.lines : [],
+      machines: Array.isArray(student.machines) ? student.machines : [],
     });
     setIsEditDialogOpen(true);
   };
@@ -908,7 +1045,10 @@ const Students = () => {
                 <TableHead>Status</TableHead>
                 <TableHead>Unit</TableHead>
                 <TableHead>Department</TableHead>
-                <TableHead>Created</TableHead>
+                <TableHead>Lines</TableHead>
+                <TableHead>Machines</TableHead>
+                <TableHead>Joining Date</TableHead>
+                <TableHead>Leaving Date</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -1015,13 +1155,43 @@ const Students = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-col">
-                        <span className="text-sm">
-                          {new Date(student.createdAt).toLocaleDateString()}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(student.createdAt).toLocaleTimeString()}
-                        </span>
+                      <div className="flex flex-wrap gap-1 max-w-[160px]">
+                        {Array.isArray(student.lines) && student.lines.length > 0 ? (
+                          student.lines.map((line) => (
+                            <Badge key={line.id} variant="outline">
+                              {line.name}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-sm text-muted-foreground">-</span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1 max-w-[160px]">
+                        {Array.isArray(student.machines) && student.machines.length > 0 ? (
+                          student.machines.map((machine) => (
+                            <Badge key={machine.id} variant="outline">
+                              {machine.name}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-sm text-muted-foreground">-</span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        {student.doj
+                          ? new Date(student.doj).toLocaleDateString()
+                          : "-"}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        {student.leavingDate
+                          ? new Date(student.leavingDate).toLocaleDateString()
+                          : "-"}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
@@ -1084,7 +1254,7 @@ const Students = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-10">
+                  <TableCell colSpan={10} className="text-center py-10">
                     <div className="flex flex-col items-center space-y-3">
                       <IconUsers className="h-12 w-12 text-muted-foreground/60" />
                       <p className="text-muted-foreground font-medium">
@@ -1258,9 +1428,7 @@ const Students = () => {
                 <Label htmlFor="edit-unit">Unit</Label>
                 <Select
                   value={formData.unit}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, unit: value })
-                  }
+                  onValueChange={handleUnitChange}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select unit" />
@@ -1290,6 +1458,86 @@ const Students = () => {
               {formErrors.doj && (
                 <p className="text-sm text-[#dc2626]">{formErrors.doj}</p>
               )}
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="department">Department</Label>
+              <Select
+                value={formData.department || ""}
+                onValueChange={handleDepartmentChange}
+              >
+                <SelectTrigger id="department">
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept._id} value={String(dept._id)}>
+                      {dept.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>Lines</Label>
+              <div className="max-h-40 overflow-y-auto rounded-md border p-2 space-y-1">
+                {!formData.department ? (
+                  <p className="text-sm text-muted-foreground px-1">
+                    Select a department first
+                  </p>
+                ) : linesLoading ? (
+                  <div className="flex justify-center py-3">
+                    <IconLoader className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                ) : availableLines.length > 0 ? (
+                  availableLines.map((line) => (
+                    <label
+                      key={line.id}
+                      className="flex items-center gap-2 px-1 py-1 rounded hover:bg-muted/50 cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={formData.lines?.some((l) => l.id === line.id)}
+                        onCheckedChange={() => toggleLineSelection(line)}
+                      />
+                      <span className="text-sm">{line.name}</span>
+                    </label>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground px-1">
+                    No lines found for this department
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label>Machines</Label>
+              <div className="max-h-40 overflow-y-auto rounded-md border p-2 space-y-1">
+                {!formData.lines?.length ? (
+                  <p className="text-sm text-muted-foreground px-1">
+                    Select at least one line first
+                  </p>
+                ) : machinesLoading ? (
+                  <div className="flex justify-center py-3">
+                    <IconLoader className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                ) : availableMachines.length > 0 ? (
+                  availableMachines.map((machine) => (
+                    <label
+                      key={machine.id}
+                      className="flex items-center gap-2 px-1 py-1 rounded hover:bg-muted/50 cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={formData.machines?.some((m) => m.id === machine.id)}
+                        onCheckedChange={() => toggleMachineSelection(machine)}
+                      />
+                      <span className="text-sm">{machine.name}</span>
+                    </label>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground px-1">
+                    No machines found for selected lines
+                  </p>
+                )}
+              </div>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="password">Password</Label>
@@ -1392,9 +1640,7 @@ const Students = () => {
                 <Label htmlFor="edit-unit-edit">Unit</Label>
                 <Select
                   value={formData.unit}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, unit: value })
-                  }
+                  onValueChange={handleUnitChange}
                 >
                   <SelectTrigger id="edit-unit-edit">
                     <SelectValue placeholder="Select unit" />
@@ -1416,6 +1662,86 @@ const Students = () => {
                 value={formData.doj}
                 onChange={handleInputChange}
               />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-department">Department</Label>
+              <Select
+                value={formData.department || ""}
+                onValueChange={handleDepartmentChange}
+              >
+                <SelectTrigger id="edit-department">
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept._id} value={String(dept._id)}>
+                      {dept.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>Lines</Label>
+              <div className="max-h-40 overflow-y-auto rounded-md border p-2 space-y-1">
+                {!formData.department ? (
+                  <p className="text-sm text-muted-foreground px-1">
+                    Select a department first
+                  </p>
+                ) : linesLoading ? (
+                  <div className="flex justify-center py-3">
+                    <IconLoader className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                ) : availableLines.length > 0 ? (
+                  availableLines.map((line) => (
+                    <label
+                      key={line.id}
+                      className="flex items-center gap-2 px-1 py-1 rounded hover:bg-muted/50 cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={formData.lines?.some((l) => l.id === line.id)}
+                        onCheckedChange={() => toggleLineSelection(line)}
+                      />
+                      <span className="text-sm">{line.name}</span>
+                    </label>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground px-1">
+                    No lines found for this department
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label>Machines</Label>
+              <div className="max-h-40 overflow-y-auto rounded-md border p-2 space-y-1">
+                {!formData.lines?.length ? (
+                  <p className="text-sm text-muted-foreground px-1">
+                    Select at least one line first
+                  </p>
+                ) : machinesLoading ? (
+                  <div className="flex justify-center py-3">
+                    <IconLoader className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                ) : availableMachines.length > 0 ? (
+                  availableMachines.map((machine) => (
+                    <label
+                      key={machine.id}
+                      className="flex items-center gap-2 px-1 py-1 rounded hover:bg-muted/50 cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={formData.machines?.some((m) => m.id === machine.id)}
+                        onCheckedChange={() => toggleMachineSelection(machine)}
+                      />
+                      <span className="text-sm">{machine.name}</span>
+                    </label>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground px-1">
+                    No machines found for selected lines
+                  </p>
+                )}
+              </div>
             </div>
           </div>
           <DialogFooter>

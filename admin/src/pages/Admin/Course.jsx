@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useSelector } from "react-redux";
 import {
   useGetCoursesQuery,
   useDeleteCourseMutation,
@@ -10,6 +11,7 @@ import { useLazyExportCoursesQuery } from "@/Redux/AllApi/CourseApi";
 import {
   useGetActiveConfigQuery
 } from "@/Redux/AllApi/CourseLevelConfigApi";
+import { useGetAllUnitsQuery } from "@/Redux/AllApi/UnitApi";
 import {
   Table,
   TableBody,
@@ -84,6 +86,16 @@ import FilterBar from "@/components/common/FilterBar";
 
 const Course = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const basePath = useMemo(() => {
+    if (location.pathname.startsWith("/superadmin")) return "/superadmin";
+    if (location.pathname.startsWith("/instructor")) return "/instructor";
+    return "/admin";
+  }, [location.pathname]);
+  const { user } = useSelector((state) => state.auth);
+  const isSuperAdmin = user?.role === "SUPERADMIN";
+  const { data: unitsData } = useGetAllUnitsQuery(undefined, { skip: !isSuperAdmin });
+  const allUnits = Array.isArray(unitsData?.data) ? unitsData.data : [];
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -99,6 +111,7 @@ const Course = () => {
     category: "",
     difficulty: "L1",
     status: "DRAFT",
+    unit: "",
   });
   const [formErrors, setFormErrors] = useState({});
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -224,6 +237,7 @@ const Course = () => {
       category: "",
       difficulty: "L1",
       status: "DRAFT",
+      unit: "",
     });
     setFormErrors({});
   };
@@ -254,6 +268,7 @@ const Course = () => {
         category: formData.category.trim(),
         difficulty: formData.difficulty,
         status: formData.status,
+        unit: formData.unit,
       }).unwrap();
 
       showToast("success", "Course updated successfully!");
@@ -337,6 +352,7 @@ const Course = () => {
       category: course.category,
       difficulty: getNormalizedDifficulty(course.difficulty),
       status: course.status,
+      unit: course.unit || "",
     });
     setIsEditDialogOpen(true);
   };
@@ -575,7 +591,7 @@ const Course = () => {
           </TabsList>
 
           <Button
-            onClick={() => navigate("/admin/add-course")}
+            onClick={() => navigate(`${basePath}/add-course`)}
             className="bg-[#2563eb] hover:bg-[#1d4ed8] text-[#ffffff] shadow-lg hover:shadow-xl transition-all duration-300 w-full sm:w-auto"
           >
             <IconPlus className="h-4 w-4 mr-2" />
@@ -707,6 +723,7 @@ const Course = () => {
                   <TableHead>Category</TableHead>
                   <TableHead>Difficulty</TableHead>
                   <TableHead>Status</TableHead>
+                  {isSuperAdmin && <TableHead>Unit</TableHead>}
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -761,6 +778,15 @@ const Course = () => {
                           </SelectContent>
                         </Select>
                       </TableCell>
+                      {isSuperAdmin && (
+                        <TableCell>
+                          {course.unit ? (
+                            <Badge variant="outline" className="text-xs">{course.unit}</Badge>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      )}
                       <TableCell className="text-right">
                         <div className="flex justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <TooltipProvider>
@@ -810,7 +836,7 @@ const Course = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-10">
+                    <TableCell colSpan={isSuperAdmin ? 6 : 5} className="text-center py-10">
                       <div className="flex flex-col items-center space-y-3">
                         <IconBook className="h-12 w-12 text-[#9ca3af]/60" />
                         <p className="text-[#9ca3af] font-medium">
@@ -878,6 +904,9 @@ const Course = () => {
                           </Badge>
                           {getDifficultyBadge(course.difficulty)}
                           {getStatusBadge(course.status)}
+                          {isSuperAdmin && course.unit && (
+                            <Badge variant="outline" className="text-xs">{course.unit}</Badge>
+                          )}
                         </div>
 
                         <div className="flex items-center justify-between pt-2 border-t border-[#f3f4f6]">
@@ -1084,6 +1113,30 @@ const Course = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            {isSuperAdmin && (
+              <div className="grid gap-2">
+                <Label htmlFor="edit-unit">Unit</Label>
+                <Select
+                  value={formData.unit || "none"}
+                  onValueChange={(v) =>
+                    setFormData((prev) => ({ ...prev, unit: v === "none" ? "" : v }))
+                  }
+                >
+                  <SelectTrigger id="edit-unit">
+                    <SelectValue placeholder="Select unit (Global if none)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Global (No unit)</SelectItem>
+                    {allUnits.map((u) => (
+                      <SelectItem key={u._id || u.id} value={u.title}>
+                        {u.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button

@@ -1,5 +1,5 @@
 {
-  "name": "10Sight Learning Management System",
+  "name": "Marelli Motherson",
   "short_name": "10Sight LMS",
   "description": "Complete learning management system for students and instructors",
   "start_url": "/",
@@ -9,7 +9,10 @@
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "en",
-  "categories": ["education", "productivity"],
+  "categories": [
+    "education",
+    "productivity"
+  ],
   "screenshots": [
     {
       "src": "/icons/screenshot-wide.png",
@@ -123,8 +126,12 @@
     {
       "action": "/open-file",
       "accept": {
-        "application/pdf": [".pdf"],
-        "text/plain": [".txt"]
+        "application/pdf": [
+          ".pdf"
+        ],
+        "text/plain": [
+          ".txt"
+        ]
       }
     }
   ]

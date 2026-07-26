@@ -5,10 +5,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { IconUser, IconMail, IconPhone, IconPencil } from "@tabler/icons-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const DepartmentInstructorCard = ({ instructor, instructors, departmentId }) => {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const basePath = pathname.startsWith("/superadmin") ? "/superadmin" : "/admin";
 
   if (!instructor && (!instructors || instructors.length === 0)) {
     return (
@@ -25,7 +27,7 @@ const DepartmentInstructorCard = ({ instructor, instructors, departmentId }) => 
               No instructor assigned to this department
             </div>
             <Button
-              onClick={() => navigate(`/departments?assignInstructor=${departmentId}`)}
+              onClick={() => navigate(`${basePath}/departments?assignInstructor=${departmentId}`)}
             >
               Assign Instructor
             </Button>
@@ -47,7 +49,7 @@ const DepartmentInstructorCard = ({ instructor, instructors, departmentId }) => 
         <Button
           variant="outline"
           size="sm"
-          onClick={() => navigate(`/departments?assignInstructor=${departmentId}`)}
+          onClick={() => navigate(`${basePath}/departments?assignInstructor=${departmentId}`)}
         >
           <IconPencil className="h-4 w-4 mr-2" />
           Manage

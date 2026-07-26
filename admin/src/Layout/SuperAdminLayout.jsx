@@ -25,12 +25,9 @@ import {
   IconUser,
   IconSettings,
   IconDatabase,
-  IconShield,
-  IconReport,
   IconTrash,
   IconFileAnalytics,
   IconServerBolt,
-  IconBulb,
   IconDownload,
   IconClock,
   IconLayersIntersect,
@@ -56,7 +53,6 @@ const tabs = [
       { link: "/superadmin/trainers", labelKey: "nav.instructors", icon: IconUser },
       { link: "/superadmin/employees", labelKey: "nav.students", icon: IconUsers },
       { link: "/superadmin/soft-deleted-users", labelKey: "nav.deletedUsers", icon: IconTrash },
-      { link: "/superadmin/roles-permissions", labelKey: "nav.rolesPermissions", icon: IconShield },
     ]
   },
   {
@@ -67,7 +63,6 @@ const tabs = [
       { link: "/superadmin/module-timelines", labelKey: "nav.moduleTimelines", icon: IconClock },
       { link: "/superadmin/course-level-settings", labelKey: "nav.courseLevelSettings", icon: IconLayersIntersect },
       { link: "/superadmin/student-levels", labelKey: "nav.studentLevels", icon: IconSettings },
-      { link: "/superadmin/certificates", labelKey: "nav.certificates", icon: IconCertificate },
     ]
   },
   {
@@ -75,8 +70,6 @@ const tabs = [
     items: [
       { link: "/superadmin/units", label: "Manage Units", icon: IconBuilding },
       { link: "/superadmin/audit-logs", labelKey: "nav.auditLogs", icon: IconFileAnalytics },
-      { link: "/superadmin/system-settings", labelKey: "nav.systemSettings", icon: IconSettings },
-      { link: "/superadmin/analytics-reports", labelKey: "nav.analyticsReports", icon: IconReport },
       { link: "/superadmin/system-monitoring", labelKey: "nav.systemHealth", icon: IconServerBolt },
     ]
   },
@@ -84,7 +77,6 @@ const tabs = [
     category: "Advanced Operations",
     items: [
       { link: "/superadmin/data-management", labelKey: "nav.dataManagement", icon: IconDatabase },
-      { link: "/superadmin/bulk-operations", labelKey: "nav.bulkOperations", icon: IconBulb },
     ]
   },
 ];

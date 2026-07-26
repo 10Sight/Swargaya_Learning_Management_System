@@ -7,10 +7,10 @@ export const authApi = createApi({
     tagTypes: ['Auth', 'User'],
     endpoints: (builder) => ({
         userRegister: builder.mutation({
-            query: ({ fullName, userName, email, phoneNumber, role = "STUDENT", password, unit }) => ({
+            query: ({ fullName, userName, email, phoneNumber, role = "STUDENT", password, unit, doj, dob, department, lines, machines }) => ({
                 url: "/api/v1/auth/register",
                 method: "POST",
-                data: { userName, fullName, email, phoneNumber, role, password, unit }
+                data: { userName, fullName, email, phoneNumber, role, password, unit, doj, dob, department, lines, machines }
             }),
             invalidatesTags: ['User'],
         }),

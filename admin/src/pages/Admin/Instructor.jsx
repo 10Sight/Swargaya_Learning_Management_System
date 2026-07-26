@@ -10,6 +10,8 @@ import {
   useGetAllDepartmentsQuery,
   useAssignInstructorMutation,
 } from "@/Redux/AllApi/DepartmentApi";
+import { useGetLinesByDepartmentQuery } from "@/Redux/AllApi/LineApi";
+import { useLazyGetMachinesByLineQuery } from "@/Redux/AllApi/MachineApi";
 import {
   Table,
   TableBody,
@@ -51,6 +53,8 @@ import {
   IconRefresh,
   IconInfoCircle,
   IconExternalLink,
+  IconRoute,
+  IconCpu,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import {
@@ -69,6 +73,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Import reusable components
 import SearchInput from "@/components/common/SearchInput";
@@ -89,6 +94,11 @@ const Instructor = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDepartmentDialogOpen, setIsDepartmentDialogOpen] = useState(false);
+  const [isLinesMachinesDialogOpen, setIsLinesMachinesDialogOpen] = useState(false);
+  const [lmFormData, setLmFormData] = useState({ department: "", lines: [], machines: [] });
+  const [lmAvailableMachines, setLmAvailableMachines] = useState([]);
+  const [lmMachinesLoading, setLmMachinesLoading] = useState(false);
+  const [isLmSubmitting, setIsLmSubmitting] = useState(false);
   const [selectedInstructor, setSelectedInstructor] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastToastId, setLastToastId] = useState(null);
@@ -210,6 +220,141 @@ const Instructor = () => {
 
     return map;
   }, [departments]);
+
+  // Lines available for whichever department is selected in the Assign Lines/Machines dialog
+  const { data: lmLinesData, isFetching: lmLinesLoading } = useGetLinesByDepartmentQuery(
+    lmFormData.department,
+    { skip: !lmFormData.department }
+  );
+  const lmAvailableLines = lmLinesData?.data || [];
+
+  // Machines available for the lines currently selected under the selected department
+  const [triggerGetMachinesByLine] = useLazyGetMachinesByLineQuery();
+  const lmSelectedLineIdsForDept = useMemo(
+    () =>
+      (lmFormData.lines || [])
+        .filter((l) => l.departmentId === lmFormData.department)
+        .map((l) => l.id),
+    [lmFormData.lines, lmFormData.department]
+  );
+  const lmSelectedLineIdsKey = lmSelectedLineIdsForDept.join(",");
+
+  useEffect(() => {
+    if (lmSelectedLineIdsForDept.length === 0) {
+      setLmAvailableMachines([]);
+      return;
+    }
+
+    let cancelled = false;
+    setLmMachinesLoading(true);
+
+    (async () => {
+      try {
+        const results = await Promise.all(
+          lmSelectedLineIdsForDept.map((lineId) =>
+            triggerGetMachinesByLine(lineId)
+              .unwrap()
+              .then((res) => res?.data || [])
+              .catch(() => [])
+          )
+        );
+        if (cancelled) return;
+
+        const merged = results.flat();
+        const deduped = Array.from(new Map(merged.map((m) => [m.id, m])).values());
+        setLmAvailableMachines(deduped);
+      } finally {
+        if (!cancelled) setLmMachinesLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lmSelectedLineIdsKey]);
+
+  const openLinesMachinesDialog = (instructor) => {
+    setSelectedInstructor(instructor);
+    setLmFormData({
+      department: "",
+      lines: Array.isArray(instructor.lines) ? [...instructor.lines] : [],
+      machines: Array.isArray(instructor.machines) ? [...instructor.machines] : [],
+    });
+    setIsLinesMachinesDialogOpen(true);
+  };
+
+  const handleLmDepartmentChange = (value) => {
+    setLmFormData((prev) => ({ ...prev, department: value }));
+  };
+
+  const toggleLmLineSelection = (line) => {
+    setLmFormData((prev) => {
+      const isSelected = (prev.lines || []).some((l) => l.id === line.id);
+      if (isSelected) {
+        return {
+          ...prev,
+          lines: prev.lines.filter((l) => l.id !== line.id),
+          machines: (prev.machines || []).filter((m) => m.lineId !== line.id),
+        };
+      }
+      return {
+        ...prev,
+        lines: [...(prev.lines || []), { id: line.id, name: line.name, departmentId: prev.department }],
+      };
+    });
+  };
+
+  const toggleLmMachineSelection = (machine) => {
+    setLmFormData((prev) => {
+      const isSelected = (prev.machines || []).some((m) => m.id === machine.id);
+      return {
+        ...prev,
+        machines: isSelected
+          ? prev.machines.filter((m) => m.id !== machine.id)
+          : [...(prev.machines || []), { id: machine.id, name: machine.name, lineId: machine.line }],
+      };
+    });
+  };
+
+  const removeLmLine = (lineId) => {
+    setLmFormData((prev) => ({
+      ...prev,
+      lines: prev.lines.filter((l) => l.id !== lineId),
+      machines: (prev.machines || []).filter((m) => m.lineId !== lineId),
+    }));
+  };
+
+  const removeLmMachine = (machineId) => {
+    setLmFormData((prev) => ({
+      ...prev,
+      machines: prev.machines.filter((m) => m.id !== machineId),
+    }));
+  };
+
+  const handleSaveLinesMachines = async () => {
+    if (isLmSubmitting) return;
+    setIsLmSubmitting(true);
+    try {
+      await updateInstructor({
+        id: selectedInstructor._id,
+        lines: lmFormData.lines,
+        machines: lmFormData.machines,
+      }).unwrap();
+
+      showToast("success", "Lines & machines updated successfully!");
+      setIsLinesMachinesDialogOpen(false);
+      setSelectedInstructor(null);
+      refetch();
+    } catch (error) {
+      console.error("Update lines/machines error:", error);
+      const errorMessage =
+        error?.data?.message || error?.message || "Failed to update lines & machines";
+      showToast("error", errorMessage);
+    } finally {
+      setIsLmSubmitting(false);
+    }
+  };
 
   // Filter options for reusable components
   const statusOptions = [
@@ -919,7 +1064,10 @@ const Instructor = () => {
                 <TableHead>Status</TableHead>
                 <TableHead>Unit</TableHead>
                 <TableHead>Department</TableHead>
-                <TableHead>Created</TableHead>
+                <TableHead>Lines</TableHead>
+                <TableHead>Machines</TableHead>
+                <TableHead>Joining Date</TableHead>
+                <TableHead>Leaving Date</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -1034,13 +1182,71 @@ const Instructor = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-col">
-                        <span className="text-sm">
-                          {new Date(instructor.createdAt).toLocaleDateString()}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(instructor.createdAt).toLocaleTimeString()}
-                        </span>
+                      <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap gap-1 max-w-[160px]">
+                          {Array.isArray(instructor.lines) && instructor.lines.length > 0 ? (
+                            instructor.lines.map((line) => (
+                              <Badge key={line.id} variant="outline">
+                                {line.name}
+                              </Badge>
+                            ))
+                          ) : (
+                            <span className="text-sm text-muted-foreground">-</span>
+                          )}
+                        </div>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation(); // Prevent row click
+                                  openLinesMachinesDialog(instructor);
+                                }}
+                                className="h-7 w-7 p-0 transition-opacity"
+                                style={{
+                                  opacity: 0,
+                                  backgroundColor: hoveredBtn === `lm-${instructor._id}` ? '#f1f5f9' : 'transparent'
+                                }}
+                                onMouseEnter={() => setHoveredBtn(`lm-${instructor._id}`)}
+                                onMouseLeave={() => setHoveredBtn(null)}
+                              >
+                                <IconPencil className="h-3 w-3" style={{ color: '#64748b' }} />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Assign lines & machines</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1 max-w-[160px]">
+                        {Array.isArray(instructor.machines) && instructor.machines.length > 0 ? (
+                          instructor.machines.map((machine) => (
+                            <Badge key={machine.id} variant="outline">
+                              {machine.name}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-sm text-muted-foreground">-</span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        {instructor.doj
+                          ? new Date(instructor.doj).toLocaleDateString()
+                          : "-"}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        {instructor.leavingDate
+                          ? new Date(instructor.leavingDate).toLocaleDateString()
+                          : "-"}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
@@ -1103,7 +1309,7 @@ const Instructor = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-10">
+                  <TableCell colSpan={10} className="text-center py-10">
                     <div className="flex flex-col items-center space-y-3">
                       <IconUsers className="h-12 w-12 text-muted-foreground/60" />
                       <p className="text-muted-foreground font-medium">
@@ -1637,6 +1843,175 @@ const Instructor = () => {
               }}
             >
               Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Lines & Machines Dialog */}
+      <Dialog open={isLinesMachinesDialogOpen} onOpenChange={setIsLinesMachinesDialogOpen}>
+        <DialogContent className="sm:max-w-[550px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <IconRoute className="h-5 w-5" />
+              Assign Lines & Machines
+            </DialogTitle>
+            <DialogDescription>
+              Manage lines and machines for <strong>{selectedInstructor?.fullName}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>Currently Assigned</Label>
+              <div className="rounded-md border p-3 space-y-3">
+                {(lmFormData.lines?.length > 0 || lmFormData.machines?.length > 0) ? (
+                  <>
+                    {lmFormData.lines?.length > 0 && (
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                          <IconRoute className="h-3 w-3" /> Lines
+                        </p>
+                        <div className="flex flex-wrap gap-1">
+                          {lmFormData.lines.map((line) => (
+                            <Badge key={line.id} variant="secondary" className="flex items-center gap-1">
+                              {line.name}
+                              <button
+                                type="button"
+                                onClick={() => removeLmLine(line.id)}
+                                className="ml-1 hover:text-[#dc2626]"
+                              >
+                                <IconX className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {lmFormData.machines?.length > 0 && (
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                          <IconCpu className="h-3 w-3" /> Machines
+                        </p>
+                        <div className="flex flex-wrap gap-1">
+                          {lmFormData.machines.map((machine) => (
+                            <Badge key={machine.id} variant="secondary" className="flex items-center gap-1">
+                              {machine.name}
+                              <button
+                                type="button"
+                                onClick={() => removeLmMachine(machine.id)}
+                                className="ml-1 hover:text-[#dc2626]"
+                              >
+                                <IconX className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No lines or machines assigned yet</p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="lm-department">Add More — Department</Label>
+              <Select value={lmFormData.department || ""} onValueChange={handleLmDepartmentChange}>
+                <SelectTrigger id="lm-department">
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept._id} value={String(dept._id)}>
+                      {dept.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Lines</Label>
+              <div className="max-h-40 overflow-y-auto rounded-md border p-2 space-y-1">
+                {!lmFormData.department ? (
+                  <p className="text-sm text-muted-foreground px-1">
+                    Select a department first
+                  </p>
+                ) : lmLinesLoading ? (
+                  <div className="flex justify-center py-3">
+                    <IconLoader className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                ) : lmAvailableLines.length > 0 ? (
+                  lmAvailableLines.map((line) => (
+                    <label
+                      key={line.id}
+                      className="flex items-center gap-2 px-1 py-1 rounded hover:bg-muted/50 cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={lmFormData.lines?.some((l) => l.id === line.id)}
+                        onCheckedChange={() => toggleLmLineSelection(line)}
+                      />
+                      <span className="text-sm">{line.name}</span>
+                    </label>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground px-1">
+                    No lines found for this department
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Machines</Label>
+              <div className="max-h-40 overflow-y-auto rounded-md border p-2 space-y-1">
+                {lmSelectedLineIdsForDept.length === 0 ? (
+                  <p className="text-sm text-muted-foreground px-1">
+                    Select at least one line first
+                  </p>
+                ) : lmMachinesLoading ? (
+                  <div className="flex justify-center py-3">
+                    <IconLoader className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                ) : lmAvailableMachines.length > 0 ? (
+                  lmAvailableMachines.map((machine) => (
+                    <label
+                      key={machine.id}
+                      className="flex items-center gap-2 px-1 py-1 rounded hover:bg-muted/50 cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={lmFormData.machines?.some((m) => m.id === machine.id)}
+                        onCheckedChange={() => toggleLmMachineSelection(machine)}
+                      />
+                      <span className="text-sm">{machine.name}</span>
+                    </label>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground px-1">
+                    No machines found for selected lines
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsLinesMachinesDialogOpen(false);
+                setSelectedInstructor(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveLinesMachines}
+              disabled={isLmSubmitting}
+              className="gap-2"
+            >
+              {isLmSubmitting && <IconLoader className="h-4 w-4 animate-spin" />}
+              {isLmSubmitting ? "Saving..." : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>

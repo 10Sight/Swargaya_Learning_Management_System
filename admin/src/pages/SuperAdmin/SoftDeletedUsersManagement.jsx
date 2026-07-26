@@ -124,6 +124,17 @@ const SoftDeletedUsersManagement = () => {
     }
   };
 
+  const getRoleLabel = (role) => {
+    switch (role) {
+      case "STUDENT":
+        return "Employee";
+      case "INSTRUCTOR":
+        return "Trainer";
+      default:
+        return role;
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case "ACTIVE":
@@ -232,8 +243,8 @@ const SoftDeletedUsersManagement = () => {
                 <option value="">All Roles</option>
                 <option value="SUPERADMIN">Super Admin</option>
                 <option value="ADMIN">Admin</option>
-                <option value="INSTRUCTOR">Instructor</option>
-                <option value="STUDENT">Student</option>
+                <option value="INSTRUCTOR">Trainer</option>
+                <option value="STUDENT">Employee</option>
               </select>
             </div>
 
@@ -339,7 +350,7 @@ const SoftDeletedUsersManagement = () => {
         <div className="bg-white rounded-lg shadow-sm border border-[#e5e7eb] p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-[#4b5563]">Students</p>
+              <p className="text-sm font-medium text-[#4b5563]">Employees</p>
               <p className="text-2xl font-bold text-[#111827]">
                 {deletedUsers.filter(u => u.role === 'STUDENT').length}
               </p>
@@ -351,7 +362,7 @@ const SoftDeletedUsersManagement = () => {
         <div className="bg-white rounded-lg shadow-sm border border-[#e5e7eb] p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-[#4b5563]">Instructors</p>
+              <p className="text-sm font-medium text-[#4b5563]">Trainers</p>
               <p className="text-2xl font-bold text-[#111827]">
                 {deletedUsers.filter(u => u.role === 'INSTRUCTOR').length}
               </p>
@@ -408,6 +419,21 @@ const SoftDeletedUsersManagement = () => {
                   Previous Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
+                  Department
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
+                  Lines
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
+                  Machines
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
+                  Joining Date
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
+                  Leaving Date
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
                   Deleted Date
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
@@ -421,7 +447,7 @@ const SoftDeletedUsersManagement = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {isLoading ? (
                 <tr>
-                  <td colSpan="8" className="px-6 py-8 text-center">
+                  <td colSpan="13" className="px-6 py-8 text-center">
                     <div className="flex justify-center">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2563eb]"></div>
                     </div>
@@ -429,7 +455,7 @@ const SoftDeletedUsersManagement = () => {
                 </tr>
               ) : isError ? (
                 <tr>
-                  <td colSpan="8" className="px-6 py-8 text-center">
+                  <td colSpan="13" className="px-6 py-8 text-center">
                     <div className="text-[#dc2626]">
                       Error loading deleted users: {error?.data?.message || error?.message}
                     </div>
@@ -437,7 +463,7 @@ const SoftDeletedUsersManagement = () => {
                 </tr>
               ) : deletedUsers.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="px-6 py-8 text-center">
+                  <td colSpan="13" className="px-6 py-8 text-center">
                     <div className="flex flex-col items-center">
                       <IconTrashOff className="w-12 h-12 text-[#9ca3af] mb-4" />
                       <h3 className="text-lg font-medium text-[#111827]">No Deleted Users</h3>
@@ -486,13 +512,60 @@ const SoftDeletedUsersManagement = () => {
                     </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(user.role)}`}>
-                        {user.role}
+                        {getRoleLabel(user.role)}
                       </span>
                     </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(user.status)}`}>
                         {user.status}
                       </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-sm text-[#374151]">
+                        {user.department?.name || "-"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-wrap gap-1 max-w-[160px]">
+                        {Array.isArray(user.lines) && user.lines.length > 0 ? (
+                          user.lines.map((line) => (
+                            <span
+                              key={line.id}
+                              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#f3f4f6] text-[#374151]"
+                            >
+                              {line.name}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-sm text-[#9ca3af]">-</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-wrap gap-1 max-w-[160px]">
+                        {Array.isArray(user.machines) && user.machines.length > 0 ? (
+                          user.machines.map((machine) => (
+                            <span
+                              key={machine.id}
+                              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#f3f4f6] text-[#374151]"
+                            >
+                              {machine.name}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-sm text-[#9ca3af]">-</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-[#111827]">
+                        {user.doj ? new Date(user.doj).toLocaleDateString() : "-"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-[#111827]">
+                        {user.leavingDate ? new Date(user.leavingDate).toLocaleDateString() : "-"}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-[#111827]">

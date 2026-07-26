@@ -1,6 +1,6 @@
 // src/pages/DepartmentDetail.jsx
 import React, { useState, useMemo } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation, useSearchParams } from "react-router-dom";
 import {
   useGetDepartmentByIdQuery,
   useGetDepartmentProgressQuery,
@@ -39,10 +39,29 @@ import {
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
+const VALID_TABS = ["overview", "progress", "submissions", "quizzes", "lines"];
+
 const DepartmentDetail = () => {
   const { departmentId } = useParams();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("overview");
+  const { pathname } = useLocation();
+  const basePath = pathname.startsWith("/superadmin") ? "/superadmin" : "/admin";
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState(
+    VALID_TABS.includes(tabFromUrl) ? tabFromUrl : "overview"
+  );
+
+  // Keep the URL's ?tab= param in sync with the active tab, so refreshing
+  // (or sharing the link) lands back on the same tab.
+  const handleTabChange = (value) => {
+    setActiveTab(value);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("tab", value);
+      return next;
+    }, { replace: true });
+  };
 
   // API Queries
   const {
@@ -152,7 +171,7 @@ const DepartmentDetail = () => {
           </p>
           <div className="flex gap-3">
             <Button
-              onClick={() => navigate("/departments")}
+              onClick={() => navigate(`${basePath}/departments`)}
               variant="outline"
               className="gap-2"
             >
@@ -177,7 +196,7 @@ const DepartmentDetail = () => {
             Department not found
           </div>
           <Button
-            onClick={() => navigate("/departments")}
+            onClick={() => navigate(`${basePath}/departments`)}
             variant="outline"
             className="gap-2"
           >
@@ -196,7 +215,7 @@ const DepartmentDetail = () => {
         <div className="flex items-center gap-4">
           <Button
             variant="outline"
-            onClick={() => navigate("/departments")}
+            onClick={() => navigate(`${basePath}/departments`)}
             className="gap-2"
           >
             <IconArrowLeft className="h-4 w-4" />
@@ -275,7 +294,7 @@ const DepartmentDetail = () => {
       </div>
 
       {/* Main Content Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid grid-cols-2 md:grid-cols-5 mb-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="progress">Progress ({enhancedStats.studentsWithProgress})</TabsTrigger>
@@ -347,7 +366,7 @@ const DepartmentDetail = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => navigate(`/students/${student.slug || student._id}`)}
+                            onClick={() => navigate(`${basePath}/employees/${student.slug || student._id}`)}
                           >
                             <IconEye className="h-4 w-4" />
                           </Button>
@@ -412,7 +431,7 @@ const DepartmentDetail = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => navigate(`/students/${submission.student.slug || submission.student._id}`)}
+                          onClick={() => navigate(`${basePath}/employees/${submission.student.slug || submission.student._id}`)}
                         >
                           <IconEye className="h-4 w-4" />
                         </Button>
@@ -494,7 +513,7 @@ const DepartmentDetail = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => navigate(`/students/${attempt.student.slug || attempt.student._id}`)}
+                          onClick={() => navigate(`${basePath}/employees/${attempt.student.slug || attempt.student._id}`)}
                         >
                           <IconEye className="h-4 w-4" />
                         </Button>

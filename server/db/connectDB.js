@@ -2,11 +2,11 @@ import sql from "mssql";
 import logger from "../logger/winston.logger.js";
 import ENV from "../configs/env.config.js";
 
-const config = {
+const buildConfig = (database) => ({
     user: ENV.DB_USER,
     password: ENV.DB_PASSWORD,
     server: ENV.DB_HOST.split('\\')[0], // MMMPUNDBSER
-    database: ENV.DB_NAME,
+    database,
     options: {
         instanceName: ENV.DB_HOST.includes('\\')
             ? ENV.DB_HOST.split('\\')[1]
@@ -19,7 +19,9 @@ const config = {
         min: 0,
         idleTimeoutMillis: 30000
     }
-};
+});
+
+const config = buildConfig(ENV.DB_NAME);
 
 
 let poolConnection = null;
@@ -130,5 +132,5 @@ const connectDB = async () => {
     return connectionPromise;
 };
 
-export { promisePool as pool };
+export { promisePool as pool, buildConfig };
 export default connectDB;

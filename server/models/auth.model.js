@@ -30,14 +30,19 @@ class User {
         this.isDeleted = !!data.isDeleted;
         this.department = data.department;
         this.departments = typeof data.departments === 'string' ? JSON.parse(data.departments) : (data.departments || []);
+        this.lines = typeof data.lines === 'string' ? JSON.parse(data.lines) : (data.lines || []);
+        this.machines = typeof data.machines === 'string' ? JSON.parse(data.machines) : (data.machines || []);
         this.unit = data.unit;
         this.doj = data.doj ? new Date(data.doj) : null;
         this.dob = data.dob ? new Date(data.dob) : null;
+        this.leavingDate = data.leavingDate ? new Date(data.leavingDate) : null;
         this.createdAt = data.createdAt;
         this.updatedAt = data.updatedAt;
 
         // Internal tracking for password changes
         this._originalPassword = data.password;
+        // Internal tracking so save() only reacts to an actual status transition
+        this._originalStatus = this.status;
     }
 
     static async init() {
@@ -66,9 +71,12 @@ class User {
                     isDeleted BIT DEFAULT 0,
                     department NVARCHAR(255),
                     departments NVARCHAR(MAX),
+                    lines NVARCHAR(MAX),
+                    machines NVARCHAR(MAX),
                     unit NVARCHAR(50) NOT NULL,
                     doj DATETIME,
                     dob DATETIME,
+                    leavingDate DATETIME,
                     createdAt DATETIME DEFAULT GETDATE(),
                     updatedAt DATETIME DEFAULT GETDATE(),
                     CONSTRAINT unique_username UNIQUE (userName),
@@ -83,6 +91,27 @@ class User {
                 )
                 BEGIN
                     ALTER TABLE dbo.users ADD dob DATETIME NULL;
+                END
+                IF NOT EXISTS (
+                    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'lines'
+                )
+                BEGIN
+                    ALTER TABLE dbo.users ADD lines NVARCHAR(MAX) NULL;
+                END
+                IF NOT EXISTS (
+                    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'machines'
+                )
+                BEGIN
+                    ALTER TABLE dbo.users ADD machines NVARCHAR(MAX) NULL;
+                END
+                IF NOT EXISTS (
+                    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'leavingDate'
+                )
+                BEGIN
+                    ALTER TABLE dbo.users ADD leavingDate DATETIME NULL;
                 END
             END
         `;
@@ -114,7 +143,7 @@ class User {
             "fullName", "userName", "slug", "email", "phoneNumber", "password",
             "avatar", "refreshToken", "role", "currentLevel", "status", "isVerified",
             "enrolledCourses", "createdCourses", "lastLogin", "loginHistory",
-            "isDeleted", "department", "departments", "unit", "doj", "dob", "createdAt"
+            "isDeleted", "department", "departments", "lines", "machines", "unit", "doj", "dob", "createdAt"
         ];
 
         // Apply defaults if fields are missing in userData
@@ -127,7 +156,7 @@ class User {
 
         const values = fields.map(field => {
             let val = dataToInsert[field];
-            if (['avatar', 'enrolledCourses', 'createdCourses', 'loginHistory', 'departments'].includes(field)) {
+            if (['avatar', 'enrolledCourses', 'createdCourses', 'loginHistory', 'departments', 'lines', 'machines'].includes(field)) {
                 return JSON.stringify(val || (field === 'avatar' ? {} : []));
             }
             if (val === undefined) return null;
@@ -205,13 +234,24 @@ class User {
             this.password = await bcrypt.hash(this.password, 10);
         }
 
+        // Only react to an actual status transition, not every save() call
+        // (save() is also invoked for unrelated updates like login/logout/password reset)
+        if (this.status !== this._originalStatus) {
+            if (this.status === "LEFT") {
+                this.leavingDate = this.leavingDate || new Date();
+            } else if (this.status === "PRESENT") {
+                this.leavingDate = null;
+                this.doj = new Date();
+            }
+        }
+
         this.updatedAt = new Date(); // Manually update timestamp
 
         const fields = [
             "fullName", "userName", "slug", "email", "phoneNumber", "password",
             "avatar", "refreshToken", "role", "currentLevel", "status", "isVerified",
             "enrolledCourses", "createdCourses", "lastLogin", "loginHistory",
-            "isDeleted", "department", "departments", "unit", "doj", "dob", "resetPasswordToken", "resetPasswordExpiry", "updatedAt"
+            "isDeleted", "department", "departments", "lines", "machines", "unit", "doj", "dob", "leavingDate", "resetPasswordToken", "resetPasswordExpiry", "updatedAt"
         ];
 
         // Only update fields that are defined on the instance
@@ -219,7 +259,7 @@ class User {
         const setClause = definedFields.map(field => `${field} = ?`).join(", ");
         const values = definedFields.map(field => {
             const val = this[field];
-            if (['avatar', 'enrolledCourses', 'createdCourses', 'loginHistory', 'departments'].includes(field)) {
+            if (['avatar', 'enrolledCourses', 'createdCourses', 'loginHistory', 'departments', 'lines', 'machines'].includes(field)) {
                 return typeof val === 'object' ? JSON.stringify(val || (field === 'avatar' ? {} : [])) : val;
             }
             if (val === undefined) return null;
@@ -231,6 +271,7 @@ class User {
         await pool.query(`UPDATE users SET ${setClause} WHERE id = ?`, values);
 
         this._originalPassword = this.password;
+        this._originalStatus = this.status;
         return this;
     }
 

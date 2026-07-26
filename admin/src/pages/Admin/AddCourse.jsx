@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useMemo } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { useCreateCourseMutation } from "@/Redux/AllApi/CourseApi";
 import { useCreateModuleMutation } from "@/Redux/AllApi/moduleApi";
 import { useCreateQuizMutation } from "@/Redux/AllApi/QuizApi";
@@ -7,6 +8,7 @@ import { useCreateAssignmentMutation } from "@/Redux/AllApi/AssignmentApi";
 import { useCreateResourceMutation } from "@/Redux/AllApi/resourceApi"; // Added resource API import
 import { useGetAllInstructorsQuery } from "@/Redux/AllApi/InstructorApi";
 import { useGetActiveConfigQuery } from "@/Redux/AllApi/CourseLevelConfigApi";
+import { useGetAllUnitsQuery } from "@/Redux/AllApi/UnitApi";
 import { Button } from "@/components/ui/button";
 import { FormCard, FormInput, FormTextarea, FormSelect } from "@/components/form";
 import { CModuleForm } from "@/components/course/CModuleForm";
@@ -23,12 +25,23 @@ import { toast } from "sonner";
 
 const AddCourse = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const basePath = useMemo(() => {
+    if (location.pathname.startsWith("/superadmin")) return "/superadmin";
+    if (location.pathname.startsWith("/instructor")) return "/instructor";
+    return "/admin";
+  }, [location.pathname]);
   const [createCourse, { isLoading: isCreatingCourse }] = useCreateCourseMutation();
   const [createModule] = useCreateModuleMutation();
   const [createQuiz] = useCreateQuizMutation();
   const [createAssignment] = useCreateAssignmentMutation();
   const [createResource] = useCreateResourceMutation(); // Added resource mutation
   const { data: instructorsData } = useGetAllInstructorsQuery({});
+
+  const { user } = useSelector((state) => state.auth);
+  const isSuperAdmin = user?.role === "SUPERADMIN";
+  const { data: unitsData } = useGetAllUnitsQuery(undefined, { skip: !isSuperAdmin });
+  const allUnits = Array.isArray(unitsData?.data) ? unitsData.data : [];
 
   const instructors = instructorsData?.data?.users || [];
   const [isLoading, setIsLoading] = useState(false);
@@ -39,6 +52,7 @@ const AddCourse = () => {
     category: "",
     level: "L1",
     instructor: "",
+    unit: "",
   });
 
   const [modules, setModules] = useState([]);
@@ -408,7 +422,8 @@ const AddCourse = () => {
         description: formData.description,
         category: formData.category,
         level: formData.level,
-        instructor: formData.instructor
+        instructor: formData.instructor,
+        unit: formData.unit
       }).unwrap();
 
       const courseId = courseResponse.data.id || courseResponse.data._id;
@@ -481,7 +496,7 @@ const AddCourse = () => {
       await Promise.all(assignmentPromises);
 
       toast.success("Course created successfully!");
-      navigate("/admin/courses");
+      navigate(`${basePath}/courses`);
     } catch (error) {
       console.error("Create course error:", error);
       toast.error(error?.data?.message || "Failed to create course");
@@ -523,7 +538,7 @@ const AddCourse = () => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <button
-            onClick={() => navigate("/admin/courses")}
+            onClick={() => navigate(`${basePath}/courses`)}
             className="flex items-center text-sm text-muted-foreground hover:text-foreground mb-2 transition-colors"
           >
             <IconArrowLeft className="h-4 w-4 mr-1" />
@@ -536,7 +551,7 @@ const AddCourse = () => {
         </div>
         <Button
           variant="outline"
-          onClick={() => navigate("/admin/courses")}
+          onClick={() => navigate(`${basePath}/courses`)}
           className="gap-2"
         >
           <IconX className="h-4 w-4" />
@@ -610,6 +625,21 @@ const AddCourse = () => {
               placeholder="Select instructor"
               error={formErrors.instructor}
             />
+
+            {isSuperAdmin && (
+              <FormSelect
+                id="unit"
+                label="Unit"
+                optional
+                value={formData.unit || "none"}
+                onValueChange={(value) => handleSelectChange("unit", value === "none" ? "" : value)}
+                options={[
+                  { value: "none", label: "Global (No unit)" },
+                  ...allUnits.map((u) => ({ value: u.title, label: u.title })),
+                ]}
+                placeholder="Select unit (Global if none)"
+              />
+            )}
           </div>
         </FormCard>
 
@@ -743,7 +773,7 @@ const AddCourse = () => {
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate("/admin/courses")}
+            onClick={() => navigate(`${basePath}/courses`)}
             className="w-full sm:w-auto"
           >
             Cancel

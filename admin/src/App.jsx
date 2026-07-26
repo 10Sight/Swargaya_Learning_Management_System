@@ -72,13 +72,8 @@ const AllUsersManagement = lazy(() => import("./pages/SuperAdmin/AllUsersManagem
 const CreateAdmin = lazy(() => import("./pages/SuperAdmin/CreateAdmin")); // Admin creation page
 const SoftDeletedUsersManagement = lazy(() => import("./pages/SuperAdmin/SoftDeletedUsersManagement"));
 const SystemAuditLogs = lazy(() => import("./pages/SuperAdmin/SystemAuditLogs"));
-const SystemSettings = lazy(() => import("./pages/SuperAdmin/SystemSettings"));
-const AdvancedAnalytics = lazy(() => import("./pages/SuperAdmin/AdvancedAnalytics"));
 const DataManagement = lazy(() => import("./pages/SuperAdmin/DataManagement"));
-const RolesPermissions = lazy(() => import("./pages/SuperAdmin/RolesPermissions"));
 const SystemMonitoring = lazy(() => import("./pages/SuperAdmin/SystemMonitoring"));
-const BulkOperations = lazy(() => import("./pages/SuperAdmin/BulkOperations"));
-const CertificateManagement = lazy(() => import("./pages/SuperAdmin/CertificateManagement"));
 const UnitManagement = lazy(() => import("./pages/SuperAdmin/UnitManagement"));
 
 // Student Pages
@@ -221,7 +216,6 @@ const App = () => {
             <Route path="employees" element={<Students pageName="Employees" />} />
             <Route path="employees/:studentId" element={<StudentDetail />} />
             <Route path="soft-deleted-users" element={<SoftDeletedUsersManagement />} />
-            <Route path="roles-permissions" element={<RolesPermissions />} />
 
             {/* Content Management Routes */}
             <Route path="courses" element={<Course pageName="Courses" />} />
@@ -237,19 +231,15 @@ const App = () => {
             <Route path="departments/:departmentId" element={<DepartmentDetail pageName="Department Detail" />} />
             <Route path="departments/:departmentId/lines/:lineId" element={<LineDetail />} />
             <Route path="departments/:departmentId/lines/:lineId/machines/:machineId/assign" element={<AssignMachineOperator />} />
-            <Route path="certificates" element={<CertificateManagement />} />
             <Route path="module-timelines" element={<ModuleTimelines pageName="Module Timelines" />} />
 
             {/* System Management Routes */}
             <Route path="units" element={<UnitManagement />} />
             <Route path="audit-logs" element={<SystemAuditLogs />} />
-            <Route path="system-settings" element={<SystemSettings />} />
-            <Route path="analytics-reports" element={<AdvancedAnalytics />} />
             <Route path="system-monitoring" element={<SystemMonitoring />} />
 
             {/* Advanced Operations Routes */}
             <Route path="data-management" element={<DataManagement />} />
-            <Route path="bulk-operations" element={<BulkOperations />} />
 
             {/* Legacy Routes for Compatibility */}
             <Route path="student-levels" element={<StudentLevelManagement />} />

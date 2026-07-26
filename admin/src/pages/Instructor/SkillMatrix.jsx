@@ -580,8 +580,9 @@ const InstructorSkillMatrix = () => {
         // Legend Note
         worksheet.mergeCells(`I${footerStartRow}:K${footerStartRow + 6}`);
         const legendCell = worksheet.getCell(`I${footerStartRow}`);
+        const legendLines = availableLevels.map(lvl => `${lvl.name}: ${lvl.description || ""}`).join("\n");
         legendCell.value = "LEVEL LEGEND:\n" +
-            "L0: No Skill\nL1: Learner\nL2: Executor\nL3: Trainer\nL4: Expert\n\nNote: " + (legendNote || "-");
+            legendLines + "\n\nNote: " + (legendNote || "-");
         legendCell.alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
         legendCell.border = borderStyle;
 
@@ -673,12 +674,15 @@ const InstructorSkillMatrix = () => {
 
     const parseLevel = (levelStr) => {
         if (!levelStr) return 0;
+        const idx = availableLevels.findIndex(l => l.name === levelStr);
+        if (idx !== -1) return idx;
         const num = parseInt(levelStr.replace(/\D/g, ''));
-        return isNaN(num) ? 0 : num;
+        return isNaN(num) ? 0 : Math.max(0, num - 1);
     };
 
     // SVG Icon Component
     const SkillIcon = ({ level, size = 24 }) => {
+        const totalSlices = Math.max(1, availableLevels.length - 1);
         const center = size / 2;
         const radius = size / 2.2;
         const createSlicePath = (startAngle, endAngle) => {
@@ -690,13 +694,10 @@ const InstructorSkillMatrix = () => {
             const y2 = center + radius * Math.sin(endRad);
             return `M ${center} ${center} L ${x1} ${y1} A ${radius} ${radius} 0 0 1 ${x2} ${y2} Z`;
         };
-        const slices = [
-            createSlicePath(0, 72),
-            createSlicePath(72, 144),
-            createSlicePath(144, 216),
-            createSlicePath(216, 288),
-            createSlicePath(288, 360)
-        ];
+        const sliceAngle = 360 / totalSlices;
+        const slices = Array.from({ length: totalSlices }, (_, i) =>
+            createSlicePath(i * sliceAngle, (i + 1) * sliceAngle)
+        );
         return (
             <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
                 {slices.map((d, i) => (
@@ -974,7 +975,7 @@ const InstructorSkillMatrix = () => {
                                             >
                                                 <SelectTrigger className="w-full h-full border-none p-0 flex justify-center bg-transparent focus:ring-0 select-trigger">
                                                     <div>
-                                                        {level > 0 ? <SkillIcon level={level} size={20} /> : <div className="h-5 w-5 rounded-full border border-[#d1d5db]"></div>}
+                                                        <SkillIcon level={level} size={20} />
                                                     </div>
                                                 </SelectTrigger>
                                                 <SelectContent>
@@ -992,7 +993,7 @@ const InstructorSkillMatrix = () => {
                                     );
                                 })}
                                 <div className="w-16 p-2 flex items-center justify-center">
-                                    <SkillIcon level={1} />
+                                    <SkillIcon level={parseLevel("L1")} />
                                 </div>
                             </div>
                         </div>

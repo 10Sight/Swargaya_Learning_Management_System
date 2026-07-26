@@ -1,92 +1,47 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
-  useCreateDatabaseBackupMutation,
   useGetBackupHistoryQuery,
   useRestoreFromBackupMutation,
-  useDeleteBackupMutation,
-  useExportSystemDataMutation,
-  useImportSystemDataMutation,
   useGetDataStatisticsQuery,
-  useGetDataOperationHistoryQuery,
-  useCleanupOldDataMutation
+  useGetDataOperationHistoryQuery
 } from "../../Redux/AllApi/SuperAdminApi";
 import {
-  Database,
   Download,
   Upload,
   RefreshCcw,
-  Trash2,
   Archive,
   AlertTriangle,
   Clock,
   HardDrive,
   BarChart3,
   FileText,
-  Settings,
-  CheckCircle,
-  XCircle,
-  Loader2,
-  Calendar,
   Users,
   BookOpen,
   Award,
   Activity,
-  TrendingUp,
-  Zap
+  TrendingUp
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
 const DataManagement = () => {
   const [activeTab, setActiveTab] = useState('overview');
-  const [backupConfig, setBackupConfig] = useState({
-    includeFiles: false,
-    compression: true,
-    encryption: false,
-    description: ''
-  });
-  const [exportConfig, setExportConfig] = useState({
-    collections: [],
-    format: 'json',
-    includeMetadata: true,
-    dateFrom: '',
-    dateTo: ''
-  });
-  const [importConfig, setImportConfig] = useState({
-    mode: 'append',
-    collections: [],
-    validateData: true
-  });
-  const [cleanupConfig, setCleanupConfig] = useState({
-    cleanupAuditLogs: false,
-    auditLogRetentionDays: 90,
-    cleanupBackups: false,
-    backupRetentionDays: 30,
-    dryRun: true
-  });
-  const [selectedFile, setSelectedFile] = useState(null);
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
 
   // API Hooks
-  const [createBackup, { isLoading: creatingBackup }] = useCreateDatabaseBackupMutation();
   const [restoreBackup, { isLoading: restoring }] = useRestoreFromBackupMutation();
-  const [deleteBackup, { isLoading: deleting }] = useDeleteBackupMutation();
-  const [exportData, { isLoading: exporting }] = useExportSystemDataMutation();
-  const [importData, { isLoading: importing }] = useImportSystemDataMutation();
-  const [cleanupData, { isLoading: cleaning }] = useCleanupOldDataMutation();
 
   // Data Queries
   const { data: backupHistory, isLoading: loadingBackups, refetch: refetchBackups } = useGetBackupHistoryQuery({
     page: 1,
     limit: 10
   });
-  const { data: dataStats, isLoading: loadingStats, refetch: refetchStats } = useGetDataStatisticsQuery();
-  const { data: operationHistory, isLoading: loadingOperations } = useGetDataOperationHistoryQuery({
+  const { data: dataStats, refetch: refetchStats } = useGetDataStatisticsQuery();
+  const { data: operationHistory } = useGetDataOperationHistoryQuery({
     page: 1,
     limit: 10
   });
 
-  // Available collections for export/import
+  // Collections shown on the Overview stat cards
   const availableCollections = [
     { id: 'users', label: 'Users', icon: Users },
     { id: 'courses', label: 'Courses', icon: BookOpen },
@@ -98,133 +53,22 @@ const DataManagement = () => {
     { id: 'audits', label: 'Audit Logs', icon: Activity }
   ];
 
-  // Handle file upload
-  const handleFileSelect = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      if (file.type === 'application/json') {
-        setSelectedFile(file);
-      } else {
-        toast.error('Please select a JSON file');
-        event.target.value = '';
-      }
-    }
-  };
-
-  // Create backup
-  const handleCreateBackup = async () => {
-    try {
-      const result = await createBackup(backupConfig).unwrap();
-      toast.success('Backup created successfully');
-      refetchBackups();
-      setBackupConfig({
-        includeFiles: false,
-        compression: true,
-        encryption: false,
-        description: ''
-      });
-    } catch (error) {
-      toast.error(error.data?.message || 'Failed to create backup');
-    }
-  };
-
   // Restore from backup
   const handleRestoreBackup = async (backupId) => {
     try {
-      await restoreBackup({
-        backupId,
-        collections: [],
-        confirmRestore: true
-      }).unwrap();
+      await restoreBackup({ backupId, confirmRestore: true }).unwrap();
       toast.success('Backup restored successfully');
       setShowRestoreConfirm(null);
       refetchStats();
+      refetchBackups();
     } catch (error) {
       toast.error(error.data?.message || 'Failed to restore backup');
     }
   };
 
-  // Delete backup
-  const handleDeleteBackup = async (backupId) => {
-    try {
-      await deleteBackup(backupId).unwrap();
-      toast.success('Backup deleted successfully');
-      setShowDeleteConfirm(null);
-      refetchBackups();
-    } catch (error) {
-      toast.error(error.data?.message || 'Failed to delete backup');
-    }
-  };
-
-  // Export data
-  const handleExportData = async () => {
-    try {
-      const result = await exportData(exportConfig).unwrap();
-
-      // Create download link
-      const blob = new Blob([JSON.stringify(result.data, null, 2)], {
-        type: 'application/json'
-      });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `lms_export_${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      toast.success('Data exported successfully');
-    } catch (error) {
-      toast.error(error.data?.message || 'Failed to export data');
-    }
-  };
-
-  // Import data
-  const handleImportData = async () => {
-    if (!selectedFile) {
-      toast.error('Please select a file to import');
-      return;
-    }
-
-    try {
-      const formData = new FormData();
-      formData.append('dataFile', selectedFile);
-      formData.append('mode', importConfig.mode);
-      formData.append('validateData', importConfig.validateData);
-
-      const result = await importData(formData).unwrap();
-      toast.success(`Import completed: ${result.data.summary.totalImported} imported, ${result.data.summary.totalUpdated} updated`);
-      setSelectedFile(null);
-      document.getElementById('fileInput').value = '';
-      refetchStats();
-    } catch (error) {
-      toast.error(error.data?.message || 'Failed to import data');
-    }
-  };
-
-  // Cleanup old data
-  const handleCleanupData = async () => {
-    try {
-      const result = await cleanupData(cleanupConfig).unwrap();
-
-      if (cleanupConfig.dryRun) {
-        const auditCount = result.data.results.auditLogs?.toDelete || 0;
-        const backupCount = result.data.results.backups?.toDelete || 0;
-        toast.success(`Cleanup preview: ${auditCount} audit logs and ${backupCount} backups would be deleted`);
-      } else {
-        const auditDeleted = result.data.results.auditLogs?.deleted || 0;
-        const backupDeleted = result.data.results.backups?.deleted || 0;
-        toast.success(`Cleanup completed: ${auditDeleted} audit logs and ${backupDeleted} backups deleted`);
-      }
-    } catch (error) {
-      toast.error(error.data?.message || 'Failed to cleanup data');
-    }
-  };
-
   // Format file size
   const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
+    if (!bytes) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -255,8 +99,6 @@ const DataManagement = () => {
   const tabs = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
     { id: 'backups', label: 'Backups', icon: Archive },
-    { id: 'import-export', label: 'Import/Export', icon: RefreshCcw },
-    { id: 'cleanup', label: 'Data Cleanup', icon: Trash2 },
     { id: 'operations', label: 'Operation History', icon: Clock }
   ];
 
@@ -267,7 +109,7 @@ const DataManagement = () => {
         <div>
           <h1 className="text-2xl font-bold text-[#111827]">Data Management</h1>
           <p className="text-[#4b5563] mt-1">
-            Comprehensive database backup, restore, export, import, and cleanup utilities
+            Database backup restore and operation history
           </p>
         </div>
         <div className="flex items-center space-x-3">
@@ -369,84 +211,26 @@ const DataManagement = () => {
 
         {activeTab === 'backups' && (
           <div className="space-y-6">
-            {/* Create Backup Section */}
-            <div className="bg-white rounded-lg shadow-sm border">
-              <div className="p-6 border-b">
-                <h3 className="text-lg font-semibold text-[#111827]">Create New Backup</h3>
-              </div>
-              <div className="p-6">
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-[#374151] mb-2">
-                      Description (optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={backupConfig.description}
-                      onChange={(e) => setBackupConfig({ ...backupConfig, description: e.target.value })}
-                      placeholder="Enter backup description..."
-                      className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-1 focus:ring-[#4f46e5]"
-                    />
-                  </div>
-
-                  <div className="flex items-center space-x-6">
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={backupConfig.compression}
-                        onChange={(e) => setBackupConfig({ ...backupConfig, compression: e.target.checked })}
-                        className="rounded border-[#d1d5db] text-[#4f46e5] focus:ring-[#4f46e5]"
-                      />
-                      <span className="ml-2 text-sm text-[#374151]">Enable compression</span>
-                    </label>
-
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={backupConfig.includeFiles}
-                        onChange={(e) => setBackupConfig({ ...backupConfig, includeFiles: e.target.checked })}
-                        className="rounded border-[#d1d5db] text-[#4f46e5] focus:ring-[#4f46e5]"
-                      />
-                      <span className="ml-2 text-sm text-[#374151]">Include files</span>
-                    </label>
-                  </div>
-
-                  <button
-                    onClick={handleCreateBackup}
-                    disabled={creatingBackup}
-                    className="inline-flex items-center px-4 py-2 bg-[#4f46e5] text-[#ffffff] text-sm font-medium rounded-lg hover:bg-[#4338ca] disabled:opacity-50"
-                  >
-                    {creatingBackup ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Archive className="h-4 w-4 mr-2" />
-                    )}
-                    Create Backup
-                  </button>
-                </div>
-              </div>
-            </div>
-
             {/* Backup History */}
             <div className="bg-white rounded-lg shadow-sm border">
               <div className="p-6 border-b">
                 <h3 className="text-lg font-semibold text-[#111827]">Backup History</h3>
+                <p className="text-sm text-[#4b5563] mt-1">
+                  Daily database backups from C:\MMLIBackup
+                </p>
               </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-[#f9fafb]">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
-                        Backup ID
+                        Backup File
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
                         Created
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
                         Size
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
-                        Status
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-[#6b7280] uppercase tracking-wider">
                         Actions
@@ -465,301 +249,26 @@ const DataManagement = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-[#6b7280]">
                           {backup.backup?.size ? formatFileSize(backup.backup.size) : 'N/A'}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${backup.fileExists
-                            ? 'bg-[#dcfce7] text-[#166534]'
-                            : 'bg-[#fee2e2] text-[#991b1b]'
-                            }`}>
-                            {backup.fileExists ? 'Available' : 'Missing'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                          {backup.fileExists && (
-                            <button
-                              onClick={() => setShowRestoreConfirm(backup.backup?.id || backup._id)}
-                              className="text-[#4f46e5] hover:text-indigo-900"
-                            >
-                              Restore
-                            </button>
-                          )}
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <button
-                            onClick={() => setShowDeleteConfirm(backup.backup?.id || backup._id)}
-                            className="text-[#dc2626] hover:text-[#7f1d1d]"
+                            onClick={() => setShowRestoreConfirm(backup.backup?.id || backup._id)}
+                            className="text-[#4f46e5] hover:text-indigo-900"
                           >
-                            Delete
+                            Restore
                           </button>
                         </td>
                       </tr>
                     ))}
+                    {!loadingBackups && (!backupHistory?.data?.backups || backupHistory.data.backups.length === 0) && (
+                      <tr>
+                        <td colSpan={4} className="px-6 py-4 text-center text-sm text-[#6b7280]">
+                          No backup files found in C:\MMLIBackup
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'import-export' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Export Data */}
-            <div className="bg-white rounded-lg shadow-sm border">
-              <div className="p-6 border-b">
-                <h3 className="text-lg font-semibold text-[#111827] flex items-center">
-                  <Download className="h-5 w-5 text-[#2563eb] mr-2" />
-                  Export Data
-                </h3>
-              </div>
-              <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-[#374151] mb-2">
-                    Collections to Export
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {availableCollections.map((collection) => (
-                      <label key={collection.id} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={exportConfig.collections.includes(collection.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setExportConfig({
-                                ...exportConfig,
-                                collections: [...exportConfig.collections, collection.id]
-                              });
-                            } else {
-                              setExportConfig({
-                                ...exportConfig,
-                                collections: exportConfig.collections.filter(c => c !== collection.id)
-                              });
-                            }
-                          }}
-                          className="rounded border-[#d1d5db] text-[#4f46e5] focus:ring-[#4f46e5]"
-                        />
-                        <span className="ml-2 text-sm text-[#374151]">{collection.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-[#374151] mb-2">Date From</label>
-                    <input
-                      type="date"
-                      value={exportConfig.dateFrom}
-                      onChange={(e) => setExportConfig({ ...exportConfig, dateFrom: e.target.value })}
-                      className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-1 focus:ring-[#4f46e5]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[#374151] mb-2">Date To</label>
-                    <input
-                      type="date"
-                      value={exportConfig.dateTo}
-                      onChange={(e) => setExportConfig({ ...exportConfig, dateTo: e.target.value })}
-                      className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-1 focus:ring-[#4f46e5]"
-                    />
-                  </div>
-                </div>
-
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={exportConfig.includeMetadata}
-                    onChange={(e) => setExportConfig({ ...exportConfig, includeMetadata: e.target.checked })}
-                    className="rounded border-[#d1d5db] text-[#4f46e5] focus:ring-[#4f46e5]"
-                  />
-                  <span className="ml-2 text-sm text-[#374151]">Include metadata</span>
-                </label>
-
-                <button
-                  onClick={handleExportData}
-                  disabled={exporting}
-                  className="w-full inline-flex items-center justify-center px-4 py-2 bg-[#2563eb] text-[#ffffff] text-sm font-medium rounded-lg hover:bg-[#1d4ed8] disabled:opacity-50"
-                >
-                  {exporting ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Download className="h-4 w-4 mr-2" />
-                  )}
-                  Export Data
-                </button>
-              </div>
-            </div>
-
-            {/* Import Data */}
-            <div className="bg-white rounded-lg shadow-sm border">
-              <div className="p-6 border-b">
-                <h3 className="text-lg font-semibold text-[#111827] flex items-center">
-                  <Upload className="h-5 w-5 text-[#16a34a] mr-2" />
-                  Import Data
-                </h3>
-              </div>
-              <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-[#374151] mb-2">
-                    Select JSON File
-                  </label>
-                  <input
-                    id="fileInput"
-                    type="file"
-                    accept=".json,application/json"
-                    onChange={handleFileSelect}
-                    className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-1 focus:ring-[#4f46e5]"
-                  />
-                  {selectedFile && (
-                    <p className="text-sm text-[#4b5563] mt-1">
-                      Selected: {selectedFile.name} ({formatFileSize(selectedFile.size)})
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-[#374151] mb-2">
-                    Import Mode
-                  </label>
-                  <select
-                    value={importConfig.mode}
-                    onChange={(e) => setImportConfig({ ...importConfig, mode: e.target.value })}
-                    className="w-full px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-1 focus:ring-[#4f46e5]"
-                  >
-                    <option value="append">Append (add/update records)</option>
-                    <option value="replace">Replace (clear and import)</option>
-                  </select>
-                </div>
-
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={importConfig.validateData}
-                    onChange={(e) => setImportConfig({ ...importConfig, validateData: e.target.checked })}
-                    className="rounded border-[#d1d5db] text-[#4f46e5] focus:ring-[#4f46e5]"
-                  />
-                  <span className="ml-2 text-sm text-[#374151]">Validate data before import</span>
-                </label>
-
-                <button
-                  onClick={handleImportData}
-                  disabled={importing || !selectedFile}
-                  className="w-full inline-flex items-center justify-center px-4 py-2 bg-[#16a34a] text-[#ffffff] text-sm font-medium rounded-lg hover:bg-[#15803d] disabled:opacity-50"
-                >
-                  {importing ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Upload className="h-4 w-4 mr-2" />
-                  )}
-                  Import Data
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'cleanup' && (
-          <div className="bg-white rounded-lg shadow-sm border">
-            <div className="p-6 border-b">
-              <h3 className="text-lg font-semibold text-[#111827] flex items-center">
-                <Trash2 className="h-5 w-5 text-[#dc2626] mr-2" />
-                Data Cleanup
-              </h3>
-              <p className="text-sm text-[#4b5563] mt-1">
-                Clean up old audit logs and backup files to free up storage space
-              </p>
-            </div>
-            <div className="p-6 space-y-6">
-              {/* Audit Logs Cleanup */}
-              <div className="border border-[#e5e7eb] rounded-lg p-4">
-                <div className="flex items-center mb-3">
-                  <input
-                    type="checkbox"
-                    checked={cleanupConfig.cleanupAuditLogs}
-                    onChange={(e) => setCleanupConfig({ ...cleanupConfig, cleanupAuditLogs: e.target.checked })}
-                    className="rounded border-[#d1d5db] text-[#4f46e5] focus:ring-[#4f46e5]"
-                  />
-                  <label className="ml-2 text-sm font-medium text-[#374151]">
-                    Clean up old audit logs
-                  </label>
-                </div>
-                {cleanupConfig.cleanupAuditLogs && (
-                  <div className="ml-6">
-                    <label className="block text-sm font-medium text-[#374151] mb-2">
-                      Retention period (days)
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="365"
-                      value={cleanupConfig.auditLogRetentionDays}
-                      onChange={(e) => setCleanupConfig({ ...cleanupConfig, auditLogRetentionDays: parseInt(e.target.value) })}
-                      className="w-32 px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-1 focus:ring-[#4f46e5]"
-                    />
-                    <p className="text-xs text-[#6b7280] mt-1">
-                      Audit logs older than this will be deleted
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Backup Cleanup */}
-              <div className="border border-[#e5e7eb] rounded-lg p-4">
-                <div className="flex items-center mb-3">
-                  <input
-                    type="checkbox"
-                    checked={cleanupConfig.cleanupBackups}
-                    onChange={(e) => setCleanupConfig({ ...cleanupConfig, cleanupBackups: e.target.checked })}
-                    className="rounded border-[#d1d5db] text-[#4f46e5] focus:ring-[#4f46e5]"
-                  />
-                  <label className="ml-2 text-sm font-medium text-[#374151]">
-                    Clean up old backup files
-                  </label>
-                </div>
-                {cleanupConfig.cleanupBackups && (
-                  <div className="ml-6">
-                    <label className="block text-sm font-medium text-[#374151] mb-2">
-                      Retention period (days)
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="365"
-                      value={cleanupConfig.backupRetentionDays}
-                      onChange={(e) => setCleanupConfig({ ...cleanupConfig, backupRetentionDays: parseInt(e.target.value) })}
-                      className="w-32 px-3 py-2 border border-[#d1d5db] rounded-md focus:outline-none focus:ring-1 focus:ring-[#4f46e5]"
-                    />
-                    <p className="text-xs text-[#6b7280] mt-1">
-                      Backup files older than this will be deleted
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Dry Run Option */}
-              <div className="flex items-center p-4 bg-[#fefce8] border border-[#fef08a] rounded-lg">
-                <input
-                  type="checkbox"
-                  checked={cleanupConfig.dryRun}
-                  onChange={(e) => setCleanupConfig({ ...cleanupConfig, dryRun: e.target.checked })}
-                  className="rounded border-[#d1d5db] text-[#4f46e5] focus:ring-[#4f46e5]"
-                />
-                <label className="ml-2 text-sm font-medium text-[#374151]">
-                  Dry run (preview only, don't delete anything)
-                </label>
-              </div>
-
-              <button
-                onClick={handleCleanupData}
-                disabled={cleaning || (!cleanupConfig.cleanupAuditLogs && !cleanupConfig.cleanupBackups)}
-                className={`inline-flex items-center px-4 py-2 text-white text-sm font-medium rounded-lg disabled:opacity-50 ${cleanupConfig.dryRun
-                  ? 'bg-[#ca8a04] hover:bg-[#a16207]'
-                  : 'bg-[#dc2626] hover:bg-[#b91c1c]'
-                  }`}
-              >
-                {cleaning ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Zap className="h-4 w-4 mr-2" />
-                )}
-                {cleanupConfig.dryRun ? 'Preview Cleanup' : 'Execute Cleanup'}
-              </button>
             </div>
           </div>
         )}
@@ -830,8 +339,8 @@ const DataManagement = () => {
               <h3 className="text-lg font-semibold text-[#111827]">Confirm Restore</h3>
             </div>
             <p className="text-[#4b5563] mb-6">
-              This action will replace all current data with the backup data. This cannot be undone.
-              Are you sure you want to proceed?
+              This action will replace all current data with the backup data and drop active connections.
+              This cannot be undone. Are you sure you want to proceed?
             </p>
             <div className="flex justify-end space-x-3">
               <button
@@ -846,36 +355,6 @@ const DataManagement = () => {
                 className="px-4 py-2 bg-[#dc2626] text-white rounded-lg hover:bg-[#b91c1c] disabled:opacity-50"
               >
                 {restoring ? 'Restoring...' : 'Confirm Restore'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <div className="flex items-center mb-4">
-              <AlertTriangle className="h-6 w-6 text-[#dc2626] mr-3" />
-              <h3 className="text-lg font-semibold text-[#111827]">Confirm Delete</h3>
-            </div>
-            <p className="text-[#4b5563] mb-6">
-              Are you sure you want to delete this backup? This action cannot be undone.
-            </p>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setShowDeleteConfirm(null)}
-                className="px-4 py-2 text-[#374151] bg-[#f3f4f6] rounded-lg hover:bg-[#e5e7eb]"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDeleteBackup(showDeleteConfirm)}
-                disabled={deleting}
-                className="px-4 py-2 bg-[#dc2626] text-white rounded-lg hover:bg-[#b91c1c] disabled:opacity-50"
-              >
-                {deleting ? 'Deleting...' : 'Delete Backup'}
               </button>
             </div>
           </div>

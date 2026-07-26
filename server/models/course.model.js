@@ -23,6 +23,7 @@ class Course {
         this.averageRating = data.averageRating !== undefined ? data.averageRating : 0;
         this.slug = data.slug;
         this.createdBy = data.createdBy;
+        this.unit = data.unit || null;
         this.quizzes = typeof data.quizzes === 'string' ? JSON.parse(data.quizzes) : (data.quizzes || []);
         this.assignments = typeof data.assignments === 'string' ? JSON.parse(data.assignments) : (data.assignments || []);
         this.resources = typeof data.resources === 'string' ? JSON.parse(data.resources) : (data.resources || []);
@@ -63,14 +64,19 @@ class Course {
                     assignments NVARCHAR(MAX),
                     resources NVARCHAR(MAX),
                     isDeleted BIT DEFAULT 0,
+                    unit NVARCHAR(255) NULL,
                     createdAt DATETIME DEFAULT GETDATE(),
                     updatedAt DATETIME DEFAULT GETDATE(),
                     CONSTRAINT unique_course_slug UNIQUE (slug)
                 );
-                
+
                 CREATE INDEX idx_instructor ON dbo.courses(instructor);
                 CREATE INDEX idx_category ON dbo.courses(category);
                 CREATE INDEX idx_status ON dbo.courses(status);
+            END
+            ELSE IF COL_LENGTH(N'dbo.courses', N'unit') IS NULL
+            BEGIN
+                ALTER TABLE dbo.courses ADD unit NVARCHAR(255) NULL;
             END
         `;
         try {
@@ -99,7 +105,7 @@ class Course {
             "title", "description", "thumbnail", "category", "tags",
             "instructor", "students", "price", "difficulty", "status",
             "modules", "reviews", "totalEnrollments", "averageRating",
-            "slug", "createdBy", "quizzes", "assignments", "resources", "isDeleted", "createdAt"
+            "slug", "createdBy", "quizzes", "assignments", "resources", "isDeleted", "unit", "createdAt"
         ];
 
         if (!course.createdAt) course.createdAt = new Date();
@@ -182,7 +188,7 @@ class Course {
             "title", "description", "thumbnail", "category", "tags",
             "instructor", "students", "price", "difficulty", "status",
             "modules", "reviews", "totalEnrollments", "averageRating",
-            "slug", "createdBy", "quizzes", "assignments", "resources", "isDeleted", "updatedAt"
+            "slug", "createdBy", "quizzes", "assignments", "resources", "isDeleted", "unit", "updatedAt"
         ];
 
         const setClause = fields.map(field => `${field} = ?`).join(", ");

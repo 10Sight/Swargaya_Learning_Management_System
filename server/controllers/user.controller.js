@@ -65,7 +65,8 @@ export const getAllUsers = asyncHandler(async (req, res) => {
 
   // Fetch
   const [users] = await pool.query(`
-        SELECT u.id, u.fullName, u.userName, u.slug, u.email, u.phoneNumber, u.role, u.status, u.unit, u.doj, u.createdAt, u.avatar,
+        SELECT u.id, u.fullName, u.userName, u.slug, u.email, u.phoneNumber, u.role, u.status, u.unit, u.doj, u.leavingDate, u.createdAt, u.avatar,
+               u.lines, u.machines,
                d.name as departmentName, d.id as departmentId
         FROM users u
         LEFT JOIN departments d ON u.department = d.id
@@ -80,6 +81,8 @@ export const getAllUsers = asyncHandler(async (req, res) => {
     ...u,
     department: u.departmentId ? { _id: u.departmentId, name: u.departmentName } : null,
     avatar: parseJSON(u.avatar),
+    lines: parseJSON(u.lines, []),
+    machines: parseJSON(u.machines, []),
   })).map(u => { delete u.departmentName; delete u.departmentId; return u; });
 
   res.json(new ApiResponse(200, {
@@ -120,6 +123,8 @@ export const getUserById = asyncHandler(async (req, res) => {
   delete user.password;
   delete user.refreshToken;
   user.avatar = parseJSON(user.avatar);
+  user.lines = parseJSON(user.lines, []);
+  user.machines = parseJSON(user.machines, []);
   user.department = user.department ? { _id: user.department, name: user.departmentName } : null;
   delete user.departmentName;
   user._id = user.id; // compat
@@ -220,7 +225,7 @@ export const updateAvatar = asyncHandler(async (req, res) => {
 
 // Create User
 export const createUser = asyncHandler(async (req, res) => {
-  const { fullName, userName, email, phoneNumber, role = "STUDENT", password, unit, doj, dob } = req.body;
+  const { fullName, userName, email, phoneNumber, role = "STUDENT", password, unit, doj, dob, department, lines, machines } = req.body;
 
   if (!fullName || !userName || !email || !phoneNumber || !password || !unit) {
     throw new ApiError("All fields are required", 400);
@@ -249,15 +254,23 @@ export const createUser = asyncHandler(async (req, res) => {
   const slug = userName.toLowerCase().replace(/ /g, '-');
 
   const [result] = await pool.query(`
-        INSERT INTO users (fullName, userName, slug, email, phoneNumber, role, password, unit, status, doj, dob, createdAt, updatedAt)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PRESENT', ?, ?, GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;
-    `, [fullName, userName.toLowerCase(), slug, email.toLowerCase(), phoneNumber, role, hashedPassword, unit, doj || null, dob || null]);
+        INSERT INTO users (fullName, userName, slug, email, phoneNumber, role, password, unit, status, doj, dob, department, lines, machines, createdAt, updatedAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PRESENT', ?, ?, ?, ?, ?, GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;
+    `, [fullName, userName.toLowerCase(), slug, email.toLowerCase(), phoneNumber, role, hashedPassword, unit, doj || null, dob || null, department || null, JSON.stringify(lines || []), JSON.stringify(machines || [])]);
 
   const newUserId = result[0].id;
-  const [newUser] = await pool.query("SELECT * FROM users WHERE id = ?", [newUserId]);
+  const [newUser] = await pool.query(`
+        SELECT u.*, d.name as departmentName
+        FROM users u
+        LEFT JOIN departments d ON u.department = d.id
+        WHERE u.id = ?
+    `, [newUserId]);
   const u = newUser[0];
   delete u.password;
-  u.department = null; // No dept on create
+  u.department = u.department ? { _id: u.department, name: u.departmentName } : null;
+  delete u.departmentName;
+  u.lines = parseJSON(u.lines, []);
+  u.machines = parseJSON(u.machines, []);
   u._id = u.id;
 
   await logAudit(req.user.id, "CREATE_USER", { userId: u.id, role });
@@ -280,7 +293,7 @@ export const createUser = asyncHandler(async (req, res) => {
 // Update User
 export const updateUser = asyncHandler(async (req, res) => {
   const userId = req.params.id;
-  const { fullName, userName, email, phoneNumber, role, status, unit, doj, dob } = req.body;
+  const { fullName, userName, email, phoneNumber, role, status, unit, doj, dob, department, lines, machines } = req.body;
 
   const [rows] = await pool.query("SELECT * FROM users WHERE id = ?", [userId]);
   if (rows.length === 0) throw new ApiError("User not found", 404);
@@ -318,13 +331,27 @@ export const updateUser = asyncHandler(async (req, res) => {
     updates.push("phoneNumber = ?"); values.push(phoneNumber);
   }
   if (role && AvailableUserRoles.includes(role)) { updates.push("role = ?"); values.push(role); }
-  if (status) { updates.push("status = ?"); values.push(status); }
+  if (status) {
+    updates.push("status = ?"); values.push(status);
+    // Only react to an actual status transition, not a no-op resubmit of the same status
+    if (status !== user.status) {
+      if (status === 'LEFT') {
+        updates.push("leavingDate = GETDATE()");
+      } else if (status === 'PRESENT') {
+        updates.push("leavingDate = NULL");
+        if (doj === undefined) updates.push("doj = GETDATE()");
+      }
+    }
+  }
   if (unit) {
     if (!AvailableUnits.includes(unit) && !(await Unit.exists({ title: unit }))) throw new ApiError("Invalid unit", 400);
     updates.push("unit = ?"); values.push(unit);
   }
   if (doj !== undefined) { updates.push("doj = ?"); values.push(doj || null); }
   if (dob !== undefined) { updates.push("dob = ?"); values.push(dob || null); }
+  if (department !== undefined) { updates.push("department = ?"); values.push(department || null); }
+  if (lines !== undefined) { updates.push("lines = ?"); values.push(JSON.stringify(lines || [])); }
+  if (machines !== undefined) { updates.push("machines = ?"); values.push(JSON.stringify(machines || [])); }
 
   if (values.length > 0) {
     await pool.query(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`, [...values, userId]);
@@ -341,6 +368,8 @@ export const updateUser = asyncHandler(async (req, res) => {
   delete u.password;
   u.department = u.department ? { _id: u.department, name: u.departmentName } : null;
   delete u.departmentName;
+  u.lines = parseJSON(u.lines, []);
+  u.machines = parseJSON(u.machines, []);
   u._id = u.id;
 
   await logAudit(req.user.id, "UPDATE_USER", { userId });
@@ -386,8 +415,11 @@ export const getAllInstructors = asyncHandler(async (req, res) => {
 
   const formatted = instructors.map(u => ({
     _id: u.id, fullName: u.fullName, userName: u.userName, email: u.email,
-    phoneNumber: u.phoneNumber, role: u.role, status: u.status, unit: u.unit, createdAt: u.createdAt,
+    phoneNumber: u.phoneNumber, role: u.role, status: u.status, unit: u.unit, createdAt: u.createdAt, doj: u.doj,
+    leavingDate: u.leavingDate,
     avatar: parseJSON(u.avatar),
+    lines: parseJSON(u.lines, []),
+    machines: parseJSON(u.machines, []),
     department: u.department ? { _id: u.department, name: u.deptName, instructor: u.deptInstructor } : null
   }));
 
@@ -447,8 +479,11 @@ export const getAllStudents = asyncHandler(async (req, res) => {
 
   const formatted = students.map(u => ({
     _id: u.id, fullName: u.fullName, userName: u.userName, email: u.email,
-    phoneNumber: u.phoneNumber, role: u.role, status: u.status, unit: u.unit, createdAt: u.createdAt,
+    phoneNumber: u.phoneNumber, role: u.role, status: u.status, unit: u.unit, createdAt: u.createdAt, doj: u.doj,
+    leavingDate: u.leavingDate,
     avatar: parseJSON(u.avatar),
+    lines: parseJSON(u.lines, []),
+    machines: parseJSON(u.machines, []),
     department: u.department ? { _id: u.department, name: u.deptName, instructor: u.deptInstructor } : null
   }));
 
@@ -491,8 +526,20 @@ export const deleteUser = asyncHandler(async (req, res) => {
 export const getSoftDeletedUsers = asyncHandler(async (req, res) => {
   // Basic implementation mirroring getAllUsers but isDeleted=1
   const limit = 20; const offset = 0; // simplified
-  const [users] = await pool.query("SELECT TOP 20 * FROM users WHERE isDeleted = 1");
-  const formatted = users.map(u => ({ ...u, avatar: parseJSON(u.avatar), _id: u.id }));
+  const [users] = await pool.query(`
+        SELECT TOP 20 u.*, d.name as departmentName
+        FROM users u
+        LEFT JOIN departments d ON u.department = d.id
+        WHERE u.isDeleted = 1
+    `);
+  const formatted = users.map(u => ({
+    ...u,
+    avatar: parseJSON(u.avatar),
+    lines: parseJSON(u.lines, []),
+    machines: parseJSON(u.machines, []),
+    department: u.department ? { _id: u.department, name: u.departmentName } : null,
+    _id: u.id
+  })).map(u => { delete u.departmentName; return u; });
 
   res.json(new ApiResponse(200, { users: formatted, totalUsers: users.length, totalPages: 1 }, "Soft-deleted users fetched"));
 });

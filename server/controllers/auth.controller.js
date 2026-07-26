@@ -36,7 +36,7 @@ export const generateAuthTokens = async (userId) => {
 
 // Register
 export const register = asyncHandler(async (req, res) => {
-  let { fullName, userName, email, phoneNumber, role = "STUDENT", password, unit } = req.body;
+  let { fullName, userName, email, phoneNumber, role = "STUDENT", password, unit, department, lines, machines } = req.body;
 
   if (!fullName || !userName || !email || !phoneNumber || !password || !unit) {
     throw new ApiError("All fields are required", 400);
@@ -74,14 +74,17 @@ export const register = asyncHandler(async (req, res) => {
     throw new ApiError("Invalid unit provided", 400);
   }
 
-  const user = await User.create({ 
-    fullName, 
-    userName, 
-    email, 
-    phoneNumber, 
-    password, 
-    role, 
+  const user = await User.create({
+    fullName,
+    userName,
+    email,
+    phoneNumber,
+    password,
+    role,
     unit,
+    department: department || null,
+    lines: lines || [],
+    machines: machines || [],
     doj: req.body.doj || null,
     dob: req.body.dob || null
   });

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 
 const DepartmentLineManager = ({ departmentId }) => {
     const navigate = useNavigate();
+    const { pathname } = useLocation();
+    const basePath = pathname.startsWith("/superadmin") ? "/superadmin" : "/admin";
     const { data: linesData, isLoading, error } = useGetLinesByDepartmentQuery(departmentId);
     const [createLine, { isLoading: isCreating }] = useCreateLineMutation();
     const [updateLine, { isLoading: isUpdating }] = useUpdateLineMutation();
@@ -174,7 +176,7 @@ const DepartmentLineManager = ({ departmentId }) => {
                                 <TableRow
                                     key={line.id || line._id}
                                     className="cursor-pointer hover:bg-[#f3f4f6]"
-                                    onClick={() => navigate(`/admin/departments/${departmentId}/lines/${line.id || line._id}`)}
+                                    onClick={() => navigate(`${basePath}/departments/${departmentId}/lines/${line.id || line._id}`)}
                                 >
                                     <TableCell className="font-medium">
                                         {editingLineId === (line.id || line._id) ? (

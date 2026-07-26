@@ -617,7 +617,7 @@ export const getMyAllProgress = asyncHandler(async (req, res) => {
     `, [userId]);
 
     const result = await Promise.all(rows.map(async p => {
-        const [mods] = await pool.query("SELECT id, title, `order` FROM modules WHERE course = ?", [p.course]);
+        const [mods] = await pool.query("SELECT id, title, [order] FROM modules WHERE course = ?", [p.course]);
         const completedModules = parseJSON(p.completedModules, []);
         const totalModules = mods.length;
         const passedCourse = totalModules > 0 && completedModules.length >= totalModules;
@@ -790,7 +790,7 @@ export const validateModuleAccess = asyncHandler(async (req, res) => {
     // Assuming utility works on POJO `progress` with `completedModules` array.
 
     // Fetch course modules
-    const [mods] = await pool.query("SELECT id, `order` FROM modules WHERE course = ? ORDER BY `order` ASC", [courseId]);
+    const [mods] = await pool.query("SELECT id, [order] FROM modules WHERE course = ? ORDER BY [order] ASC", [courseId]);
     const modIndex = mods.findIndex(m => String(m.id) === String(moduleId));
 
     if (modIndex === -1) return res.json(new ApiResponse(200, { hasAccess: false, reason: "Module not found" }, "Checked"));

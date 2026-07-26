@@ -26,6 +26,7 @@ const ENV = {
     DB_USER: process.env.DB_USER,
     DB_PASSWORD: process.env.DB_PASSWORD,
     DB_NAME: process.env.DB_NAME,
+    BACKUP_DIR: process.env.BACKUP_DIR || "C:\\MMLIBackup",
 
     FRONTEND_URL: process.env.FRONTEND_URL,
     ADMIN_URL: process.env.ADMIN_URL,

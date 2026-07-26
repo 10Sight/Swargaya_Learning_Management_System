@@ -71,7 +71,7 @@ import {
   IconCheck,
   IconUserMinus,
 } from "@tabler/icons-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useGetDepartmentProgressQuery, useAddStudentToDepartmentMutation, useRemoveStudentFromDepartmentMutation } from "@/Redux/AllApi/DepartmentApi";
 import { useGetAllUsersQuery } from "@/Redux/AllApi/UserApi";
 import { toast } from "sonner";
@@ -84,6 +84,8 @@ const DepartmentStudentsTable = ({ students, departmentId, departmentName, onRef
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [studentSearchTerm, setStudentSearchTerm] = useState("");
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const basePath = pathname.startsWith("/superadmin") ? "/superadmin" : "/admin";
 
   // Mutation hooks
   const [addStudentToDepartment, { isLoading: isAddingStudent }] = useAddStudentToDepartmentMutation();
@@ -639,7 +641,7 @@ const DepartmentStudentsTable = ({ students, departmentId, departmentName, onRef
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => navigate(`/students/${student._id}`)}
+                        onClick={() => navigate(`${basePath}/employees/${student._id}`)}
                         className="gap-1"
                       >
                         <IconEye className="h-4 w-4" />
@@ -653,7 +655,7 @@ const DepartmentStudentsTable = ({ students, departmentId, departmentName, onRef
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
-                            onClick={() => navigate(`/students/${student._id}`)}
+                            onClick={() => navigate(`${basePath}/employees/${student._id}`)}
                           >
                             <IconEye className="h-4 w-4 mr-2" />
                             View Details
