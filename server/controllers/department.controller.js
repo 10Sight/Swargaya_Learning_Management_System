@@ -28,7 +28,7 @@ const populateDepartment = async (dept, fields = []) => {
         if (instructorIds.length > 0) {
             // Fetch instructor details
             const placeholders = instructorIds.map(() => '?').join(',');
-            const [users] = await pool.query(`SELECT id, fullName, email, slug, createdAt FROM users WHERE id IN (${placeholders})`, instructorIds);
+            const [users] = await pool.query(`SELECT id, fullName, email, slug, createdAt, doj FROM users WHERE id IN (${placeholders})`, instructorIds);
             dept.instructors = users.map(u => ({ ...u, _id: u.id }));
         }
     }
@@ -39,7 +39,7 @@ const populateDepartment = async (dept, fields = []) => {
             dept.instructor = dept.instructors[0];
         } else {
             const u = await User.findById(dept.instructors[0]);
-            if (u) dept.instructor = { id: u.id, _id: u.id, fullName: u.fullName, email: u.email, slug: u.slug, createdAt: u.createdAt };
+            if (u) dept.instructor = { id: u.id, _id: u.id, fullName: u.fullName, email: u.email, slug: u.slug, createdAt: u.createdAt, doj: u.doj };
         }
     }
 
@@ -61,7 +61,7 @@ const populateDepartment = async (dept, fields = []) => {
     if (fields.includes('students') && dept.students && dept.students.length > 0) {
         if (typeof dept.students[0] !== 'object') {
             const placeholders = dept.students.map(() => '?').join(',');
-            const [students] = await pool.query(`SELECT id, fullName, email, slug, createdAt, avatar FROM users WHERE id IN (${placeholders})`, dept.students);
+            const [students] = await pool.query(`SELECT id, fullName, email, slug, createdAt, avatar, doj FROM users WHERE id IN (${placeholders})`, dept.students);
             dept.students = students.map(s => ({ ...s, _id: s.id }));
         }
     }
