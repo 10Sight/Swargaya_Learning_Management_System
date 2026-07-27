@@ -15,7 +15,10 @@ import {
   useAddStudentToDepartmentMutation,
 } from "@/Redux/AllApi/DepartmentApi";
 import { useGetLinesByDepartmentQuery } from "@/Redux/AllApi/LineApi";
-import { useLazyGetMachinesByLineQuery } from "@/Redux/AllApi/MachineApi";
+import {
+  useLazyGetMachinesByLineQuery,
+  useGetMachinesByLineQuery,
+} from "@/Redux/AllApi/MachineApi";
 import {
   Table,
   TableBody,
@@ -55,6 +58,9 @@ import {
   IconInfoCircle,
   IconExternalLink,
   IconUser,
+  IconRoute,
+  IconSettings,
+  IconCalendar,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import {
@@ -128,6 +134,10 @@ const Students = () => {
   const [formErrors, setFormErrors] = useState({});
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [departmentFilter, setDepartmentFilter] = useState("ALL");
+  const [lineFilter, setLineFilter] = useState("ALL");
+  const [machineFilter, setMachineFilter] = useState("ALL");
+  const [dojFilter, setDojFilter] = useState("");
+  const [leavingDateFilter, setLeavingDateFilter] = useState("");
   const [unitFilter, setUnitFilter] = useState("ALL");
   const [activeTab, setActiveTab] = useState("all");
   const [hoveredBtn, setHoveredBtn] = useState(null);
@@ -149,6 +159,11 @@ const Students = () => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
+  // Sentinel department filter values that aren't real department IDs
+  const isSpecificDepartmentSelected = !["ALL", "HAS_DEPARTMENT", "NO_DEPARTMENT"].includes(
+    departmentFilter
+  );
+
   // API Hooks
   const {
     data: studentsData,
@@ -162,6 +177,7 @@ const Students = () => {
       search: debouncedSearchTerm || "",
       status: statusFilter !== "ALL" ? statusFilter : "",
       unit: isAdmin ? (currentUser?.unit || "") : (unitFilter !== "ALL" ? unitFilter : ""),
+      departmentId: isSpecificDepartmentSelected ? departmentFilter : "",
     },
     {
       // Prevent unnecessary refetches
@@ -188,6 +204,33 @@ const Students = () => {
       refetchOnReconnect: false,
     }
   );
+
+  // Departments list for the filter row, scoped to the relevant unit
+  const filterUnit = isAdmin ? currentUser?.unit : (unitFilter !== "ALL" ? unitFilter : undefined);
+  const { data: filterDepartmentsData } = useGetAllDepartmentsQuery(
+    { limit: 1000, ...(filterUnit ? { unit: filterUnit } : {}) },
+    {
+      refetchOnFocus: false,
+      refetchOnReconnect: false,
+    }
+  );
+  const filterDepartments = filterDepartmentsData?.data?.departments || [];
+
+  // Lines for the filter row, only fetched once a specific department is chosen
+  const { data: filterLinesData, isFetching: filterLinesLoading } = useGetLinesByDepartmentQuery(
+    departmentFilter,
+    { skip: !isSpecificDepartmentSelected }
+  );
+  const filterLines = filterLinesData?.data || [];
+
+  // Machines for the filter row, only fetched once a specific line is chosen
+  const isSpecificLineSelected = lineFilter !== "ALL";
+  const { data: filterMachinesData, isFetching: filterMachinesLoading } = useGetMachinesByLineQuery(
+    lineFilter,
+    { skip: !isSpecificLineSelected }
+  );
+  const filterMachines = filterMachinesData?.data || [];
+
   const [registerStudent] = useUserRegisterMutation();
   const [updateStudent] = useUpdateUserMutation();
   const [deleteStudent] = useDeleteUserMutation();
@@ -320,7 +363,29 @@ const Students = () => {
     { value: "ALL", label: "All Departments" },
     { value: "HAS_DEPARTMENT", label: "Has Department" },
     { value: "NO_DEPARTMENT", label: "No Department" },
+    ...filterDepartments.map((dept) => ({ value: String(dept._id), label: dept.name })),
   ];
+
+  const lineOptions = [
+    { value: "ALL", label: "All Lines" },
+    ...filterLines.map((line) => ({ value: String(line.id), label: line.name })),
+  ];
+
+  const machineOptions = [
+    { value: "ALL", label: "All Machines" },
+    ...filterMachines.map((machine) => ({ value: String(machine.id), label: machine.name })),
+  ];
+
+  const handleDepartmentFilterChange = (value) => {
+    setDepartmentFilter(value);
+    setLineFilter("ALL");
+    setMachineFilter("ALL");
+  };
+
+  const handleLineFilterChange = (value) => {
+    setLineFilter(value);
+    setMachineFilter("ALL");
+  };
 
   const { data: unitsResponse } = useGetAllUnitsQuery();
   const unitOptions = [
@@ -346,6 +411,24 @@ const Students = () => {
       filters.push({ label: "Department", value: departmentLabel });
     }
 
+    if (lineFilter !== "ALL") {
+      const lineLabel = lineOptions.find((opt) => opt.value === lineFilter)?.label;
+      filters.push({ label: "Line", value: lineLabel });
+    }
+
+    if (machineFilter !== "ALL") {
+      const machineLabel = machineOptions.find((opt) => opt.value === machineFilter)?.label;
+      filters.push({ label: "Machine", value: machineLabel });
+    }
+
+    if (dojFilter) {
+      filters.push({ label: "Joining Date", value: dojFilter });
+    }
+
+    if (leavingDateFilter) {
+      filters.push({ label: "Leaving Date", value: leavingDateFilter });
+    }
+
     if (!isAdmin && unitFilter !== "ALL") {
       const unitLabel = unitOptions.find((opt) => opt.value === unitFilter)?.label;
       filters.push({ label: "Unit", value: unitLabel });
@@ -356,23 +439,77 @@ const Students = () => {
     }
 
     return filters;
-  }, [statusFilter, departmentFilter, searchTerm, statusOptions, departmentOptions, isAdmin, unitFilter]);
+  }, [
+    statusFilter,
+    departmentFilter,
+    lineFilter,
+    machineFilter,
+    dojFilter,
+    leavingDateFilter,
+    searchTerm,
+    statusOptions,
+    departmentOptions,
+    lineOptions,
+    machineOptions,
+    isAdmin,
+    unitFilter,
+  ]);
 
-  // Filter students based on department and unit (status handled by API)
+  // Filter students based on department, line, machine, dates, and unit (status handled by API)
   const filteredStudents = useMemo(() => {
     return students.filter((student) => {
       const departmentMatch =
         departmentFilter === "ALL" ||
         (departmentFilter === "HAS_DEPARTMENT" && student.department) ||
-        (departmentFilter === "NO_DEPARTMENT" && !student.department);
+        (departmentFilter === "NO_DEPARTMENT" && !student.department) ||
+        (isSpecificDepartmentSelected &&
+          String(student.department?._id) === departmentFilter);
+
+      const lineMatch =
+        lineFilter === "ALL" ||
+        (Array.isArray(student.lines) &&
+          student.lines.some((line) => String(line.id) === lineFilter));
+
+      const machineMatch =
+        machineFilter === "ALL" ||
+        (Array.isArray(student.machines) &&
+          student.machines.some((machine) => String(machine.id) === machineFilter));
+
+      const dojMatch =
+        !dojFilter ||
+        (student.doj &&
+          new Date(student.doj).toISOString().split("T")[0] === dojFilter);
+
+      const leavingDateMatch =
+        !leavingDateFilter ||
+        (student.leavingDate &&
+          new Date(student.leavingDate).toISOString().split("T")[0] === leavingDateFilter);
 
       const unitMatch = isAdmin
         ? student.unit === currentUser?.unit
         : (unitFilter === "ALL" || student.unit === unitFilter);
 
-      return departmentMatch && unitMatch;
+      return (
+        departmentMatch &&
+        lineMatch &&
+        machineMatch &&
+        dojMatch &&
+        leavingDateMatch &&
+        unitMatch
+      );
     });
-  }, [students, departmentFilter, unitFilter, isAdmin, currentUser?.unit]);
+  }, [
+    students,
+    departmentFilter,
+    isSpecificDepartmentSelected,
+    lineFilter,
+    machineFilter,
+    dojFilter,
+    leavingDateFilter,
+    unitFilter,
+    isAdmin,
+    currentUser?.unit,
+  ]);
 
   // Toast helpers to prevent spam
   const showToast = useCallback(
@@ -747,6 +884,10 @@ const Students = () => {
   const clearFilters = () => {
     setStatusFilter("ALL");
     setDepartmentFilter("ALL");
+    setLineFilter("ALL");
+    setMachineFilter("ALL");
+    setDojFilter("");
+    setLeavingDateFilter("");
     setUnitFilter("ALL");
     setSearchTerm("");
     setActiveTab("all");
@@ -941,12 +1082,54 @@ const Students = () => {
 
               <FilterSelect
                 value={departmentFilter}
-                onValueChange={setDepartmentFilter}
+                onValueChange={handleDepartmentFilterChange}
                 options={departmentOptions}
                 placeholder="Department"
                 icon={IconSchool}
-                className="w-[160px]"
+                className="w-[180px]"
               />
+
+              <FilterSelect
+                value={lineFilter}
+                onValueChange={handleLineFilterChange}
+                options={lineOptions}
+                placeholder="Line"
+                icon={IconRoute}
+                className="w-[160px]"
+                disabled={!isSpecificDepartmentSelected || filterLinesLoading}
+              />
+
+              <FilterSelect
+                value={machineFilter}
+                onValueChange={setMachineFilter}
+                options={machineOptions}
+                placeholder="Machine"
+                icon={IconSettings}
+                className="w-[160px]"
+                disabled={!isSpecificLineSelected || filterMachinesLoading}
+              />
+
+              <div className="relative">
+                <IconCalendar className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                <Input
+                  type="date"
+                  value={dojFilter}
+                  onChange={(e) => setDojFilter(e.target.value)}
+                  className="w-[160px] pl-9"
+                  title="Joining Date"
+                />
+              </div>
+
+              <div className="relative">
+                <IconCalendar className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                <Input
+                  type="date"
+                  value={leavingDateFilter}
+                  onChange={(e) => setLeavingDateFilter(e.target.value)}
+                  className="w-[160px] pl-9"
+                  title="Leaving Date"
+                />
+              </div>
 
               {!isAdmin && (
                 <FilterSelect
@@ -961,6 +1144,10 @@ const Students = () => {
 
               {(statusFilter !== "ALL" ||
                 departmentFilter !== "ALL" ||
+                lineFilter !== "ALL" ||
+                machineFilter !== "ALL" ||
+                dojFilter ||
+                leavingDateFilter ||
                 (!isAdmin && unitFilter !== "ALL") ||
                 searchTerm) && (
                   <Button
@@ -1263,13 +1450,21 @@ const Students = () => {
                       <p className="text-sm text-muted-foreground">
                         {searchTerm ||
                           statusFilter !== "ALL" ||
-                          departmentFilter !== "ALL"
+                          departmentFilter !== "ALL" ||
+                          lineFilter !== "ALL" ||
+                          machineFilter !== "ALL" ||
+                          dojFilter ||
+                          leavingDateFilter
                           ? "Try adjusting your search or filters"
                           : "Add your first employee to get started"}
                       </p>
                       {(searchTerm ||
                         statusFilter !== "ALL" ||
-                        departmentFilter !== "ALL") && (
+                        departmentFilter !== "ALL" ||
+                        lineFilter !== "ALL" ||
+                        machineFilter !== "ALL" ||
+                        dojFilter ||
+                        leavingDateFilter) && (
                           <Button
                             variant="outline"
                             onClick={clearFilters}
