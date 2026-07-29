@@ -17,6 +17,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuCheckboxItem,
+} from "@/components/ui/dropdown-menu";
 import { Card, CardContent } from "@/components/ui/card";
 
 const InstructorSkillMatrix = () => {
@@ -178,9 +184,19 @@ const InstructorSkillMatrix = () => {
                     displayDepartment = user.department.name;
                 }
 
-                // Assigned Station
-                const firstMachineId = activeMachines.length > 0 ? (activeMachines[0].id || activeMachines[0]._id) : "";
-                const assignedStationId = savedUserEntry?.assignedStationId || firstMachineId;
+                // Assigned Stations — restore saved assignments (supporting the legacy
+                // single-value format), otherwise default to whichever machines this
+                // user is actually listed as an operator on.
+                let assignedStationIds;
+                if (Array.isArray(savedUserEntry?.assignedStationIds)) {
+                    assignedStationIds = savedUserEntry.assignedStationIds.map(String);
+                } else if (savedUserEntry?.assignedStationId) {
+                    assignedStationIds = [String(savedUserEntry.assignedStationId)];
+                } else {
+                    assignedStationIds = activeMachines
+                        .filter(machine => Array.isArray(machine.operators) && machine.operators.some(op => String(op.id ?? op._id) === String(user._id)))
+                        .map(machine => String(machine.id ?? machine._id));
+                }
 
                 return {
                     srNo: index + 1,
@@ -190,7 +206,7 @@ const InstructorSkillMatrix = () => {
                     type: user.type,
                     detCas: savedUserEntry?.detCas || "",
                     doj: user.doj ? new Date(user.doj).toLocaleDateString('en-GB') : (user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-GB') : "-"),
-                    assignedStationId: assignedStationId,
+                    assignedStationIds,
                     stations: savedUserEntry ? mergedStations : defaultStations,
                     isManual: false
                 };
@@ -212,9 +228,14 @@ const InstructorSkillMatrix = () => {
                     };
                 });
 
+                const assignedStationIds = Array.isArray(entry.assignedStationIds)
+                    ? entry.assignedStationIds.map(String)
+                    : (entry.assignedStationId ? [String(entry.assignedStationId)] : []);
+
                 return {
                     ...entry,
                     srNo: mappedData.length + idx + 1,
+                    assignedStationIds,
                     stations: mergedStations
                 };
             });
@@ -249,7 +270,7 @@ const InstructorSkillMatrix = () => {
                 manualName: entry.isManual ? entry.name : "",
                 isManual: entry.isManual,
                 doj: entry.doj,
-                assignedStationId: entry.assignedStationId,
+                assignedStationIds: entry.assignedStationIds || [],
                 detCas: entry.detCas,
                 stations: entry.stations.map(s => ({
                     machineId: s._id,
@@ -297,8 +318,6 @@ const InstructorSkillMatrix = () => {
             curr: "L1",
         }));
 
-        const firstMachineId = activeMachines.length > 0 ? (activeMachines[0].id || activeMachines[0]._id) : "";
-
         setMatrixEntries(prev => [
             ...prev,
             {
@@ -309,7 +328,7 @@ const InstructorSkillMatrix = () => {
                 type: "",
                 detCas: "",
                 doj: "-",
-                assignedStationId: firstMachineId,
+                assignedStationIds: [],
                 stations: stations,
                 isManual: true // FLAGGED AS MANUAL / EDITABLE
             }
@@ -330,6 +349,13 @@ const InstructorSkillMatrix = () => {
             displayDepartment = user.department.name;
         }
 
+        // Default the assignment to whichever machines this user is actually
+        // listed as an operator on, so a manually-added row reflects reality.
+        const activeMachines = machinesData?.data || [];
+        const assignedStationIds = activeMachines
+            .filter(machine => Array.isArray(machine.operators) && machine.operators.some(op => String(op.id ?? op._id) === String(user._id)))
+            .map(machine => String(machine.id ?? machine._id));
+
         updatedEntries[rowIdx] = {
             ...row,
             _id: user._id, // Update to real ID
@@ -338,7 +364,8 @@ const InstructorSkillMatrix = () => {
             type: user.type,
             doj: user.doj ? new Date(user.doj).toLocaleDateString('en-GB') : (user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-GB') : "-"),
             stations: row.stations.map(s => ({ ...s, curr: user.level || 'L1' })), // Reset stations to user level
-            isManual: false // Lock it after selection? Or keep true to allow changing? 
+            assignedStationIds,
+            isManual: false // Lock it after selection? Or keep true to allow changing?
             // "operator name have to drop down" implies it might stay a dropdown. 
             // Let's keep isManual true if we want it to remain editable, 
             // OR better: Add a field `isSelector: true`. 
@@ -376,9 +403,21 @@ const InstructorSkillMatrix = () => {
         setMatrixEntries(updatedEntries);
     };
 
-    const handleAssignedStationChange = (index, value) => {
+    const handleAssignedStationsToggle = (rowIdx, stationId, checked) => {
         const updatedEntries = [...matrixEntries];
-        updatedEntries[index].assignedStationId = value;
+        const row = updatedEntries[rowIdx];
+        // Seed from the currently-displayed (possibly fallback) set so the very
+        // first toggle doesn't silently drop the implicit default assignment.
+        const current = (row.assignedStationIds && row.assignedStationIds.length > 0)
+            ? row.assignedStationIds
+            : (row.stations[0] ? [row.stations[0]._id] : []);
+        const set = new Set(current.map(String));
+        if (checked) {
+            set.add(String(stationId));
+        } else {
+            set.delete(String(stationId));
+        }
+        updatedEntries[rowIdx] = { ...row, assignedStationIds: Array.from(set) };
         setMatrixEntries(updatedEntries);
     };
 
@@ -519,6 +558,13 @@ const InstructorSkillMatrix = () => {
 
         // --- Data Rows ---
         matrixEntries.forEach((entry, index) => {
+            // Resolve the assigned stations the same way the UI does: fall back to the
+            // first station so a never-explicitly-assigned row still displays one.
+            const assignedIds = (entry.assignedStationIds && entry.assignedStationIds.length > 0)
+                ? entry.assignedStationIds.map(String)
+                : (entry.stations[0] ? [String(entry.stations[0]._id)] : []);
+            const assignedStations = entry.stations.filter(s => assignedIds.includes(String(s._id)));
+
             const rowData = [
                 entry.srNo,
                 entry.isManual ? "-" : entry._id, // Hide ID for manual rows if needed, or show manual ID
@@ -526,14 +572,14 @@ const InstructorSkillMatrix = () => {
                 entry.department,
                 entry.type,
                 entry.doj,
-                entry.assignedStationId ? machines.find(m => (m.id || m._id) === entry.assignedStationId)?.name || "-" : "-"
+                assignedStations.map(s => s.name).join(", ") || "-"
             ];
 
             // Machine Skills (Icons in UI -> Text in Excel)
-            // Only the operator's assigned station shows a skill level; TNR rows show all.
+            // Only the operator's assigned station(s) show a skill level; TNR rows show all.
             machines.forEach((machine) => {
                 const machineId = machine.id || machine._id;
-                const isAssigned = entry.type === 'TNR' || String(entry.assignedStationId) === String(machineId);
+                const isAssigned = entry.type === 'TNR' || assignedIds.includes(String(machineId));
                 if (!isAssigned) {
                     rowData.push("");
                     return;
@@ -548,14 +594,13 @@ const InstructorSkillMatrix = () => {
                 }
             });
 
-            // Assigned Station Details (Legend Columns)
+            // Assigned Station Details (Legend Columns) — one line per assigned station.
             // In the UI these are inputs/selects.
-            const assignedStation = entry.stations.find(s => s._id === entry.assignedStationId);
             rowData.push(
-                assignedStation?.name || "-",
-                assignedStation?.critical || "-",
-                assignedStation?.min || "-",
-                assignedStation?.curr || "-"
+                assignedStations.map(s => s.name).join("\n") || "-",
+                assignedStations.map(s => s.critical || "-").join("\n") || "-",
+                assignedStations.map(s => s.min || "-").join("\n") || "-",
+                assignedStations.map(s => s.curr || "-").join("\n") || "-"
             );
 
             const currentRow = worksheet.addRow(rowData);
@@ -865,7 +910,14 @@ const InstructorSkillMatrix = () => {
                     </div>
 
                     {/* Data Rows */}
-                    {matrixEntries.map((row, idx) => (
+                    {matrixEntries.map((row, idx) => {
+                        // Fall back to the first station so a never-explicitly-assigned
+                        // row still shows one skill circle instead of none at all.
+                        const assignedIds = (row.assignedStationIds && row.assignedStationIds.length > 0)
+                            ? row.assignedStationIds.map(String)
+                            : (row.stations[0] ? [String(row.stations[0]._id)] : []);
+                        const assignedStations = row.stations.filter(s => assignedIds.includes(String(s._id)));
+                        return (
                         <div key={row._id} className="flex border-b border-black text-[10px] text-center min-h-[50px]">
                             <div className="w-8 border-r border-black p-2 flex items-center justify-center font-bold">{row.srNo}</div>
                             <div className="w-32 border-r border-black p-2 flex items-center justify-start font-bold text-left min-w-[128px]">
@@ -895,76 +947,97 @@ const InstructorSkillMatrix = () => {
                             </div>
                             <div className="w-20 border-r border-black p-2 flex items-center justify-center font-bold">{row.doj}</div>
 
-                            {/* Assigned Station Details */}
+                            {/* Assigned Station Details — one stacked line per assigned machine */}
                             {(() => {
-                                const assignedStation = row.stations.find(s => s._id === row.assignedStationId) || row.stations[0];
+                                if (row.type === 'TNR') {
+                                    return (
+                                        <>
+                                            <div className="w-32 border-r border-black p-1 flex items-center justify-center">
+                                                <span className="text-[9px] font-bold">Team Leader</span>
+                                            </div>
+                                            <div className="w-24 border-r border-black p-2 flex items-center justify-center font-bold text-[9px]">
+                                                <span className="text-[9px] font-bold">Not Applicable</span>
+                                            </div>
+                                            <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold">L5</div>
+                                            <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold">{assignedStations[0]?.curr || "-"}</div>
+                                        </>
+                                    );
+                                }
                                 return (
                                     <>
-                                        <div className="w-32 border-r border-black p-1 flex items-center justify-center">
-                                            {row.type === 'TNR' ? (
-                                                <span className="text-[9px] font-bold">Team Leader</span>
-                                            ) : (
-                                                <Select value={String(row.assignedStationId || "")} onValueChange={(val) => handleAssignedStationChange(idx, val)}>
-                                                    <SelectTrigger className="w-full h-full border-none p-1 text-[9px] font-bold bg-transparent">
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {row.stations.map(s => (
-                                                            <SelectItem key={String(s._id)} value={String(s._id)} className="text-xs">{s.name}</SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            )}
+                                        <div className="w-32 border-r border-black p-1 flex flex-col items-stretch justify-center gap-0.5">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <button
+                                                        type="button"
+                                                        className="w-full text-[9px] font-bold text-center bg-transparent hover:bg-black/5 rounded px-1 py-0.5 truncate"
+                                                    >
+                                                        {assignedStations.length > 0
+                                                            ? assignedStations.map(s => s.name).join(", ")
+                                                            : "— Select —"}
+                                                    </button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="start" className="max-h-64 overflow-y-auto">
+                                                    {row.stations.map(s => (
+                                                        <DropdownMenuCheckboxItem
+                                                            key={String(s._id)}
+                                                            checked={assignedIds.includes(String(s._id))}
+                                                            onSelect={(e) => e.preventDefault()}
+                                                            onCheckedChange={(checked) => handleAssignedStationsToggle(idx, s._id, checked)}
+                                                        >
+                                                            {s.name}
+                                                        </DropdownMenuCheckboxItem>
+                                                    ))}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </div>
-                                        <div className="w-24 border-r border-black p-2 flex items-center justify-center font-bold text-[9px]">
-                                            {row.type === 'TNR' ? (
-                                                <span className="text-[9px] font-bold">Not Applicable</span>
-                                            ) : (
-                                                <Select value={assignedStation?.critical || ""} onValueChange={(val) => {
-                                                    // Find the index of the assigned station in the stations array
-                                                    const sIdx = row.stations.findIndex(s => String(s._id) === String(row.assignedStationId));
-                                                    if (sIdx !== -1) handleCriticalityChange(idx, sIdx, val);
-                                                }}>
-                                                    <SelectTrigger className="w-full h-full border-none p-0 text-[9px] font-bold bg-transparent">
-                                                        <div className="truncate">{assignedStation?.critical || "-"}</div>
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="Critical">Critical</SelectItem>
-                                                        <SelectItem value="Non-Critical">Non-Critical</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            )}
+                                        <div className="w-24 border-r border-black p-1 flex flex-col items-center justify-center font-bold text-[9px] gap-1">
+                                            {assignedStations.length === 0 ? "-" : assignedStations.map(s => {
+                                                const sIdx = row.stations.findIndex(st => String(st._id) === String(s._id));
+                                                return (
+                                                    <Select key={String(s._id)} value={s.critical || ""} onValueChange={(val) => handleCriticalityChange(idx, sIdx, val)}>
+                                                        <SelectTrigger className="w-full h-5 border-none p-0 text-[9px] font-bold bg-transparent">
+                                                            <div className="truncate">{s.critical || "-"}</div>
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="Critical">Critical</SelectItem>
+                                                            <SelectItem value="Non-Critical">Non-Critical</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                );
+                                            })}
                                         </div>
-                                        <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold">
-                                            {row.type === 'TNR' ? (
-                                                "L5"
-                                            ) : (
-                                                <Select value={String(assignedStation?.min || "")} onValueChange={(val) => {
-                                                    let sIdx = row.stations.findIndex(s => String(s._id) === String(row.assignedStationId));
-                                                    if (sIdx === -1 && row.stations.length > 0) sIdx = 0;
-                                                    if (sIdx !== -1) handleMinLevelChange(idx, sIdx, val);
-                                                }}>
-                                                    <SelectTrigger className="w-full h-full border-none p-0 text-[10px] font-bold bg-transparent">
-                                                        <SelectValue placeholder="-" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {availableLevels.map((lvl) => (
-                                                            <SelectItem key={lvl.name} value={lvl.name} className="text-xs">
-                                                                {lvl.name}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            )}
+                                        <div className="w-16 border-r border-black p-1 flex flex-col items-center justify-center font-bold gap-1">
+                                            {assignedStations.length === 0 ? "-" : assignedStations.map(s => {
+                                                const sIdx = row.stations.findIndex(st => String(st._id) === String(s._id));
+                                                return (
+                                                    <Select key={String(s._id)} value={String(s.min || "")} onValueChange={(val) => handleMinLevelChange(idx, sIdx, val)}>
+                                                        <SelectTrigger className="w-full h-5 border-none p-0 text-[10px] font-bold bg-transparent">
+                                                            <SelectValue placeholder="-" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {availableLevels.map((lvl) => (
+                                                                <SelectItem key={lvl.name} value={lvl.name} className="text-xs">
+                                                                    {lvl.name}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                );
+                                            })}
                                         </div>
-                                        <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold">{assignedStation?.curr || "-"}</div>
+                                        <div className="w-16 border-r border-black p-1 flex flex-col items-center justify-center font-bold gap-1">
+                                            {assignedStations.length === 0 ? "-" : assignedStations.map(s => (
+                                                <span key={String(s._id)} className="text-[10px]">{s.curr || "-"}</span>
+                                            ))}
+                                        </div>
                                     </>
                                 );
                             })()}
 
                             <div className="flex-1 flex overflow-x-auto">
                                 {row.stations.map((station, sIdx) => {
-                                    const isAssigned = row.type === 'TNR' || String(station._id) === String(row.assignedStationId);
+                                    const isAssigned = row.type === 'TNR' || assignedIds.includes(String(station._id));
                                     const currentLevelStr = station.curr || "L0";
                                     const level = parseLevel(currentLevelStr);
 
@@ -1000,7 +1073,8 @@ const InstructorSkillMatrix = () => {
                                 </div>
                             </div>
                         </div>
-                    ))}
+                        );
+                    })}
 
                     {/* Footer Legend */}
                     <div className="flex border-t border-black min-h-[100px]">
