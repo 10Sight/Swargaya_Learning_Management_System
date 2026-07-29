@@ -132,53 +132,41 @@ const InstructorSkillMatrix = () => {
         });
     }, [selectedLine, machinesData, departmentUsers]);
 
-    // Derived Course Levels for Skill Matrix Minimum Requirements
-    const courseLevels = React.useMemo(() => {
-        if (!selectedDepartment || !departmentsData?.data?.departments) return [];
-        const selectedDept = departmentsData.data.departments.find(d => String(d.id || d._id) === String(selectedDepartment));
-        if (!selectedDept || !selectedDept.courses) return [];
-
-        // Extract difficulty levels from courses
-        const levels = selectedDept.courses
-            .map(c => c.difficulty || c.level)
-            .filter(Boolean);
-
-        // Return unique levels, sorted or at least distinct
-        return [...new Set(levels)].sort();
-    }, [selectedDepartment, departmentsData]);
-
     // Initialize Matrix on Line Selection (Merge Logic)
     useEffect(() => {
         if (selectedLine && machinesData?.data) {
             const activeMachines = machinesData.data;
             const savedEntries = savedMatrixData?.data?.entries || [];
 
-            const defaultMinLevel = courseLevels.length > 0 ? courseLevels[0] : "L1";
+            const nonCriticalMin = availableLevels[1]?.name || "L2";
+            const criticalMin = availableLevels[2]?.name || "L3";
 
             // 1. Map Current Line Assigned Users (The Source of Truth for *Who* is here)
             const mappedData = lineAssignedUsers.map((user, index) => {
                 // Check if we have saved data for this user
                 const savedUserEntry = savedEntries.find(e => e.userId === user._id);
 
-                // Default stations (New User)
+                // Default stations (New User) — Non-Critical by default
                 const defaultStations = activeMachines.map(machine => ({
                     _id: machine.id || machine._id,
                     name: machine.name,
                     critical: "Non-Critical",
-                    min: defaultMinLevel,
+                    min: nonCriticalMin,
                     curr: user.level,
                 }));
 
                 // Merged Stations (Existing User)
-                // We map over ACTIVE machines to ensure if a machine was removed, it's gone, 
+                // We map over ACTIVE machines to ensure if a machine was removed, it's gone,
                 // and if added, it appears (with default)
                 const mergedStations = activeMachines.map(machine => {
                     const savedStation = savedUserEntry?.stations?.find(s => s.machineId === (machine.id || machine._id));
+                    const critical = savedStation?.critical || "Non-Critical";
+                    const minFallback = critical === "Critical" ? criticalMin : nonCriticalMin;
                     return {
                         _id: machine.id || machine._id,
                         name: machine.name,
-                        critical: savedStation?.critical || "Non-Critical",
-                        min: savedStation?.min || defaultMinLevel,
+                        critical,
+                        min: savedStation?.min || minFallback,
                         curr: savedStation?.curr || user.level, // Prefer saved level, fallback to user default
                     };
                 });
@@ -213,11 +201,13 @@ const InstructorSkillMatrix = () => {
                 // Re-map stations to current active machines
                 const mergedStations = activeMachines.map(machine => {
                     const savedStation = entry.stations?.find(s => s.machineId === (machine.id || machine._id));
+                    const critical = savedStation?.critical || "Non-Critical";
+                    const minFallback = critical === "Critical" ? criticalMin : nonCriticalMin;
                     return {
                         _id: machine.id || machine._id,
                         name: machine.name,
-                        critical: savedStation?.critical || "Non-Critical",
-                        min: savedStation?.min || defaultMinLevel,
+                        critical,
+                        min: savedStation?.min || minFallback,
                         curr: savedStation?.curr || "L0",
                     };
                 });
@@ -299,12 +289,11 @@ const InstructorSkillMatrix = () => {
         if (!machinesData?.data) return;
         const activeMachines = machinesData.data;
 
-        const defaultMinLevel = courseLevels.length > 0 ? courseLevels[0] : "L1";
         const stations = activeMachines.map(machine => ({
             _id: machine.id || machine._id,
             name: machine.name,
             critical: "Non-Critical",
-            min: defaultMinLevel,
+            min: availableLevels[1]?.name || "L2",
             curr: "L1",
         }));
 
@@ -372,8 +361,12 @@ const InstructorSkillMatrix = () => {
     };
 
     const handleCriticalityChange = (rowIdx, stationIdx, value) => {
+        const autoMin = value === "Critical"
+            ? (availableLevels[2]?.name || "L3")
+            : (availableLevels[1]?.name || "L2");
         const updatedEntries = [...matrixEntries];
         updatedEntries[rowIdx].stations[stationIdx].critical = value;
+        updatedEntries[rowIdx].stations[stationIdx].min = autoMin;
         setMatrixEntries(updatedEntries);
     };
 
@@ -537,8 +530,15 @@ const InstructorSkillMatrix = () => {
             ];
 
             // Machine Skills (Icons in UI -> Text in Excel)
+            // Only the operator's assigned station shows a skill level; TNR rows show all.
             machines.forEach((machine) => {
-                const station = entry.stations.find(s => s._id === (machine.id || machine._id));
+                const machineId = machine.id || machine._id;
+                const isAssigned = entry.type === 'TNR' || String(entry.assignedStationId) === String(machineId);
+                if (!isAssigned) {
+                    rowData.push("");
+                    return;
+                }
+                const station = entry.stations.find(s => s._id === machineId);
                 // In UI it shows icon. In Excel we can show Level No (e.g. 4)
                 if (station) {
                     const levelNum = station.curr ? parseInt(station.curr.replace('L', '').split('-')[0]) || 0 : 0;
@@ -948,7 +948,7 @@ const InstructorSkillMatrix = () => {
                                                         <SelectValue placeholder="-" />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        {(courseLevels.length > 0 ? courseLevels.map(lvl => ({ name: lvl })) : availableLevels).map((lvl) => (
+                                                        {availableLevels.map((lvl) => (
                                                             <SelectItem key={lvl.name} value={lvl.name} className="text-xs">
                                                                 {lvl.name}
                                                             </SelectItem>
@@ -964,31 +964,34 @@ const InstructorSkillMatrix = () => {
 
                             <div className="flex-1 flex overflow-x-auto">
                                 {row.stations.map((station, sIdx) => {
+                                    const isAssigned = row.type === 'TNR' || String(station._id) === String(row.assignedStationId);
                                     const currentLevelStr = station.curr || "L0";
                                     const level = parseLevel(currentLevelStr);
 
                                     return (
                                         <div key={String(station._id)} className="w-20 border-r border-black flex items-center justify-center min-w-[60px] p-1">
-                                            <Select
-                                                value={currentLevelStr}
-                                                onValueChange={(val) => handleLevelChange(idx, sIdx, val)}
-                                            >
-                                                <SelectTrigger className="w-full h-full border-none p-0 flex justify-center bg-transparent focus:ring-0 select-trigger">
-                                                    <div>
-                                                        <SkillIcon level={level} size={20} />
-                                                    </div>
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {availableLevels.map((lvl) => (
-                                                        <SelectItem key={String(lvl.name)} value={String(lvl.name)}>
-                                                            <div className="flex items-center gap-2">
-                                                                <SkillIcon level={parseLevel(lvl.name)} size={16} />
-                                                                <span>{lvl.name}</span>
-                                                            </div>
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
+                                            {isAssigned && (
+                                                <Select
+                                                    value={currentLevelStr}
+                                                    onValueChange={(val) => handleLevelChange(idx, sIdx, val)}
+                                                >
+                                                    <SelectTrigger className="w-full h-full border-none p-0 flex justify-center bg-transparent focus:ring-0 select-trigger">
+                                                        <div>
+                                                            <SkillIcon level={level} size={20} />
+                                                        </div>
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {availableLevels.map((lvl) => (
+                                                            <SelectItem key={String(lvl.name)} value={String(lvl.name)}>
+                                                                <div className="flex items-center gap-2">
+                                                                    <SkillIcon level={parseLevel(lvl.name)} size={16} />
+                                                                    <span>{lvl.name}</span>
+                                                                </div>
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
                                         </div>
                                     );
                                 })}

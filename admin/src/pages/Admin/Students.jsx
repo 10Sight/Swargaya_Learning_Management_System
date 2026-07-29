@@ -124,6 +124,7 @@ const Students = () => {
     email: "",
     phoneNumber: "",
     password: "",
+    designation: "Employee",
     status: "PRESENT",
     unit: "UNIT 1",
     doj: "",
@@ -548,6 +549,7 @@ const Students = () => {
       email: "",
       phoneNumber: "",
       password: "",
+      designation: "Employee",
       status: "PRESENT",
       unit: isAdmin ? (currentUser?.unit || "UNIT 1") : "UNIT 1",
       doj: "",
@@ -634,6 +636,7 @@ const Students = () => {
         phoneNumber: formData.phoneNumber.trim(),
         password: formData.password.trim(),
         role: "STUDENT",
+        designation: formData.designation,
         unit: formData.unit,
         doj: formData.doj,
         department: formData.department || null,
@@ -704,6 +707,7 @@ const Students = () => {
         userName: updateData.userName.trim().toLowerCase(),
         email: updateData.email.trim().toLowerCase(),
         phoneNumber: updateData.phoneNumber.trim(),
+        designation: updateData.designation,
         status: updateData.status,
         unit: updateData.unit,
         doj: updateData.doj,
@@ -783,6 +787,7 @@ const Students = () => {
       email: student.email,
       phoneNumber: student.phoneNumber,
       password: "",
+      designation: student.designation || "Employee",
       status: normalizeStatus(student.status),
       unit: student.unit || "UNIT 1",
       doj: student.doj ? new Date(student.doj).toISOString().split('T')[0] : "",
@@ -1269,9 +1274,14 @@ const Students = () => {
                             </p>
                             <IconExternalLink className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
-                          <p className="text-sm text-muted-foreground">
-                            @{student.userName}
-                          </p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-sm text-muted-foreground">
+                              @{student.userName}
+                            </span>
+                            <span className="text-[10px] px-1.5 py-0.2 bg-muted text-muted-foreground font-semibold rounded-full border border-muted-foreground/20">
+                              {student.designation || "Employee"}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </TableCell>
@@ -1601,6 +1611,23 @@ const Students = () => {
               )}
             </div>
             <div className="grid gap-2">
+              <Label htmlFor="designation">Designation</Label>
+              <Select
+                value={formData.designation}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, designation: value })
+                }
+              >
+                <SelectTrigger id="designation">
+                  <SelectValue placeholder="Select designation" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Employee">Employee</SelectItem>
+                  <SelectItem value="Team Leader">Team Leader</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
               <Label htmlFor="edit-status">Status</Label>
               <Select
                 value={formData.status}
@@ -1829,6 +1856,23 @@ const Students = () => {
                 onChange={handleInputChange}
                 placeholder="Enter phone number"
               />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-designation">Designation</Label>
+              <Select
+                value={formData.designation}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, designation: value })
+                }
+              >
+                <SelectTrigger id="edit-designation">
+                  <SelectValue placeholder="Select designation" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Employee">Employee</SelectItem>
+                  <SelectItem value="Team Leader">Team Leader</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             {!isAdmin && (
               <div className="grid gap-2">

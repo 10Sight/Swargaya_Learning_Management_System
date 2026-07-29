@@ -20,6 +20,7 @@ class User {
         this.resetPasswordToken = data.resetPasswordToken;
         this.resetPasswordExpiry = data.resetPasswordExpiry ? new Date(data.resetPasswordExpiry) : null;
         this.role = data.role || "STUDENT";
+        this.designation = data.designation || "Employee";
         this.currentLevel = data.currentLevel || "L1";
         this.status = data.status || "PRESENT";
         this.isVerified = !!data.isVerified;
@@ -61,6 +62,7 @@ class User {
                     refreshToken NVARCHAR(MAX),
                     resetPasswordExpiry DATETIME,
                     role NVARCHAR(50) DEFAULT 'STUDENT',
+                    designation NVARCHAR(100) DEFAULT 'Employee',
                     currentLevel NVARCHAR(50) DEFAULT 'L1',
                     status NVARCHAR(50) DEFAULT 'PRESENT',
                     isVerified BIT DEFAULT 0,
@@ -113,6 +115,13 @@ class User {
                 BEGIN
                     ALTER TABLE dbo.users ADD leavingDate DATETIME NULL;
                 END
+                IF NOT EXISTS (
+                    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'designation'
+                )
+                BEGIN
+                    ALTER TABLE dbo.users ADD designation NVARCHAR(100) DEFAULT 'Employee' WITH VALUES;
+                END
             END
         `;
         try {
@@ -141,7 +150,7 @@ class User {
 
         const fields = [
             "fullName", "userName", "slug", "email", "phoneNumber", "password",
-            "avatar", "refreshToken", "role", "currentLevel", "status", "isVerified",
+            "avatar", "refreshToken", "role", "designation", "currentLevel", "status", "isVerified",
             "enrolledCourses", "createdCourses", "lastLogin", "loginHistory",
             "isDeleted", "department", "departments", "lines", "machines", "unit", "doj", "dob", "createdAt"
         ];
@@ -151,6 +160,7 @@ class User {
         if (!dataToInsert.createdAt) dataToInsert.createdAt = new Date();
         if (dataToInsert.status === undefined) dataToInsert.status = 'PRESENT';
         if (dataToInsert.role === undefined) dataToInsert.role = 'STUDENT';
+        if (dataToInsert.designation === undefined) dataToInsert.designation = 'Employee';
         if (dataToInsert.isDeleted === undefined) dataToInsert.isDeleted = 0;
         if (dataToInsert.isVerified === undefined) dataToInsert.isVerified = 0;
 
@@ -249,7 +259,7 @@ class User {
 
         const fields = [
             "fullName", "userName", "slug", "email", "phoneNumber", "password",
-            "avatar", "refreshToken", "role", "currentLevel", "status", "isVerified",
+            "avatar", "refreshToken", "role", "designation", "currentLevel", "status", "isVerified",
             "enrolledCourses", "createdCourses", "lastLogin", "loginHistory",
             "isDeleted", "department", "departments", "lines", "machines", "unit", "doj", "dob", "leavingDate", "resetPasswordToken", "resetPasswordExpiry", "updatedAt"
         ];

@@ -36,7 +36,7 @@ export const generateAuthTokens = async (userId) => {
 
 // Register
 export const register = asyncHandler(async (req, res) => {
-  let { fullName, userName, email, phoneNumber, role = "STUDENT", password, unit, department, lines, machines } = req.body;
+  let { fullName, userName, email, phoneNumber, role = "STUDENT", designation, password, unit, department, lines, machines } = req.body;
 
   if (!fullName || !userName || !email || !phoneNumber || !password || !unit) {
     throw new ApiError("All fields are required", 400);
@@ -81,6 +81,7 @@ export const register = asyncHandler(async (req, res) => {
     phoneNumber,
     password,
     role,
+    designation: designation || "Employee",
     unit,
     department: department || null,
     lines: lines || [],

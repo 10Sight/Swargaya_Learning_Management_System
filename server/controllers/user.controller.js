@@ -65,7 +65,7 @@ export const getAllUsers = asyncHandler(async (req, res) => {
 
   // Fetch
   const [users] = await pool.query(`
-        SELECT u.id, u.fullName, u.userName, u.slug, u.email, u.phoneNumber, u.role, u.status, u.unit, u.doj, u.leavingDate, u.createdAt, u.avatar,
+        SELECT u.id, u.fullName, u.userName, u.slug, u.email, u.phoneNumber, u.role, u.designation, u.status, u.unit, u.doj, u.leavingDate, u.createdAt, u.avatar,
                u.lines, u.machines,
                d.name as departmentName, d.id as departmentId
         FROM users u
@@ -225,7 +225,7 @@ export const updateAvatar = asyncHandler(async (req, res) => {
 
 // Create User
 export const createUser = asyncHandler(async (req, res) => {
-  const { fullName, userName, email, phoneNumber, role = "STUDENT", password, unit, doj, dob, department, lines, machines } = req.body;
+  const { fullName, userName, email, phoneNumber, role = "STUDENT", designation, password, unit, doj, dob, department, lines, machines } = req.body;
 
   if (!fullName || !userName || !email || !phoneNumber || !password || !unit) {
     throw new ApiError("All fields are required", 400);
@@ -254,9 +254,9 @@ export const createUser = asyncHandler(async (req, res) => {
   const slug = userName.toLowerCase().replace(/ /g, '-');
 
   const [result] = await pool.query(`
-        INSERT INTO users (fullName, userName, slug, email, phoneNumber, role, password, unit, status, doj, dob, department, lines, machines, createdAt, updatedAt)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PRESENT', ?, ?, ?, ?, ?, GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;
-    `, [fullName, userName.toLowerCase(), slug, email.toLowerCase(), phoneNumber, role, hashedPassword, unit, doj || null, dob || null, department || null, JSON.stringify(lines || []), JSON.stringify(machines || [])]);
+        INSERT INTO users (fullName, userName, slug, email, phoneNumber, role, designation, password, unit, status, doj, dob, department, lines, machines, createdAt, updatedAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'PRESENT', ?, ?, ?, ?, ?, GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;
+    `, [fullName, userName.toLowerCase(), slug, email.toLowerCase(), phoneNumber, role, designation || 'Employee', hashedPassword, unit, doj || null, dob || null, department || null, JSON.stringify(lines || []), JSON.stringify(machines || [])]);
 
   const newUserId = result[0].id;
   const [newUser] = await pool.query(`
@@ -293,7 +293,7 @@ export const createUser = asyncHandler(async (req, res) => {
 // Update User
 export const updateUser = asyncHandler(async (req, res) => {
   const userId = req.params.id;
-  const { fullName, userName, email, phoneNumber, role, status, unit, doj, dob, department, lines, machines } = req.body;
+  const { fullName, userName, email, phoneNumber, role, designation, status, unit, doj, dob, department, lines, machines } = req.body;
 
   const [rows] = await pool.query("SELECT * FROM users WHERE id = ?", [userId]);
   if (rows.length === 0) throw new ApiError("User not found", 404);
@@ -331,6 +331,7 @@ export const updateUser = asyncHandler(async (req, res) => {
     updates.push("phoneNumber = ?"); values.push(phoneNumber);
   }
   if (role && AvailableUserRoles.includes(role)) { updates.push("role = ?"); values.push(role); }
+  if (designation !== undefined) { updates.push("designation = ?"); values.push(designation || 'Employee'); }
   if (status) {
     updates.push("status = ?"); values.push(status);
     // Only react to an actual status transition, not a no-op resubmit of the same status
@@ -479,7 +480,7 @@ export const getAllStudents = asyncHandler(async (req, res) => {
 
   const formatted = students.map(u => ({
     _id: u.id, fullName: u.fullName, userName: u.userName, email: u.email,
-    phoneNumber: u.phoneNumber, role: u.role, status: u.status, unit: u.unit, createdAt: u.createdAt, doj: u.doj,
+    phoneNumber: u.phoneNumber, role: u.role, designation: u.designation, status: u.status, unit: u.unit, createdAt: u.createdAt, doj: u.doj,
     leavingDate: u.leavingDate,
     avatar: parseJSON(u.avatar),
     lines: parseJSON(u.lines, []),

@@ -167,8 +167,8 @@ const SkillMatrix = () => {
             const activeMachines = machinesData.data;
             const savedEntries = savedMatrixData?.data?.entries || [];
 
-            const nonCriticalMin = availableLevels[0]?.name || "L1";
-            const criticalMin = availableLevels[1]?.name || "L2";
+            const nonCriticalMin = availableLevels[1]?.name || "L2";
+            const criticalMin = availableLevels[2]?.name || "L3";
 
             // 1. Map Current Line Assigned Users (The Source of Truth for *Who* is here)
             const mappedData = lineAssignedUsers.map((user, index) => {
@@ -325,7 +325,7 @@ const SkillMatrix = () => {
             _id: String(machine.id ?? machine._id),
             name: machine.name,
             critical: "Non-Critical",
-            min: availableLevels[0]?.name || "L1",
+            min: availableLevels[1]?.name || "L2",
             curr: "L1",
         }));
 
@@ -404,8 +404,8 @@ const SkillMatrix = () => {
 
     const handleCriticalityChange = (rowIdx, stationIdx, value) => {
         const autoMin = value === "Critical"
-            ? (availableLevels[1]?.name || "L2")
-            : (availableLevels[0]?.name || "L1");
+            ? (availableLevels[2]?.name || "L3")
+            : (availableLevels[1]?.name || "L2");
         setMatrixEntries(prev => {
             const updated = [...prev];
             const row = { ...updated[rowIdx] };
@@ -581,8 +581,15 @@ const SkillMatrix = () => {
             ];
 
             // Machine Skills (Icons in UI -> Text in Excel)
+            // Only the operator's assigned station shows a skill level; TNR rows show all.
             machines.forEach((machine) => {
-                const station = entry.stations.find(s => s._id === String(machine.id ?? machine._id));
+                const machineId = String(machine.id ?? machine._id);
+                const isAssigned = entry.type === 'TNR' || String(entry.assignedStationId) === machineId;
+                if (!isAssigned) {
+                    rowData.push("");
+                    return;
+                }
+                const station = entry.stations.find(s => s._id === machineId);
                 // In UI it shows icon. In Excel we can show Level No (e.g. 4)
                 if (station) {
                     const levelNum = station.curr ? parseInt(station.curr.replace('L', '').split('-')[0]) || 0 : 0;
@@ -1018,31 +1025,34 @@ const SkillMatrix = () => {
 
                             <div className="flex-1 flex overflow-x-auto">
                                 {row.stations.map((station, sIdx) => {
+                                    const isAssigned = row.type === 'TNR' || String(station._id) === String(row.assignedStationId);
                                     const currentLevelStr = station.curr || "L0";
                                     const level = parseLevel(currentLevelStr);
 
                                     return (
                                         <div key={String(station._id)} className="w-20 border-r border-black flex items-center justify-center min-w-[60px] p-1">
-                                            <Select
-                                                value={currentLevelStr}
-                                                onValueChange={(val) => handleLevelChange(idx, sIdx, val)}
-                                            >
-                                                <SelectTrigger className="w-full h-full border-none p-0 flex justify-center bg-transparent focus:ring-0 select-trigger">
-                                                    <div>
-                                                        <SkillIcon level={level} size={20} />
-                                                    </div>
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {availableLevels.map((lvl) => (
-                                                        <SelectItem key={String(lvl.name)} value={String(lvl.name)}>
-                                                            <div className="flex items-center gap-2">
-                                                                <SkillIcon level={parseLevel(lvl.name)} size={16} />
-                                                                <span>{lvl.name}</span>
-                                                            </div>
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
+                                            {isAssigned && (
+                                                <Select
+                                                    value={currentLevelStr}
+                                                    onValueChange={(val) => handleLevelChange(idx, sIdx, val)}
+                                                >
+                                                    <SelectTrigger className="w-full h-full border-none p-0 flex justify-center bg-transparent focus:ring-0 select-trigger">
+                                                        <div>
+                                                            <SkillIcon level={level} size={20} />
+                                                        </div>
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {availableLevels.map((lvl) => (
+                                                            <SelectItem key={String(lvl.name)} value={String(lvl.name)}>
+                                                                <div className="flex items-center gap-2">
+                                                                    <SkillIcon level={parseLevel(lvl.name)} size={16} />
+                                                                    <span>{lvl.name}</span>
+                                                                </div>
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
                                         </div>
                                     );
                                 })}
