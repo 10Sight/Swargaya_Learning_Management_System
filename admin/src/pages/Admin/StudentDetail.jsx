@@ -435,6 +435,13 @@ const StudentDetail = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <IconBook2 className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">Education</p>
+                <p className="text-sm text-muted-foreground">{student.education || "Not Specified"}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
               <IconCalendar className="h-4 w-4 text-muted-foreground" />
               <div>
                 <p className="text-sm font-medium">Registered On</p>

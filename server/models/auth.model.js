@@ -21,6 +21,7 @@ class User {
         this.resetPasswordExpiry = data.resetPasswordExpiry ? new Date(data.resetPasswordExpiry) : null;
         this.role = data.role || "STUDENT";
         this.designation = data.designation || "Employee";
+        this.education = data.education || "";
         this.currentLevel = data.currentLevel || "L1";
         this.status = data.status || "PRESENT";
         this.isVerified = !!data.isVerified;
@@ -63,6 +64,7 @@ class User {
                     resetPasswordExpiry DATETIME,
                     role NVARCHAR(50) DEFAULT 'STUDENT',
                     designation NVARCHAR(100) DEFAULT 'Employee',
+                    education NVARCHAR(255),
                     currentLevel NVARCHAR(50) DEFAULT 'L1',
                     status NVARCHAR(50) DEFAULT 'PRESENT',
                     isVerified BIT DEFAULT 0,
@@ -122,6 +124,13 @@ class User {
                 BEGIN
                     ALTER TABLE dbo.users ADD designation NVARCHAR(100) DEFAULT 'Employee' WITH VALUES;
                 END
+                IF NOT EXISTS (
+                    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'education'
+                )
+                BEGIN
+                    ALTER TABLE dbo.users ADD education NVARCHAR(255) NULL;
+                END
             END
         `;
         try {
@@ -150,7 +159,7 @@ class User {
 
         const fields = [
             "fullName", "userName", "slug", "email", "phoneNumber", "password",
-            "avatar", "refreshToken", "role", "designation", "currentLevel", "status", "isVerified",
+            "avatar", "refreshToken", "role", "designation", "education", "currentLevel", "status", "isVerified",
             "enrolledCourses", "createdCourses", "lastLogin", "loginHistory",
             "isDeleted", "department", "departments", "lines", "machines", "unit", "doj", "dob", "createdAt"
         ];
@@ -259,7 +268,7 @@ class User {
 
         const fields = [
             "fullName", "userName", "slug", "email", "phoneNumber", "password",
-            "avatar", "refreshToken", "role", "designation", "currentLevel", "status", "isVerified",
+            "avatar", "refreshToken", "role", "designation", "education", "currentLevel", "status", "isVerified",
             "enrolledCourses", "createdCourses", "lastLogin", "loginHistory",
             "isDeleted", "department", "departments", "lines", "machines", "unit", "doj", "dob", "leavingDate", "resetPasswordToken", "resetPasswordExpiry", "updatedAt"
         ];

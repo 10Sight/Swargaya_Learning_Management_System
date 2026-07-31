@@ -125,6 +125,7 @@ const Students = () => {
     phoneNumber: "",
     password: "",
     designation: "Employee",
+    education: "",
     status: "PRESENT",
     unit: "UNIT 1",
     doj: "",
@@ -550,6 +551,7 @@ const Students = () => {
       phoneNumber: "",
       password: "",
       designation: "Employee",
+      education: "",
       status: "PRESENT",
       unit: isAdmin ? (currentUser?.unit || "UNIT 1") : "UNIT 1",
       doj: "",
@@ -637,6 +639,7 @@ const Students = () => {
         password: formData.password.trim(),
         role: "STUDENT",
         designation: formData.designation,
+        education: formData.education?.trim() || "",
         unit: formData.unit,
         doj: formData.doj,
         department: formData.department || null,
@@ -708,6 +711,7 @@ const Students = () => {
         email: updateData.email.trim().toLowerCase(),
         phoneNumber: updateData.phoneNumber.trim(),
         designation: updateData.designation,
+        education: updateData.education?.trim() || "",
         status: updateData.status,
         unit: updateData.unit,
         doj: updateData.doj,
@@ -788,6 +792,7 @@ const Students = () => {
       phoneNumber: student.phoneNumber,
       password: "",
       designation: student.designation || "Employee",
+      education: student.education || "",
       status: normalizeStatus(student.status),
       unit: student.unit || "UNIT 1",
       doj: student.doj ? new Date(student.doj).toISOString().split('T')[0] : "",
@@ -1234,6 +1239,7 @@ const Students = () => {
               <TableRow className="bg-muted/50">
                 <TableHead className="w-[220px]">Employee</TableHead>
                 <TableHead>Contact</TableHead>
+                <TableHead>Education</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Unit</TableHead>
                 <TableHead>Department</TableHead>
@@ -1292,6 +1298,9 @@ const Students = () => {
                           {student.phoneNumber}
                         </p>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm text-foreground">{student.education || "—"}</span>
                     </TableCell>
                     <TableCell>
                       <Select
@@ -1451,7 +1460,7 @@ const Students = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-10">
+                  <TableCell colSpan={11} className="text-center py-10">
                     <div className="flex flex-col items-center space-y-3">
                       <IconUsers className="h-12 w-12 text-muted-foreground/60" />
                       <p className="text-muted-foreground font-medium">
@@ -1626,6 +1635,16 @@ const Students = () => {
                   <SelectItem value="Team Leader">Team Leader</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="education">Education</Label>
+              <Input
+                id="education"
+                name="education"
+                value={formData.education}
+                onChange={handleInputChange}
+                placeholder="Enter education / qualification"
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="edit-status">Status</Label>
@@ -1873,6 +1892,16 @@ const Students = () => {
                   <SelectItem value="Team Leader">Team Leader</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-education">Education</Label>
+              <Input
+                id="edit-education"
+                name="education"
+                value={formData.education}
+                onChange={handleInputChange}
+                placeholder="Enter education / qualification"
+              />
             </div>
             {!isAdmin && (
               <div className="grid gap-2">

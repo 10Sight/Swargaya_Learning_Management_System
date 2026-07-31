@@ -201,6 +201,8 @@ const InstructorSkillMatrix = () => {
                 return {
                     srNo: index + 1,
                     _id: user._id,
+                    username: (user.userName || "-").toUpperCase(),
+                    education: user.education || "-",
                     name: user.fullName || "Unknown",
                     department: displayDepartment,
                     type: user.type,
@@ -323,6 +325,8 @@ const InstructorSkillMatrix = () => {
             {
                 srNo: prev.length + 1,
                 _id: `manual-${Date.now()}`,
+                username: "-",
+                education: "-",
                 name: "",
                 department: "-",
                 type: "",
@@ -359,6 +363,8 @@ const InstructorSkillMatrix = () => {
         updatedEntries[rowIdx] = {
             ...row,
             _id: user._id, // Update to real ID
+            username: (user.userName || "-").toUpperCase(),
+            education: user.education || "-",
             name: user.fullName,
             department: displayDepartment,
             type: user.type,
@@ -503,7 +509,7 @@ const InstructorSkillMatrix = () => {
         logoCell.font = { size: 16, bold: true };
         logoCell.border = borderStyle;
 
-        worksheet.mergeCells('D1:O4'); // Title Area
+        worksheet.mergeCells('D1:Q4'); // Title Area
         const titleCell = worksheet.getCell('D1');
         titleCell.value = `SKILL MATRIX\nLine: ${lineName}\nDepartment: ${selectedDeptName}`;
         titleCell.alignment = centerStyle;
@@ -512,15 +518,15 @@ const InstructorSkillMatrix = () => {
 
         // Header Info (Right Side)
         const addHeaderInfoRow = (row, label, value) => {
-            worksheet.mergeCells(`P${row}:Q${row}`);
-            worksheet.getCell(`P${row}`).value = label;
-            worksheet.getCell(`P${row}`).border = borderStyle;
-            worksheet.getCell(`P${row}`).font = { bold: true };
-
             worksheet.mergeCells(`R${row}:S${row}`);
-            worksheet.getCell(`R${row}`).value = value;
+            worksheet.getCell(`R${row}`).value = label;
             worksheet.getCell(`R${row}`).border = borderStyle;
-            worksheet.getCell(`R${row}`).alignment = { horizontal: 'center' };
+            worksheet.getCell(`R${row}`).font = { bold: true };
+
+            worksheet.mergeCells(`T${row}:U${row}`);
+            worksheet.getCell(`T${row}`).value = value;
+            worksheet.getCell(`T${row}`).border = borderStyle;
+            worksheet.getCell(`T${row}`).alignment = { horizontal: 'center' };
         };
 
         addHeaderInfoRow(1, "Format No:", getVal(hInfo.formatNo));
@@ -533,7 +539,7 @@ const InstructorSkillMatrix = () => {
         // --- Table Headers ---
         // Row 6: Main Headers
         const headerRowIndex = 6;
-        const headers = ["Sr No", "ID", "Name", "Department", "Type", "DOJ", "Assigned Station"];
+        const headers = ["Sr No", "ID", "Name", "Department", "Type", "Emp.id", "Education", "DOJ", "Assigned Station"];
 
         // Machine Columns
         const machines = machinesData?.data || [];
@@ -571,6 +577,8 @@ const InstructorSkillMatrix = () => {
                 entry.name,
                 entry.department,
                 entry.type,
+                entry.username || "-",
+                entry.education || "-",
                 entry.doj,
                 assignedStations.map(s => s.name).join(", ") || "-"
             ];
@@ -616,15 +624,15 @@ const InstructorSkillMatrix = () => {
         const footerStartRow = worksheet.rowCount + 2;
 
         // Guidelines
-        worksheet.mergeCells(`A${footerStartRow}:H${footerStartRow + 6}`);
+        worksheet.mergeCells(`A${footerStartRow}:J${footerStartRow + 6}`);
         const guidelineCell = worksheet.getCell(`A${footerStartRow}`);
         guidelineCell.value = "NOTES / GUIDELINE:\n" + (guidelines || "");
         guidelineCell.alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
         guidelineCell.border = borderStyle;
 
         // Legend Note
-        worksheet.mergeCells(`I${footerStartRow}:K${footerStartRow + 6}`);
-        const legendCell = worksheet.getCell(`I${footerStartRow}`);
+        worksheet.mergeCells(`K${footerStartRow}:M${footerStartRow + 6}`);
+        const legendCell = worksheet.getCell(`K${footerStartRow}`);
         const legendLines = availableLevels.map(lvl => `${lvl.name}: ${lvl.description || ""}`).join("\n");
         legendCell.value = "LEVEL LEGEND:\n" +
             legendLines + "\n\nNote: " + (legendNote || "-");
@@ -633,26 +641,26 @@ const InstructorSkillMatrix = () => {
 
         // Revision History
         // Simple table for revision history
-        worksheet.mergeCells(`L${footerStartRow}:S${footerStartRow}`);
-        const revTitle = worksheet.getCell(`L${footerStartRow}`);
+        worksheet.mergeCells(`N${footerStartRow}:U${footerStartRow}`);
+        const revTitle = worksheet.getCell(`N${footerStartRow}`);
         revTitle.value = "REVISION HISTORY";
         revTitle.font = { bold: true };
         revTitle.alignment = centerStyle;
         revTitle.border = borderStyle;
 
         const revHeaders = ["Rev Date", "Rev No", "What Change", "Why Change"];
-        // We'll put headers in next row, but merged cells make it tricky. 
+        // We'll put headers in next row, but merged cells make it tricky.
         // Let's simplified: List revisions below title
         let revRowIdx = footerStartRow + 1;
 
         // Headers
-        worksheet.getCell(`L${revRowIdx}`).value = "Date";
-        worksheet.getCell(`M${revRowIdx}`).value = "No";
-        worksheet.mergeCells(`N${revRowIdx}:P${revRowIdx}`); worksheet.getCell(`N${revRowIdx}`).value = "Change";
-        worksheet.mergeCells(`Q${revRowIdx}:S${revRowIdx}`); worksheet.getCell(`Q${revRowIdx}`).value = "Reason";
+        worksheet.getCell(`N${revRowIdx}`).value = "Date";
+        worksheet.getCell(`O${revRowIdx}`).value = "No";
+        worksheet.mergeCells(`P${revRowIdx}:R${revRowIdx}`); worksheet.getCell(`P${revRowIdx}`).value = "Change";
+        worksheet.mergeCells(`S${revRowIdx}:U${revRowIdx}`); worksheet.getCell(`S${revRowIdx}`).value = "Reason";
 
         // Style Headers
-        [`L${revRowIdx}`, `M${revRowIdx}`, `N${revRowIdx}`, `Q${revRowIdx}`].forEach(ref => {
+        [`N${revRowIdx}`, `O${revRowIdx}`, `P${revRowIdx}`, `S${revRowIdx}`].forEach(ref => {
             const c = worksheet.getCell(ref);
             c.font = { bold: true };
             c.border = borderStyle;
@@ -663,16 +671,16 @@ const InstructorSkillMatrix = () => {
 
         (revisions || []).forEach(rev => {
             if (revRowIdx > footerStartRow + 6) return; // Limit rows
-            worksheet.getCell(`L${revRowIdx}`).value = rev.date;
-            worksheet.getCell(`M${revRowIdx}`).value = rev.revNo;
+            worksheet.getCell(`N${revRowIdx}`).value = rev.date;
+            worksheet.getCell(`O${revRowIdx}`).value = rev.revNo;
 
-            worksheet.mergeCells(`N${revRowIdx}:P${revRowIdx}`);
-            worksheet.getCell(`N${revRowIdx}`).value = rev.change;
+            worksheet.mergeCells(`P${revRowIdx}:R${revRowIdx}`);
+            worksheet.getCell(`P${revRowIdx}`).value = rev.change;
 
-            worksheet.mergeCells(`Q${revRowIdx}:S${revRowIdx}`);
-            worksheet.getCell(`Q${revRowIdx}`).value = rev.reason;
+            worksheet.mergeCells(`S${revRowIdx}:U${revRowIdx}`);
+            worksheet.getCell(`S${revRowIdx}`).value = rev.reason;
 
-            [`L${revRowIdx}`, `M${revRowIdx}`, `N${revRowIdx}`, `Q${revRowIdx}`].forEach(ref => {
+            [`N${revRowIdx}`, `O${revRowIdx}`, `P${revRowIdx}`, `S${revRowIdx}`].forEach(ref => {
                 const c = worksheet.getCell(ref);
                 c.border = borderStyle;
                 c.alignment = centerStyle;
@@ -683,27 +691,27 @@ const InstructorSkillMatrix = () => {
 
         // --- Signatures ---
         const sigRow = worksheet.rowCount + 2;
-        worksheet.mergeCells(`A${sigRow}:F${sigRow}`);
+        worksheet.mergeCells(`A${sigRow}:G${sigRow}`);
         worksheet.getCell(`A${sigRow}`).value = "Prepared By";
         worksheet.getCell(`A${sigRow}`).border = borderStyle;
 
-        worksheet.mergeCells(`G${sigRow}:L${sigRow}`);
-        worksheet.getCell(`G${sigRow}`).value = "Checked By";
-        worksheet.getCell(`G${sigRow}`).border = borderStyle;
+        worksheet.mergeCells(`H${sigRow}:N${sigRow}`);
+        worksheet.getCell(`H${sigRow}`).value = "Checked By";
+        worksheet.getCell(`H${sigRow}`).border = borderStyle;
 
-        worksheet.mergeCells(`M${sigRow}:S${sigRow}`);
-        worksheet.getCell(`M${sigRow}`).value = "Approved By";
-        worksheet.getCell(`M${sigRow}`).border = borderStyle;
+        worksheet.mergeCells(`O${sigRow}:U${sigRow}`);
+        worksheet.getCell(`O${sigRow}`).value = "Approved By";
+        worksheet.getCell(`O${sigRow}`).border = borderStyle;
 
         const sigValRow = sigRow + 1;
-        worksheet.mergeCells(`A${sigValRow}:F${sigValRow + 2}`);
+        worksheet.mergeCells(`A${sigValRow}:G${sigValRow + 2}`);
         worksheet.getCell(`A${sigValRow}`).border = borderStyle;
 
-        worksheet.mergeCells(`G${sigValRow}:L${sigValRow + 2}`);
-        worksheet.getCell(`G${sigValRow}`).border = borderStyle;
+        worksheet.mergeCells(`H${sigValRow}:N${sigValRow + 2}`);
+        worksheet.getCell(`H${sigValRow}`).border = borderStyle;
 
-        worksheet.mergeCells(`M${sigValRow}:S${sigValRow + 2}`);
-        worksheet.getCell(`M${sigValRow}`).border = borderStyle;
+        worksheet.mergeCells(`O${sigValRow}:U${sigValRow + 2}`);
+        worksheet.getCell(`O${sigValRow}`).border = borderStyle;
 
 
         // Set column widths
@@ -892,6 +900,8 @@ const InstructorSkillMatrix = () => {
                         <div className="w-8 border-r border-black p-2 flex items-center justify-center">Sr.No.</div>
                         <div className="w-32 border-r border-black p-2 flex items-center justify-center">OPERATOR NAME</div>
                         <div className="w-12 border-r border-black p-2 flex items-center justify-center">TNR/EMP</div>
+                        <div className="w-16 border-r border-black p-2 flex items-center justify-center">Emp.id</div>
+                        <div className="w-20 border-r border-black p-2 flex items-center justify-center">Education</div>
                         <div className="w-16 border-r border-black p-2 flex items-center justify-center">DET/CAS</div>
                         <div className="w-20 border-r border-black p-2 flex items-center justify-center">DOJ</div>
                         <div className="w-32 border-r border-black p-2 flex items-center justify-center bg-[#f3f4f6]">Station / Machine Name</div>
@@ -937,6 +947,8 @@ const InstructorSkillMatrix = () => {
                                 )}
                             </div>
                             <div className="w-12 border-r border-black p-2 flex items-center justify-center font-bold">{row.type}</div>
+                            <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold">{row.username || "-"}</div>
+                            <div className="w-20 border-r border-black p-2 flex items-center justify-center font-bold">{row.education || "-"}</div>
                             <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold">
                                 <input
                                     type="text"
@@ -965,16 +977,22 @@ const InstructorSkillMatrix = () => {
                                 }
                                 return (
                                     <>
-                                        <div className="w-32 border-r border-black p-1 flex flex-col items-stretch justify-center gap-0.5">
+                                        <div className="w-32 border-r border-black p-1 flex flex-col items-stretch justify-center">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
                                                     <button
                                                         type="button"
-                                                        className="w-full text-[9px] font-bold text-center bg-transparent hover:bg-black/5 rounded px-1 py-0.5 truncate"
+                                                        className="w-full flex flex-col gap-1 bg-transparent hover:bg-black/5 rounded px-1"
                                                     >
                                                         {assignedStations.length > 0
-                                                            ? assignedStations.map(s => s.name).join(", ")
-                                                            : "— Select —"}
+                                                            ? assignedStations.map(s => (
+                                                                <span key={String(s._id)} className="h-5 flex items-center justify-center text-[9px] font-bold truncate">
+                                                                    {s.name}
+                                                                </span>
+                                                            ))
+                                                            : (
+                                                                <span className="h-5 flex items-center justify-center text-[9px] font-bold">— Select —</span>
+                                                            )}
                                                     </button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="start" className="max-h-64 overflow-y-auto">
@@ -1028,7 +1046,7 @@ const InstructorSkillMatrix = () => {
                                         </div>
                                         <div className="w-16 border-r border-black p-1 flex flex-col items-center justify-center font-bold gap-1">
                                             {assignedStations.length === 0 ? "-" : assignedStations.map(s => (
-                                                <span key={String(s._id)} className="text-[10px]">{s.curr || "-"}</span>
+                                                <span key={String(s._id)} className="h-5 flex items-center justify-center text-[10px]">{s.curr || "-"}</span>
                                             ))}
                                         </div>
                                     </>

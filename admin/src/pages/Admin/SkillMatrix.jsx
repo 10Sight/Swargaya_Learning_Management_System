@@ -93,17 +93,19 @@ const SkillMatrix = () => {
         // Add Instructors (TNR)
         if (selectedDept.instructors && Array.isArray(selectedDept.instructors)) {
             selectedDept.instructors.forEach(inst => {
+                const type = inst.designation === 'Team Leader' ? 'TNR' : (inst.designation === 'Employee' ? 'EMP' : 'TNR');
                 users.push({
                     ...inst,
-                    type: 'TNR',
+                    type,
                     level: 'L5'
                 });
             });
         } else if (selectedDept.instructor && typeof selectedDept.instructor === 'object') {
             // Fallback for legacy single instructor
+            const type = selectedDept.instructor.designation === 'Team Leader' ? 'TNR' : (selectedDept.instructor.designation === 'Employee' ? 'EMP' : 'TNR');
             users.push({
                 ...selectedDept.instructor,
-                type: 'TNR',
+                type,
                 level: 'L5'
             });
         }
@@ -112,9 +114,10 @@ const SkillMatrix = () => {
         if (selectedDept.students && Array.isArray(selectedDept.students)) {
             selectedDept.students.forEach(student => {
                 // Ensure we handle partial objects properly if needed
+                const type = student.designation === 'Team Leader' ? 'TNR' : (student.designation === 'Employee' ? 'EMP' : 'EMP');
                 users.push({
                     ...student,
-                    type: 'EMP',
+                    type,
                     level: 'L1'
                 });
             });
@@ -231,6 +234,8 @@ const SkillMatrix = () => {
                 return {
                     srNo: index + 1,
                     _id: user._id,
+                    username: (user.userName || "-").toUpperCase(),
+                    education: user.education || "-",
                     name: user.fullName || "Unknown",
                     department: displayDepartment,
                     type: user.type,
@@ -354,6 +359,8 @@ const SkillMatrix = () => {
             {
                 srNo: prev.length + 1,
                 _id: `manual-${Date.now()}`,
+                username: "-",
+                education: "-",
                 name: "",
                 department: "-",
                 type: "",
@@ -390,6 +397,8 @@ const SkillMatrix = () => {
         updatedEntries[rowIdx] = {
             ...row,
             _id: user._id, // Update to real ID
+            username: (user.userName || "-").toUpperCase(),
+            education: user.education || "-",
             name: user.fullName,
             department: displayDepartment,
             type: user.type,
@@ -555,7 +564,7 @@ const SkillMatrix = () => {
         logoCell.font = { size: 16, bold: true };
         logoCell.border = borderStyle;
 
-        worksheet.mergeCells('D1:O4'); // Title Area
+        worksheet.mergeCells('D1:Q4'); // Title Area
         const titleCell = worksheet.getCell('D1');
         titleCell.value = `SKILL MATRIX\nLine: ${lineName}\nDepartment: ${selectedDeptName}`;
         titleCell.alignment = centerStyle;
@@ -564,15 +573,15 @@ const SkillMatrix = () => {
 
         // Header Info (Right Side)
         const addHeaderInfoRow = (row, label, value) => {
-            worksheet.mergeCells(`P${row}:Q${row}`);
-            worksheet.getCell(`P${row}`).value = label;
-            worksheet.getCell(`P${row}`).border = borderStyle;
-            worksheet.getCell(`P${row}`).font = { bold: true };
-
             worksheet.mergeCells(`R${row}:S${row}`);
-            worksheet.getCell(`R${row}`).value = value;
+            worksheet.getCell(`R${row}`).value = label;
             worksheet.getCell(`R${row}`).border = borderStyle;
-            worksheet.getCell(`R${row}`).alignment = { horizontal: 'center' };
+            worksheet.getCell(`R${row}`).font = { bold: true };
+
+            worksheet.mergeCells(`T${row}:U${row}`);
+            worksheet.getCell(`T${row}`).value = value;
+            worksheet.getCell(`T${row}`).border = borderStyle;
+            worksheet.getCell(`T${row}`).alignment = { horizontal: 'center' };
         };
 
         addHeaderInfoRow(1, "Format No:", getVal(hInfo.formatNo));
@@ -585,7 +594,7 @@ const SkillMatrix = () => {
         // --- Table Headers ---
         // Row 6: Main Headers
         const headerRowIndex = 6;
-        const headers = ["Sr No", "ID", "Name", "Department", "Type", "DOJ", "Assigned Station"];
+        const headers = ["Sr No", "ID", "Name", "Department", "Type", "Emp.id", "Education", "DOJ", "Assigned Station"];
 
         // Machine Columns
         const machines = machinesData?.data || [];
@@ -623,6 +632,8 @@ const SkillMatrix = () => {
                 entry.name,
                 entry.department,
                 entry.type,
+                entry.username || "-",
+                entry.education || "-",
                 entry.doj,
                 assignedStations.map(s => s.name).join(", ") || "-"
             ];
@@ -668,15 +679,15 @@ const SkillMatrix = () => {
         const footerStartRow = worksheet.rowCount + 2;
 
         // Guidelines
-        worksheet.mergeCells(`A${footerStartRow}:H${footerStartRow + 6}`);
+        worksheet.mergeCells(`A${footerStartRow}:J${footerStartRow + 6}`);
         const guidelineCell = worksheet.getCell(`A${footerStartRow}`);
         guidelineCell.value = "NOTES / GUIDELINE:\n" + (guidelines || "");
         guidelineCell.alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
         guidelineCell.border = borderStyle;
 
         // Legend Note
-        worksheet.mergeCells(`I${footerStartRow}:K${footerStartRow + 6}`);
-        const legendCell = worksheet.getCell(`I${footerStartRow}`);
+        worksheet.mergeCells(`K${footerStartRow}:M${footerStartRow + 6}`);
+        const legendCell = worksheet.getCell(`K${footerStartRow}`);
         const legendLines = availableLevels.map(lvl => `${lvl.name}: ${lvl.description || ""}`).join("\n");
         legendCell.value = "LEVEL LEGEND:\n" +
             legendLines + "\n\nNote: " + (legendNote || "-");
@@ -685,26 +696,26 @@ const SkillMatrix = () => {
 
         // Revision History
         // Simple table for revision history
-        worksheet.mergeCells(`L${footerStartRow}:S${footerStartRow}`);
-        const revTitle = worksheet.getCell(`L${footerStartRow}`);
+        worksheet.mergeCells(`N${footerStartRow}:U${footerStartRow}`);
+        const revTitle = worksheet.getCell(`N${footerStartRow}`);
         revTitle.value = "REVISION HISTORY";
         revTitle.font = { bold: true };
         revTitle.alignment = centerStyle;
         revTitle.border = borderStyle;
 
         const revHeaders = ["Rev Date", "Rev No", "What Change", "Why Change"];
-        // We'll put headers in next row, but merged cells make it tricky. 
+        // We'll put headers in next row, but merged cells make it tricky.
         // Let's simplified: List revisions below title
         let revRowIdx = footerStartRow + 1;
 
         // Headers
-        worksheet.getCell(`L${revRowIdx}`).value = "Date";
-        worksheet.getCell(`M${revRowIdx}`).value = "No";
-        worksheet.mergeCells(`N${revRowIdx}:P${revRowIdx}`); worksheet.getCell(`N${revRowIdx}`).value = "Change";
-        worksheet.mergeCells(`Q${revRowIdx}:S${revRowIdx}`); worksheet.getCell(`Q${revRowIdx}`).value = "Reason";
+        worksheet.getCell(`N${revRowIdx}`).value = "Date";
+        worksheet.getCell(`O${revRowIdx}`).value = "No";
+        worksheet.mergeCells(`P${revRowIdx}:R${revRowIdx}`); worksheet.getCell(`P${revRowIdx}`).value = "Change";
+        worksheet.mergeCells(`S${revRowIdx}:U${revRowIdx}`); worksheet.getCell(`S${revRowIdx}`).value = "Reason";
 
         // Style Headers
-        [`L${revRowIdx}`, `M${revRowIdx}`, `N${revRowIdx}`, `Q${revRowIdx}`].forEach(ref => {
+        [`N${revRowIdx}`, `O${revRowIdx}`, `P${revRowIdx}`, `S${revRowIdx}`].forEach(ref => {
             const c = worksheet.getCell(ref);
             c.font = { bold: true };
             c.border = borderStyle;
@@ -715,16 +726,16 @@ const SkillMatrix = () => {
 
         (revisions || []).forEach(rev => {
             if (revRowIdx > footerStartRow + 6) return; // Limit rows
-            worksheet.getCell(`L${revRowIdx}`).value = rev.date;
-            worksheet.getCell(`M${revRowIdx}`).value = rev.revNo;
+            worksheet.getCell(`N${revRowIdx}`).value = rev.date;
+            worksheet.getCell(`O${revRowIdx}`).value = rev.revNo;
 
-            worksheet.mergeCells(`N${revRowIdx}:P${revRowIdx}`);
-            worksheet.getCell(`N${revRowIdx}`).value = rev.change;
+            worksheet.mergeCells(`P${revRowIdx}:R${revRowIdx}`);
+            worksheet.getCell(`P${revRowIdx}`).value = rev.change;
 
-            worksheet.mergeCells(`Q${revRowIdx}:S${revRowIdx}`);
-            worksheet.getCell(`Q${revRowIdx}`).value = rev.reason;
+            worksheet.mergeCells(`S${revRowIdx}:U${revRowIdx}`);
+            worksheet.getCell(`S${revRowIdx}`).value = rev.reason;
 
-            [`L${revRowIdx}`, `M${revRowIdx}`, `N${revRowIdx}`, `Q${revRowIdx}`].forEach(ref => {
+            [`N${revRowIdx}`, `O${revRowIdx}`, `P${revRowIdx}`, `S${revRowIdx}`].forEach(ref => {
                 const c = worksheet.getCell(ref);
                 c.border = borderStyle;
                 c.alignment = centerStyle;
@@ -735,27 +746,27 @@ const SkillMatrix = () => {
 
         // --- Signatures ---
         const sigRow = worksheet.rowCount + 2;
-        worksheet.mergeCells(`A${sigRow}:F${sigRow}`);
+        worksheet.mergeCells(`A${sigRow}:G${sigRow}`);
         worksheet.getCell(`A${sigRow}`).value = "Prepared By";
         worksheet.getCell(`A${sigRow}`).border = borderStyle;
 
-        worksheet.mergeCells(`G${sigRow}:L${sigRow}`);
-        worksheet.getCell(`G${sigRow}`).value = "Checked By";
-        worksheet.getCell(`G${sigRow}`).border = borderStyle;
+        worksheet.mergeCells(`H${sigRow}:N${sigRow}`);
+        worksheet.getCell(`H${sigRow}`).value = "Checked By";
+        worksheet.getCell(`H${sigRow}`).border = borderStyle;
 
-        worksheet.mergeCells(`M${sigRow}:S${sigRow}`);
-        worksheet.getCell(`M${sigRow}`).value = "Approved By";
-        worksheet.getCell(`M${sigRow}`).border = borderStyle;
+        worksheet.mergeCells(`O${sigRow}:U${sigRow}`);
+        worksheet.getCell(`O${sigRow}`).value = "Approved By";
+        worksheet.getCell(`O${sigRow}`).border = borderStyle;
 
         const sigValRow = sigRow + 1;
-        worksheet.mergeCells(`A${sigValRow}:F${sigValRow + 2}`);
+        worksheet.mergeCells(`A${sigValRow}:G${sigValRow + 2}`);
         worksheet.getCell(`A${sigValRow}`).border = borderStyle;
 
-        worksheet.mergeCells(`G${sigValRow}:L${sigValRow + 2}`);
-        worksheet.getCell(`G${sigValRow}`).border = borderStyle;
+        worksheet.mergeCells(`H${sigValRow}:N${sigValRow + 2}`);
+        worksheet.getCell(`H${sigValRow}`).border = borderStyle;
 
-        worksheet.mergeCells(`M${sigValRow}:S${sigValRow + 2}`);
-        worksheet.getCell(`M${sigValRow}`).border = borderStyle;
+        worksheet.mergeCells(`O${sigValRow}:U${sigValRow + 2}`);
+        worksheet.getCell(`O${sigValRow}`).border = borderStyle;
 
 
         // Set column widths
@@ -916,10 +927,6 @@ const SkillMatrix = () => {
                     <div className="flex border-b border-black">
                         <div className="w-[150px] border-r border-black p-2 flex items-center justify-center">
                             <img src="/motherson+marelli.png" alt="Logo" className="h-10" />
-                            <div className="flex flex-col ml-2">
-                                <span className="font-bold text-xs text-[#dc2626]">motherson</span>
-                                <span className="font-bold text-xs text-[#2563eb]">MARELLI</span>
-                            </div>
                         </div>
                         <div className="flex-1 border-r border-black flex items-center justify-center">
                             <h1 className="text-2xl font-bold">Skill Matrix - {lineName}</h1>
@@ -951,7 +958,9 @@ const SkillMatrix = () => {
                         <div className="w-8 border-r border-black p-2 flex items-center justify-center">Sr.No.</div>
                         <div className="w-32 border-r border-black p-2 flex items-center justify-center">OPERATOR NAME</div>
                         <div className="w-12 border-r border-black p-2 flex items-center justify-center">TNR/EMP</div>
-                        <div className="w-16 border-r border-black p-2 flex items-center justify-center">DET/CAS</div>
+                        <div className="w-16 border-r border-black p-2 flex items-center justify-center">Emp.id</div>
+                        <div className="w-20 border-r border-black p-2 flex items-center justify-center">Education</div>
+                        <div className="w-16 border-r border-black p-2 flex items-center justify-center">MATA/CAS</div>
                         <div className="w-20 border-r border-black p-2 flex items-center justify-center">DOJ</div>
                         <div style={{ width: stationColWidth }} className="flex-shrink-0 border-r border-black p-2 flex items-center justify-center bg-[#f3f4f6]">Station / Machine Name</div>
                         <div className="w-24 border-r border-black p-2 flex items-center justify-center bg-[#f3f4f6] text-[9px] leading-tight">Critical & Non Critical</div>
@@ -977,161 +986,169 @@ const SkillMatrix = () => {
                             : (row.stations[0] ? [String(row.stations[0]._id)] : []);
                         const assignedStations = row.stations.filter(s => assignedIds.includes(String(s._id)));
                         return (
-                        <div key={row._id} className="flex border-b border-black text-[10px] text-center min-h-[50px]">
-                            <div className="w-8 border-r border-black p-2 flex items-center justify-center font-bold">{row.srNo}</div>
-                            <div className="w-32 border-r border-black p-2 flex items-center justify-start font-bold text-left min-w-[128px]">
-                                {row.isManual ? (
-                                    <Select onValueChange={(val) => handleUserSelect(idx, val)}>
-                                        <SelectTrigger className="w-full h-8 text-[10px]">
-                                            <SelectValue placeholder="Select Operator" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {departmentUsers.map(u => (
-                                                <SelectItem key={String(u._id)} value={String(u._id)}>{u.fullName}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                ) : (
-                                    row.name
-                                )}
-                            </div>
-                            <div className="w-12 border-r border-black p-2 flex items-center justify-center font-bold">{row.type}</div>
-                            <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold">
-                                <input
-                                    type="text"
-                                    className="w-full h-full text-center bg-transparent border-none focus:ring-0 p-0 text-[10px] font-bold"
-                                    value={row.detCas}
-                                    onChange={(e) => handleDetCasChange(idx, e.target.value)}
-                                />
-                            </div>
-                            <div className="w-20 border-r border-black p-2 flex items-center justify-center font-bold">{row.doj}</div>
+                            <div key={row._id} className="flex border-b border-black text-[10px] text-center min-h-[50px]">
+                                <div className="w-8 border-r border-black p-2 flex items-center justify-center font-bold">{row.srNo}</div>
+                                <div className="w-32 border-r border-black p-2 flex items-center justify-start font-bold text-left min-w-[128px]">
+                                    {row.isManual ? (
+                                        <Select onValueChange={(val) => handleUserSelect(idx, val)}>
+                                            <SelectTrigger className="w-full h-8 text-[10px]">
+                                                <SelectValue placeholder="Select Operator" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {departmentUsers.map(u => (
+                                                    <SelectItem key={String(u._id)} value={String(u._id)}>{u.fullName}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    ) : (
+                                        row.name
+                                    )}
+                                </div>
+                                <div className="w-12 border-r border-black p-2 flex items-center justify-center font-bold">{row.type}</div>
+                                <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold">{row.username || "-"}</div>
+                                <div className="w-20 border-r border-black p-2 flex items-center justify-center font-bold">{row.education || "-"}</div>
+                                <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold">
+                                    <input
+                                        type="text"
+                                        className="w-full h-full text-center bg-transparent border-none focus:ring-0 p-0 text-[10px] font-bold"
+                                        value={row.detCas}
+                                        onChange={(e) => handleDetCasChange(idx, e.target.value)}
+                                    />
+                                </div>
+                                <div className="w-20 border-r border-black p-2 flex items-center justify-center font-bold">{row.doj}</div>
 
-                            {/* Assigned Station Details — one stacked line per assigned machine */}
-                            {(() => {
-                                if (row.type === 'TNR') {
+                                {/* Assigned Station Details — one stacked line per assigned machine */}
+                                {(() => {
+                                    if (row.type === 'TNR') {
+                                        return (
+                                            <>
+                                                <div style={{ width: stationColWidth }} className="flex-shrink-0 border-r border-black p-1 flex items-center justify-center">
+                                                    <span className="text-[9px] font-bold">Team Leader</span>
+                                                </div>
+                                                <div className="w-24 border-r border-black p-2 flex items-center justify-center font-bold text-[9px]">
+                                                    <span className="text-[9px] font-bold">Not Applicable</span>
+                                                </div>
+                                                <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold">L5</div>
+                                                <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold">{assignedStations[0]?.curr || "-"}</div>
+                                            </>
+                                        );
+                                    }
                                     return (
                                         <>
-                                            <div style={{ width: stationColWidth }} className="flex-shrink-0 border-r border-black p-1 flex items-center justify-center">
-                                                <span className="text-[9px] font-bold">Team Leader</span>
+                                            <div style={{ width: stationColWidth }} className="flex-shrink-0 border-r border-black p-1 flex flex-col items-stretch justify-center">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <button
+                                                            type="button"
+                                                            className="w-full flex flex-col gap-1 bg-transparent hover:bg-black/5 rounded px-1"
+                                                        >
+                                                            {assignedStations.length > 0
+                                                                ? assignedStations.map(s => (
+                                                                    <span key={String(s._id)} className="h-5 flex items-center justify-center text-[9px] font-bold truncate">
+                                                                        {s.name}
+                                                                    </span>
+                                                                ))
+                                                                : (
+                                                                    <span className="h-5 flex items-center justify-center text-[9px] font-bold">— Select —</span>
+                                                                )}
+                                                        </button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="start" className="max-h-64 overflow-y-auto">
+                                                        {row.stations.map(s => (
+                                                            <DropdownMenuCheckboxItem
+                                                                key={String(s._id)}
+                                                                checked={assignedIds.includes(String(s._id))}
+                                                                onSelect={(e) => e.preventDefault()}
+                                                                onCheckedChange={(checked) => handleAssignedStationsToggle(idx, s._id, checked)}
+                                                            >
+                                                                {s.name}
+                                                            </DropdownMenuCheckboxItem>
+                                                        ))}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </div>
-                                            <div className="w-24 border-r border-black p-2 flex items-center justify-center font-bold text-[9px]">
-                                                <span className="text-[9px] font-bold">Not Applicable</span>
+                                            <div className="w-24 border-r border-black p-1 flex flex-col items-center justify-center font-bold text-[9px] gap-1">
+                                                {assignedStations.length === 0 ? "-" : assignedStations.map(s => {
+                                                    const sIdx = row.stations.findIndex(st => String(st._id) === String(s._id));
+                                                    return (
+                                                        <Select key={String(s._id)} value={String(s.critical || "")} onValueChange={(val) => handleCriticalityChange(idx, sIdx, val)}>
+                                                            <SelectTrigger className="w-full h-5 border-none p-0 text-[9px] font-bold bg-transparent">
+                                                                <SelectValue placeholder="-" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="Critical">Critical</SelectItem>
+                                                                <SelectItem value="Non-Critical">Non-Critical</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    );
+                                                })}
                                             </div>
-                                            <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold">L5</div>
-                                            <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold">{assignedStations[0]?.curr || "-"}</div>
+                                            <div className="w-16 border-r border-black p-1 flex flex-col items-center justify-center font-bold gap-1">
+                                                {assignedStations.length === 0 ? "-" : assignedStations.map(s => {
+                                                    const sIdx = row.stations.findIndex(st => String(st._id) === String(s._id));
+                                                    return (
+                                                        <Select key={String(s._id)} value={String(s.min || "")} onValueChange={(val) => handleMinLevelChange(idx, sIdx, val)}>
+                                                            <SelectTrigger className="w-full h-5 border-none p-0 text-[10px] font-bold bg-transparent">
+                                                                <SelectValue placeholder="-" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {availableLevels.map((lvl) => (
+                                                                    <SelectItem key={lvl.name} value={lvl.name} className="text-xs">
+                                                                        {lvl.name}
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    );
+                                                })}
+                                            </div>
+                                            <div className="w-16 border-r border-black p-1 flex flex-col items-center justify-center font-bold gap-1">
+                                                {assignedStations.length === 0 ? "-" : assignedStations.map(s => (
+                                                    <span key={String(s._id)} className="h-5 flex items-center justify-center text-[10px]">{s.curr || "-"}</span>
+                                                ))}
+                                            </div>
                                         </>
                                     );
-                                }
-                                return (
-                                    <>
-                                        <div style={{ width: stationColWidth }} className="flex-shrink-0 border-r border-black p-1 flex flex-col items-stretch justify-center gap-0.5">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <button
-                                                        type="button"
-                                                        className="w-full text-[9px] font-bold text-center bg-transparent hover:bg-black/5 rounded px-1 py-0.5 truncate"
+                                })()}
+
+                                <div className="flex-1 flex overflow-x-auto">
+                                    {row.stations.map((station, sIdx) => {
+                                        const isAssigned = row.type === 'TNR' || assignedIds.includes(String(station._id));
+                                        const currentLevelStr = station.curr || "L0";
+                                        const level = parseLevel(currentLevelStr);
+
+                                        return (
+                                            <div key={String(station._id)} className="w-20 border-r border-black flex items-center justify-center min-w-[60px] p-1">
+                                                {isAssigned && (
+                                                    <Select
+                                                        value={currentLevelStr}
+                                                        onValueChange={(val) => handleLevelChange(idx, sIdx, val)}
                                                     >
-                                                        {assignedStations.length > 0
-                                                            ? assignedStations.map(s => s.name).join(", ")
-                                                            : "— Select —"}
-                                                    </button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="start" className="max-h-64 overflow-y-auto">
-                                                    {row.stations.map(s => (
-                                                        <DropdownMenuCheckboxItem
-                                                            key={String(s._id)}
-                                                            checked={assignedIds.includes(String(s._id))}
-                                                            onSelect={(e) => e.preventDefault()}
-                                                            onCheckedChange={(checked) => handleAssignedStationsToggle(idx, s._id, checked)}
-                                                        >
-                                                            {s.name}
-                                                        </DropdownMenuCheckboxItem>
-                                                    ))}
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </div>
-                                        <div className="w-24 border-r border-black p-1 flex flex-col items-center justify-center font-bold text-[9px] gap-1">
-                                            {assignedStations.length === 0 ? "-" : assignedStations.map(s => {
-                                                const sIdx = row.stations.findIndex(st => String(st._id) === String(s._id));
-                                                return (
-                                                    <Select key={String(s._id)} value={String(s.critical || "")} onValueChange={(val) => handleCriticalityChange(idx, sIdx, val)}>
-                                                        <SelectTrigger className="w-full h-5 border-none p-0 text-[9px] font-bold bg-transparent">
-                                                            <SelectValue placeholder="-" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="Critical">Critical</SelectItem>
-                                                            <SelectItem value="Non-Critical">Non-Critical</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                );
-                                            })}
-                                        </div>
-                                        <div className="w-16 border-r border-black p-1 flex flex-col items-center justify-center font-bold gap-1">
-                                            {assignedStations.length === 0 ? "-" : assignedStations.map(s => {
-                                                const sIdx = row.stations.findIndex(st => String(st._id) === String(s._id));
-                                                return (
-                                                    <Select key={String(s._id)} value={String(s.min || "")} onValueChange={(val) => handleMinLevelChange(idx, sIdx, val)}>
-                                                        <SelectTrigger className="w-full h-5 border-none p-0 text-[10px] font-bold bg-transparent">
-                                                            <SelectValue placeholder="-" />
+                                                        <SelectTrigger className="w-full h-full border-none p-0 flex justify-center bg-transparent focus:ring-0 select-trigger">
+                                                            <div>
+                                                                <SkillIcon level={level} size={20} />
+                                                            </div>
                                                         </SelectTrigger>
                                                         <SelectContent>
                                                             {availableLevels.map((lvl) => (
-                                                                <SelectItem key={lvl.name} value={lvl.name} className="text-xs">
-                                                                    {lvl.name}
+                                                                <SelectItem key={String(lvl.name)} value={String(lvl.name)}>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <SkillIcon level={parseLevel(lvl.name)} size={16} />
+                                                                        <span>{lvl.name}</span>
+                                                                    </div>
                                                                 </SelectItem>
                                                             ))}
                                                         </SelectContent>
                                                     </Select>
-                                                );
-                                            })}
-                                        </div>
-                                        <div className="w-16 border-r border-black p-1 flex flex-col items-center justify-center font-bold gap-1">
-                                            {assignedStations.length === 0 ? "-" : assignedStations.map(s => (
-                                                <span key={String(s._id)} className="text-[10px]">{s.curr || "-"}</span>
-                                            ))}
-                                        </div>
-                                    </>
-                                );
-                            })()}
-
-                            <div className="flex-1 flex overflow-x-auto">
-                                {row.stations.map((station, sIdx) => {
-                                    const isAssigned = row.type === 'TNR' || assignedIds.includes(String(station._id));
-                                    const currentLevelStr = station.curr || "L0";
-                                    const level = parseLevel(currentLevelStr);
-
-                                    return (
-                                        <div key={String(station._id)} className="w-20 border-r border-black flex items-center justify-center min-w-[60px] p-1">
-                                            {isAssigned && (
-                                                <Select
-                                                    value={currentLevelStr}
-                                                    onValueChange={(val) => handleLevelChange(idx, sIdx, val)}
-                                                >
-                                                    <SelectTrigger className="w-full h-full border-none p-0 flex justify-center bg-transparent focus:ring-0 select-trigger">
-                                                        <div>
-                                                            <SkillIcon level={level} size={20} />
-                                                        </div>
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {availableLevels.map((lvl) => (
-                                                            <SelectItem key={String(lvl.name)} value={String(lvl.name)}>
-                                                                <div className="flex items-center gap-2">
-                                                                    <SkillIcon level={parseLevel(lvl.name)} size={16} />
-                                                                    <span>{lvl.name}</span>
-                                                                </div>
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                                <div className="w-16 p-2 flex items-center justify-center">
-                                    <SkillIcon level={parseLevel("L1")} />
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                    <div className="w-16 p-2 flex items-center justify-center">
+                                        <SkillIcon level={parseLevel("L1")} />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
                         );
                     })}
 
