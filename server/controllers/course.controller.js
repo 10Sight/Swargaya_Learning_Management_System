@@ -9,6 +9,12 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
+// Helper to normalize an incoming ids array/value into a deduped array of ints
+const sanitizeIds = (value) => {
+    const arr = Array.isArray(value) ? value : (value !== undefined && value !== null && value !== '' ? [value] : []);
+    return [...new Set(arr.map(v => parseInt(v)).filter(v => !isNaN(v)))];
+};
+
 // Helper to populate course details
 const populateCourse = async (course) => {
     if (!course) return null;
@@ -59,11 +65,34 @@ const populateCourse = async (course) => {
         course.assignments = as;
     }
 
+    // Department / Line / Machine (optional multi-select association)
+    if (Array.isArray(course.departmentIds) && course.departmentIds.length > 0) {
+        const placeholders = course.departmentIds.map(() => '?').join(',');
+        const [rows] = await pool.query(`SELECT id, name FROM departments WHERE id IN (${placeholders})`, course.departmentIds);
+        course.departments = rows.map(r => ({ _id: r.id, ...r }));
+    } else {
+        course.departments = [];
+    }
+    if (Array.isArray(course.lineIds) && course.lineIds.length > 0) {
+        const placeholders = course.lineIds.map(() => '?').join(',');
+        const [rows] = await pool.query(`SELECT id, name FROM [lines] WHERE id IN (${placeholders})`, course.lineIds);
+        course.lines = rows.map(r => ({ _id: r.id, ...r }));
+    } else {
+        course.lines = [];
+    }
+    if (Array.isArray(course.machineIds) && course.machineIds.length > 0) {
+        const placeholders = course.machineIds.map(() => '?').join(',');
+        const [rows] = await pool.query(`SELECT id, name FROM machines WHERE id IN (${placeholders})`, course.machineIds);
+        course.machines = rows.map(r => ({ _id: r.id, ...r }));
+    } else {
+        course.machines = [];
+    }
+
     return course;
 };
 
 export const createCourse = asyncHandler(async (req, res) => {
-    const { title, description, category, level, modules, instructor, quizzes, assignments } = req.body;
+    const { title, description, category, level, modules, instructor, quizzes, assignments, departmentIds, lineIds, machineIds } = req.body;
 
     if (!title || !description || !instructor) {
         throw new ApiError("Title and description are required", 400);
@@ -87,7 +116,10 @@ export const createCourse = asyncHandler(async (req, res) => {
         createdBy: req.user.id,
         status: 'DRAFT', // Default
         students: [],
-        unit
+        unit,
+        departmentIds: sanitizeIds(departmentIds),
+        lineIds: sanitizeIds(lineIds),
+        machineIds: sanitizeIds(machineIds)
     };
 
     const course = await Course.create(courseData);
@@ -188,6 +220,10 @@ export const updatedCourse = asyncHandler(async (req, res) => {
     Object.keys(req.body).forEach(k => {
         if (allowed.includes(k)) course[k] = req.body[k];
     });
+
+    if (req.body.departmentIds !== undefined) course.departmentIds = sanitizeIds(req.body.departmentIds);
+    if (req.body.lineIds !== undefined) course.lineIds = sanitizeIds(req.body.lineIds);
+    if (req.body.machineIds !== undefined) course.machineIds = sanitizeIds(req.body.machineIds);
 
     // Unit can only be reassigned by SUPERADMIN; ADMIN-created courses stay scoped to their unit
     if (req.user.role === "SUPERADMIN" && req.body.unit !== undefined) {

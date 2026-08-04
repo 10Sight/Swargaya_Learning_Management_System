@@ -12,6 +12,15 @@ import {
   useGetActiveConfigQuery
 } from "@/Redux/AllApi/CourseLevelConfigApi";
 import { useGetAllUnitsQuery } from "@/Redux/AllApi/UnitApi";
+import { useGetAllDepartmentsQuery } from "@/Redux/AllApi/DepartmentApi";
+import {
+  useGetLinesByDepartmentQuery,
+  useLazyGetLinesByDepartmentQuery,
+} from "@/Redux/AllApi/LineApi";
+import {
+  useGetMachinesByLineQuery,
+  useLazyGetMachinesByLineQuery,
+} from "@/Redux/AllApi/MachineApi";
 import {
   Table,
   TableBody,
@@ -77,6 +86,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Import reusable components
 import SearchInput from "@/components/common/SearchInput";
@@ -112,11 +122,181 @@ const Course = () => {
     difficulty: "L1",
     status: "DRAFT",
     unit: "",
+    departments: [], // [{ id, name }]
+    lines: [], // [{ id, name, departmentId }]
+    machines: [], // [{ id, name, lineId }]
   });
   const [formErrors, setFormErrors] = useState({});
+
+  // Department / Line / Machine — optional multi-select cascading association for the course
+  const { data: departmentsData } = useGetAllDepartmentsQuery();
+  const allDepartments = departmentsData?.data?.departments || [];
+
+  const [triggerGetLinesByDepartment] = useLazyGetLinesByDepartmentQuery();
+  const [triggerGetMachinesByLine] = useLazyGetMachinesByLineQuery();
+  const [editAvailableLines, setEditAvailableLines] = useState([]);
+  const [editAvailableMachines, setEditAvailableMachines] = useState([]);
+  const [editLinesLoading, setEditLinesLoading] = useState(false);
+  const [editMachinesLoading, setEditMachinesLoading] = useState(false);
+
+  const editSelectedDepartmentIds = useMemo(
+    () => (formData.departments || []).map((d) => d.id),
+    [formData.departments]
+  );
+  const editSelectedDepartmentIdsKey = editSelectedDepartmentIds.join(",");
+
+  useEffect(() => {
+    if (editSelectedDepartmentIds.length === 0) {
+      setEditAvailableLines([]);
+      return;
+    }
+
+    let cancelled = false;
+    setEditLinesLoading(true);
+
+    (async () => {
+      try {
+        const results = await Promise.all(
+          editSelectedDepartmentIds.map((departmentId) =>
+            triggerGetLinesByDepartment(departmentId)
+              .unwrap()
+              .then((res) => res?.data || [])
+              .catch(() => [])
+          )
+        );
+        if (cancelled) return;
+
+        const merged = results.flat();
+        const deduped = Array.from(new Map(merged.map((l) => [l.id, l])).values());
+        setEditAvailableLines(deduped);
+
+        setFormData((prev) => ({
+          ...prev,
+          lines: (prev.lines || []).filter((l) => deduped.some((dl) => dl.id === l.id)),
+        }));
+      } finally {
+        if (!cancelled) setEditLinesLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editSelectedDepartmentIdsKey]);
+
+  const editSelectedLineIds = useMemo(
+    () => (formData.lines || []).map((l) => l.id),
+    [formData.lines]
+  );
+  const editSelectedLineIdsKey = editSelectedLineIds.join(",");
+
+  useEffect(() => {
+    if (editSelectedLineIds.length === 0) {
+      setEditAvailableMachines([]);
+      return;
+    }
+
+    let cancelled = false;
+    setEditMachinesLoading(true);
+
+    (async () => {
+      try {
+        const results = await Promise.all(
+          editSelectedLineIds.map((lineId) =>
+            triggerGetMachinesByLine(lineId)
+              .unwrap()
+              .then((res) => res?.data || [])
+              .catch(() => [])
+          )
+        );
+        if (cancelled) return;
+
+        const merged = results.flat();
+        const deduped = Array.from(new Map(merged.map((m) => [m.id, m])).values());
+        setEditAvailableMachines(deduped);
+
+        setFormData((prev) => ({
+          ...prev,
+          machines: (prev.machines || []).filter((m) => editSelectedLineIds.includes(m.lineId)),
+        }));
+      } finally {
+        if (!cancelled) setEditMachinesLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editSelectedLineIdsKey]);
+
+  const toggleEditDepartmentSelection = (dept) => {
+    setFormData((prev) => {
+      const isSelected = (prev.departments || []).some((d) => d.id === dept._id);
+      return {
+        ...prev,
+        departments: isSelected
+          ? prev.departments.filter((d) => d.id !== dept._id)
+          : [...(prev.departments || []), { id: dept._id, name: dept.name }],
+      };
+    });
+  };
+
+  const toggleEditLineSelection = (line) => {
+    setFormData((prev) => {
+      const isSelected = (prev.lines || []).some((l) => l.id === line.id);
+      return {
+        ...prev,
+        lines: isSelected
+          ? prev.lines.filter((l) => l.id !== line.id)
+          : [...(prev.lines || []), { id: line.id, name: line.name, departmentId: line.department }],
+      };
+    });
+  };
+
+  const toggleEditMachineSelection = (machine) => {
+    setFormData((prev) => {
+      const isSelected = (prev.machines || []).some((m) => m.id === machine.id);
+      return {
+        ...prev,
+        machines: isSelected
+          ? prev.machines.filter((m) => m.id !== machine.id)
+          : [...(prev.machines || []), { id: machine.id, name: machine.name, lineId: machine.line }],
+      };
+    });
+  };
+
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
+  const [departmentFilter, setDepartmentFilter] = useState("ALL");
+  const [lineFilter, setLineFilter] = useState("ALL");
+  const [machineFilter, setMachineFilter] = useState("ALL");
   const [activeTab, setActiveTab] = useState("all");
+
+  // Filter row: Department -> Line -> Machine (single-select cascading filters)
+  const { data: filterLinesData, isFetching: filterLinesLoading } = useGetLinesByDepartmentQuery(
+    departmentFilter,
+    { skip: departmentFilter === "ALL" }
+  );
+  const filterLines = filterLinesData?.data || [];
+
+  const { data: filterMachinesData, isFetching: filterMachinesLoading } = useGetMachinesByLineQuery(
+    lineFilter,
+    { skip: lineFilter === "ALL" }
+  );
+  const filterMachines = filterMachinesData?.data || [];
+
+  const handleDepartmentFilterChange = (value) => {
+    setDepartmentFilter(value);
+    setLineFilter("ALL");
+    setMachineFilter("ALL");
+  };
+
+  const handleLineFilterChange = (value) => {
+    setLineFilter(value);
+    setMachineFilter("ALL");
+  };
 
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
 
@@ -184,6 +364,44 @@ const Course = () => {
     return [{ value: "ALL", label: "All Categories" }, ...categoryOpts];
   }, [categories]);
 
+  const departmentOptions = [
+    { value: "ALL", label: "All Departments" },
+    ...allDepartments.map((d) => ({ value: String(d._id), label: d.name })),
+  ];
+
+  const lineOptions = [
+    { value: "ALL", label: "All Lines" },
+    ...filterLines.map((line) => ({ value: String(line.id), label: line.name })),
+  ];
+
+  const machineOptions = [
+    { value: "ALL", label: "All Machines" },
+    ...filterMachines.map((machine) => ({ value: String(machine.id), label: machine.name })),
+  ];
+
+  // Client-side narrowing by Department/Line/Machine (associations are multi-select,
+  // so this mirrors how Students.jsx filters on a user's assigned lines/machines).
+  const filteredCourses = useMemo(() => {
+    return courses.filter((course) => {
+      const departmentMatch =
+        departmentFilter === "ALL" ||
+        (Array.isArray(course.departments) &&
+          course.departments.some((d) => String(d._id) === departmentFilter));
+
+      const lineMatch =
+        lineFilter === "ALL" ||
+        (Array.isArray(course.lines) &&
+          course.lines.some((l) => String(l._id) === lineFilter));
+
+      const machineMatch =
+        machineFilter === "ALL" ||
+        (Array.isArray(course.machines) &&
+          course.machines.some((m) => String(m._id) === machineFilter));
+
+      return departmentMatch && lineMatch && machineMatch;
+    });
+  }, [courses, departmentFilter, lineFilter, machineFilter]);
+
   // Active filters for FilterBar
   const activeFilters = useMemo(() => {
     const filters = [];
@@ -199,12 +417,27 @@ const Course = () => {
       filters.push({ label: "Category", value: categoryFilter });
     }
 
+    if (departmentFilter !== "ALL") {
+      const departmentLabel = departmentOptions.find((opt) => opt.value === departmentFilter)?.label;
+      filters.push({ label: "Department", value: departmentLabel });
+    }
+
+    if (lineFilter !== "ALL") {
+      const lineLabel = lineOptions.find((opt) => opt.value === lineFilter)?.label;
+      filters.push({ label: "Line", value: lineLabel });
+    }
+
+    if (machineFilter !== "ALL") {
+      const machineLabel = machineOptions.find((opt) => opt.value === machineFilter)?.label;
+      filters.push({ label: "Machine", value: machineLabel });
+    }
+
     if (searchTerm) {
       filters.push({ label: "Search", value: searchTerm });
     }
 
     return filters;
-  }, [statusFilter, categoryFilter, searchTerm, statusOptions]);
+  }, [statusFilter, categoryFilter, departmentFilter, lineFilter, machineFilter, searchTerm, statusOptions]);
 
   // Toast helpers
   const showToast = useCallback(
@@ -238,6 +471,9 @@ const Course = () => {
       difficulty: "L1",
       status: "DRAFT",
       unit: "",
+      departments: [],
+      lines: [],
+      machines: [],
     });
     setFormErrors({});
   };
@@ -269,6 +505,9 @@ const Course = () => {
         difficulty: formData.difficulty,
         status: formData.status,
         unit: formData.unit,
+        departmentIds: formData.departments.map((d) => d.id),
+        lineIds: formData.lines.map((l) => l.id),
+        machineIds: formData.machines.map((m) => m.id),
       }).unwrap();
 
       showToast("success", "Course updated successfully!");
@@ -353,6 +592,15 @@ const Course = () => {
       difficulty: getNormalizedDifficulty(course.difficulty),
       status: course.status,
       unit: course.unit || "",
+      departments: Array.isArray(course.departments)
+        ? course.departments.map((d) => ({ id: d._id, name: d.name }))
+        : [],
+      lines: Array.isArray(course.lines)
+        ? course.lines.map((l) => ({ id: l._id, name: l.name, departmentId: l.department }))
+        : [],
+      machines: Array.isArray(course.machines)
+        ? course.machines.map((m) => ({ id: m._id, name: m.name, lineId: m.line }))
+        : [],
     });
     setIsEditDialogOpen(true);
   };
@@ -428,6 +676,9 @@ const Course = () => {
   const clearFilters = () => {
     setStatusFilter("ALL");
     setCategoryFilter("ALL");
+    setDepartmentFilter("ALL");
+    setLineFilter("ALL");
+    setMachineFilter("ALL");
     setSearchTerm("");
     setActiveTab("all");
   };
@@ -631,10 +882,42 @@ const Course = () => {
                   icon={IconChartBar}
                   className="min-w-0 xs:w-[140px]"
                 />
+
+                <FilterSelect
+                  value={departmentFilter}
+                  onValueChange={handleDepartmentFilterChange}
+                  options={departmentOptions}
+                  placeholder="Department"
+                  icon={IconSchool}
+                  className="min-w-0 xs:w-[160px]"
+                />
+
+                <FilterSelect
+                  value={lineFilter}
+                  onValueChange={handleLineFilterChange}
+                  options={lineOptions}
+                  placeholder="Line"
+                  icon={IconFilter}
+                  className="min-w-0 xs:w-[140px]"
+                  disabled={departmentFilter === "ALL" || filterLinesLoading}
+                />
+
+                <FilterSelect
+                  value={machineFilter}
+                  onValueChange={setMachineFilter}
+                  options={machineOptions}
+                  placeholder="Machine"
+                  icon={IconFilter}
+                  className="min-w-0 xs:w-[140px]"
+                  disabled={lineFilter === "ALL" || filterMachinesLoading}
+                />
               </div>
 
               {(statusFilter !== "ALL" ||
                 categoryFilter !== "ALL" ||
+                departmentFilter !== "ALL" ||
+                lineFilter !== "ALL" ||
+                machineFilter !== "ALL" ||
                 searchTerm) && (
                   <Button
                     variant="outline"
@@ -723,13 +1006,16 @@ const Course = () => {
                   <TableHead>Category</TableHead>
                   <TableHead>Difficulty</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Department</TableHead>
+                  <TableHead>Line</TableHead>
+                  <TableHead>Machine</TableHead>
                   {isSuperAdmin && <TableHead>Unit</TableHead>}
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {courses.length > 0 ? (
-                  courses.map((course) => (
+                {filteredCourses.length > 0 ? (
+                  filteredCourses.map((course) => (
                     <TableRow
                       key={course._id}
                       className="group hover:bg-muted/30 cursor-pointer"
@@ -777,6 +1063,39 @@ const Course = () => {
                             <SelectItem value="ARCHIVED">Archived</SelectItem>
                           </SelectContent>
                         </Select>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1 max-w-[160px]">
+                          {Array.isArray(course.departments) && course.departments.length > 0 ? (
+                            course.departments.map((d) => (
+                              <Badge key={d._id} variant="outline" className="text-xs">{d.name}</Badge>
+                            ))
+                          ) : (
+                            <span className="text-sm text-muted-foreground">—</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1 max-w-[160px]">
+                          {Array.isArray(course.lines) && course.lines.length > 0 ? (
+                            course.lines.map((l) => (
+                              <Badge key={l._id} variant="outline" className="text-xs">{l.name}</Badge>
+                            ))
+                          ) : (
+                            <span className="text-sm text-muted-foreground">—</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1 max-w-[160px]">
+                          {Array.isArray(course.machines) && course.machines.length > 0 ? (
+                            course.machines.map((m) => (
+                              <Badge key={m._id} variant="outline" className="text-xs">{m.name}</Badge>
+                            ))
+                          ) : (
+                            <span className="text-sm text-muted-foreground">—</span>
+                          )}
+                        </div>
                       </TableCell>
                       {isSuperAdmin && (
                         <TableCell>
@@ -836,7 +1155,7 @@ const Course = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={isSuperAdmin ? 6 : 5} className="text-center py-10">
+                    <TableCell colSpan={isSuperAdmin ? 9 : 8} className="text-center py-10">
                       <div className="flex flex-col items-center space-y-3">
                         <IconBook className="h-12 w-12 text-[#9ca3af]/60" />
                         <p className="text-[#9ca3af] font-medium">
@@ -845,13 +1164,19 @@ const Course = () => {
                         <p className="text-sm text-[#9ca3af]">
                           {searchTerm ||
                             statusFilter !== "ALL" ||
-                            categoryFilter !== "ALL"
+                            categoryFilter !== "ALL" ||
+                            departmentFilter !== "ALL" ||
+                            lineFilter !== "ALL" ||
+                            machineFilter !== "ALL"
                             ? "Try adjusting your search or filters"
                             : "Add your first course to get started"}
                         </p>
                         {(searchTerm ||
                           statusFilter !== "ALL" ||
-                          categoryFilter !== "ALL") && (
+                          categoryFilter !== "ALL" ||
+                          departmentFilter !== "ALL" ||
+                          lineFilter !== "ALL" ||
+                          machineFilter !== "ALL") && (
                             <Button
                               variant="outline"
                               onClick={clearFilters}
@@ -870,8 +1195,8 @@ const Course = () => {
 
           {/* Mobile Card View */}
           <div className="md:hidden space-y-3 p-4">
-            {courses.length > 0 ? (
-              courses.map((course) => (
+            {filteredCourses.length > 0 ? (
+              filteredCourses.map((course) => (
                 <Card
                   key={course._id}
                   className="group cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02] border border-[#e5e7eb]/50"
@@ -907,6 +1232,15 @@ const Course = () => {
                           {isSuperAdmin && course.unit && (
                             <Badge variant="outline" className="text-xs">{course.unit}</Badge>
                           )}
+                          {Array.isArray(course.departments) && course.departments.map((d) => (
+                            <Badge key={d._id} variant="outline" className="text-xs">{d.name}</Badge>
+                          ))}
+                          {Array.isArray(course.lines) && course.lines.map((l) => (
+                            <Badge key={l._id} variant="outline" className="text-xs">{l.name}</Badge>
+                          ))}
+                          {Array.isArray(course.machines) && course.machines.map((m) => (
+                            <Badge key={m._id} variant="outline" className="text-xs">{m.name}</Badge>
+                          ))}
                         </div>
 
                         <div className="flex items-center justify-between pt-2 border-t border-[#f3f4f6]">
@@ -968,13 +1302,19 @@ const Course = () => {
                 <p className="text-sm text-muted-foreground mb-4">
                   {searchTerm ||
                     statusFilter !== "ALL" ||
-                    categoryFilter !== "ALL"
+                    categoryFilter !== "ALL" ||
+                    departmentFilter !== "ALL" ||
+                    lineFilter !== "ALL" ||
+                    machineFilter !== "ALL"
                     ? "Try adjusting your search or filters"
                     : "Add your first course to get started"}
                 </p>
                 {(searchTerm ||
                   statusFilter !== "ALL" ||
-                  categoryFilter !== "ALL") && (
+                  categoryFilter !== "ALL" ||
+                  departmentFilter !== "ALL" ||
+                  lineFilter !== "ALL" ||
+                  machineFilter !== "ALL") && (
                     <Button
                       variant="outline"
                       onClick={clearFilters}
@@ -993,7 +1333,7 @@ const Course = () => {
       {totalPages > 1 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            Showing {courses.length} of {totalCount} courses
+            Showing {filteredCourses.length} of {totalCount} courses
           </p>
           <div className="flex space-x-2">
             <Button
@@ -1137,6 +1477,92 @@ const Course = () => {
                 </Select>
               </div>
             )}
+
+            <div className="grid gap-2">
+              <Label>Departments</Label>
+              <div className="max-h-40 overflow-y-auto rounded-md border p-2 space-y-1">
+                {allDepartments.length > 0 ? (
+                  allDepartments.map((dept) => (
+                    <label
+                      key={dept._id}
+                      className="flex items-center gap-2 px-1 py-1 rounded hover:bg-muted/50 cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={formData.departments?.some((d) => d.id === dept._id)}
+                        onCheckedChange={() => toggleEditDepartmentSelection(dept)}
+                      />
+                      <span className="text-sm">{dept.name}</span>
+                    </label>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground px-1">No departments found</p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Lines</Label>
+              <div className="max-h-40 overflow-y-auto rounded-md border p-2 space-y-1">
+                {!formData.departments?.length ? (
+                  <p className="text-sm text-muted-foreground px-1">
+                    Select at least one department first
+                  </p>
+                ) : editLinesLoading ? (
+                  <div className="flex justify-center py-3">
+                    <IconLoader className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                ) : editAvailableLines.length > 0 ? (
+                  editAvailableLines.map((line) => (
+                    <label
+                      key={line.id}
+                      className="flex items-center gap-2 px-1 py-1 rounded hover:bg-muted/50 cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={formData.lines?.some((l) => l.id === line.id)}
+                        onCheckedChange={() => toggleEditLineSelection(line)}
+                      />
+                      <span className="text-sm">{line.name}</span>
+                    </label>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground px-1">
+                    No lines found for the selected department(s)
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Machines</Label>
+              <div className="max-h-40 overflow-y-auto rounded-md border p-2 space-y-1">
+                {!formData.lines?.length ? (
+                  <p className="text-sm text-muted-foreground px-1">
+                    Select at least one line first
+                  </p>
+                ) : editMachinesLoading ? (
+                  <div className="flex justify-center py-3">
+                    <IconLoader className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                ) : editAvailableMachines.length > 0 ? (
+                  editAvailableMachines.map((machine) => (
+                    <label
+                      key={machine.id}
+                      className="flex items-center gap-2 px-1 py-1 rounded hover:bg-muted/50 cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={formData.machines?.some((m) => m.id === machine.id)}
+                        onCheckedChange={() => toggleEditMachineSelection(machine)}
+                      />
+                      <span className="text-sm">{machine.name}</span>
+                    </label>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground px-1">
+                    No machines found for the selected line(s)
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button

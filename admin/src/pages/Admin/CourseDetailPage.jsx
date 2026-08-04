@@ -344,6 +344,36 @@ const CourseDetailPage = () => {
                     {new Date(course.createdAt).toLocaleDateString()}
                   </p>
                 </div>
+                {Array.isArray(course.departments) && course.departments.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Departments</p>
+                    <div className="flex flex-wrap gap-1">
+                      {course.departments.map((d) => (
+                        <Badge key={d._id} variant="outline">{d.name}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {Array.isArray(course.lines) && course.lines.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Lines</p>
+                    <div className="flex flex-wrap gap-1">
+                      {course.lines.map((l) => (
+                        <Badge key={l._id} variant="outline">{l.name}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {Array.isArray(course.machines) && course.machines.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Machines</p>
+                    <div className="flex flex-wrap gap-1">
+                      {course.machines.map((m) => (
+                        <Badge key={m._id} variant="outline">{m.name}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">

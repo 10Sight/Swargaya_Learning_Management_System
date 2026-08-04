@@ -25,6 +25,7 @@ import {
   IconEye,
   IconFileTypeDocx,
   IconFileTypeXls,
+  IconFileTypePpt,
 } from "@tabler/icons-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useDeleteResourceMutation } from "@/Redux/AllApi/resourceApi";

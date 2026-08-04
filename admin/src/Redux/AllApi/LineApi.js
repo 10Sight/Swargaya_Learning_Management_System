@@ -49,6 +49,7 @@ export const LineApi = createApi({
 export const {
     useCreateLineMutation,
     useGetLinesByDepartmentQuery,
+    useLazyGetLinesByDepartmentQuery,
     useUpdateLineMutation,
     useDeleteLineMutation,
 } = LineApi;

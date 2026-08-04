@@ -9,7 +9,12 @@ import { useCreateResourceMutation } from "@/Redux/AllApi/resourceApi"; // Added
 import { useGetAllInstructorsQuery } from "@/Redux/AllApi/InstructorApi";
 import { useGetActiveConfigQuery } from "@/Redux/AllApi/CourseLevelConfigApi";
 import { useGetAllUnitsQuery } from "@/Redux/AllApi/UnitApi";
+import { useGetAllDepartmentsQuery } from "@/Redux/AllApi/DepartmentApi";
+import { useLazyGetLinesByDepartmentQuery } from "@/Redux/AllApi/LineApi";
+import { useLazyGetMachinesByLineQuery } from "@/Redux/AllApi/MachineApi";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { FormCard, FormInput, FormTextarea, FormSelect } from "@/components/form";
 import { CModuleForm } from "@/components/course/CModuleForm";
 import { QuizForm } from "@/components/course/QuizForm";
@@ -53,7 +58,155 @@ const AddCourse = () => {
     level: "L1",
     instructor: "",
     unit: "",
+    departments: [], // [{ id, name }]
+    lines: [], // [{ id, name, departmentId }]
+    machines: [], // [{ id, name, lineId }]
   });
+
+  // Department / Line / Machine — optional multi-select cascading association for the course
+  const { data: departmentsData } = useGetAllDepartmentsQuery();
+  const allDepartments = departmentsData?.data?.departments || [];
+
+  const [triggerGetLinesByDepartment] = useLazyGetLinesByDepartmentQuery();
+  const [triggerGetMachinesByLine] = useLazyGetMachinesByLineQuery();
+  const [availableLines, setAvailableLines] = useState([]);
+  const [availableMachines, setAvailableMachines] = useState([]);
+  const [linesLoading, setLinesLoading] = useState(false);
+  const [machinesLoading, setMachinesLoading] = useState(false);
+
+  const selectedDepartmentIds = useMemo(
+    () => (formData.departments || []).map((d) => d.id),
+    [formData.departments]
+  );
+  const selectedDepartmentIdsKey = selectedDepartmentIds.join(",");
+
+  useEffect(() => {
+    if (selectedDepartmentIds.length === 0) {
+      setAvailableLines([]);
+      return;
+    }
+
+    let cancelled = false;
+    setLinesLoading(true);
+
+    (async () => {
+      try {
+        const results = await Promise.all(
+          selectedDepartmentIds.map((departmentId) =>
+            triggerGetLinesByDepartment(departmentId)
+              .unwrap()
+              .then((res) => res?.data || [])
+              .catch(() => [])
+          )
+        );
+        if (cancelled) return;
+
+        const merged = results.flat();
+        const deduped = Array.from(new Map(merged.map((l) => [l.id, l])).values());
+        setAvailableLines(deduped);
+
+        // Drop any previously-selected lines whose department is no longer selected
+        setFormData((prev) => ({
+          ...prev,
+          lines: (prev.lines || []).filter((l) =>
+            deduped.some((dl) => dl.id === l.id)
+          ),
+        }));
+      } finally {
+        if (!cancelled) setLinesLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDepartmentIdsKey]);
+
+  const selectedLineIds = useMemo(
+    () => (formData.lines || []).map((l) => l.id),
+    [formData.lines]
+  );
+  const selectedLineIdsKey = selectedLineIds.join(",");
+
+  useEffect(() => {
+    if (selectedLineIds.length === 0) {
+      setAvailableMachines([]);
+      return;
+    }
+
+    let cancelled = false;
+    setMachinesLoading(true);
+
+    (async () => {
+      try {
+        const results = await Promise.all(
+          selectedLineIds.map((lineId) =>
+            triggerGetMachinesByLine(lineId)
+              .unwrap()
+              .then((res) => res?.data || [])
+              .catch(() => [])
+          )
+        );
+        if (cancelled) return;
+
+        const merged = results.flat();
+        const deduped = Array.from(new Map(merged.map((m) => [m.id, m])).values());
+        setAvailableMachines(deduped);
+
+        // Drop any previously-selected machines whose line is no longer selected
+        setFormData((prev) => ({
+          ...prev,
+          machines: (prev.machines || []).filter((m) =>
+            selectedLineIds.includes(m.lineId)
+          ),
+        }));
+      } finally {
+        if (!cancelled) setMachinesLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedLineIdsKey]);
+
+  const toggleDepartmentSelection = (dept) => {
+    setFormData((prev) => {
+      const isSelected = (prev.departments || []).some((d) => d.id === dept._id);
+      return {
+        ...prev,
+        departments: isSelected
+          ? prev.departments.filter((d) => d.id !== dept._id)
+          : [...(prev.departments || []), { id: dept._id, name: dept.name }],
+      };
+    });
+  };
+
+  const toggleLineSelection = (line) => {
+    setFormData((prev) => {
+      const isSelected = (prev.lines || []).some((l) => l.id === line.id);
+      return {
+        ...prev,
+        lines: isSelected
+          ? prev.lines.filter((l) => l.id !== line.id)
+          : [...(prev.lines || []), { id: line.id, name: line.name, departmentId: line.department }],
+      };
+    });
+  };
+
+  const toggleMachineSelection = (machine) => {
+    setFormData((prev) => {
+      const isSelected = (prev.machines || []).some((m) => m.id === machine.id);
+      return {
+        ...prev,
+        machines: isSelected
+          ? prev.machines.filter((m) => m.id !== machine.id)
+          : [...(prev.machines || []), { id: machine.id, name: machine.name, lineId: machine.line }],
+      };
+    });
+  };
 
   const [modules, setModules] = useState([]);
   const [quizzes, setQuizzes] = useState([]);
@@ -423,7 +576,10 @@ const AddCourse = () => {
         category: formData.category,
         level: formData.level,
         instructor: formData.instructor,
-        unit: formData.unit
+        unit: formData.unit,
+        departmentIds: formData.departments.map((d) => d.id),
+        lineIds: formData.lines.map((l) => l.id),
+        machineIds: formData.machines.map((m) => m.id)
       }).unwrap();
 
       const courseId = courseResponse.data.id || courseResponse.data._id;
@@ -640,6 +796,95 @@ const AddCourse = () => {
                 placeholder="Select unit (Global if none)"
               />
             )}
+
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid gap-2">
+              <Label>Departments</Label>
+              <div className="max-h-40 overflow-y-auto rounded-md border p-2 space-y-1">
+                {allDepartments.length > 0 ? (
+                  allDepartments.map((dept) => (
+                    <label
+                      key={dept._id}
+                      className="flex items-center gap-2 px-1 py-1 rounded hover:bg-muted/50 cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={formData.departments?.some((d) => d.id === dept._id)}
+                        onCheckedChange={() => toggleDepartmentSelection(dept)}
+                      />
+                      <span className="text-sm">{dept.name}</span>
+                    </label>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground px-1">No departments found</p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Lines</Label>
+              <div className="max-h-40 overflow-y-auto rounded-md border p-2 space-y-1">
+                {!formData.departments?.length ? (
+                  <p className="text-sm text-muted-foreground px-1">
+                    Select at least one department first
+                  </p>
+                ) : linesLoading ? (
+                  <div className="flex justify-center py-3">
+                    <IconLoader className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                ) : availableLines.length > 0 ? (
+                  availableLines.map((line) => (
+                    <label
+                      key={line.id}
+                      className="flex items-center gap-2 px-1 py-1 rounded hover:bg-muted/50 cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={formData.lines?.some((l) => l.id === line.id)}
+                        onCheckedChange={() => toggleLineSelection(line)}
+                      />
+                      <span className="text-sm">{line.name}</span>
+                    </label>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground px-1">
+                    No lines found for the selected department(s)
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Machines</Label>
+              <div className="max-h-40 overflow-y-auto rounded-md border p-2 space-y-1">
+                {!formData.lines?.length ? (
+                  <p className="text-sm text-muted-foreground px-1">
+                    Select at least one line first
+                  </p>
+                ) : machinesLoading ? (
+                  <div className="flex justify-center py-3">
+                    <IconLoader className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                ) : availableMachines.length > 0 ? (
+                  availableMachines.map((machine) => (
+                    <label
+                      key={machine.id}
+                      className="flex items-center gap-2 px-1 py-1 rounded hover:bg-muted/50 cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={formData.machines?.some((m) => m.id === machine.id)}
+                        onCheckedChange={() => toggleMachineSelection(machine)}
+                      />
+                      <span className="text-sm">{machine.name}</span>
+                    </label>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground px-1">
+                    No machines found for the selected line(s)
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         </FormCard>
 
