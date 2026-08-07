@@ -108,11 +108,26 @@ export const bulkEnrollUsers = asyncHandler(async (req, res) => {
 
                     // Add user to department if specified
                     if (departmentId) {
+                        // Clear user from their old department's students list if switching
+                        const [userRows] = await connection.query(`SELECT department FROM users WHERE id = ?`, [userId]);
+                        const oldDepartmentId = userRows.length > 0 ? userRows[0].department : null;
+
+                        if (oldDepartmentId && String(oldDepartmentId) !== String(departmentId)) {
+                            const [oldDeptRows] = await connection.query(`SELECT students FROM departments WHERE id = ?`, [oldDepartmentId]);
+                            if (oldDeptRows.length > 0) {
+                                let oldStudents = oldDeptRows[0].students;
+                                if (typeof oldStudents === 'string') try { oldStudents = JSON.parse(oldStudents); } catch (e) { oldStudents = []; }
+                                if (!Array.isArray(oldStudents)) oldStudents = [];
+                                oldStudents = oldStudents.filter(sid => String(sid) !== String(userId));
+                                await connection.query(`UPDATE departments SET students = ? WHERE id = ?`, [JSON.stringify(oldStudents), oldDepartmentId]);
+                            }
+                        }
+
                         // Lock department row to update students JSON safely
                         const [deptRows] = await connection.query(`SELECT students FROM departments WHERE id = ? FOR UPDATE`, [departmentId]);
                         if (deptRows.length > 0) {
                             let students = deptRows[0].students; // It comes as JSON object (array) due to mysql2 type casting if configured, or string.
-                            // Assuming mysql2 returns parsed JSON if column type is JSON. 
+                            // Assuming mysql2 returns parsed JSON if column type is JSON.
                             if (!Array.isArray(students)) students = [];
 
                             if (!students.includes(userId) && !students.includes(String(userId))) {
@@ -120,6 +135,12 @@ export const bulkEnrollUsers = asyncHandler(async (req, res) => {
                                 await connection.query(`UPDATE departments SET students = ? WHERE id = ?`, [JSON.stringify(students), departmentId]);
                             }
                         }
+
+                        // Keep the user's department/departments columns in sync
+                        await connection.query(
+                            `UPDATE users SET department = ?, departments = ? WHERE id = ?`,
+                            [departmentId, JSON.stringify([departmentId]), userId]
+                        );
                     }
 
                     results.successful.push({

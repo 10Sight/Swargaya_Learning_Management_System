@@ -41,6 +41,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Card,
   CardContent,
@@ -102,6 +103,8 @@ const Departments = () => {
   const [selectedDepartment, setSelectedDepartment] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCancelingDepartment, setIsCancelingDepartment] = useState(false);
+  const [isAssigningTrainers, setIsAssigningTrainers] = useState(false);
+  const [selectedTrainerIdsToAssign, setSelectedTrainerIdsToAssign] = useState([]);
   const [lastToastId, setLastToastId] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -232,6 +235,18 @@ const Departments = () => {
       }
     }
   }, [searchParams, departments]);
+
+  // Handle auto-open assign trainer dialog from URL params (e.g. direct link with ?assignInstructor=ID)
+  useEffect(() => {
+    const assignValues = searchParams.get("assignInstructor");
+    if (assignValues && departments && departments.length > 0) {
+      const deptToAssign = departments.find(d => d._id === assignValues);
+      if (deptToAssign) {
+        openAssignInstructorDialog(deptToAssign);
+        setSearchParams({});
+      }
+    }
+  }, [searchParams, departments]);
   const totalPages = departmentsData?.data?.totalPages || 1;
   const totalCount = departmentsData?.data?.totalDepartments || 0;
   const instructors = instructorsData?.data?.users || [];
@@ -245,8 +260,8 @@ const Departments = () => {
     { value: "ONGOING", label: "Ongoing" },
     { value: "COMPLETED", label: "Completed" },
     { value: "CANCELLED", label: "Cancelled" },
-    { value: "HAS_INSTRUCTOR", label: "Has Instructor" },
-    { value: "NO_INSTRUCTOR", label: "No Instructor" },
+    { value: "HAS_INSTRUCTOR", label: "Has Trainer" },
+    { value: "NO_INSTRUCTOR", label: "No Trainer" },
   ];
 
   // Active filters
@@ -387,19 +402,38 @@ const Departments = () => {
     }
   };
 
-  const handleAssignInstructor = async (instructorId) => {
+  const toggleTrainerToAssignSelection = (trainerId) => {
+    setSelectedTrainerIdsToAssign((prev) =>
+      prev.includes(trainerId)
+        ? prev.filter((id) => id !== trainerId)
+        : [...prev, trainerId]
+    );
+  };
+
+  const handleAssignSelectedTrainers = async () => {
+    if (selectedTrainerIdsToAssign.length === 0) return;
+
     try {
-      const updatedDept = await assignInstructor({
-        departmentId: selectedDepartment._id,
-        instructorId,
-      }).unwrap();
-      showToast("success", "Instructor assigned successfully");
-      setIsAssignInstructorDialogOpen(false); // Can keep open if multi-select desired? User said "add multiple", so keeping open might be better, or just update state.
-      // If we keep dialog open, we must update state.
-      setSelectedDepartment(updatedDept.data || updatedDept);
+      setIsAssigningTrainers(true);
+      const results = await Promise.all(
+        selectedTrainerIdsToAssign.map((trainerId) =>
+          assignInstructor({
+            departmentId: selectedDepartment._id,
+            instructorId: trainerId,
+          }).unwrap()
+        )
+      );
+      showToast("success", "Trainer(s) assigned successfully");
+      setSelectedTrainerIdsToAssign([]);
+      const lastResult = results[results.length - 1];
+      if (lastResult) {
+        setSelectedDepartment(lastResult.data || lastResult);
+      }
       refetch();
     } catch (err) {
-      showToast("error", err?.data?.message || "Failed to assign instructor");
+      showToast("error", err?.data?.message || "Failed to assign one or more trainers");
+    } finally {
+      setIsAssigningTrainers(false);
     }
   };
 
@@ -409,7 +443,7 @@ const Departments = () => {
         departmentId: selectedDepartment._id,
         instructorId
       }).unwrap();
-      showToast("success", "Instructor removed successfully");
+      showToast("success", "Trainer removed successfully");
       // Update local state so UI reflects removal immediately
       setSelectedDepartment(updatedDept.data || updatedDept);
       refetch();
@@ -522,6 +556,7 @@ const Departments = () => {
 
   const openAssignInstructorDialog = (department) => {
     setSelectedDepartment(department);
+    setSelectedTrainerIdsToAssign([]);
     setIsAssignInstructorDialogOpen(true);
   };
 
@@ -544,7 +579,7 @@ const Departments = () => {
     if (instructors.length === 0) {
       return (
         <Badge variant="secondary" className="flex items-center gap-1">
-          No Instructor
+          No Trainer
         </Badge>
       );
     }
@@ -798,7 +833,7 @@ const Departments = () => {
         <StatCard
           title="Assigned Departments"
           value={departments.filter((d) => (d.instructors && d.instructors.length > 0) || d.instructor).length}
-          description="With instructors"
+          description="With trainers"
           icon={IconUser}
           iconBgColor="bg-[#dcfce7]"
           iconColor="text-[#16a34a]"
@@ -992,7 +1027,7 @@ const Departments = () => {
               <TableRow className="bg-muted/50">
                 <TableHead className="w-[220px]">Department Name</TableHead>
                 <TableHead>Course</TableHead>
-                <TableHead>Instructor</TableHead>
+                <TableHead>Trainer</TableHead>
                 <TableHead>Trainees</TableHead>
                 {isSuperAdmin && <TableHead>Unit</TableHead>}
                 <TableHead>Status</TableHead>
@@ -1059,7 +1094,7 @@ const Departments = () => {
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Assign instructor</p>
+                              <p>Assign trainer</p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
@@ -1307,7 +1342,7 @@ const Departments = () => {
               Create New Department
             </DialogTitle>
             <DialogDescription>
-              Create a new department. You can assign an instructor later.
+              Create a new department. You can assign a trainer later.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -1415,7 +1450,7 @@ const Departments = () => {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="instructorId">Instructor (Optional)</Label>
+              <Label htmlFor="instructorId">Trainer (Optional)</Label>
               <Select
                 value={formData.instructorId ? String(formData.instructorId) : ""}
                 onValueChange={(value) =>
@@ -1423,16 +1458,16 @@ const Departments = () => {
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select an instructor" />
+                  <SelectValue placeholder="Select a trainer" />
                 </SelectTrigger>
                 <SelectContent>
                   {instructorsLoading ? (
                     <SelectItem value="loading" disabled>
-                      Loading instructors...
+                      Loading trainers...
                     </SelectItem>
                   ) : instructorsError ? (
                     <SelectItem value="error" disabled>
-                      Error loading instructors
+                      Error loading trainers
                     </SelectItem>
                   ) : instructors.length > 0 ? (
                     instructors.map((instructor) => (
@@ -1442,7 +1477,7 @@ const Departments = () => {
                     ))
                   ) : (
                     <SelectItem value="none" disabled>
-                      No instructors available
+                      No trainers available
                     </SelectItem>
                   )}
                 </SelectContent>
@@ -1727,29 +1762,28 @@ const Departments = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Assign Instructor Dialog */}
+      {/* Assign Trainer Dialog */}
       <Dialog
         open={isAssignInstructorDialogOpen}
-        onOpenChange={setIsAssignInstructorDialogOpen}
+        onOpenChange={(open) => {
+          setIsAssignInstructorDialogOpen(open);
+          if (!open) setSelectedTrainerIdsToAssign([]);
+        }}
       >
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <IconUser className="h-5 w-5" />
-              {selectedDepartment?.instructor
-                ? "Reassign Instructor"
-                : "Assign Instructor"}
+              Manage Trainers
             </DialogTitle>
             <DialogDescription>
-              {selectedDepartment?.instructor
-                ? `Change instructor for department "${selectedDepartment?.name}"`
-                : `Assign an instructor to the department "${selectedDepartment?.name}"`}
+              Assign or remove trainers for the department "{selectedDepartment?.name}"
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             {(selectedDepartment?.instructors?.length > 0 || selectedDepartment?.instructor) && (
               <div className="mb-6">
-                <h4 className="text-sm font-medium text-muted-foreground mb-3">Current Instructors</h4>
+                <h4 className="text-sm font-medium text-muted-foreground mb-3">Current Trainers</h4>
                 <div className="space-y-2">
                   {(selectedDepartment.instructors || [selectedDepartment.instructor]).filter(Boolean).map(inst => (
                     <div key={inst._id} className="flex items-center justify-between p-3 rounded-lg border bg-[#eff6ff]/50 border-[#dbeafe]">
@@ -1779,7 +1813,7 @@ const Departments = () => {
             )}
 
             <div className="mb-2">
-              <h4 className="text-sm font-medium text-muted-foreground mb-3">Available Instructors</h4>
+              <h4 className="text-sm font-medium text-muted-foreground mb-3">Available Trainers</h4>
             </div>
 
             {instructorsLoading ? (
@@ -1788,36 +1822,41 @@ const Departments = () => {
               </div>
             ) : instructorsError ? (
               <div className="text-center text-[#dc2626] py-4">
-                Error loading instructors
+                Error loading trainers
               </div>
             ) : instructors.length === 0 ? (
               <div className="text-center text-muted-foreground py-4">
-                No instructors available
+                No trainers available
               </div>
             ) : (
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {instructors.map((instructor) => {
                   const isAssigned = (selectedDepartment?.instructors || [selectedDepartment?.instructor])
                     .some(i => i && i._id === instructor._id);
+                  const isChecked = selectedTrainerIdsToAssign.includes(instructor._id);
 
                   return (
                     <div
                       key={instructor._id}
-                      className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${isAssigned ? "bg-muted opacity-60" : "cursor-pointer hover:bg-muted"
+                      className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${isAssigned ? "bg-muted opacity-60" : "cursor-pointer hover:bg-muted"
                         }`}
-                      onClick={() => !isAssigned && handleAssignInstructor(instructor._id)}
+                      onClick={() => !isAssigned && toggleTrainerToAssignSelection(instructor._id)}
                     >
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={instructor.avatar?.url} alt={instructor.fullName} />
-                          <AvatarFallback className="text-xs">
-                            {instructor.fullName?.split(" ").map((n) => n[0]).join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">{instructor.fullName}</p>
-                          <p className="text-sm text-muted-foreground">{instructor.email}</p>
-                        </div>
+                      <Checkbox
+                        checked={isAssigned || isChecked}
+                        disabled={isAssigned}
+                        onCheckedChange={() => !isAssigned && toggleTrainerToAssignSelection(instructor._id)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={instructor.avatar?.url} alt={instructor.fullName} />
+                        <AvatarFallback className="text-xs">
+                          {instructor.fullName?.split(" ").map((n) => n[0]).join("")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <p className="font-medium">{instructor.fullName}</p>
+                        <p className="text-sm text-muted-foreground">{instructor.email}</p>
                       </div>
                       {isAssigned && (
                         <Badge variant="secondary" className="text-xs">Assigned</Badge>
@@ -1833,7 +1872,15 @@ const Departments = () => {
               variant="outline"
               onClick={() => setIsAssignInstructorDialogOpen(false)}
             >
-              Cancel
+              Close
+            </Button>
+            <Button
+              onClick={handleAssignSelectedTrainers}
+              disabled={selectedTrainerIdsToAssign.length === 0 || isAssigningTrainers}
+              className="gap-2"
+            >
+              {isAssigningTrainers ? <IconLoader className="h-4 w-4 animate-spin" /> : <IconUserPlus className="h-4 w-4" />}
+              {isAssigningTrainers ? "Assigning..." : "Assign Selected Trainers"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2034,7 +2081,7 @@ const Departments = () => {
             </DialogTitle>
             <DialogDescription>
               Are you sure you want to cancel the department "{selectedDepartment?.name}"?
-              This will notify all enrolled trainees and the instructor.
+              This will notify all enrolled trainees and the trainer(s).
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">

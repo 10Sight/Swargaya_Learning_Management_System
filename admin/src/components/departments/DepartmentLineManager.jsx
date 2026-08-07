@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
     Table,
     TableBody,
@@ -168,6 +169,7 @@ const DepartmentLineManager = ({ departmentId }) => {
                             <TableRow>
                                 <TableHead>Line Name</TableHead>
                                 <TableHead>Description</TableHead>
+                                <TableHead>Assigned Users</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -191,6 +193,9 @@ const DepartmentLineManager = ({ departmentId }) => {
                                         )}
                                     </TableCell>
                                     <TableCell>{line.description || "-"}</TableCell>
+                                    <TableCell>
+                                        <Badge variant="secondary">{line.assignedUserCount || 0}</Badge>
+                                    </TableCell>
                                     <TableCell className="text-right">
                                         {editingLineId === (line.id || line._id) ? (
                                             <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>

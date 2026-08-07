@@ -8,6 +8,7 @@ import AttemptedQuiz from "../models/attemptedQuiz.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { recomputeOperatorIdForMachine } from "../utils/userSync.js";
 
 // Helper to resolve department by ID or Slug
 async function resolveDepartmentId(idOrSlug) {
@@ -319,6 +320,16 @@ export const addStudentToDepartment = asyncHandler(async (req, res) => {
         let sDepts = student.departments || [];
         if (typeof sDepts === 'string') try { sDepts = JSON.parse(sDepts); } catch (e) { sDepts = []; }
 
+        // Remove from old primary department's students array before switching
+        const oldDepartmentId = student.department;
+        if (oldDepartmentId && String(oldDepartmentId) !== String(departmentId)) {
+            const oldDepartment = await Department.findById(oldDepartmentId);
+            if (oldDepartment) {
+                oldDepartment.students = oldDepartment.students.filter(sid => String(sid) !== String(student._id));
+                await oldDepartment.save();
+            }
+        }
+
         if (!sDepts.map(String).includes(String(departmentId))) {
             sDepts.push(departmentId);
             student.departments = sDepts;
@@ -344,7 +355,16 @@ export const removeStudentFromDepartment = asyncHandler(async (req, res) => {
         if (String(student.department) === String(departmentId)) {
             student.department = student.departments.length > 0 ? student.departments[0] : null;
         }
+        student.lines = [];
+        student.machines = [];
         await student.save();
+
+        // Clear machine assignments now that the student has no department/line context
+        const [machineRows] = await pool.query("SELECT machineId FROM machine_operators WHERE operatorId = ?", [studentId]);
+        if (machineRows.length > 0) {
+            await pool.query("DELETE FROM machine_operators WHERE operatorId = ?", [studentId]);
+            await Promise.all(machineRows.map(row => recomputeOperatorIdForMachine(row.machineId)));
+        }
     }
     res.json(new ApiResponse(200, department, "Student removed successfully"));
 });

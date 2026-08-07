@@ -47,8 +47,36 @@ export const getLinesByDepartment = asyncHandler(async (req, res) => {
 
     const [lines] = await pool.query("SELECT * FROM [lines] WHERE department = ? ORDER BY createdAt DESC", [departmentId]);
 
+    const [users] = await pool.query(
+        "SELECT lines FROM users WHERE department = ? AND (isDeleted = 0 OR isDeleted IS NULL)",
+        [departmentId]
+    );
+
+    const lineCountMap = {};
+    users.forEach(u => {
+        let userLines = [];
+        try {
+            userLines = typeof u.lines === 'string' ? JSON.parse(u.lines) : (u.lines || []);
+        } catch (e) {
+            userLines = [];
+        }
+        if (Array.isArray(userLines)) {
+            userLines.forEach(lineObj => {
+                const lineId = lineObj?.id;
+                if (lineId !== undefined && lineId !== null) {
+                    lineCountMap[lineId] = (lineCountMap[lineId] || 0) + 1;
+                }
+            });
+        }
+    });
+
+    const linesWithCount = lines.map(line => ({
+        ...line,
+        assignedUserCount: lineCountMap[line.id] || 0
+    }));
+
     res.status(200).json(
-        new ApiResponse(200, lines, "Lines fetched successfully")
+        new ApiResponse(200, linesWithCount, "Lines fetched successfully")
     );
 });
 

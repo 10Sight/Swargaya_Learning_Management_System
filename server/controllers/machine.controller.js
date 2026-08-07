@@ -30,6 +30,29 @@ const attachOperators = (machine, operators) => ({
     operatorEmail: operators[0]?.email ?? null,
 });
 
+const getMachineEntryId = (m) => (m && typeof m === 'object') ? m.id : m;
+
+// Keeps users.machines (JSON array) in sync with the machine_operators junction table
+const updateUserMachinesArray = async (operatorId, machineId, action) => {
+    const [rows] = await pool.query("SELECT machines FROM users WHERE id = ?", [operatorId]);
+    if (rows.length === 0) return;
+    let machines = [];
+    try { machines = typeof rows[0].machines === 'string' ? JSON.parse(rows[0].machines) : (rows[0].machines || []); } catch (e) { machines = []; }
+    const midStr = String(machineId);
+    const exists = machines.some(m => String(getMachineEntryId(m)) === midStr);
+    if (action === 'add' && !exists) {
+        const [machineRows] = await pool.query("SELECT id, name, line FROM machines WHERE id = ?", [machineId]);
+        const machineEntry = machineRows.length > 0
+            ? { id: machineRows[0].id, name: machineRows[0].name, lineId: machineRows[0].line }
+            : { id: machineId, name: null, lineId: null };
+        machines.push(machineEntry);
+        await pool.query("UPDATE users SET machines = ? WHERE id = ?", [JSON.stringify(machines), operatorId]);
+    } else if (action === 'remove' && exists) {
+        machines = machines.filter(m => String(getMachineEntryId(m)) !== midStr);
+        await pool.query("UPDATE users SET machines = ? WHERE id = ?", [JSON.stringify(machines), operatorId]);
+    }
+};
+
 // @desc    Create a new machine
 // @route   POST /api/machines
 // @access  Private
@@ -146,6 +169,9 @@ export const updateMachine = asyncHandler(async (req, res) => {
         unassignOperatorId != null ||
         typeof operatorId !== 'undefined';
 
+    const [beforeOperatorRows] = await pool.query("SELECT operatorId FROM machine_operators WHERE machineId = ?", [id]);
+    const beforeOperatorIds = beforeOperatorRows.map(r => String(r.operatorId));
+
     if (Array.isArray(operatorIds)) {
         await pool.query("DELETE FROM machine_operators WHERE machineId = ?", [id]);
         for (const opId of operatorIds) {
@@ -174,6 +200,19 @@ export const updateMachine = asyncHandler(async (req, res) => {
                 [id, operatorId]
             );
         }
+    }
+
+    if (operatorFieldChanged) {
+        const [afterOperatorRows] = await pool.query("SELECT operatorId FROM machine_operators WHERE machineId = ?", [id]);
+        const afterOperatorIds = afterOperatorRows.map(r => String(r.operatorId));
+
+        const added = afterOperatorIds.filter(opId => !beforeOperatorIds.includes(opId));
+        const removed = beforeOperatorIds.filter(opId => !afterOperatorIds.includes(opId));
+
+        await Promise.all([
+            ...added.map(opId => updateUserMachinesArray(opId, parseInt(id), 'add')),
+            ...removed.map(opId => updateUserMachinesArray(opId, parseInt(id), 'remove')),
+        ]);
     }
 
     // Build machines UPDATE (field edits + operatorId sync if needed)
@@ -219,8 +258,13 @@ export const deleteMachine = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Machine not found");
     }
 
+    const [operatorRows] = await pool.query("SELECT operatorId FROM machine_operators WHERE machineId = ?", [id]);
+    const operatorIds = operatorRows.map(r => r.operatorId);
+
     await pool.query("DELETE FROM machine_operators WHERE machineId = ?", [id]);
     await pool.query("DELETE FROM machines WHERE id = ?", [id]);
+
+    await Promise.all(operatorIds.map(opId => updateUserMachinesArray(opId, parseInt(id), 'remove')));
 
     res.status(200).json(
         new ApiResponse(200, {}, "Machine deleted successfully")

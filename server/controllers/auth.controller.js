@@ -13,6 +13,7 @@ import { AvailableUserRoles, AvailableUnits } from "../constants.js";
 import Unit from "../models/unit.model.js";
 import validator from "validator";
 import { generateWelcomeEmail } from "../utils/emailTemplates.js";
+import { syncUserRelations } from "../utils/userSync.js";
 
 // Helper to sanitize user object
 const sanitizeUser = (user) => {
@@ -89,6 +90,13 @@ export const register = asyncHandler(async (req, res) => {
     machines: machines || [],
     doj: req.body.doj || null,
     dob: req.body.dob || null
+  });
+
+  await syncUserRelations({
+    userId: user.id,
+    oldDepartmentId: null,
+    newDepartmentId: department || null,
+    machineIds: machines || [],
   });
 
   // Sanitize for response

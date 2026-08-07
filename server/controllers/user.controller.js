@@ -10,6 +10,7 @@ import logAudit from "../utils/auditLogger.js";
 import sendMail from "../utils/mail.util.js";
 import { generateWelcomeEmail } from "../utils/emailTemplates.js";
 import ENV from "../configs/env.config.js";
+import { syncUserRelations } from "../utils/userSync.js";
 
 // Helper to safely parse JSON
 const parseJSON = (data, fallback = null) => {
@@ -259,6 +260,14 @@ export const createUser = asyncHandler(async (req, res) => {
     `, [fullName, userName.toLowerCase(), slug, email.toLowerCase(), phoneNumber, role, designation || 'Employee', education || '', hashedPassword, unit, doj || null, dob || null, department || null, JSON.stringify(lines || []), JSON.stringify(machines || [])]);
 
   const newUserId = result[0].id;
+
+  await syncUserRelations({
+    userId: newUserId,
+    oldDepartmentId: null,
+    newDepartmentId: department || null,
+    machineIds: machines || [],
+  });
+
   const [newUser] = await pool.query(`
         SELECT u.*, d.name as departmentName
         FROM users u
@@ -351,12 +360,24 @@ export const updateUser = asyncHandler(async (req, res) => {
   }
   if (doj !== undefined) { updates.push("doj = ?"); values.push(doj || null); }
   if (dob !== undefined) { updates.push("dob = ?"); values.push(dob || null); }
-  if (department !== undefined) { updates.push("department = ?"); values.push(department || null); }
+  if (department !== undefined) {
+    updates.push("department = ?"); values.push(department || null);
+    updates.push("departments = ?"); values.push(JSON.stringify(department ? [department] : []));
+  }
   if (lines !== undefined) { updates.push("lines = ?"); values.push(JSON.stringify(lines || [])); }
   if (machines !== undefined) { updates.push("machines = ?"); values.push(JSON.stringify(machines || [])); }
 
   if (values.length > 0) {
     await pool.query(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`, [...values, userId]);
+  }
+
+  if (department !== undefined || machines !== undefined) {
+    await syncUserRelations({
+      userId,
+      oldDepartmentId: user.department,
+      newDepartmentId: department !== undefined ? (department || null) : undefined,
+      machineIds: machines !== undefined ? (machines || []) : undefined,
+    });
   }
 
   const [updated] = await pool.query(`
@@ -513,6 +534,13 @@ export const deleteUser = asyncHandler(async (req, res) => {
   if (avatar?.publicId) {
     await deleteFromCloudinary(avatar.publicId);
   }
+
+  await syncUserRelations({
+    userId,
+    oldDepartmentId: user.department,
+    newDepartmentId: null,
+    machineIds: [],
+  });
 
   if (req.user.role === "SUPERADMIN") {
     await pool.query("DELETE FROM users WHERE id = ?", [userId]);
