@@ -43,6 +43,7 @@ import {
   IconSun,
   IconStars,
   IconClipboardList,
+  IconClipboardCheck,
   IconDownload,
 } from "@tabler/icons-react";
 import { HomeIcon, Command } from "lucide-react";
@@ -66,6 +67,7 @@ const baseTabs = [
   { link: "/admin/certificate-templates", labelKey: "nav.certificateTemplates", icon: IconTemplate },
   { link: "/admin/analytics", labelKey: "nav.analytics", icon: IconChartPie },
   { link: "/admin/skill-matrix", labelKey: "nav.skillMatrix", icon: IconStars },
+  { link: "/admin/on-job-training", labelKey: "nav.onJobTraining", icon: IconClipboardCheck },
 ];
 
 export function HomeLayout() {

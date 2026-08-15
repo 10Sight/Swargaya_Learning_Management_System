@@ -43,6 +43,26 @@ const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model: init
         result: "",
     });
 
+    // Scoring State (Evaluation % / Evaluation Mark rows)
+    const [scoring, setScoring] = useState({
+        evaluationPercentages: {
+            hours: "",
+            productionTarget: "",
+            totalPartProduction: "",
+            okParts: "",
+            rejection: "",
+            cycleTimeActual: ""
+        },
+        evaluationMarks: {
+            hours: "",
+            productionTarget: "",
+            totalPartProduction: "",
+            okParts: "",
+            rejection: "",
+            cycleTimeActual: ""
+        }
+    });
+
     // Initialize state when data is fetched
     useEffect(() => {
         if (ojtData?.data) {
@@ -67,12 +87,35 @@ const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model: init
                 revDate: data.revDate || "15-06-2024"
             });
 
+            // Set Scoring (Evaluation % / Evaluation Mark)
+            const fetchedScoring = data.scoring || {};
+            setScoring({
+                evaluationPercentages: {
+                    hours: fetchedScoring.evaluationPercentages?.hours ?? "",
+                    productionTarget: fetchedScoring.evaluationPercentages?.productionTarget ?? "",
+                    totalPartProduction: fetchedScoring.evaluationPercentages?.totalPartProduction ?? "",
+                    okParts: fetchedScoring.evaluationPercentages?.okParts ?? "",
+                    rejection: fetchedScoring.evaluationPercentages?.rejection ?? "",
+                    cycleTimeActual: fetchedScoring.evaluationPercentages?.cycleTimeActual ?? ""
+                },
+                evaluationMarks: {
+                    hours: fetchedScoring.evaluationMarks?.hours ?? "",
+                    productionTarget: fetchedScoring.evaluationMarks?.productionTarget ?? "",
+                    totalPartProduction: fetchedScoring.evaluationMarks?.totalPartProduction ?? "",
+                    okParts: fetchedScoring.evaluationMarks?.okParts ?? "",
+                    rejection: fetchedScoring.evaluationMarks?.rejection ?? "",
+                    cycleTimeActual: fetchedScoring.evaluationMarks?.cycleTimeActual ?? ""
+                }
+            });
+
             // Populate Header Info from relation
             setHeaderInfo({
                 name: data.name || "Level-1 Practical Evaluation of On the Job Training",
                 line: data.line?.name || "",
                 machine: data.machine?.name + (data.machine?.machineName ? ` (${data.machine.machineName})` : "") || "",
-                doj: data.student?.createdAt ? new Date(data.student.createdAt).toLocaleDateString() : "",
+                doj: data.student?.doj
+                    ? new Date(data.student.doj).toLocaleDateString()
+                    : (data.student?.createdAt ? new Date(data.student.createdAt).toLocaleDateString() : ""),
                 model: data.model || initialModel
             });
         }
@@ -105,6 +148,76 @@ const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model: init
         }
     }, [summary.totalMarks, summary.totalMarksObtained, summary.totalPercentage]);
 
+    // Auto-calculate Evaluation % / Evaluation Mark from entry rows (only fills empty fields)
+    useEffect(() => {
+        const totalPartProductionSum = entries.reduce((sum, row) => sum + (Number(row.totalPartProduction) || 0), 0);
+        const productionTargetSum = entries.reduce((sum, row) => sum + (Number(row.productionTarget) || 0), 0);
+        const okPartsSum = entries.reduce((sum, row) => sum + (Number(row.okParts) || 0), 0);
+        const rejectionSum = entries.reduce((sum, row) => sum + (Number(row.rejection) || 0), 0);
+        const cycleTimeTargetSum = entries.reduce((sum, row) => sum + (Number(row.cycleTimeTarget) || 0), 0);
+        const cycleTimeActualSum = entries.reduce((sum, row) => sum + (Number(row.cycleTimeActual) || 0), 0);
+
+        const calculated = {
+            evaluationPercentages: {
+                totalPartProduction: productionTargetSum > 0 ? ((totalPartProductionSum / productionTargetSum) * 100).toFixed(2) : "",
+                okParts: productionTargetSum > 0 ? ((okPartsSum / productionTargetSum) * 100).toFixed(2) : "",
+                rejection: totalPartProductionSum > 0 ? ((rejectionSum / totalPartProductionSum) * 100).toFixed(2) : "",
+                cycleTimeActual: cycleTimeActualSum > 0 ? ((cycleTimeTargetSum / cycleTimeActualSum) * 100).toFixed(2) : ""
+            }
+        };
+
+        const getProductionMark = (pct) => {
+            if (pct === "") return "";
+            const num = parseFloat(pct);
+            if (num >= 95) return "3";
+            if (num >= 90) return "2";
+            if (num >= 85) return "1";
+            return "0";
+        };
+
+        const getRejectionMark = (pct) => {
+            if (pct === "") return "";
+            const num = parseFloat(pct);
+            if (num === 0) return "3";
+            return "Fail";
+        };
+
+        const getCycleTimeMark = (pct) => {
+            if (pct === "") return "";
+            const num = parseFloat(pct);
+            if (num >= 95) return "3";
+            if (num >= 85) return "1";
+            return "0";
+        };
+
+        calculated.evaluationMarks = {
+            totalPartProduction: getProductionMark(calculated.evaluationPercentages.totalPartProduction),
+            okParts: getProductionMark(calculated.evaluationPercentages.okParts),
+            rejection: getRejectionMark(calculated.evaluationPercentages.rejection),
+            cycleTimeActual: getCycleTimeMark(calculated.evaluationPercentages.cycleTimeActual)
+        };
+
+        setScoring(prev => {
+            const nextPercentages = { ...prev.evaluationPercentages };
+            const nextMarks = { ...prev.evaluationMarks };
+
+            if (!nextPercentages.totalPartProduction) nextPercentages.totalPartProduction = calculated.evaluationPercentages.totalPartProduction;
+            if (!nextPercentages.okParts) nextPercentages.okParts = calculated.evaluationPercentages.okParts;
+            if (!nextPercentages.rejection) nextPercentages.rejection = calculated.evaluationPercentages.rejection;
+            if (!nextPercentages.cycleTimeActual) nextPercentages.cycleTimeActual = calculated.evaluationPercentages.cycleTimeActual;
+
+            if (!nextMarks.totalPartProduction) nextMarks.totalPartProduction = calculated.evaluationMarks.totalPartProduction;
+            if (!nextMarks.okParts) nextMarks.okParts = calculated.evaluationMarks.okParts;
+            if (!nextMarks.rejection) nextMarks.rejection = calculated.evaluationMarks.rejection;
+            if (!nextMarks.cycleTimeActual) nextMarks.cycleTimeActual = calculated.evaluationMarks.cycleTimeActual;
+
+            return {
+                evaluationPercentages: nextPercentages,
+                evaluationMarks: nextMarks
+            };
+        });
+    }, [entries]);
+
     const handlePrint = () => {
         window.print();
     };
@@ -126,6 +239,17 @@ const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model: init
         setDocDetails(prev => ({ ...prev, [field]: value }));
     };
 
+    const handleScoringChange = (section, field, value) => {
+        if (readOnly) return;
+        setScoring(prev => ({
+            ...prev,
+            [section]: {
+                ...prev[section],
+                [field]: value
+            }
+        }));
+    };
+
     const handleSave = async () => {
         if (!ojtId) {
             toast.error("OJT ID is missing");
@@ -134,6 +258,7 @@ const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model: init
         try {
             const payload = {
                 id: ojtId,
+                studentId: ojtData?.data?.student?.id,
                 data: {
                     entries,
                     remarks,
@@ -142,6 +267,7 @@ const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model: init
                     totalPercentage: summary.totalPercentage,
                     result: summary.result,
                     model: headerInfo.model,
+                    scoring,
                     ...docDetails
                 }
             };
@@ -399,29 +525,29 @@ const OnJobTrainingTable = ({ ojtId, studentName = "Associate Name", model: init
                                                 </div>
                                             </div>
                                         </td>
-                                        <td colSpan={3} className="border border-black p-1 bg-[#e5e7eb]"></td>
+                                        <td colSpan={4} className="border border-black p-1 bg-[#e5e7eb]"></td>
                                     </tr>
                                     <tr>
                                         <td className="border border-black p-1 font-bold">Evaluation %</td>
-                                        <td className="border border-black p-1"></td>
-                                        <td className="border border-black p-1"></td>
-                                        <td className="border border-black p-1"></td>
-                                        <td className="border border-black p-1"></td>
-                                        <td className="border border-black p-1"></td>
+                                        <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={scoring.evaluationPercentages.hours} onChange={e => handleScoringChange('evaluationPercentages', 'hours', e.target.value)} /></td>
+                                        <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={scoring.evaluationPercentages.productionTarget} onChange={e => handleScoringChange('evaluationPercentages', 'productionTarget', e.target.value)} /></td>
+                                        <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={scoring.evaluationPercentages.totalPartProduction} onChange={e => handleScoringChange('evaluationPercentages', 'totalPartProduction', e.target.value)} /></td>
+                                        <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={scoring.evaluationPercentages.okParts} onChange={e => handleScoringChange('evaluationPercentages', 'okParts', e.target.value)} /></td>
+                                        <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={scoring.evaluationPercentages.rejection} onChange={e => handleScoringChange('evaluationPercentages', 'rejection', e.target.value)} /></td>
                                         <td className="border border-black p-1 bg-[#e5e7eb]"></td>
-                                        <td className="border border-black p-1"></td>
-                                        <td colSpan={3} className="border border-black p-1 bg-[#e5e7eb]"></td>
+                                        <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={scoring.evaluationPercentages.cycleTimeActual} onChange={e => handleScoringChange('evaluationPercentages', 'cycleTimeActual', e.target.value)} /></td>
+                                        <td colSpan={4} className="border border-black p-1 bg-[#e5e7eb]"></td>
                                     </tr>
                                     <tr>
                                         <td className="border border-black p-1 font-bold">Evaluation Mark</td>
-                                        <td className="border border-black p-1"></td>
-                                        <td className="border border-black p-1"></td>
-                                        <td className="border border-black p-1"></td>
-                                        <td className="border border-black p-1"></td>
-                                        <td className="border border-black p-1"></td>
+                                        <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={scoring.evaluationMarks.hours} onChange={e => handleScoringChange('evaluationMarks', 'hours', e.target.value)} /></td>
+                                        <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={scoring.evaluationMarks.productionTarget} onChange={e => handleScoringChange('evaluationMarks', 'productionTarget', e.target.value)} /></td>
+                                        <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={scoring.evaluationMarks.totalPartProduction} onChange={e => handleScoringChange('evaluationMarks', 'totalPartProduction', e.target.value)} /></td>
+                                        <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={scoring.evaluationMarks.okParts} onChange={e => handleScoringChange('evaluationMarks', 'okParts', e.target.value)} /></td>
+                                        <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={scoring.evaluationMarks.rejection} onChange={e => handleScoringChange('evaluationMarks', 'rejection', e.target.value)} /></td>
                                         <td className="border border-black p-1 bg-[#e5e7eb]"></td>
-                                        <td className="border border-black p-1"></td>
-                                        <td colSpan={3} className="border border-black p-1 bg-[#e5e7eb]"></td>
+                                        <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={scoring.evaluationMarks.cycleTimeActual} onChange={e => handleScoringChange('evaluationMarks', 'cycleTimeActual', e.target.value)} /></td>
+                                        <td colSpan={4} className="border border-black p-1 bg-[#e5e7eb]"></td>
                                     </tr>
                                     <tr>
                                         <td colSpan={13} className="border border-black p-1 text-right font-bold pr-4">Result- Pass/ Fail</td>

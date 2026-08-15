@@ -29,7 +29,7 @@ const populateDepartment = async (dept, fields = []) => {
         if (instructorIds.length > 0) {
             // Fetch instructor details
             const placeholders = instructorIds.map(() => '?').join(',');
-            const [users] = await pool.query(`SELECT id, fullName, userName, email, slug, createdAt, doj, designation, education FROM users WHERE id IN (${placeholders})`, instructorIds);
+            const [users] = await pool.query(`SELECT id, fullName, userName, email, slug, createdAt, doj, designation, education, currentLevel FROM users WHERE id IN (${placeholders})`, instructorIds);
             dept.instructors = users.map(u => ({ ...u, _id: u.id }));
         }
     }
@@ -62,7 +62,7 @@ const populateDepartment = async (dept, fields = []) => {
     if (fields.includes('students') && dept.students && dept.students.length > 0) {
         if (typeof dept.students[0] !== 'object') {
             const placeholders = dept.students.map(() => '?').join(',');
-            const [students] = await pool.query(`SELECT id, fullName, userName, email, slug, createdAt, avatar, doj, designation, education FROM users WHERE id IN (${placeholders})`, dept.students);
+            const [students] = await pool.query(`SELECT id, fullName, userName, email, slug, createdAt, avatar, doj, designation, education, currentLevel FROM users WHERE id IN (${placeholders})`, dept.students);
             dept.students = students.map(s => ({ ...s, _id: s.id }));
         }
     }

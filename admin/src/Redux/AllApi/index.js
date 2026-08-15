@@ -262,10 +262,12 @@ export {
 // OnJobTraining API exports
 export {
     onJobTrainingApi,
+    useGetAllOJTsQuery,
     useGetStudentOJTsQuery,
     useGetOnJobTrainingByIdQuery,
     useCreateOnJobTrainingMutation,
     useUpdateOnJobTrainingMutation,
+    useDeleteOnJobTrainingMutation,
 } from './OnJobTrainingApi';
 
 // Line API exports

@@ -118,7 +118,7 @@ const SkillMatrix = () => {
                 users.push({
                     ...student,
                     type,
-                    level: 'L1'
+                    level: student.currentLevel || 'L1'
                 });
             });
         }

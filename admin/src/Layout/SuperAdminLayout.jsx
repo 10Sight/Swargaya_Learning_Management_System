@@ -33,6 +33,7 @@ import {
   IconLayersIntersect,
   IconUserPlus,
   IconBuilding,
+  IconClipboardCheck,
 } from "@tabler/icons-react";
 import { HomeIcon } from "lucide-react";
 import useTranslate from "@/hooks/useTranslate";
@@ -63,6 +64,7 @@ const tabs = [
       { link: "/superadmin/module-timelines", labelKey: "nav.moduleTimelines", icon: IconClock },
       { link: "/superadmin/course-level-settings", labelKey: "nav.courseLevelSettings", icon: IconLayersIntersect },
       { link: "/superadmin/student-levels", labelKey: "nav.studentLevels", icon: IconSettings },
+      { link: "/superadmin/on-job-training", labelKey: "nav.onJobTraining", icon: IconClipboardCheck },
     ]
   },
   {

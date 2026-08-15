@@ -30,6 +30,7 @@ import {
   IconUsers,
   IconClipboardList,
   IconClipboard,
+  IconClipboardCheck,
   IconUser,
   IconSettings,
   IconMenu2,
@@ -50,6 +51,7 @@ const baseTabs = [
   { link: "/trainer/attempt-requests", labelKey: "nav.attemptRequests", icon: IconClipboardList },
   { link: "/trainer/assignment-monitoring", labelKey: "nav.assignmentManagement", icon: IconClipboard },
   { link: "/trainer/skill-matrix", labelKey: "nav.skillMatrix", icon: IconUsers },
+  { link: "/trainer/on-job-training", labelKey: "nav.onJobTraining", icon: IconClipboardCheck },
 
 ];
 

@@ -147,7 +147,7 @@ export const getOnJobTrainingById = async (req, res, next) => {
                    d.name as deptName, 
                    l.name as lineName, 
                    m.name as machineName, m.name as machineDisplayName,
-                   u.fullName as studentName, u.email as studentEmail, u.avatar as studentAvatar, u.createdAt as studentCreatedAt
+                   u.fullName as studentName, u.email as studentEmail, u.avatar as studentAvatar, u.createdAt as studentCreatedAt, u.doj as studentDoj, u.dob as studentDob
             FROM on_job_trainings ojt
             LEFT JOIN departments d ON ojt.department = d.id
             LEFT JOIN [lines] l ON ojt.line = l.id
@@ -166,14 +166,168 @@ export const getOnJobTrainingById = async (req, res, next) => {
         ojt.department = { id: ojt.department, name: ojt.deptName };
         ojt.line = { id: ojt.line, name: ojt.lineName };
         ojt.machine = { id: ojt.machine, name: ojt.machineName, machineName: ojt.machineDisplayName };
-        ojt.student = { id: ojt.student, fullName: ojt.studentName, email: ojt.studentEmail, avatar: ojt.studentAvatar, createdAt: ojt.studentCreatedAt };
+        ojt.student = { id: ojt.student, fullName: ojt.studentName, email: ojt.studentEmail, avatar: ojt.studentAvatar, createdAt: ojt.studentCreatedAt, doj: ojt.studentDoj, dob: ojt.studentDob };
 
         delete ojt.deptName; delete ojt.lineName; delete ojt.machineName; delete ojt.machineDisplayName;
-        delete ojt.studentName; delete ojt.studentEmail; delete ojt.studentAvatar; delete ojt.studentCreatedAt;
+        delete ojt.studentName; delete ojt.studentEmail; delete ojt.studentAvatar; delete ojt.studentCreatedAt; delete ojt.studentDoj; delete ojt.studentDob;
 
         res.status(200).json({
             success: true,
             data: ojt
+        });
+    } catch (error) {
+        return next(new ApiError(error.message, 500));
+    }
+};
+
+/**
+ * @desc    Get all employees (students), one row per employee, each summarized
+ *          with their OJT sheet activity (if any). Employees with zero sheets
+ *          are included so the page can be used to browse everyone and start
+ *          a new session, not just those already evaluated. Paginated,
+ *          filterable and role-scoped.
+ * @route   GET /api/v1/on-job-training
+ * @access  Private (SuperAdmin, Admin, Instructor)
+ */
+export const getAllOnJobTrainings = async (req, res, next) => {
+    try {
+        const page = Math.max(parseInt(req.query.page) || 1, 1);
+        const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+        const offset = (page - 1) * limit;
+
+        let whereSql = "WHERE u.role = 'STUDENT' AND (u.isDeleted = 0 OR u.isDeleted IS NULL)";
+        let params = [];
+
+        if (req.query.search) {
+            const t = `%${req.query.search}%`;
+            whereSql += " AND (u.fullName LIKE ? OR u.email LIKE ? OR u.userName LIKE ?)";
+            params.push(t, t, t);
+        }
+
+        if (req.query.departmentId) { whereSql += " AND u.department = ?"; params.push(req.query.departmentId); }
+        if (req.query.lineId) {
+            whereSql += " AND EXISTS (SELECT 1 FROM on_job_trainings ojt WHERE ojt.student = u.id AND ojt.line = ?)";
+            params.push(req.query.lineId);
+        }
+        if (req.query.machineId) {
+            whereSql += " AND EXISTS (SELECT 1 FROM on_job_trainings ojt WHERE ojt.student = u.id AND ojt.machine = ?)";
+            params.push(req.query.machineId);
+        }
+
+        // Role-based unit scoping
+        if (req.user.role === "ADMIN") {
+            whereSql += " AND u.unit = ?";
+            params.push(req.user.unit);
+        } else if (req.user.role === "SUPERADMIN" && req.query.unit) {
+            whereSql += " AND u.unit = ?";
+            params.push(req.query.unit);
+        }
+
+        // Instructor scoping: restricted to employees in their assigned departments
+        if (req.user.role === "INSTRUCTOR") {
+            const [iDepts] = await pool.query("SELECT id FROM departments WHERE instructor = ?", [req.user.id]);
+            if (iDepts.length > 0) {
+                const ids = iDepts.map(d => d.id).join(',');
+                whereSql += ` AND u.department IN (${ids})`;
+            } else {
+                whereSql += " AND 1=0";
+            }
+        }
+
+        const [countRows] = await pool.query(`
+            SELECT COUNT(*) as total
+            FROM users u
+            ${whereSql}
+        `, params);
+        const total = countRows[0].total;
+
+        // Base table is `users` (every employee), left-joined with an aggregate sheet
+        // count and their most-recently-updated sheet, so employees with zero sheets
+        // still appear.
+        const [rows] = await pool.query(`
+            SELECT u.id as studentId, u.fullName as studentName, u.userName as studentUserName,
+                   u.doj as studentDoj, u.createdAt as studentCreatedAt,
+                   ISNULL(agg.sheetCount, 0) as sheetCount,
+                   latest.id as latestSheetId, latest.result as latestResult, latest.docNo as latestDocNo,
+                   latest.entries as latestEntries, latest.updatedAt as lastUpdatedAt,
+                   updater.fullName as updatedByName
+            FROM users u
+            LEFT JOIN (
+                SELECT student, COUNT(*) as sheetCount
+                FROM on_job_trainings
+                GROUP BY student
+            ) agg ON agg.student = u.id
+            OUTER APPLY (
+                SELECT TOP 1 ojt.id, ojt.result, ojt.docNo, ojt.entries, ojt.updatedAt, ojt.updatedBy
+                FROM on_job_trainings ojt
+                WHERE ojt.student = u.id
+                ORDER BY ojt.updatedAt DESC
+            ) latest
+            LEFT JOIN users updater ON latest.updatedBy = updater.id
+            ${whereSql}
+            ORDER BY u.fullName ASC
+            OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+        `, [...params, offset, limit]);
+
+        const employees = rows.map(row => {
+            const entries = parseJSON(row.latestEntries, []);
+            const validDates = entries
+                .map(e => e?.date)
+                .filter(Boolean)
+                .map(d => new Date(d))
+                .filter(d => !isNaN(d.getTime()));
+            const lastFilledDate = validDates.length > 0
+                ? new Date(Math.max(...validDates.map(d => d.getTime())))
+                : null;
+
+            return {
+                studentId: row.studentId,
+                fullName: row.studentName,
+                userName: row.studentUserName,
+                doj: row.studentDoj,
+                createdAt: row.studentCreatedAt,
+                sheetCount: row.sheetCount,
+                latestSheetId: row.latestSheetId,
+                latestResult: row.latestResult,
+                latestDocNo: row.latestDocNo,
+                lastFilledDate,
+                lastUpdatedAt: row.lastUpdatedAt,
+                updatedByName: row.updatedByName
+            };
+        });
+
+        res.status(200).json({
+            success: true,
+            data: {
+                employees,
+                total,
+                totalPages: Math.ceil(total / limit),
+                currentPage: page,
+                limit
+            }
+        });
+    } catch (error) {
+        return next(new ApiError(error.message, 500));
+    }
+};
+
+/**
+ * @desc    Delete an OJT record
+ * @route   DELETE /api/v1/on-job-training/:id
+ * @access  Private (SuperAdmin, Admin, Instructor)
+ */
+export const deleteOnJobTraining = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        const [rows] = await pool.query("SELECT id FROM on_job_trainings WHERE id = ?", [id]);
+        if (rows.length === 0) return next(new ApiError("OJT record not found", 404));
+
+        await pool.query("DELETE FROM on_job_trainings WHERE id = ?", [id]);
+
+        res.status(200).json({
+            success: true,
+            message: "OJT record deleted successfully"
         });
     } catch (error) {
         return next(new ApiError(error.message, 500));
@@ -188,7 +342,7 @@ export const getOnJobTrainingById = async (req, res, next) => {
 export const updateOnJobTraining = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { entries, scoring, totalMarks, totalMarksObtained, totalPercentage, result, remarks, model } = req.body;
+        const { entries, scoring, totalMarks, totalMarksObtained, totalPercentage, result, remarks, model, docNo, revNo, revDate } = req.body;
 
         console.log(`[DEBUG] Update OJT ${id} Payload:`, JSON.stringify(req.body, null, 2));
 
@@ -206,6 +360,9 @@ export const updateOnJobTraining = async (req, res, next) => {
         if (result !== undefined) { updateFields.push("result = ?"); updateValues.push(result); }
         if (remarks !== undefined) { updateFields.push("remarks = ?"); updateValues.push(remarks); }
         if (model !== undefined) { updateFields.push("model = ?"); updateValues.push(model); }
+        if (docNo !== undefined) { updateFields.push("docNo = ?"); updateValues.push(docNo); }
+        if (revNo !== undefined) { updateFields.push("revNo = ?"); updateValues.push(revNo); }
+        if (revDate !== undefined) { updateFields.push("revDate = ?"); updateValues.push(revDate); }
 
         updateFields.push("updatedBy = ?"); updateValues.push(req.user.id);
         updateFields.push("updatedAt = GETDATE()");

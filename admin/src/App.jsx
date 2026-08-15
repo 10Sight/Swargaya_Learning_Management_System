@@ -51,6 +51,8 @@ const AuditLogs = lazy(() => import("./pages/Admin/AuditLogs"));
 const CourseLevelSettings = lazy(() => import("./pages/Admin/CourseLevelSettings"));
 const SkillMatrix = lazy(() => import("./pages/Admin/SkillMatrix"));
 const AssignMachineOperator = lazy(() => import("./pages/Admin/AssignMachineOperator"));
+const OnJobTrainingPage = lazy(() => import("./pages/Admin/OnJobTrainingPage"));
+const OnJobTrainingStudentPage = lazy(() => import("./pages/Admin/OnJobTrainingStudentPage"));
 
 
 // Instructor Pages
@@ -165,6 +167,8 @@ const App = () => {
             <Route path="course-level-settings" element={<CourseLevelSettings />} />
             <Route path="course-level-setting" element={<CourseLevelSettings />} />
             <Route path="skill-matrix" element={<SkillMatrix />} />
+            <Route path="on-job-training" element={<OnJobTrainingPage />} />
+            <Route path="on-job-training/:studentId" element={<OnJobTrainingStudentPage />} />
           </Route>
 
           {/* Instructor routes */}
@@ -195,6 +199,8 @@ const App = () => {
             <Route path="certificate-issuance" element={<CertificateIssuance />} />
             <Route path="attempt-requests" element={<InstructorAttemptRequests />} />
             <Route path="skill-matrix" element={<InstructorSkillMatrix />} />
+            <Route path="on-job-training" element={<OnJobTrainingPage />} />
+            <Route path="on-job-training/:studentId" element={<OnJobTrainingStudentPage />} />
           </Route>
 
           {/* SuperAdmin routes */}
@@ -232,6 +238,8 @@ const App = () => {
             <Route path="departments/:departmentId/lines/:lineId" element={<LineDetail />} />
             <Route path="departments/:departmentId/lines/:lineId/machines/:machineId/assign" element={<AssignMachineOperator />} />
             <Route path="module-timelines" element={<ModuleTimelines pageName="Module Timelines" />} />
+            <Route path="on-job-training" element={<OnJobTrainingPage />} />
+            <Route path="on-job-training/:studentId" element={<OnJobTrainingStudentPage />} />
 
             {/* System Management Routes */}
             <Route path="units" element={<UnitManagement />} />

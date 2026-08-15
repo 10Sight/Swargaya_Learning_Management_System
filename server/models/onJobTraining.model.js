@@ -20,6 +20,9 @@ class OnJobTraining {
         this.result = data.result || "Pending";
         this.guidelines = data.guidelines;
         this.remarks = data.remarks;
+        this.docNo = data.docNo;
+        this.revNo = data.revNo;
+        this.revDate = data.revDate;
         this.createdBy = data.createdBy;
         this.updatedBy = data.updatedBy;
 
@@ -47,6 +50,9 @@ class OnJobTraining {
                     result NVARCHAR(50) DEFAULT 'Pending',
                     guidelines NVARCHAR(MAX),
                     remarks NVARCHAR(MAX),
+                    docNo NVARCHAR(100),
+                    revNo NVARCHAR(50),
+                    revDate NVARCHAR(50),
                     createdBy NVARCHAR(255),
                     updatedBy NVARCHAR(255),
                     createdAt DATETIME DEFAULT GETDATE(),
@@ -55,6 +61,30 @@ class OnJobTraining {
                 
                 CREATE INDEX idx_student ON dbo.on_job_trainings(student);
                 CREATE INDEX idx_department ON dbo.on_job_trainings(department);
+            END
+            ELSE
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_NAME = 'on_job_trainings' AND COLUMN_NAME = 'docNo'
+                )
+                BEGIN
+                    ALTER TABLE dbo.on_job_trainings ADD docNo NVARCHAR(100) NULL;
+                END
+                IF NOT EXISTS (
+                    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_NAME = 'on_job_trainings' AND COLUMN_NAME = 'revNo'
+                )
+                BEGIN
+                    ALTER TABLE dbo.on_job_trainings ADD revNo NVARCHAR(50) NULL;
+                END
+                IF NOT EXISTS (
+                    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_NAME = 'on_job_trainings' AND COLUMN_NAME = 'revDate'
+                )
+                BEGIN
+                    ALTER TABLE dbo.on_job_trainings ADD revDate NVARCHAR(50) NULL;
+                END
             END
         `;
         try {
@@ -71,6 +101,7 @@ class OnJobTraining {
             "student", "name", "model", "department", "line", "machine",
             "entries", "scoring", "totalMarks", "totalMarksObtained",
             "totalPercentage", "result", "guidelines", "remarks",
+            "docNo", "revNo", "revDate",
             "createdBy", "updatedBy", "createdAt"
         ];
 
@@ -147,6 +178,7 @@ class OnJobTraining {
             "student", "name", "model", "department", "line", "machine",
             "entries", "scoring", "totalMarks", "totalMarksObtained",
             "totalPercentage", "result", "guidelines", "remarks",
+            "docNo", "revNo", "revDate",
             "createdBy", "updatedBy", "updatedAt"
         ];
 

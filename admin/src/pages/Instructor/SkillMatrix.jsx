@@ -109,7 +109,7 @@ const InstructorSkillMatrix = () => {
                 users.push({
                     ...student,
                     type: 'EMP',
-                    level: 'L1'
+                    level: student.currentLevel || 'L1'
                 });
             });
         }

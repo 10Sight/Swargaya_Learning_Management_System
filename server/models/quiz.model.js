@@ -16,7 +16,9 @@ class Quiz {
         this.createdBy = data.createdBy;
         this.isPublished = !!data.isPublished;
         this.attemptsAllowed = data.attemptsAllowed !== undefined ? data.attemptsAllowed : 1;
-        this.skillUpgradation = !!data.skillUpgradation;
+        this.skillUpgradation = typeof data.skillUpgradation === 'string'
+            ? data.skillUpgradation.toLowerCase() === 'true'
+            : !!data.skillUpgradation;
 
         // Resource linking & Legacy fields
         this.courseId = data.courseId || data.course;

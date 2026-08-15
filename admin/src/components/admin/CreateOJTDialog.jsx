@@ -22,28 +22,42 @@ import { useGetAllDepartmentsQuery } from "@/Redux/AllApi/DepartmentApi";
 import { useGetLinesByDepartmentQuery } from "@/Redux/AllApi/LineApi";
 import { useGetMachinesByLineQuery } from "@/Redux/AllApi/MachineApi";
 import { useCreateOnJobTrainingMutation } from "@/Redux/AllApi/OnJobTrainingApi";
+import { useGetAllUsersQuery } from "@/Redux/AllApi/UserApi";
 import { toast } from "sonner";
 
 const CreateOJTDialog = ({ open, onOpenChange, studentId, onSuccess }) => {
+    // When no studentId is supplied (e.g. launched from the OJT list page rather than
+    // a specific student's detail page), the dialog lets the user pick a student.
+    const requiresStudentPicker = !studentId;
+
+    const [selectedStudentId, setSelectedStudentId] = useState("");
     const [departmentId, setDepartmentId] = useState("");
     const [lineId, setLineId] = useState("");
     const [machineId, setMachineId] = useState("");
     const [name, setName] = useState(""); // Add state for name
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const effectiveStudentId = studentId || selectedStudentId;
+
     // Queries
     const { data: deptData, isLoading: deptLoading } = useGetAllDepartmentsQuery({ page: 1, limit: 100 });
     const { data: lineData, isLoading: lineLoading } = useGetLinesByDepartmentQuery(departmentId, { skip: !departmentId });
     const { data: machineData, isLoading: machineLoading } = useGetMachinesByLineQuery(lineId, { skip: !lineId });
+    const { data: studentsData, isLoading: studentsLoading } = useGetAllUsersQuery(
+        { page: 1, limit: 200, role: "STUDENT" },
+        { skip: !open || !requiresStudentPicker }
+    );
 
     const [createOJT] = useCreateOnJobTrainingMutation();
 
     const departments = deptData?.data?.departments || [];
     const lines = lineData?.data || [];
     const machines = machineData?.data || [];
+    const students = studentsData?.data?.users || [];
 
     useEffect(() => {
         if (!open) {
+            setSelectedStudentId("");
             setDepartmentId("");
             setLineId("");
             setMachineId("");
@@ -52,7 +66,7 @@ const CreateOJTDialog = ({ open, onOpenChange, studentId, onSuccess }) => {
     }, [open]);
 
     const handleSubmit = async () => {
-        if (!studentId || !departmentId || !lineId || !machineId || !name) { // Added !name to validation
+        if (!effectiveStudentId || !departmentId || !lineId || !machineId || !name) { // Added !name to validation
             toast.error("Please fill all fields"); // Updated error message
             return;
         }
@@ -60,7 +74,7 @@ const CreateOJTDialog = ({ open, onOpenChange, studentId, onSuccess }) => {
         try {
             setIsSubmitting(true);
             await createOJT({
-                studentId,
+                studentId: effectiveStudentId,
                 departmentId,
                 lineId,
                 machineId,
@@ -88,6 +102,25 @@ const CreateOJTDialog = ({ open, onOpenChange, studentId, onSuccess }) => {
                 </DialogHeader>
 
                 <div className="grid gap-4 py-4">
+                    {requiresStudentPicker && (
+                        <div className="grid gap-2">
+                            <Label>Employee</Label>
+                            <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select Employee" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {studentsLoading ? <SelectItem value="loading" disabled>Loading...</SelectItem> :
+                                        students.length === 0 ? <SelectItem value="none" disabled>No Employees Found</SelectItem> :
+                                            students.map(s => (
+                                                <SelectItem key={s._id || s.id} value={String(s._id || s.id)}>{s.fullName} ({s.userName})</SelectItem>
+                                            ))
+                                    }
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+
                     <div className="grid gap-2">
                         <Label>Training Name</Label>
                         <Input
@@ -150,7 +183,7 @@ const CreateOJTDialog = ({ open, onOpenChange, studentId, onSuccess }) => {
 
                 <DialogFooter>
                     <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                    <Button onClick={handleSubmit} disabled={isSubmitting || !machineId}>
+                    <Button onClick={handleSubmit} disabled={isSubmitting || !machineId || !effectiveStudentId}>
                         {isSubmitting ? <IconLoader className="animate-spin h-4 w-4" /> : <IconPlus className="h-4 w-4 mr-2" />}
                         Create Session
                     </Button>
