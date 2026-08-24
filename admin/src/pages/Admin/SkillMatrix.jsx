@@ -128,8 +128,16 @@ const SkillMatrix = () => {
 
     // Filtered Users for the selected line
     const lineAssignedUsers = React.useMemo(() => {
+        const byTeamLeaderFirst = (a, b) => {
+            const aIsTL = a.designation === 'Team Leader';
+            const bIsTL = b.designation === 'Team Leader';
+            if (aIsTL && !bIsTL) return -1;
+            if (!aIsTL && bIsTL) return 1;
+            return 0;
+        };
+
         if (!selectedLine || selectedLine === "undefined" || !machinesData?.data) {
-            return departmentUsers;
+            return [...departmentUsers].sort(byTeamLeaderFirst);
         }
 
         const assignedIds = new Set();
@@ -141,10 +149,12 @@ const SkillMatrix = () => {
             }
         });
 
-        return departmentUsers.filter(user => {
+        const filtered = departmentUsers.filter(user => {
             if (user.type === 'TNR') return true;
             return assignedIds.has(String(user._id));
         });
+
+        return [...filtered].sort(byTeamLeaderFirst);
     }, [selectedLine, machinesData, departmentUsers]);
 
     // Derived Course Levels for Skill Matrix Minimum Requirements
@@ -783,14 +793,17 @@ const SkillMatrix = () => {
     const parseLevel = (levelStr) => {
         if (!levelStr) return 0;
         const idx = availableLevels.findIndex(l => l.name === levelStr);
-        if (idx !== -1) return idx;
+        if (idx !== -1) {
+            if (idx === 0) return 0;
+            return idx;
+        }
         const num = parseInt(levelStr.replace(/\D/g, ''));
         return isNaN(num) ? 0 : Math.max(0, num - 1);
     };
 
     // SVG Icon Component
-    const SkillIcon = ({ level, size = 24 }) => {
-        const totalSlices = Math.max(1, availableLevels.length - 1);
+    const SkillIcon = ({ level, size = 24, className = "" }) => {
+        const totalSlices = level > 0 ? Math.max(1, availableLevels.length - 1) : 4;
         const center = size / 2;
         const radius = size / 2.2;
         const createSlicePath = (startAngle, endAngle) => {
@@ -807,7 +820,7 @@ const SkillMatrix = () => {
             createSlicePath(i * sliceAngle, (i + 1) * sliceAngle)
         );
         return (
-            <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+            <svg className={`flex-shrink-0 ${className}`} width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
                 {slices.map((d, i) => (
                     <path key={`bg-${i}`} d={d} fill="none" stroke="black" strokeWidth="0.5" />
                 ))}
