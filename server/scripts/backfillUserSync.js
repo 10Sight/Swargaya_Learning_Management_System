@@ -55,10 +55,16 @@ async function backfillDepartments() {
 const getMachineEntryId = (m) => (m && typeof m === 'object') ? m.id : m;
 
 async function backfillMachines() {
-    const [users] = await pool.query("SELECT id, machines FROM users");
+    const [users] = await pool.query("SELECT id, machines, department FROM users");
     const [operatorRows] = await pool.query("SELECT machineId, operatorId FROM machine_operators");
-    const [machineRows] = await pool.query("SELECT id, name, line FROM machines");
-    const machineMap = new Map(machineRows.map(m => [String(m.id), { name: m.name, lineId: m.line }]));
+    const [machineRows] = await pool.query(
+        `SELECT m.id, m.name, m.line as lineId, l.department as departmentId
+         FROM machines m
+         LEFT JOIN [lines] l ON m.line = l.id`
+    );
+    // m.lineId comes from machines.line, a VARCHAR column (mssql returns it as a string) —
+    // cast to a number so it matches lines.id (a real INT) the way the frontend expects.
+    const machineMap = new Map(machineRows.map(m => [String(m.id), { name: m.name, lineId: m.lineId != null ? Number(m.lineId) : null, departmentId: m.departmentId }]));
     const validMachineIds = new Set(machineMap.keys());
 
     const operatorsByUser = new Map();
@@ -68,7 +74,7 @@ async function backfillMachines() {
         operatorsByUser.get(key).add(String(row.machineId));
     }
 
-    let usersUpdated = 0, operatorRowsAdded = 0;
+    let usersUpdated = 0, operatorRowsAdded = 0, operatorRowsRemoved = 0;
     const affectedMachines = new Set();
 
     for (const u of users) {
@@ -81,7 +87,19 @@ async function backfillMachines() {
                 .filter(id => validMachineIds.has(id))
         );
         const fromOperators = operatorsByUser.get(String(u.id)) || new Set();
-        const union = new Set([...fromUser, ...fromOperators]);
+        const merged = new Set([...fromUser, ...fromOperators]);
+
+        // Drop assignments to machines whose line belongs to a department other than the
+        // user's current one (or drop everything if the user has no department at all) —
+        // these are dangling cross-department leftovers from department switches that
+        // predate the userSync fix, which now prevents new ones from being created.
+        const union = new Set(
+            [...merged].filter(machineId => {
+                if (!u.department) return false;
+                const info = machineMap.get(machineId);
+                return info && String(info.departmentId) === String(u.department);
+            })
+        );
 
         for (const machineId of union) {
             if (!fromOperators.has(machineId)) {
@@ -93,6 +111,13 @@ async function backfillMachines() {
                 operatorRowsAdded++;
                 affectedMachines.add(machineId);
             }
+        }
+
+        const toDrop = [...fromOperators].filter(machineId => !union.has(machineId));
+        for (const machineId of toDrop) {
+            await pool.query("DELETE FROM machine_operators WHERE machineId = ? AND operatorId = ?", [machineId, u.id]);
+            operatorRowsRemoved++;
+            affectedMachines.add(machineId);
         }
 
         // Always normalize to full { id, name, lineId } objects, not just when the ID set changes,
@@ -115,7 +140,43 @@ async function backfillMachines() {
         await recomputeOperatorIdForMachine(machineId);
     }
 
-    return { usersUpdated, operatorRowsAdded, machinesRecomputed: affectedMachines.size };
+    return { usersUpdated, operatorRowsAdded, operatorRowsRemoved, machinesRecomputed: affectedMachines.size };
+}
+
+// Rebuilds users.lines from machine_operators, mirroring resyncLinesAndMachinesFromOperators
+// in utils/userSync.js: a user's lines are always derived from their assigned machines, never
+// stored independently. Must run after backfillMachines() so machine_operators already
+// reflects any rows merged in from historical users.machines data.
+async function backfillLines() {
+    const [rows] = await pool.query(
+        `SELECT mo.operatorId, m.line as lineId, l.name as lineName
+         FROM machine_operators mo
+         JOIN machines m ON mo.machineId = m.id
+         LEFT JOIN [lines] l ON m.line = l.id`
+    );
+
+    const linesByUser = new Map();
+    for (const r of rows) {
+        if (r.lineId == null) continue;
+        const key = String(r.operatorId);
+        if (!linesByUser.has(key)) linesByUser.set(key, new Map());
+        linesByUser.get(key).set(String(r.lineId), { id: Number(r.lineId), name: r.lineName });
+    }
+
+    const [users] = await pool.query("SELECT id, lines FROM users");
+    let usersUpdated = 0;
+
+    for (const u of users) {
+        const desired = [...(linesByUser.get(String(u.id))?.values() || [])];
+        const desiredRaw = JSON.stringify(desired);
+        const currentRaw = JSON.stringify(parseArray(u.lines));
+        if (currentRaw !== desiredRaw) {
+            await pool.query("UPDATE users SET lines = ? WHERE id = ?", [desiredRaw, u.id]);
+            usersUpdated++;
+        }
+    }
+
+    return { usersUpdated };
 }
 
 (async () => {
@@ -125,6 +186,9 @@ async function backfillMachines() {
 
         const machineResult = await backfillMachines();
         console.log('Machine sync backfill complete:', machineResult);
+
+        const linesResult = await backfillLines();
+        console.log('Lines sync backfill complete:', linesResult);
 
         process.exit(0);
     } catch (err) {

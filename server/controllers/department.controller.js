@@ -8,7 +8,7 @@ import AttemptedQuiz from "../models/attemptedQuiz.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { recomputeOperatorIdForMachine } from "../utils/userSync.js";
+import { syncUserRelations } from "../utils/userSync.js";
 
 // Helper to resolve department by ID or Slug
 async function resolveDepartmentId(idOrSlug) {
@@ -62,8 +62,21 @@ const populateDepartment = async (dept, fields = []) => {
     if (fields.includes('students') && dept.students && dept.students.length > 0) {
         if (typeof dept.students[0] !== 'object') {
             const placeholders = dept.students.map(() => '?').join(',');
-            const [students] = await pool.query(`SELECT id, fullName, userName, email, slug, createdAt, avatar, doj, designation, education, currentLevel FROM users WHERE id IN (${placeholders})`, dept.students);
-            dept.students = students.map(s => ({ ...s, _id: s.id }));
+            const [students] = await pool.query(`
+                SELECT u.id, u.fullName, u.userName, u.email, u.slug, u.createdAt, u.avatar, u.doj, u.designation, u.education, u.currentLevel,
+                       u.machines, u.currentMachine,
+                       cm.id as cmId, cm.name as cmName, cm.line as cmLine
+                FROM users u
+                LEFT JOIN machines cm ON u.currentMachine = cm.id
+                WHERE u.id IN (${placeholders})
+            `, dept.students);
+            dept.students = students.map(s => {
+                let machines = [];
+                try { machines = typeof s.machines === 'string' ? JSON.parse(s.machines) : (s.machines || []); } catch (e) { machines = []; }
+                const currentMachine = s.cmId ? { id: s.cmId, name: s.cmName, lineId: s.cmLine } : null;
+                const { cmId, cmName, cmLine, ...rest } = s;
+                return { ...rest, _id: s.id, machines, currentMachine };
+            });
         }
     }
     return dept;
@@ -310,63 +323,41 @@ export const addStudentToDepartment = asyncHandler(async (req, res) => {
         throw new ApiError("No valid students found to add", 400);
     }
 
-    // Add to Department
-    const validStudentIds = validStudents.map(s => s._id);
-    department.students.push(...validStudentIds);
-    await department.save();
+    // Sync each student's department membership (self-healing: also removes them from
+    // any other department's students array) and drops machine/line assignments tied to
+    // their previous department so operator assignments don't dangle across departments.
+    await Promise.all(validStudents.map(student =>
+        syncUserRelations({
+            userId: student._id,
+            oldDepartmentId: student.department,
+            newDepartmentId: departmentId,
+        })
+    ));
 
-    // Update Users
-    await Promise.all(validStudents.map(async (student) => {
-        let sDepts = student.departments || [];
-        if (typeof sDepts === 'string') try { sDepts = JSON.parse(sDepts); } catch (e) { sDepts = []; }
-
-        // Remove from old primary department's students array before switching
-        const oldDepartmentId = student.department;
-        if (oldDepartmentId && String(oldDepartmentId) !== String(departmentId)) {
-            const oldDepartment = await Department.findById(oldDepartmentId);
-            if (oldDepartment) {
-                oldDepartment.students = oldDepartment.students.filter(sid => String(sid) !== String(student._id));
-                await oldDepartment.save();
-            }
-        }
-
-        if (!sDepts.map(String).includes(String(departmentId))) {
-            sDepts.push(departmentId);
-            student.departments = sDepts;
-        }
-        student.department = departmentId; // Update primary department
-        await student.save();
-    }));
-
-    res.json(new ApiResponse(200, department, `${validStudents.length} student(s) added successfully`));
+    const updatedDepartment = await Department.findById(departmentId);
+    res.json(new ApiResponse(200, updatedDepartment, `${validStudents.length} student(s) added successfully`));
 });
 
 export const removeStudentFromDepartment = asyncHandler(async (req, res) => {
     const { departmentId, studentId } = req.body;
     const department = await Department.findById(departmentId);
     if (!department) throw new ApiError("Department not found", 404);
-    department.students = department.students.filter(s => String(s) !== String(studentId));
-    await department.save();
+
     const student = await User.findById(studentId);
     if (student) {
-        let sDepts = student.departments || [];
-        if (typeof sDepts === 'string') try { sDepts = JSON.parse(sDepts); } catch (e) { sDepts = []; }
-        student.departments = sDepts.filter(d => String(d) !== String(departmentId));
-        if (String(student.department) === String(departmentId)) {
-            student.department = student.departments.length > 0 ? student.departments[0] : null;
-        }
-        student.lines = [];
-        student.machines = [];
-        await student.save();
-
-        // Clear machine assignments now that the student has no department/line context
-        const [machineRows] = await pool.query("SELECT machineId FROM machine_operators WHERE operatorId = ?", [studentId]);
-        if (machineRows.length > 0) {
-            await pool.query("DELETE FROM machine_operators WHERE operatorId = ?", [studentId]);
-            await Promise.all(machineRows.map(row => recomputeOperatorIdForMachine(row.machineId)));
-        }
+        // Clears the student's department (self-healing across all departments, not just
+        // this one), drops machine_operators assignments tied to their actual recorded
+        // department's lines, and resyncs the derived lines/machines arrays.
+        await syncUserRelations({
+            userId: studentId,
+            oldDepartmentId: student.department,
+            newDepartmentId: null,
+            machineIds: [],
+        });
     }
-    res.json(new ApiResponse(200, department, "Student removed successfully"));
+
+    const updatedDepartment = await Department.findById(departmentId);
+    res.json(new ApiResponse(200, updatedDepartment, "Student removed successfully"));
 });
 
 export const getAllDepartments = asyncHandler(async (req, res) => {

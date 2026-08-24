@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { IconPrinter, IconLoader, IconDeviceFloppy, IconDownload } from "@tabler/icons-react";
+import { IconPrinter, IconLoader, IconDeviceFloppy, IconDownload, IconSettings } from "@tabler/icons-react";
 import { useGetAllDepartmentsQuery } from '@/Redux/AllApi/DepartmentApi';
 import { useGetLinesByDepartmentQuery } from '@/Redux/AllApi/LineApi';
 import { useGetMachinesByLineQuery } from '@/Redux/AllApi/MachineApi';
@@ -241,6 +241,12 @@ const SkillMatrix = () => {
                         .map(machine => String(machine.id ?? machine._id));
                 }
 
+                // Current Machine — saved value first, then the user's actual currentMachine,
+                // falling back to whichever station is already assigned.
+                const currentMachineId = savedUserEntry?.currentMachineId
+                    ? String(savedUserEntry.currentMachineId)
+                    : (user.currentMachine?.id ? String(user.currentMachine.id) : (assignedStationIds[0] || null));
+
                 return {
                     srNo: index + 1,
                     _id: user._id,
@@ -252,6 +258,7 @@ const SkillMatrix = () => {
                     detCas: savedUserEntry?.detCas || "",
                     doj: user.doj ? new Date(user.doj).toLocaleDateString('en-GB') : (user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-GB') : "-"),
                     assignedStationIds,
+                    currentMachineId,
                     stations: savedUserEntry ? mergedStations : defaultStations,
                     isManual: false
                 };
@@ -278,10 +285,13 @@ const SkillMatrix = () => {
                     ? entry.assignedStationIds.map(String)
                     : (entry.assignedStationId ? [String(entry.assignedStationId)] : []);
 
+                const currentMachineId = entry.currentMachineId ? String(entry.currentMachineId) : (assignedStationIds[0] || null);
+
                 return {
                     ...entry,
                     srNo: mappedData.length + idx + 1,
                     assignedStationIds,
+                    currentMachineId,
                     stations: mergedStations
                 };
             });
@@ -317,6 +327,7 @@ const SkillMatrix = () => {
                 isManual: entry.isManual,
                 doj: entry.doj,
                 assignedStationIds: entry.assignedStationIds || [],
+                currentMachineId: entry.currentMachineId || null,
                 detCas: entry.detCas,
                 stations: entry.stations.map(s => ({
                     machineId: s._id,
@@ -377,6 +388,7 @@ const SkillMatrix = () => {
                 detCas: "",
                 doj: "-",
                 assignedStationIds: [],
+                currentMachineId: null,
                 stations: stations,
                 isManual: true // FLAGGED AS MANUAL / EDITABLE
             }
@@ -404,6 +416,8 @@ const SkillMatrix = () => {
             .filter(machine => Array.isArray(machine.operators) && machine.operators.some(op => String(op.id ?? op._id) === String(user._id)))
             .map(machine => String(machine.id ?? machine._id));
 
+        const currentMachineId = user.currentMachine?.id ? String(user.currentMachine.id) : (assignedStationIds[0] || null);
+
         updatedEntries[rowIdx] = {
             ...row,
             _id: user._id, // Update to real ID
@@ -415,6 +429,7 @@ const SkillMatrix = () => {
             doj: user.doj ? new Date(user.doj).toLocaleDateString('en-GB') : (user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-GB') : "-"),
             stations: row.stations.map(s => ({ ...s, curr: user.level || 'L1' })), // Reset stations to user level
             assignedStationIds,
+            currentMachineId,
             isManual: false // Lock it after selection? Or keep true to allow changing?
             // "operator name have to drop down" implies it might stay a dropdown. 
             // Let's keep isManual true if we want it to remain editable, 
@@ -488,6 +503,23 @@ const SkillMatrix = () => {
                 set.delete(String(stationId));
             }
             updated[rowIdx] = { ...row, assignedStationIds: Array.from(set) };
+            return updated;
+        });
+    };
+
+    // Sets which machine's row is treated as the operator's "current" station for the
+    // core columns (Station Name / Criticality / Min Skill / Current Skill). Selecting a
+    // machine here also marks it assigned, since a current machine is implicitly assigned.
+    const handleCurrentMachineChange = (rowIdx, newMachineId) => {
+        setMatrixEntries(prev => {
+            const updated = [...prev];
+            const row = updated[rowIdx];
+            const current = (row.assignedStationIds && row.assignedStationIds.length > 0)
+                ? row.assignedStationIds
+                : (row.stations[0] ? [row.stations[0]._id] : []);
+            const set = new Set(current.map(String));
+            set.add(String(newMachineId));
+            updated[rowIdx] = { ...row, currentMachineId: String(newMachineId), assignedStationIds: Array.from(set) };
             return updated;
         });
     };
@@ -667,13 +699,15 @@ const SkillMatrix = () => {
                 }
             });
 
-            // Assigned Station Details (Legend Columns) — one line per assigned station.
-            // In the UI these are inputs/selects.
+            // Current Machine Details (Legend Columns) — the operator's single current
+            // machine only, matching the UI's core columns (not every assigned machine).
+            const currentMachineIdStr = entry.currentMachineId ? String(entry.currentMachineId) : (assignedStations[0] ? String(assignedStations[0]._id) : null);
+            const currentStation = entry.stations.find(s => String(s._id) === currentMachineIdStr) || assignedStations[0] || null;
             rowData.push(
-                assignedStations.map(s => s.name).join("\n") || "-",
-                assignedStations.map(s => s.critical || "-").join("\n") || "-",
-                assignedStations.map(s => s.min || "-").join("\n") || "-",
-                assignedStations.map(s => s.curr || "-").join("\n") || "-"
+                currentStation?.name || "-",
+                currentStation?.critical || "-",
+                currentStation?.min || "-",
+                currentStation?.curr || "-"
             );
 
             const currentRow = worksheet.addRow(rowData);
@@ -1046,24 +1080,43 @@ const SkillMatrix = () => {
                                             </>
                                         );
                                     }
+                                    // The user's single "current machine" drives the core columns; the
+                                    // gear icon's checklist still controls the full assigned set that
+                                    // feeds the dynamic per-machine columns further right.
+                                    let currentStationIdx = row.currentMachineId
+                                        ? row.stations.findIndex(st => String(st._id) === String(row.currentMachineId))
+                                        : -1;
+                                    if (currentStationIdx === -1 && assignedStations[0]) {
+                                        currentStationIdx = row.stations.findIndex(st => String(st._id) === String(assignedStations[0]._id));
+                                    }
+                                    const currentStation = currentStationIdx !== -1 ? row.stations[currentStationIdx] : null;
+
                                     return (
                                         <>
-                                            <div style={{ width: stationColWidth }} className="flex-shrink-0 border-r border-black p-1 flex flex-col items-stretch justify-center">
+                                            <div style={{ width: stationColWidth }} className="flex-shrink-0 border-r border-black p-1 flex items-center justify-center gap-1">
+                                                <Select
+                                                    value={currentStation ? String(currentStation._id) : ""}
+                                                    onValueChange={(val) => handleCurrentMachineChange(idx, val)}
+                                                >
+                                                    <SelectTrigger className="flex-1 h-6 border-none p-0 text-[9px] font-bold bg-transparent [&>svg]:hidden">
+                                                        <SelectValue placeholder="— Select —" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {row.stations.map(s => (
+                                                            <SelectItem key={String(s._id)} value={String(s._id)} className="text-xs">
+                                                                {s.name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
                                                         <button
                                                             type="button"
-                                                            className="w-full flex flex-col gap-1 bg-transparent hover:bg-black/5 rounded px-1"
+                                                            className="no-print flex-shrink-0 p-0.5 rounded hover:bg-black/10"
+                                                            title="Assigned machines"
                                                         >
-                                                            {assignedStations.length > 0
-                                                                ? assignedStations.map(s => (
-                                                                    <span key={String(s._id)} className="h-5 flex items-center justify-center text-[9px] font-bold truncate">
-                                                                        {s.name}
-                                                                    </span>
-                                                                ))
-                                                                : (
-                                                                    <span className="h-5 flex items-center justify-center text-[9px] font-bold">— Select —</span>
-                                                                )}
+                                                            <IconSettings className="h-3 w-3" />
                                                         </button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="start" className="max-h-64 overflow-y-auto">
@@ -1080,45 +1133,37 @@ const SkillMatrix = () => {
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </div>
-                                            <div className="w-24 border-r border-black p-1 flex flex-col items-center justify-center font-bold text-[9px] gap-1">
-                                                {assignedStations.length === 0 ? "-" : assignedStations.map(s => {
-                                                    const sIdx = row.stations.findIndex(st => String(st._id) === String(s._id));
-                                                    return (
-                                                        <Select key={String(s._id)} value={String(s.critical || "")} onValueChange={(val) => handleCriticalityChange(idx, sIdx, val)}>
-                                                            <SelectTrigger className="w-full h-5 border-none p-0 text-[9px] font-bold bg-transparent">
-                                                                <SelectValue placeholder="-" />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                <SelectItem value="Critical">Critical</SelectItem>
-                                                                <SelectItem value="Non-Critical">Non-Critical</SelectItem>
-                                                            </SelectContent>
-                                                        </Select>
-                                                    );
-                                                })}
+                                            <div className="w-24 border-r border-black p-1 flex items-center justify-center font-bold text-[9px]">
+                                                {currentStation ? (
+                                                    <Select value={String(currentStation.critical || "")} onValueChange={(val) => handleCriticalityChange(idx, currentStationIdx, val)}>
+                                                        <SelectTrigger className="w-full h-5 border-none p-0 text-[9px] font-bold bg-transparent">
+                                                            <SelectValue placeholder="-" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="Critical">Critical</SelectItem>
+                                                            <SelectItem value="Non-Critical">Non-Critical</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                ) : "-"}
                                             </div>
-                                            <div className="w-16 border-r border-black p-1 flex flex-col items-center justify-center font-bold gap-1">
-                                                {assignedStations.length === 0 ? "-" : assignedStations.map(s => {
-                                                    const sIdx = row.stations.findIndex(st => String(st._id) === String(s._id));
-                                                    return (
-                                                        <Select key={String(s._id)} value={String(s.min || "")} onValueChange={(val) => handleMinLevelChange(idx, sIdx, val)}>
-                                                            <SelectTrigger className="w-full h-5 border-none p-0 text-[10px] font-bold bg-transparent">
-                                                                <SelectValue placeholder="-" />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                {availableLevels.map((lvl) => (
-                                                                    <SelectItem key={lvl.name} value={lvl.name} className="text-xs">
-                                                                        {lvl.name}
-                                                                    </SelectItem>
-                                                                ))}
-                                                            </SelectContent>
-                                                        </Select>
-                                                    );
-                                                })}
+                                            <div className="w-16 border-r border-black p-1 flex items-center justify-center font-bold">
+                                                {currentStation ? (
+                                                    <Select value={String(currentStation.min || "")} onValueChange={(val) => handleMinLevelChange(idx, currentStationIdx, val)}>
+                                                        <SelectTrigger className="w-full h-5 border-none p-0 text-[10px] font-bold bg-transparent">
+                                                            <SelectValue placeholder="-" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {availableLevels.map((lvl) => (
+                                                                <SelectItem key={lvl.name} value={lvl.name} className="text-xs">
+                                                                    {lvl.name}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                ) : "-"}
                                             </div>
-                                            <div className="w-16 border-r border-black p-1 flex flex-col items-center justify-center font-bold gap-1">
-                                                {assignedStations.length === 0 ? "-" : assignedStations.map(s => (
-                                                    <span key={String(s._id)} className="h-5 flex items-center justify-center text-[10px]">{s.curr || "-"}</span>
-                                                ))}
+                                            <div className="w-16 border-r border-black p-1 flex items-center justify-center font-bold">
+                                                <span className="h-5 flex items-center justify-center text-[10px]">{currentStation?.curr || "-"}</span>
                                             </div>
                                         </>
                                     );

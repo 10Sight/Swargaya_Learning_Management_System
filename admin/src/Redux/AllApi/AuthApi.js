@@ -1,5 +1,7 @@
 import axiosBaseQuery from "@/Helper/axiosBaseQuery";
 import { createApi } from "@reduxjs/toolkit/query/react";
+import { instructorApi } from "./InstructorApi";
+import { departmentApi } from "./DepartmentApi";
 
 export const authApi = createApi({
     reducerPath: "authApi",
@@ -13,6 +15,13 @@ export const authApi = createApi({
                 data: { userName, fullName, email, phoneNumber, role, password, unit, doj, dob, department, lines, machines }
             }),
             invalidatesTags: ['User'],
+            onQueryStarted: async (_arg, { dispatch, queryFulfilled }) => {
+                try {
+                    await queryFulfilled;
+                    dispatch(instructorApi.util.invalidateTags(['Instructor']));
+                    dispatch(departmentApi.util.invalidateTags(['Department']));
+                } catch { }
+            },
         }),
 
         userLogin: builder.mutation({

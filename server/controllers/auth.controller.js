@@ -37,7 +37,7 @@ export const generateAuthTokens = async (userId) => {
 
 // Register
 export const register = asyncHandler(async (req, res) => {
-  let { fullName, userName, email, phoneNumber, role = "STUDENT", designation, education, password, unit, department, lines, machines } = req.body;
+  let { fullName, userName, email, phoneNumber, role = "STUDENT", designation, education, password, unit, department, lines, machines, currentMachine } = req.body;
 
   if (!fullName || !userName || !email || !phoneNumber || !password || !unit) {
     throw new ApiError("All fields are required", 400);
@@ -75,6 +75,11 @@ export const register = asyncHandler(async (req, res) => {
     throw new ApiError("Invalid unit provided", 400);
   }
 
+  // currentMachine must reference one of the machines being assigned, otherwise it's dropped
+  const assignedMachineIds = (machines || []).map(m => (m && typeof m === 'object') ? m.id : m).map(String);
+  const currentMachineId = currentMachine && typeof currentMachine === 'object' ? currentMachine.id : currentMachine;
+  const resolvedCurrentMachine = (currentMachineId && assignedMachineIds.includes(String(currentMachineId))) ? currentMachineId : null;
+
   const user = await User.create({
     fullName,
     userName,
@@ -88,6 +93,7 @@ export const register = asyncHandler(async (req, res) => {
     department: department || null,
     lines: lines || [],
     machines: machines || [],
+    currentMachine: resolvedCurrentMachine,
     doj: req.body.doj || null,
     dob: req.body.dob || null
   });

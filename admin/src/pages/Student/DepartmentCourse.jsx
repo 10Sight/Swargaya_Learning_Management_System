@@ -17,31 +17,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   BookOpen,
   CheckCircle2,
-  PlayCircle,
   Lock,
-  Trophy,
   ChevronRight,
-  Clock,
-  Download,
-  Eye,
-  FileText,
   ExternalLink,
-  Video,
-  FileImage,
-  BarChart3,
-  Award,
-  ListChecks,
   RefreshCw,
   AlertCircle,
-  ArrowRight,
   ArrowLeft,
-  Star,
-  Target,
-  BookMarked,
-  GraduationCap,
   Lightbulb,
-  TrendingUp,
-  Zap,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import axiosInstance from "@/Helper/axiosInstance";
 import { useGetResourcesByCourseQuery } from "@/Redux/AllApi/resourceApi";
@@ -60,10 +44,10 @@ import AssignmentSubmissionModal from "@/components/student/AssignmentSubmission
 
 // Constants
 const STATUS_CONFIG = {
-  ACTIVE: { name: "Active", color: "bg-[#dcfce7] text-[#166534]" },
-  UPCOMING: { name: "Upcoming", color: "bg-[#dbeafe] text-[#1e40af]" },
-  COMPLETED: { name: "Completed", color: "bg-[#f3f4f6] text-[#1f2937]" },
-  PAUSED: { name: "Paused", color: "bg-[#fef9c3] text-[#854d0e]" },
+  ACTIVE: { name: "Active", color: "bg-slate-100 text-slate-700" },
+  UPCOMING: { name: "Upcoming", color: "bg-slate-100 text-slate-700" },
+  COMPLETED: { name: "Completed", color: "bg-slate-100 text-slate-500" },
+  PAUSED: { name: "Paused", color: "bg-slate-100 text-slate-500" },
 };
 
 // Hook for managing course data
@@ -440,6 +424,8 @@ const DepartmentCourse = () => {
     activeTab: 'lessons',
   });
 
+  const [descExpanded, setDescExpanded] = useState(false);
+
   // Assignment modal states
   const [assignmentModals, setAssignmentModals] = useState({
     detailsModal: { isOpen: false, assignment: null, submission: null },
@@ -498,17 +484,10 @@ const DepartmentCourse = () => {
   }, [modules.length, getCompletedModulesCount]);
 
   const getLevelBadge = useCallback((level) => {
-    const colorMap = {
-      L1: "bg-[#dbeafe] text-[#1e40af]",
-      L2: "bg-[#ffedd5] text-[#9a3412]",
-      L3: "bg-[#dcfce7] text-[#166534]",
-    };
-
     const raw = typeof level === "string" ? level : (level != null ? `L${level}` : "L1");
-    const color = colorMap[raw] || "bg-[#f3f4f6] text-[#1f2937]";
 
     return (
-      <Badge className={`${color} font-medium text-xs px-2 py-1`}>
+      <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 font-medium text-xs px-2 py-0.5">
         {raw}
       </Badge>
     );
@@ -682,14 +661,16 @@ const DepartmentCourse = () => {
     const isCurrentlyActive = uiState.activeModule &&
       String(getModuleId(uiState.activeModule)) === String(moduleId);
 
-    if (isCurrentlyActive) {
-      // Hide the module panel
-      setUiState(prev => ({ ...prev, activeModule: null, activeTab: 'lessons' }));
-    } else {
-      // Show the module panel and load its content
-      setUiState(prev => ({ ...prev, activeModule: module, activeTab: 'lessons' }));
+    // Always select the module in the workspace pane; re-clicking the active
+    // module just re-loads its content instead of hiding the panel.
+    setUiState(prev => ({ ...prev, activeModule: module, activeTab: 'lessons' }));
+    if (!isCurrentlyActive) {
       loadModuleContent(moduleId, department?.course?._id || department?.course?.id, module.lessons);
     }
+  };
+
+  const handleShowDashboard = () => {
+    setUiState(prev => ({ ...prev, activeModule: null, activeTab: 'lessons' }));
   };
 
   const handleMarkModuleComplete = useCallback(async (module) => {
@@ -803,6 +784,29 @@ const DepartmentCourse = () => {
       loadModuleContent(moduleId, department?.course?._id || department?.course?.id, module.lessons);
     }
   }, [modules, department?.course, getCurrentModuleIndex]);
+
+  // Auto-select the current (first incomplete) module in the workspace pane on
+  // initial load, so students land directly on their active module instead of
+  // an empty state. Only runs once; users can return to the dashboard manually.
+  const autoSelectDoneRef = useRef(false);
+  useEffect(() => {
+    if (autoSelectDoneRef.current) return;
+    if (!modules || modules.length === 0) return;
+
+    const allCompleted = modules.every(m => isModuleCompleted(m));
+    if (allCompleted) {
+      // Land on the dashboard/completion view instead of the last module.
+      autoSelectDoneRef.current = true;
+      return;
+    }
+
+    const index = getCurrentModuleIndex();
+    if (index < 0 || index >= modules.length) return;
+
+    autoSelectDoneRef.current = true;
+    const module = modules[index];
+    setUiState(prev => ({ ...prev, activeModule: module, activeTab: 'lessons' }));
+  }, [modules, isModuleCompleted, getCurrentModuleIndex]);
 
   // Auto-refresh when page becomes visible/focused to sync completion state and attempts/submissions
   useEffect(() => {
@@ -1061,23 +1065,47 @@ const DepartmentCourse = () => {
   const courseLevelQuizzes = (courseQuizzes || []).filter(q => !q?.module && !q?.moduleId && !(q?.module && (q.module._id || q.module.id)));
   const courseLevelAssignments = (courseAssignments || []).filter(a => !a?.module && !a?.moduleId && !(a?.module && (a.module._id || a.module.id)));
 
+  // Derived values for the active module workspace panel (right column)
+  const activeModule = uiState.activeModule;
+  const activeModuleId = activeModule ? getModuleId(activeModule) : null;
+  const activeModuleIndex = activeModule
+    ? modules.findIndex(m => String(getModuleId(m)) === String(activeModuleId))
+    : -1;
+  const activeModuleLessons = activeModuleId ? (lessonsByModule[activeModuleId] || []) : [];
+  const activeCompletedLessonsInModule = activeModuleLessons.filter(lesson => isLessonCompleted(lesson)).length;
+  const activeModuleQuizzes = activeModuleId ? (quizzesByModule[activeModuleId] || []) : [];
+  const activeModuleAssignments = activeModuleId ? (assignmentsByModule[activeModuleId] || []) : [];
+  const isActiveModuleCompleted = activeModule ? isModuleCompleted(activeModule) : false;
+  const isActiveModuleAccessible = activeModuleIndex >= 0 ? isModuleAccessible(activeModuleIndex) : false;
+  const isActiveModuleLevelLocked = activeModule && levelLockEnabled && lockedLevel && activeModule.level &&
+    parseInt(activeModule.level.replace('L', '')) > parseInt(currentLevel.replace('L', ''));
+
+  // Derived values for the Welcome Dashboard "Next Up" card
+  const nextIncompleteLesson = (!allModulesCompleted && currentModule)
+    ? (lessonsByModule[getModuleId(currentModule)] || []).find(lesson => !isLessonCompleted(lesson))
+    : null;
+  const currentModuleStage = (currentModule && currentModuleIndex < modules.length)
+    ? getCurrentStage(currentModuleIndex)
+    : 'complete';
+
+  const descriptionText = department.course?.description || "";
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f9fafb] to-[#f3f4f6] overflow-x-hidden">
       <div className="w-full max-w-[300px] sm:max-w-7xl mx-auto px-0 xs:px-4 sm:px-6 py-2 xs:py-4 sm:py-6 space-y-3 xs:space-y-4 sm:space-y-6">
         {/* Level Upgrade Message */}
         {uiState.levelUpgradeMessage && (
-          <Alert className="bg-gradient-to-r from-[#f0fdf4] to-[#ecfdf5] border-[#bbf7d0] shadow-lg">
-            <Trophy className="h-4 w-4 xs:h-5 xs:w-5 text-[#16a34a]" />
+          <Alert className="bg-white border-slate-200 shadow-sm">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
             <AlertDescription className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-2 xs:gap-3">
-              <div className="flex items-center gap-2 text-[#166534] font-medium text-xs xs:text-sm sm:text-base">
-                <Star className="h-3 w-3 xs:h-4 xs:w-4" />
-                <span>{uiState.levelUpgradeMessage}</span>
-              </div>
+              <span className="text-slate-700 font-medium text-xs xs:text-sm sm:text-base">
+                {uiState.levelUpgradeMessage}
+              </span>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setUiState(prev => ({ ...prev, levelUpgradeMessage: null }))}
-                className="text-[#16a34a] hover:text-[#15803d] hover:bg-[#dcfce7] self-end xs:self-auto p-1 xs:p-2"
+                className="text-slate-500 hover:text-slate-700 hover:bg-slate-100 self-end xs:self-auto p-1 xs:p-2"
               >
                 <AlertCircle className="h-3 w-3 xs:h-4 xs:w-4" />
               </Button>
@@ -1085,860 +1113,692 @@ const DepartmentCourse = () => {
           </Alert>
         )}
 
-        {/* Enhanced Course Header */}
-        <Card className="bg-gradient-to-br from-[#eff6ff] via-[#eef2ff] to-[#faf5ff] border-[#93c5fd] shadow-xl">
-          <CardHeader className="pb-3 xs:pb-4 sm:pb-6 p-3 xs:p-4 sm:p-6">
-            <div className="flex flex-col gap-3 xs:gap-4 sm:gap-6">
-              {/* Header Info */}
-              <div className="flex flex-col gap-3 xs:gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-col gap-2 xs:gap-3 mb-2 xs:mb-3">
-                    <CardTitle className="flex items-start xs:items-center gap-2 xs:gap-3 text-sm xs:text-lg sm:text-xl lg:text-2xl min-w-0">
-                      <div className="p-1 xs:p-2 sm:p-3 bg-[#dbeafe] rounded-lg shrink-0">
-                        <BookOpen className="h-4 w-4 xs:h-5 xs:w-5 sm:h-6 sm:w-6 text-[#2563eb]" />
-                      </div>
-                      <span className="truncate leading-tight xs:leading-normal">{department.course?.title || department.course?.name || "Course"}</span>
-                    </CardTitle>
-                    <div className="ml-0 xs:ml-auto">
+        {/* Split Layout Grid: sidebar navigation + workspace */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8 items-start">
+
+          {/* LEFT COLUMN: Sidebar Navigation */}
+          <aside className="lg:col-span-4 space-y-4 sm:space-y-6 lg:sticky lg:top-6">
+
+            {/* Course Progress Card */}
+            <Card className="bg-white border-slate-200 shadow-sm">
+              <CardContent className="p-4 sm:p-5 space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h1 className="font-semibold text-sm sm:text-base text-slate-900 leading-tight break-words">
+                      {department.course?.title || department.course?.name || "Course"}
+                    </h1>
+                    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                       {getLevelBadge(currentLevel)}
+                      <Badge
+                        variant="outline"
+                        className={`text-xs px-2 py-0.5 font-medium border-transparent ${STATUS_CONFIG[department.status]?.color || 'bg-slate-100 text-slate-600'}`}
+                      >
+                        {STATUS_CONFIG[department.status]?.name || department.status}
+                      </Badge>
                     </div>
                   </div>
-                  <CardDescription className="text-xs xs:text-sm sm:text-base text-[#374151] leading-relaxed break-words">
-                    {department.course?.description || "Complete the modules below to finish the course"}
-                  </CardDescription>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex flex-row gap-2 shrink-0">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={refresh}
                     disabled={refreshing}
-                    className="flex items-center gap-1 xs:gap-2 bg-white/80 hover:bg-white border-[#bfdbfe] hover:border-[#93c5fd] text-[#1d4ed8] text-xs xs:text-sm px-2 xs:px-3 min-h-[44px]"
+                    className="shrink-0 h-8 w-8 p-0 border-slate-200 text-slate-500 hover:text-slate-700"
+                    title="Refresh"
                   >
-                    <RefreshCw className={`h-3 w-3 xs:h-4 xs:w-4 ${refreshing ? 'animate-spin' : ''}`} />
-                    <span className="hidden xs:inline">Refresh</span>
+                    <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
                   </Button>
-                  <Badge
-                    variant="outline"
-                    className={`text-xs px-2 py-1 font-medium ${STATUS_CONFIG[department.status]?.color || 'bg-[#f3f4f6] text-[#1f2937]'}`}
-                  >
-                    {STATUS_CONFIG[department.status]?.name || department.status}
-                  </Badge>
                 </div>
-              </div>
 
-              {/* Enhanced Progress Section */}
-              <div className="space-y-3 xs:space-y-4">
-                <div className="flex flex-col xs:flex-row xs:justify-between xs:items-center gap-2">
-                  <span className="text-xs xs:text-sm sm:text-base font-semibold text-[#111827]">Course Progress</span>
-                  <div className="flex flex-col xs:flex-row items-start xs:items-center gap-1 xs:gap-2">
-                    <span className="text-xs bg-white/70 px-2 py-1 rounded-full text-[#4b5563]">
-                      {completedCount}/{modules.length} modules
-                    </span>
-                    <div className="text-xs font-bold text-[#1d4ed8] bg-[#dbeafe] px-2 py-1 rounded-full">
-                      {progress}%
-                    </div>
+                {/* Description with show more */}
+                {descriptionText && (
+                  <div>
+                    <p className={`text-xs sm:text-sm text-slate-500 leading-relaxed break-words ${descExpanded ? '' : 'line-clamp-3'}`}>
+                      {descriptionText}
+                    </p>
+                    {descriptionText.length > 140 && (
+                      <button
+                        type="button"
+                        onClick={() => setDescExpanded(prev => !prev)}
+                        className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900"
+                      >
+                        {descExpanded ? (
+                          <>Show Less <ChevronUp className="h-3 w-3" /></>
+                        ) : (
+                          <>Show More <ChevronDown className="h-3 w-3" /></>
+                        )}
+                      </button>
+                    )}
                   </div>
-                </div>
+                )}
+
+                {/* Progress */}
                 <div className="space-y-2">
-                  <Progress value={progress} className="h-2 xs:h-3 sm:h-4 bg-[#dbeafe]" />
-                  <div className="grid grid-cols-2 gap-1 xs:gap-2 text-xs">
-                    <div className="flex items-center gap-1 text-[#4b5563]">
-                      <CheckCircle2 className="h-3 w-3 text-[#22c55e] shrink-0" />
-                      <span className="truncate">Done: {completedCount}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-[#4b5563]">
-                      <BookOpen className="h-3 w-3 text-[#3b82f6] shrink-0" />
-                      <span className="truncate">Total: {modules.length}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-[#4b5563]">
-                      <Trophy className="h-3 w-3 text-[#eab308] shrink-0" />
-                      <span className="truncate">{currentLevel}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-[#4b5563]">
-                      <TrendingUp className="h-3 w-3 text-[#a855f7] shrink-0" />
-                      <span className="truncate">{progress}%</span>
-                    </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs sm:text-sm font-medium text-slate-700">Course Progress</span>
+                    <span className="text-xs font-semibold text-slate-700">
+                      {progress}%
+                    </span>
                   </div>
+                  <Progress value={progress} className="h-2 bg-slate-100" />
+                  <p className="text-xs text-slate-500">{completedCount} of {modules.length} modules completed</p>
                 </div>
-              </div>
-            </div>
-          </CardHeader>
-        </Card>
+
+                {uiState.activeModule && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleShowDashboard}
+                    className="w-full border-slate-200 text-slate-600 hover:text-slate-900 text-xs"
+                  >
+                    Back to Dashboard
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Modules Navigation Timeline */}
+            <Card className="border-slate-200 shadow-sm bg-white overflow-hidden">
+              <CardHeader className="border-b border-slate-100 p-3.5 sm:p-4">
+                <CardTitle className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center justify-between gap-2">
+                  <span>Course Outline</span>
+                  <span className="text-slate-400 font-normal">{modules.length} modules</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-2">
+                {modules.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-xs text-muted-foreground">No modules available for this course yet.</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-[#f3f4f6]">
+                    {modules.map((module, index) => {
+                      const moduleId = getModuleId(module);
+                      const isCompleted = isModuleCompleted(module);
+                      const isAccessible = isModuleAccessible(index);
+                      const isCurrent = isAccessible && !isCompleted;
+                      const isLocked = !isAccessible;
+                      const isActive = uiState.activeModule &&
+                        String(getModuleId(uiState.activeModule)) === String(moduleId);
+                      const isLevelLocked = levelLockEnabled && lockedLevel && module.level &&
+                        parseInt(module.level.replace('L', '')) > parseInt(currentLevel.replace('L', ''));
+                      const moduleLessons = lessonsByModule[moduleId] || [];
+                      const completedLessonsInModule = moduleLessons.filter(lesson =>
+                        isLessonCompleted(lesson)
+                      ).length;
+
+                      return (
+                        <ModuleAssessmentProvider
+                          key={moduleId || index}
+                          moduleId={moduleId}
+                          courseId={department?.course?._id || department?.course?.id}
+                          onAssessmentsLoaded={handleModuleAssessmentsLoaded}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => handleModuleClick(module, index)}
+                            disabled={isLocked || loadingStates[moduleId]}
+                            className={`w-full text-left p-3 rounded-lg border-l-2 transition-colors duration-150 flex items-start gap-3 my-0.5 ${isActive
+                              ? "bg-slate-50 border-l-slate-800"
+                              : isLocked
+                                ? "opacity-50 cursor-not-allowed border-l-transparent"
+                                : "hover:bg-slate-50 border-l-transparent"
+                              }`}
+                          >
+                            <div className="flex flex-col items-center shrink-0">
+                              <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-medium ${isCompleted
+                                ? "bg-emerald-50 text-emerald-600"
+                                : isCurrent
+                                  ? "bg-slate-800 text-white"
+                                  : "bg-slate-100 text-slate-400"
+                                }`}>
+                                {isCompleted ? (
+                                  <CheckCircle2 className="h-4 w-4" />
+                                ) : isLocked ? (
+                                  <Lock className="h-3.5 w-3.5" />
+                                ) : (
+                                  <span className="font-semibold">{index + 1}</span>
+                                )}
+                              </div>
+                              {index < modules.length - 1 && (
+                                <div className={`w-0.5 flex-1 min-h-[16px] mt-1 ${isCompleted ? "bg-emerald-100" : "bg-slate-100"}`} />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0 pb-1">
+                              <span className="font-medium text-xs sm:text-sm line-clamp-1 text-slate-800 block mb-1">
+                                {module.title || `Module ${index + 1}`}
+                              </span>
+                              <div className="flex items-center gap-2 flex-wrap text-[11px] text-slate-400">
+                                {module.level && getLevelBadge(module.level)}
+                                <span>{completedLessonsInModule}/{moduleLessons.length || module.lessons?.length || 0} lessons</span>
+                                {isLevelLocked && (
+                                  <span>Requires {module.level}</span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="shrink-0 self-center">
+                              {loadingStates[moduleId] ? (
+                                <RefreshCw className="h-4 w-4 text-slate-300 animate-spin" />
+                              ) : (
+                                <ChevronRight className={`h-4 w-4 ${isActive ? 'text-slate-600' : 'text-slate-300'}`} />
+                              )}
+                            </div>
+                          </button>
+                        </ModuleAssessmentProvider>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Course Resources Panel */}
+            <StudentCourseResources
+              resources={courseResources}
+              courseTitle={department?.course?.title || department?.course?.name}
+            />
+          </aside>
+
+          {/* RIGHT COLUMN: Interactive Learning Workspace */}
+          <main className="lg:col-span-8 space-y-4 sm:space-y-6 min-h-[500px]">
 
         {/* Enhanced Completion Banner */}
         {allModulesCompleted && (
-          <Alert className="bg-gradient-to-br from-[#f0fdf4] via-[#ecfdf5] to-[#f0f9ff] border-[#86efac] shadow-xl">
-            <Trophy className="h-4 w-4 xs:h-5 xs:w-5 sm:h-6 sm:w-6 text-[#16a34a]" />
+          <Alert className="bg-emerald-50 border-emerald-100">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
             <AlertDescription>
-              <div className="flex flex-col xs:flex-row xs:items-start xs:justify-between gap-3 xs:gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 text-[#166534] font-bold text-sm xs:text-lg sm:text-xl mb-2">
-                    <GraduationCap className="h-4 w-4 xs:h-5 xs:w-5" />
-                    <span>Congratulations! Course Completed!</span>
-                  </div>
-                  <p className="text-[#15803d] text-xs xs:text-sm sm:text-base leading-relaxed break-words">
-                    Outstanding achievement! You have successfully finished all modules. Your dedication to learning is truly commendable.
-                  </p>
-                  <div className="mt-2 xs:mt-3 flex flex-wrap gap-1 xs:gap-2">
-                    <Badge className="bg-[#16a34a] text-white px-2 xs:px-3 py-1 text-xs">
-                      <CheckCircle2 className="h-3 w-3 mr-1" />
-                      All Complete
-                    </Badge>
-                    <Badge className="bg-[#eab308] text-white px-2 xs:px-3 py-1 text-xs">
-                      <Award className="h-3 w-3 mr-1" />
-                      Achievement
-                    </Badge>
-                  </div>
-                </div>
-                <div className="shrink-0 self-center xs:self-start">
-                  <div className="text-center p-2 xs:p-4 bg-[#dcfce7] rounded-lg border border-[#bbf7d0]">
-                    <Trophy className="h-6 w-6 xs:h-8 xs:w-8 sm:h-10 sm:w-10 text-[#eab308] mx-auto mb-1 xs:mb-2" />
-                    <Badge className="bg-[#16a34a] text-white text-xs">
-                      Complete
-                    </Badge>
-                  </div>
-                </div>
+              <div className="font-semibold text-sm sm:text-base text-emerald-900 mb-1">
+                Course completed
               </div>
+              <p className="text-emerald-700 text-xs sm:text-sm leading-relaxed">
+                You've finished every module. Review any module for practice, or complete the final assessments below.
+              </p>
             </AlertDescription>
           </Alert>
         )}
 
-        {/* Enhanced Course-Level Assessments Section - 320px optimized */}
-        {allModulesCompleted && courseContentLoaded && (courseLevelQuizzes.length > 0 || courseLevelAssignments.length > 0) && (
-          <Card className="bg-gradient-to-r from-[#faf5ff] to-[#fdf2f8] border-[#e9d5ff] shadow-xl">
-            <CardHeader className="pb-3 xs:pb-4 sm:pb-6 p-3 xs:p-4 sm:p-6">
-              <div className="flex flex-col gap-3">
-                <div className="flex-1">
-                  <CardTitle className="flex flex-col xs:flex-row xs:items-center gap-2 xs:gap-3 mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1 xs:p-2 bg-[#f3e8ff] rounded-lg">
-                        <Trophy className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5 text-[#9333ea]" />
+            {/* Active Module Workspace */}
+            {uiState.activeModule ? (
+              <Card className="border-slate-200 shadow-sm bg-white overflow-hidden">
+                <CardHeader className="p-4 sm:p-6 border-b border-slate-100">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                        <CardTitle className="text-base sm:text-lg lg:text-xl break-words">
+                          {activeModule.title || `Module ${activeModuleIndex + 1}`}
+                        </CardTitle>
+                        {activeModule.level && getLevelBadge(activeModule.level)}
+                        {isActiveModuleCompleted ? (
+                          <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-transparent px-2 py-0.5">Completed</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs bg-slate-100 text-slate-600 border-transparent px-2 py-0.5">In Progress</Badge>
+                        )}
+                        {isActiveModuleLevelLocked && (
+                          <Badge variant="outline" className="text-xs bg-slate-100 text-slate-500 border-transparent px-2 py-0.5">
+                            <Lock className="h-3 w-3 mr-1" />
+                            Level Locked
+                          </Badge>
+                        )}
                       </div>
-                      <span className="text-sm xs:text-base sm:text-lg lg:text-xl">Final Assessments</span>
+                      <CardDescription className="text-xs sm:text-sm break-words">
+                        {activeModule.description || "No description available"}
+                      </CardDescription>
                     </div>
-                    <Badge className="bg-[#9333ea] text-white px-2 xs:px-3 py-1 text-xs self-start xs:self-auto">
-                      {courseLevelQuizzes.length + courseLevelAssignments.length} tests
-                    </Badge>
-                  </CardTitle>
-                  <CardDescription className="text-xs xs:text-sm sm:text-base leading-relaxed flex items-center gap-2 break-words">
-                    <Target className="h-3 w-3 xs:h-4 xs:w-4 text-[#9333ea] shrink-0" />
-                    <span>Congratulations on completing all modules! You can now access the final course assessments.</span>
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4 xs:space-y-6 p-3 xs:p-4 sm:p-6">
-              {/* Enhanced Course Quizzes */}
-              {courseLevelQuizzes.length > 0 && (
-                <div>
-                  <h3 className="break-all font-bold mb-3 xs:mb-4 flex items-center gap-2 text-[#6b21a8] text-xs xs:text-sm sm:text-base">
-                    <Award className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5" />
-                    Final Course Quizzes ({courseLevelQuizzes.length})
-                  </h3>
-                  <div className="grid gap-3 xs:gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2">
-                    {courseLevelQuizzes.map((quiz, index) => (
-                      <Card key={index} className="border-[#e9d5ff] hover:shadow-lg hover:border-[#d8b4fe] transition-all duration-300">
-                        <CardHeader className="pb-2 xs:pb-3 p-3 xs:p-4 sm:p-6">
-                          <CardTitle className="text-xs xs:text-sm sm:text-base lg:text-lg flex flex-col gap-2">
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <Trophy className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5 text-[#9333ea] shrink-0" />
-                              <span className="truncate break-words text-xs xs:text-sm sm:text-base min-w-0">{quiz.title || 'Final Course Quiz'}</span>
-                            </div>
-                            <Badge className="bg-[#9333ea] text-white text-xs px-2 py-1 self-start">
-                              COURSE LEVEL
-                            </Badge>
-                          </CardTitle>
-                          {quiz.description && (
-                            <CardDescription className="text-xs sm:text-sm leading-relaxed break-words">
-                              {quiz.description}
-                            </CardDescription>
-                          )}
-                        </CardHeader>
-                        <CardContent className="p-3 xs:p-4 sm:p-6">
-                          <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 xs:gap-3 sm:gap-4 text-xs mb-3 xs:mb-4">
-                            <div className="flex items-center gap-1">
-                              <FileText className="h-3 w-3 text-muted-foreground" />
-                              <span className="truncate">Q: {quiz.questions?.length || 0}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <BarChart3 className="h-3 w-3 text-muted-foreground" />
-                              <span className="truncate">Pass: {quiz.passingScore || 70}%</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-3 w-3 text-muted-foreground" />
-                              <span className="truncate">{quiz.timeLimit || 60}min</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <RefreshCw className="h-3 w-3 text-muted-foreground" />
-                              <span className="truncate">{quiz.attemptsAllowed || 1} tries</span>
-                            </div>
-                          </div>
-                          <Button
-                            className="w-full bg-[#9333ea] hover:bg-[#7e22ce] text-xs xs:text-sm min-h-[44px]"
-                            onClick={() => handleStartQuiz(quiz)}
-                            size="sm"
-                          >
-                            <Trophy className="h-3 w-3 mr-2" />
-                            <span className="hidden xs:inline">Start Final Quiz</span>
-                            <span className="xs:hidden">Start Quiz</span>
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Enhanced Course Assignments */}
-              {courseLevelAssignments.length > 0 && (
-                <div>
-                  <h3 className="font-bold mb-3 xs:mb-4 flex items-center gap-2 text-[#6b21a8] text-xs xs:text-sm sm:text-base">
-                    <FileText className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5" />
-                    Final Course Assignments ({courseLevelAssignments.length})
-                  </h3>
-                  <div className="grid gap-3 xs:gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2">
-                    {courseLevelAssignments.map((assignment, index) => (
-                      <Card key={index} className="border-[#e9d5ff] hover:shadow-lg hover:border-[#d8b4fe] transition-all duration-300">
-                        <CardHeader className="pb-2 xs:pb-3 p-3 xs:p-4 sm:p-6">
-                          <CardTitle className="text-xs xs:text-sm sm:text-base lg:text-lg flex flex-col gap-2">
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <FileText className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5 text-[#9333ea] shrink-0" />
-                              <span className="truncate break-words text-xs xs:text-sm sm:text-base min-w-0">{assignment.title || 'Final Assignment'}</span>
-                            </div>
-                            <Badge className="bg-[#9333ea] text-white text-xs px-2 py-1 self-start">
-                              COURSE LEVEL
-                            </Badge>
-                          </CardTitle>
-                          {assignment.description && (
-                            <CardDescription className="text-xs sm:text-sm leading-relaxed break-words">
-                              {assignment.description}
-                            </CardDescription>
-                          )}
-                        </CardHeader>
-                        <CardContent className="p-3 xs:p-4 sm:p-6">
-                          <div className="grid grid-cols-1 gap-2 xs:gap-3 text-xs mb-3 xs:mb-4">
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-3 w-3 text-muted-foreground" />
-                              <span className="truncate">
-                                Due: {assignment.dueDate
-                                  ? new Date(assignment.dueDate).toLocaleDateString()
-                                  : 'No deadline'
-                                }
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Award className="h-3 w-3 text-muted-foreground" />
-                              <span className="truncate">Max: {assignment.maxScore || 100} pts</span>
-                            </div>
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Button variant="outline" className="w-full text-xs min-h-[44px]">
-                              <Eye className="h-3 w-3 mr-2" />
-                              <span className="hidden xs:inline">View Details</span>
-                              <span className="xs:hidden">View</span>
-                            </Button>
-                            <Button className="w-full bg-[#9333ea] hover:bg-[#7e22ce] text-xs min-h-[44px]">
-                              <FileText className="h-3 w-3 mr-2" />
-                              <span className="hidden xs:inline">Submit Work</span>
-                              <span className="xs:hidden">Submit</span>
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Enhanced Modules Section - 320px optimized */}
-        <Card className="shadow-lg">
-          <CardHeader className="pb-3 xs:pb-4 sm:pb-6 p-3 xs:p-4 sm:p-6">
-            <div className="flex flex-col gap-3">
-              <div className="flex-1">
-                <CardTitle className="flex flex-col xs:flex-row xs:items-center gap-2 xs:gap-3 mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1 xs:p-2 bg-[#dbeafe] rounded-lg">
-                      <ListChecks className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5 text-[#2563eb]" />
+                    <div className="shrink-0 text-xs text-slate-400">
+                      {activeCompletedLessonsInModule} of {activeModuleLessons.length} lessons
                     </div>
-                    <span className="text-sm xs:text-base sm:text-lg lg:text-xl">Course Modules</span>
                   </div>
-                  <Badge className="bg-[#3b82f6] text-white px-2 xs:px-3 py-1 text-xs self-start xs:self-auto">
-                    {modules.length} modules
-                  </Badge>
-                </CardTitle>
-                <CardDescription className="text-xs xs:text-sm sm:text-base leading-relaxed flex items-start gap-2 break-words">
-                  <BookMarked className="h-3 w-3 xs:h-4 xs:w-4 text-[#2563eb] shrink-0 mt-0.5" />
-                  <span>Complete modules in strict sequence to unlock the next content. You must finish all lessons (and assessments if any) in a module before proceeding to the next one.</span>
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3 xs:space-y-4 sm:space-y-6 p-3 xs:p-4 sm:p-6">
-            {modules.length === 0 ? (
-              <div className="text-center py-6 xs:py-8 sm:py-12">
-                <ListChecks className="h-10 w-10 xs:h-12 xs:w-12 sm:h-16 sm:w-16 text-muted-foreground mx-auto mb-3 xs:mb-4" />
-                <p className="text-xs xs:text-sm sm:text-base text-muted-foreground">No modules available for this course yet.</p>
-              </div>
-            ) : (
-              modules.map((module, index) => {
-                const moduleId = getModuleId(module);
-                const isCompleted = isModuleCompleted(module);
-                const isAccessible = isModuleAccessible(index);
-                const isCurrent = isAccessible && !isCompleted;
-                const isLocked = !isAccessible;
-                const isActive = uiState.activeModule &&
-                  String(getModuleId(uiState.activeModule)) === String(moduleId);
+                </CardHeader>
+                <CardContent className="p-0">
+                  <Tabs value={uiState.activeTab} onValueChange={(tab) =>
+                    setUiState(prev => ({ ...prev, activeTab: tab }))
+                  }>
+                    <div className="border-b border-slate-100 px-2 sm:px-4">
+                      <TabsList className="flex w-full overflow-x-auto bg-transparent h-auto p-0 gap-1">
+                        <TabsTrigger value="lessons" className="rounded-none border-b-2 border-transparent data-[state=active]:border-slate-800 data-[state=active]:bg-transparent py-3 text-xs sm:text-sm min-w-[120px] sm:min-w-0">
+                          Lessons ({activeModuleLessons.length})
+                        </TabsTrigger>
+                        <TabsTrigger value="assessments" className="rounded-none border-b-2 border-transparent data-[state=active]:border-slate-800 data-[state=active]:bg-transparent py-3 text-xs sm:text-sm min-w-[120px] sm:min-w-0">
+                          Assessments ({activeModuleQuizzes.length + activeModuleAssignments.length})
+                        </TabsTrigger>
+                        <TabsTrigger value="resources" className="rounded-none border-b-2 border-transparent data-[state=active]:border-slate-800 data-[state=active]:bg-transparent py-3 text-xs sm:text-sm min-w-[120px] sm:min-w-0">
+                          Resources
+                        </TabsTrigger>
+                      </TabsList>
+                    </div>
 
-                // Check if module is level-locked specifically
-                const isLevelLocked = levelLockEnabled && lockedLevel && module.level &&
-                  parseInt(module.level.replace('L', '')) > parseInt(currentLevel.replace('L', ''));
-
-                const moduleLessons = lessonsByModule[moduleId] || [];
-                const completedLessonsInModule = moduleLessons.filter(lesson =>
-                  isLessonCompleted(lesson)
-                ).length;
-
-                return (
-                  <ModuleAssessmentProvider
-                    key={moduleId || index}
-                    moduleId={moduleId}
-                    courseId={department?.course?._id || department?.course?.id}
-                    onAssessmentsLoaded={handleModuleAssessmentsLoaded}
-                  >
-                    <div
-                      className={`group relative p-2 xs:p-4 sm:p-6 rounded-xl border-2 transition-all duration-300 hover:shadow-lg ${isCompleted
-                        ? "bg-gradient-to-br from-[#f0fdf4] to-[#dcfce7] border-[#86efac] shadow-sm"
-                        : isCurrent
-                          ? "bg-gradient-to-br from-[#eff6ff] to-[#dbeafe] border-[#93c5fd] shadow-md ring-2 ring-[#bfdbfe]"
-                          : isLocked
-                            ? "bg-[#f9fafb] border-[#e5e7eb] opacity-60"
-                            : "bg-white border-[#e5e7eb] hover:border-[#d1d5db]"
-                        }`}
-                    >
-                      <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3 xs:gap-4">
-                        <div className="flex items-start gap-2 xs:gap-3 sm:gap-4 flex-1 min-w-0">
-                          {/* Module Number/Status Indicator */}
-                          <div className="flex flex-col items-center shrink-0">
-                            <div className={`w-6 h-6 xs:w-8 xs:h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs xs:text-sm font-medium ${isCompleted
-                              ? "bg-[#dcfce7] text-[#15803d]"
-                              : isCurrent
-                                ? "bg-[#dbeafe] text-[#1d4ed8]"
-                                : "bg-[#f3f4f6] text-[#6b7280]"
-                              }`}>
-                              {isCompleted ? (
-                                <CheckCircle2 className="h-3 w-3 xs:h-4 xs:w-4 sm:h-5 sm:w-5" />
-                              ) : (
-                                <span className="text-xs font-bold">{index + 1}</span>
-                              )}
-                            </div>
-                            {index < modules.length - 1 && (
-                              <div className={`w-0.5 h-4 xs:h-6 sm:h-8 mt-1 hidden xs:block ${isCompleted ? "bg-[#bbf7d0]" : "bg-[#e5e7eb]"
-                                }`} />
-                            )}
-                          </div>
-
-                          {/* Module Content */}
-                          <div className="flex-1">
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                              <h3 className={`font-semibold line-clamp-1 text-sm sm:text-base lg:text-lg  ${isCompleted ? "text-[#166534]" :
-                                isCurrent ? "text-[#1e40af]" :
-                                  "text-[#374151]"
-                                }`}>
-                                {module.title || `Module ${index + 1}`}
-                              </h3>
-
-                              {/* Badges Container */}
-                              <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                                {/* Module level badge */}
-                                {module.level && (
-                                  <div className="flex items-center">
-                                    {getLevelBadge(module.level)}
-                                  </div>
-                                )}
-
-                                {isCurrent && (
-                                  <Badge variant="default" className="text-xs px-2 py-1">
-                                    Current
-                                  </Badge>
-                                )}
-                                {isCompleted && (
-                                  <Badge variant="outline" className="text-xs bg-[#dcfce7] text-[#166534] px-2 py-1">
-                                    Completed
-                                  </Badge>
-                                )}
-                                {isLevelLocked && (
-                                  <Badge variant="outline" className="text-xs bg-[#fef9c3] text-[#854d0e] border-[#fcd34d] px-2 py-1">
-                                    <Lock className="h-3 w-3 mr-1" />
-                                    <span className="hidden sm:inline">Level Locked</span>
-                                    <span className="sm:hidden">Locked</span>
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                            <p className="text-xs sm:text-sm text-muted-foreground mb-3 leading-relaxed line-clamp-2 break-words">
-                              {module.description || "No description available"}
+                    {/* Lessons Tab */}
+                    <TabsContent value="lessons" className="p-3 sm:p-4 lg:p-6">
+                      <div className="space-y-3 sm:space-y-4">
+                        {activeModuleLessons.length === 0 ? (
+                          <div className="text-center py-6 sm:py-8">
+                            <p className="text-xs sm:text-sm text-muted-foreground">
+                              No lessons found for this module.
                             </p>
-
-                            {/* Module Meta */}
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <CheckCircle2 className="h-3 w-3 text-[#22c55e]" />
-                                <span>{completedLessonsInModule} of {moduleLessons.length} lessons</span>
-                              </span>
-                              {module.duration && (
-                                <span className="flex items-center gap-1">
-                                  <Clock className="h-3 w-3 text-[#3b82f6]" />
-                                  <span>{module.duration}</span>
-                                </span>
-                              )}
-                            </div>
                           </div>
-                        </div>
+                        ) : (
+                          activeModuleLessons.map((lesson, lessonIndex) => {
+                            const isLessonDone = isLessonCompleted(lesson);
+                            const currentLessonIndex = activeModuleLessons.findIndex(l =>
+                              !isLessonCompleted(l)
+                            );
+                            const isLessonLocked = !isLessonDone &&
+                              currentLessonIndex !== -1 &&
+                              lessonIndex !== currentLessonIndex;
 
-                        {/* Action Button */}
-                        <div className="flex items-center gap-2 w-full sm:w-auto">
-                          <Button
-                            size="sm"
-                            onClick={() => handleModuleClick(module, index)}
-                            disabled={isLocked || loadingStates[moduleId]}
-                            className={`w-full sm:w-auto text-xs sm:text-sm min-h-[44px] ${isCompleted
-                              ? "bg-[#dcfce7] text-[#15803d] hover:bg-[#bbf7d0]"
-                              : isCurrent
-                                ? "shadow-md"
-                                : ""
-                              }`}
-                          >
-                            {loadingStates[moduleId] ? (
-                              <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 animate-spin" />
-                            ) : isCompleted ? (
-                              <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                            ) : isCurrent ? (
-                              <PlayCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                            ) : (
-                              <Lock className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                            )}
-                            <span>
-                              {isCompleted ? "Review" :
-                                isCurrent ? (isActive ? "Hide" : "Start") :
-                                  isLevelLocked ? (
-                                    <>
-                                      <span className="hidden sm:inline">Need {module.level}</span>
-                                      <span className="sm:hidden">Need {module.level}</span>
-                                    </>
-                                  ) :
-                                    "Locked"}
-                            </span>
-                            <ChevronRight className={`h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2 transition-transform ${isActive ? 'rotate-90' : ''
-                              }`} />
-                          </Button>
-                        </div>
-                      </div>
-
-                      {/* Enhanced Module Content Panel */}
-                      {isActive && (
-                        <div className="mt-4 rounded-lg border bg-white shadow-sm">
-                          <Tabs value={uiState.activeTab} onValueChange={(tab) =>
-                            setUiState(prev => ({ ...prev, activeTab: tab }))
-                          }>
-                            <div className="border-b">
-                              <TabsList className="flex w-full overflow-x-auto bg-transparent h-auto p-0 gap-1">
-                                <TabsTrigger value="lessons" className="flex items-center rounded-none border-b-2 border-transparent data-[state=active]:border-[#3b82f6] data-[state=active]:bg-transparent py-2 sm:py-3 text-xs sm:text-sm min-w-[140px] sm:min-w-0">
-                                  <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                                  <span className="hidden sm:inline">Lessons ({moduleLessons.length})</span>
-                                  <span className="sm:hidden">Lessons</span>
-                                </TabsTrigger>
-                                <TabsTrigger value="assessments" className="flex items-center rounded-none border-b-2 border-transparent data-[state=active]:border-[#3b82f6] data-[state=active]:bg-transparent py-2 sm:py-3 text-xs sm:text-sm min-w-[140px] sm:min-w-0">
-                                  <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                                  <span className="hidden sm:inline">Assessments ({(quizzesByModule[moduleId]?.length || 0) + (assignmentsByModule[moduleId]?.length || 0)})</span>
-                                  <span className="sm:hidden">Tests</span>
-                                </TabsTrigger>
-                              </TabsList>
-                            </div>
-
-                            {/* Enhanced Lessons Tab */}
-                            <TabsContent value="lessons" className="p-3 sm:p-4 lg:p-6">
-                              <div className="space-y-3 sm:space-y-4">
-                                {moduleLessons.length === 0 ? (
-                                  <div className="text-center py-6 sm:py-8">
-                                    <BookOpen className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-2 sm:mb-4" />
-                                    <p className="text-xs sm:text-sm text-muted-foreground">
-                                      No lessons found for this module.
-                                    </p>
-                                  </div>
-                                ) : (
-                                  moduleLessons.map((lesson, lessonIndex) => {
-                                    const isLessonDone = isLessonCompleted(lesson);
-                                    const currentLessonIndex = moduleLessons.findIndex(l =>
-                                      !isLessonCompleted(l)
-                                    );
-                                    // Enforce strictly sequential lesson progression
-                                    // A lesson is locked if it is not yet completed AND
-                                    // it is not the immediate next lesson to complete.
-                                    // Completed lessons should remain accessible for review.
-                                    const isLessonLocked = !isLessonDone &&
-                                      currentLessonIndex !== -1 &&
-                                      lessonIndex !== currentLessonIndex;
-
-                                    return (
-                                      <div
-                                        key={getLessonId(lesson) || lessonIndex}
-                                        className={`flex flex-col sm:flex-row items-start justify-between rounded-lg border p-3 sm:p-4 gap-3 sm:gap-0 ${isLessonLocked
-                                          ? 'opacity-60 bg-[#f9fafb]'
-                                          : isLessonDone
-                                            ? 'bg-[#f0fdf4] border-[#bbf7d0]'
-                                            : 'hover:bg-[#eff6ff] border-[#bfdbfe] ring-2 ring-[#dbeafe]'
-                                          }`}
-                                      >
-                                        <div className="flex items-start gap-3 flex-1 min-w-0">
-                                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium shrink-0 ${isLessonDone
-                                            ? "bg-[#dcfce7] text-[#15803d]"
-                                            : isLessonLocked
-                                              ? "bg-[#f3f4f6] text-[#6b7280]"
-                                              : "bg-[#dbeafe] text-[#2563eb]"
-                                            }`}>
-                                            {isLessonDone ? (
-                                              <CheckCircle2 className="h-4 w-4" />
-                                            ) : isLessonLocked ? (
-                                              <Lock className="h-4 w-4" />
-                                            ) : (
-                                              lessonIndex + 1
-                                            )}
-                                          </div>
-                                          <div className="flex-1 min-w-0">
-                                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                                              <h4 className="text-sm sm:text-base font-semibold break-words max-w-full">
-                                                {lesson.title || `Lesson ${lessonIndex + 1}`}
-                                              </h4>
-                                              {isLessonDone && (
-                                                <Badge variant="outline" className="text-xs bg-[#dcfce7] text-[#15803d] self-start sm:self-auto">
-                                                  Completed
-                                                </Badge>
-                                              )}
-                                            </div>
-                                            {lesson.description && (
-                                              <p className="text-xs sm:text-sm text-muted-foreground mb-2 leading-relaxed line-clamp-2 break-words">
-                                                {lesson.description}
-                                              </p>
-                                            )}
-                                            <div className="flex items-center gap-2">
-                                              <Badge variant="outline" className="text-xs px-2 py-1">
-                                                <Clock className="h-3 w-3 mr-1" />
-                                                {lesson.duration || "5 min"}
-                                              </Badge>
-                                            </div>
-                                          </div>
-                                        </div>
-                                        <div className="flex items-center gap-2 w-full sm:w-auto sm:shrink-0">
-                                          {!isLessonLocked && (
-                                            <Button
-                                              size="sm"
-                                              onClick={() => navigate(`/student/lesson/${getLessonId(lesson)}`)}
-                                              className={`w-full sm:w-auto text-xs sm:text-sm min-h-[44px] ${isLessonDone ?
-                                                "bg-[#dcfce7] text-[#15803d] hover:bg-[#bbf7d0]" :
-                                                "bg-[#2563eb] hover:bg-[#1d4ed8] text-white"
-                                                }`}
-                                            >
-                                              {isLessonDone ? (
-                                                <>
-                                                  <Eye className="h-3 w-3 mr-1 sm:mr-2" />
-                                                  <span>Review</span>
-                                                </>
-                                              ) : (
-                                                <>
-                                                  <PlayCircle className="h-3 w-3 mr-1 sm:mr-2" />
-                                                  <span className="hidden sm:inline">Start Lesson</span>
-                                                  <span className="sm:hidden">Start</span>
-                                                </>
-                                              )}
-                                            </Button>
-                                          )}
-                                          {isLessonLocked && (
-                                            <Badge variant="outline" className="text-xs bg-[#f3f4f6] text-[#4b5563] px-2 py-1 w-full sm:w-auto justify-center">
-                                              <Lock className="h-3 w-3 mr-1" />
-                                              Locked
-                                            </Badge>
-                                          )}
-                                        </div>
-                                      </div>
-                                    );
-                                  })
-                                )}
-
-                                {/* Module Complete Button */}
-                                {(() => {
-                                  const moduleAssignments = assignmentsByModule[moduleId] || [];
-                                  const moduleQuizzes = quizzesByModule[moduleId] || [];
-                                  const allLessonsComplete = (moduleLessons.length === 0) || (completedLessonsInModule === moduleLessons.length);
-                                  const totalAssessments = moduleQuizzes.length + moduleAssignments.length;
-
-                                  // Check if all assignments in this module are submitted
-                                  const allAssignmentsComplete = moduleAssignments.length === 0 || moduleAssignments.every(a => {
-                                    const aid = getAssignmentId(a);
-                                    return aid && submissionsByAssignment[String(aid)];
-                                  });
-
-                                  // New rule: quizzes must be PASSED (at least once) to complete module, regardless of lessons presence
-                                  const allQuizzesPassed = moduleQuizzes.length === 0 || moduleQuizzes.every(q => {
-                                    const qid = q._id || q.id;
-                                    const quizAttempts = attemptsByQuiz[String(qid)] || [];
-                                    if (quizAttempts.length === 0) return false;
-                                    const bestAttempt = quizAttempts.reduce((best, current) => (current.score > best.score ? current : best), quizAttempts[0]);
-                                    const passingScore = q.passingScore || 70;
-                                    return bestAttempt.score >= passingScore;
-                                  });
-
-                                  const hasLessons = moduleLessons.length > 0;
-                                  const allAssessmentsComplete = allAssignmentsComplete && allQuizzesPassed;
-
-
-                                  if (!isCompleted && isAccessible && allLessonsComplete) {
-                                    return (
-                                      <div className="pt-4 border-t mt-4">
-                                        {totalAssessments > 0 ? (
-                                          allAssessmentsComplete ? (
-                                            <div>
-                                              <Button
-                                                onClick={() => handleMarkModuleComplete(module)}
-                                                className="w-full bg-[#16a34a] hover:bg-[#15803d] min-h-[44px]"
-                                                size="lg"
-                                                disabled={uiState.processingAction === `module-${moduleId}`}
-                                              >
-                                                {uiState.processingAction === `module-${moduleId}` ? (
-                                                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                                                ) : (
-                                                  <Trophy className="h-4 w-4 mr-2" />
-                                                )}
-                                                Complete Module
-                                              </Button>
-                                              <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mt-2">
-                                                <Zap className="h-3 w-3 text-[#22c55e]" />
-                                                <span>All {hasLessons ? 'lessons and ' : ''}assessments completed!</span>
-                                              </div>
-                                            </div>
-                                          ) : (
-                                            <div className="text-center">
-                                              <div className="flex items-start gap-2 text-sm text-muted-foreground mb-4">
-                                                <BookMarked className="h-4 w-4 text-[#3b82f6] shrink-0 mt-0.5" />
-                                                <span>{hasLessons ? 'All lessons completed! Now complete the assessments in the "Assessments" tab to finish this module.' : 'This module has no lessons. Please complete the assessments in the "Assessments" tab to finish this module.'}</span>
-                                              </div>
-                                              <Button
-                                                onClick={() => setUiState(prev => ({ ...prev, activeTab: "assessments" }))}
-                                                variant="outline"
-                                                className="w-full"
-                                                size="lg"
-                                              >
-                                                <BarChart3 className="h-4 w-4 mr-2" />
-                                                Go to Assessments
-                                              </Button>
-                                              <div className="mt-3 text-xs text-muted-foreground">
-                                                <p>Progress: {moduleAssignments.filter(a => {
-                                                  const aid = getAssignmentId(a);
-                                                  return aid && submissionsByAssignment[String(aid)];
-                                                }).length} of {moduleAssignments.length} assignments submitted</p>
-                                              </div>
-                                            </div>
-                                          )
-                                        ) : (
-                                          <div>
-                                            <Button
-                                              onClick={() => handleMarkModuleComplete(module)}
-                                              className="w-full bg-[#16a34a] hover:bg-[#15803d] min-h-[44px]"
-                                              size="lg"
-                                              disabled={uiState.processingAction === `module-${moduleId}`}
-                                            >
-                                              {uiState.processingAction === `module-${moduleId}` ? (
-                                                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                                              ) : (
-                                                <Trophy className="h-4 w-4 mr-2" />
-                                              )}
-                                              Complete Module
-                                            </Button>
-                                            <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mt-2">
-                                              <Zap className="h-3 w-3 text-[#22c55e]" />
-                                              <span>{hasLessons ? 'All lessons completed! ' : ''}No assessments required for this module.</span>
-                                            </div>
-                                          </div>
-                                        )}
-                                      </div>
-                                    );
-                                  }
-                                  return null;
-                                })()}
-                              </div>
-                            </TabsContent>
-
-
-                            {/* Assessments Tab - 320px optimized */}
-                            <TabsContent value="assessments" className="p-2 xs:p-4">
-                              <div className="space-y-4">
-                                {/* Assessment access control */}
-                                {moduleLessons.length > 0 && (
-                                  <div className={`rounded-lg p-3 xs:p-4 mb-3 xs:mb-4 ${completedLessonsInModule === moduleLessons.length
-                                    ? 'bg-[#f0fdf4] border border-[#bbf7d0]'
-                                    : 'bg-[#fffbeb] border border-[#fde68a]'
+                            return (
+                              <div
+                                key={getLessonId(lesson) || lessonIndex}
+                                className={`flex flex-col sm:flex-row items-start justify-between rounded-lg border p-3 sm:p-4 gap-3 sm:gap-0 ${isLessonLocked
+                                  ? 'opacity-50 bg-slate-50 border-slate-100'
+                                  : isLessonDone
+                                    ? 'bg-white border-slate-200'
+                                    : 'bg-white border-slate-200 hover:border-slate-300'
+                                  }`}
+                              >
+                                <div className="flex items-start gap-3 flex-1 min-w-0">
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium shrink-0 ${isLessonDone
+                                    ? "bg-emerald-50 text-emerald-600"
+                                    : isLessonLocked
+                                      ? "bg-slate-100 text-slate-400"
+                                      : "bg-slate-800 text-white"
                                     }`}>
-                                    <div className="flex items-start gap-2 xs:gap-3">
-                                      {completedLessonsInModule === moduleLessons.length ? (
-                                        <Trophy className="h-4 w-4 xs:h-5 xs:w-5 text-[#16a34a] mt-0.5" />
-                                      ) : (
-                                        <Lock className="h-4 w-4 xs:h-5 xs:w-5 text-[#d97706] mt-0.5" />
-                                      )}
-                                      <div>
-                                        <div className={`flex items-center gap-2 font-semibold mb-1 ${completedLessonsInModule === moduleLessons.length
-                                          ? 'text-[#166534]'
-                                          : 'text-[#92400e]'
-                                          }`}>
-                                          {completedLessonsInModule === moduleLessons.length ? (
-                                            <>
-                                              <Zap className="h-4 w-4 text-[#16a34a]" />
-                                              <span>Assessments Unlocked!</span>
-                                            </>
-                                          ) : (
-                                            <>
-                                              <Lock className="h-4 w-4 text-[#d97706]" />
-                                              <span>Complete All Lessons First</span>
-                                            </>
-                                          )}
-                                        </div>
-                                        <p className={`text-xs xs:text-sm leading-relaxed ${completedLessonsInModule === moduleLessons.length
-                                          ? 'text-[#15803d]'
-                                          : 'text-[#b45309]'
-                                          }`}>
-                                          {completedLessonsInModule === moduleLessons.length
-                                            ? 'Great job completing all lessons! You can now access the assessments below. Complete all assessments to finish this module.'
-                                            : `You need to complete all ${moduleLessons.length} lessons in this module before you can access assessments. Progress: ${completedLessonsInModule} of ${moduleLessons.length} lessons completed.`
-                                          }
-                                        </p>
-                                        {completedLessonsInModule < moduleLessons.length && (
-                                          <div className="mt-3">
-                                            <div className="w-full bg-[#fde68a] rounded-full h-2">
-                                              <div
-                                                className="bg-[#d97706] h-2 rounded-full transition-all duration-500"
-                                                style={{
-                                                  width: `${moduleLessons.length > 0 ? (completedLessonsInModule / moduleLessons.length) * 100 : 0}%`
-                                                }}
-                                              ></div>
-                                            </div>
-                                            <p className="text-xs text-[#d97706] mt-1">
-                                              {Math.round((completedLessonsInModule / moduleLessons.length) * 100)}% complete
-                                            </p>
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
+                                    {isLessonDone ? (
+                                      <CheckCircle2 className="h-4 w-4" />
+                                    ) : isLessonLocked ? (
+                                      <Lock className="h-4 w-4" />
+                                    ) : (
+                                      lessonIndex + 1
+                                    )}
                                   </div>
-                                )}
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
+                                      <h4 className="text-sm sm:text-base font-medium text-slate-800 break-words max-w-full">
+                                        {lesson.title || `Lesson ${lessonIndex + 1}`}
+                                      </h4>
+                                      {isLessonDone && (
+                                        <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-transparent self-start sm:self-auto">
+                                          Completed
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    {lesson.description && (
+                                      <p className="text-xs sm:text-sm text-muted-foreground mb-2 leading-relaxed line-clamp-2 break-words">
+                                        {lesson.description}
+                                      </p>
+                                    )}
+                                    <span className="text-xs text-slate-400">{lesson.duration || "5 min"}</span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2 w-full sm:w-auto sm:shrink-0">
+                                  {!isLessonLocked && (
+                                    <Button
+                                      size="sm"
+                                      variant={isLessonDone ? "outline" : "default"}
+                                      onClick={() => navigate(`/student/lesson/${getLessonId(lesson)}`)}
+                                      className={`w-full sm:w-auto text-xs sm:text-sm min-h-[44px] ${isLessonDone ?
+                                        "border-slate-200 text-slate-600" :
+                                        "bg-slate-800 hover:bg-slate-900 text-white"
+                                        }`}
+                                    >
+                                      {isLessonDone ? "Review" : "Start Lesson"}
+                                    </Button>
+                                  )}
+                                  {isLessonLocked && (
+                                    <Badge variant="outline" className="text-xs bg-slate-50 text-slate-400 border-transparent px-2 py-1 w-full sm:w-auto justify-center">
+                                      Locked
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
 
-                                {/* Module Quizzes Component */}
-                                <StudentModuleQuizzes
-                                  quizzes={quizzesByModule[moduleId] || []}
-                                  attempts={attemptsByQuiz}
-                                  isUnlocked={(moduleLessons.length === 0) || (completedLessonsInModule === moduleLessons.length)}
-                                  onStart={handleStartQuiz}
-                                  extraGrantedQuizIds={extraGrantedQuizIds}
-                                  rejectedQuizIds={rejectedQuizIds}
-                                />
+                        {/* Module Complete Button */}
+                        {(() => {
+                          const allLessonsComplete = (activeModuleLessons.length === 0) || (activeCompletedLessonsInModule === activeModuleLessons.length);
+                          const totalAssessments = activeModuleQuizzes.length + activeModuleAssignments.length;
 
-                                {/* Module Assignments Component */}
-                                <StudentModuleAssignments
-                                  assignments={assignmentsByModule[moduleId] || []}
-                                  submissions={submissionsByAssignment}
-                                  isUnlocked={(moduleLessons.length === 0) || (completedLessonsInModule === moduleLessons.length)}
-                                  onViewDetails={handleAssignmentViewDetails}
-                                  onSubmit={handleAssignmentSubmit}
-                                />
+                          const allAssignmentsComplete = activeModuleAssignments.length === 0 || activeModuleAssignments.every(a => {
+                            const aid = getAssignmentId(a);
+                            return aid && submissionsByAssignment[String(aid)];
+                          });
 
-                                {/* No Assessments */}
-                                {(!quizzesByModule[moduleId] || quizzesByModule[moduleId].length === 0) &&
-                                  (!assignmentsByModule[moduleId] || assignmentsByModule[moduleId].length === 0) && (
-                                    <div className="text-center py-6 xs:py-8">
-                                      <BarChart3 className="h-6 w-6 xs:h-8 xs:w-8 text-muted-foreground mx-auto mb-2" />
-                                      <p className="text-xs xs:text-sm text-muted-foreground">
-                                        No assessments available for this module.
+                          const allQuizzesPassed = activeModuleQuizzes.length === 0 || activeModuleQuizzes.every(q => {
+                            const qid = q._id || q.id;
+                            const quizAttempts = attemptsByQuiz[String(qid)] || [];
+                            if (quizAttempts.length === 0) return false;
+                            const bestAttempt = quizAttempts.reduce((best, current) => (current.score > best.score ? current : best), quizAttempts[0]);
+                            const passingScore = q.passingScore || 70;
+                            return bestAttempt.score >= passingScore;
+                          });
+
+                          const hasLessons = activeModuleLessons.length > 0;
+                          const allAssessmentsComplete = allAssignmentsComplete && allQuizzesPassed;
+
+                          if (!isActiveModuleCompleted && isActiveModuleAccessible && allLessonsComplete) {
+                            return (
+                              <div className="pt-4 border-t border-slate-100 mt-4">
+                                {totalAssessments > 0 ? (
+                                  allAssessmentsComplete ? (
+                                    <div>
+                                      <Button
+                                        onClick={() => handleMarkModuleComplete(activeModule)}
+                                        className="w-full bg-emerald-600 hover:bg-emerald-700 min-h-[44px]"
+                                        size="lg"
+                                        disabled={uiState.processingAction === `module-${activeModuleId}`}
+                                      >
+                                        {uiState.processingAction === `module-${activeModuleId}` && (
+                                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                        )}
+                                        Complete Module
+                                      </Button>
+                                      <p className="text-center text-xs text-slate-400 mt-2">
+                                        All {hasLessons ? 'lessons and ' : ''}assessments completed
                                       </p>
                                     </div>
-                                  )}
+                                  ) : (
+                                    <div className="text-center">
+                                      <p className="text-sm text-slate-500 mb-4">
+                                        {hasLessons ? 'All lessons completed! Now complete the assessments in the "Assessments" tab to finish this module.' : 'This module has no lessons. Please complete the assessments in the "Assessments" tab to finish this module.'}
+                                      </p>
+                                      <Button
+                                        onClick={() => setUiState(prev => ({ ...prev, activeTab: "assessments" }))}
+                                        variant="outline"
+                                        className="w-full border-slate-200"
+                                        size="lg"
+                                      >
+                                        Go to Assessments
+                                      </Button>
+                                      <p className="mt-3 text-xs text-slate-400">
+                                        {activeModuleAssignments.filter(a => {
+                                          const aid = getAssignmentId(a);
+                                          return aid && submissionsByAssignment[String(aid)];
+                                        }).length} of {activeModuleAssignments.length} assignments submitted
+                                      </p>
+                                    </div>
+                                  )
+                                ) : (
+                                  <div>
+                                    <Button
+                                      onClick={() => handleMarkModuleComplete(activeModule)}
+                                      className="w-full bg-emerald-600 hover:bg-emerald-700 min-h-[44px]"
+                                      size="lg"
+                                      disabled={uiState.processingAction === `module-${activeModuleId}`}
+                                    >
+                                      {uiState.processingAction === `module-${activeModuleId}` && (
+                                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                      )}
+                                      Complete Module
+                                    </Button>
+                                    <p className="text-center text-xs text-slate-400 mt-2">
+                                      {hasLessons ? 'All lessons completed. ' : ''}No assessments required for this module.
+                                    </p>
+                                  </div>
+                                )}
                               </div>
-                            </TabsContent>
-                          </Tabs>
-                        </div>
-                      )}
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+                    </TabsContent>
 
-                      {/* Module Resources Component - 320px optimized */}
-                      <div className="mt-3 xs:mt-4">
-                        <div className="bg-white rounded-lg border border-[#e5e7eb] shadow-sm">
-                          <StudentModuleResources
-                            moduleId={moduleId}
-                            resources={resourcesByModule[moduleId] || []}
-                            isModuleCompleted={isCompleted}
-                            completedLessons={completedLessonsInModule}
-                            totalLessons={moduleLessons.length}
-                            className="p-2 xs:p-4"
-                          />
+                    {/* Assessments Tab */}
+                    <TabsContent value="assessments" className="p-3 sm:p-4 lg:p-6">
+                      <div className="space-y-4">
+                        {activeModuleLessons.length > 0 && (
+                          <div className="rounded-lg p-3 xs:p-4 mb-3 xs:mb-4 bg-slate-50 border border-slate-100">
+                            <div className="flex items-start gap-2 xs:gap-3">
+                              {activeCompletedLessonsInModule !== activeModuleLessons.length && (
+                                <Lock className="h-4 w-4 text-slate-400 mt-0.5 shrink-0" />
+                              )}
+                              <div className="flex-1">
+                                <div className="font-medium text-sm text-slate-700 mb-1">
+                                  {activeCompletedLessonsInModule === activeModuleLessons.length
+                                    ? 'Assessments unlocked'
+                                    : 'Complete all lessons first'}
+                                </div>
+                                <p className="text-xs xs:text-sm leading-relaxed text-slate-500">
+                                  {activeCompletedLessonsInModule === activeModuleLessons.length
+                                    ? 'You can now access the assessments below. Complete all assessments to finish this module.'
+                                    : `${activeCompletedLessonsInModule} of ${activeModuleLessons.length} lessons completed.`
+                                  }
+                                </p>
+                                {activeCompletedLessonsInModule < activeModuleLessons.length && (
+                                  <div className="mt-3">
+                                    <div className="w-full bg-slate-200 rounded-full h-1.5">
+                                      <div
+                                        className="bg-slate-500 h-1.5 rounded-full transition-all duration-500"
+                                        style={{
+                                          width: `${activeModuleLessons.length > 0 ? (activeCompletedLessonsInModule / activeModuleLessons.length) * 100 : 0}%`
+                                        }}
+                                      ></div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        <StudentModuleQuizzes
+                          quizzes={activeModuleQuizzes}
+                          attempts={attemptsByQuiz}
+                          isUnlocked={(activeModuleLessons.length === 0) || (activeCompletedLessonsInModule === activeModuleLessons.length)}
+                          onStart={handleStartQuiz}
+                          extraGrantedQuizIds={extraGrantedQuizIds}
+                          rejectedQuizIds={rejectedQuizIds}
+                        />
+
+                        <StudentModuleAssignments
+                          assignments={activeModuleAssignments}
+                          submissions={submissionsByAssignment}
+                          isUnlocked={(activeModuleLessons.length === 0) || (activeCompletedLessonsInModule === activeModuleLessons.length)}
+                          onViewDetails={handleAssignmentViewDetails}
+                          onSubmit={handleAssignmentSubmit}
+                        />
+
+                        {activeModuleQuizzes.length === 0 && activeModuleAssignments.length === 0 && (
+                          <div className="text-center py-6 xs:py-8">
+                            <p className="text-xs xs:text-sm text-muted-foreground">
+                              No assessments available for this module.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </TabsContent>
+
+                    {/* Resources Tab */}
+                    <TabsContent value="resources" className="p-3 sm:p-4 lg:p-6">
+                      <StudentModuleResources
+                        moduleId={activeModuleId}
+                        resources={resourcesByModule[activeModuleId] || []}
+                        isModuleCompleted={isActiveModuleCompleted}
+                        completedLessons={activeCompletedLessonsInModule}
+                        totalLessons={activeModuleLessons.length}
+                      />
+                    </TabsContent>
+                  </Tabs>
+                </CardContent>
+              </Card>
+            ) : (
+              /* Welcome Dashboard */
+              <div className="space-y-4 sm:space-y-6">
+                <Card className="bg-white border-slate-200 shadow-sm">
+                  <CardContent className="p-5 sm:p-8 space-y-4">
+                    <div className="text-xs sm:text-sm font-medium text-slate-400 uppercase tracking-wide">
+                      {allModulesCompleted ? "Course Complete" : "Welcome Back"}
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-semibold text-slate-900">
+                      {allModulesCompleted
+                        ? "You've finished every module"
+                        : "Ready to keep learning?"}
+                    </h2>
+                    <p className="text-slate-500 max-w-lg text-xs sm:text-sm leading-relaxed">
+                      {allModulesCompleted
+                        ? "Review any module from the outline, or head to the final assessments below to complete the course."
+                        : "Resume your training right where you left off. Keep up the momentum to complete the course."}
+                    </p>
+
+                    {!allModulesCompleted && currentModule && (
+                      <div className="mt-2 p-4 bg-slate-50 rounded-lg border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="min-w-0">
+                          <div className="text-[11px] text-slate-400 uppercase font-medium tracking-wide mb-0.5">
+                            Next Up · {currentModule.title || `Module ${currentModuleIndex + 1}`}
+                          </div>
+                          <div className="text-sm sm:text-base font-medium text-slate-800 truncate">
+                            {nextIncompleteLesson
+                              ? (nextIncompleteLesson.title || "Continue Lesson")
+                              : currentModuleStage === 'quiz'
+                                ? "Complete the module quiz"
+                                : currentModuleStage === 'assignment'
+                                  ? "Submit the module assignment"
+                                  : currentModuleStage === 'resources'
+                                    ? "Review module resources"
+                                    : "Continue this module"}
+                          </div>
                         </div>
+                        <Button
+                          onClick={() => {
+                            if (nextIncompleteLesson) {
+                              navigate(`/student/lesson/${getLessonId(nextIncompleteLesson)}`);
+                            } else {
+                              handleModuleClick(currentModule, currentModuleIndex);
+                            }
+                          }}
+                          className="bg-slate-800 hover:bg-slate-900 text-white shrink-0"
+                        >
+                          Resume
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Quick Stats Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                  <Card className="p-4 border-slate-200 shadow-sm">
+                    <div className="text-[10px] sm:text-xs text-slate-400 font-medium uppercase tracking-wide">Modules Done</div>
+                    <div className="text-2xl sm:text-3xl font-semibold mt-1 text-slate-900">{completedCount}<span className="text-sm text-slate-400">/{modules.length}</span></div>
+                  </Card>
+                  <Card className="p-4 border-slate-200 shadow-sm">
+                    <div className="text-[10px] sm:text-xs text-slate-400 font-medium uppercase tracking-wide">Progress</div>
+                    <div className="text-2xl sm:text-3xl font-semibold mt-1 text-slate-900">{progress}%</div>
+                  </Card>
+                  <Card className="p-4 border-slate-200 shadow-sm">
+                    <div className="text-[10px] sm:text-xs text-slate-400 font-medium uppercase tracking-wide">Current Level</div>
+                    <div className="text-2xl sm:text-3xl font-semibold mt-1 text-slate-900">{currentLevel}</div>
+                  </Card>
+                  <Card className="p-4 border-slate-200 shadow-sm">
+                    <div className="text-[10px] sm:text-xs text-slate-400 font-medium uppercase tracking-wide">Attempts Logged</div>
+                    <div className="text-2xl sm:text-3xl font-semibold mt-1 text-slate-900">{attempts.length}</div>
+                  </Card>
+                </div>
+              </div>
+            )}
+
+            {/* Final Assessments (unlocked once all modules are completed) */}
+            {allModulesCompleted && courseContentLoaded && (courseLevelQuizzes.length > 0 || courseLevelAssignments.length > 0) && (
+              <Card className="bg-white border-slate-200 shadow-sm">
+                <CardHeader className="pb-3 xs:pb-4 sm:pb-6 p-3 xs:p-4 sm:p-6">
+                  <CardTitle className="flex items-center gap-2 xs:gap-3 mb-1 text-sm xs:text-base sm:text-lg text-slate-900">
+                    <span>Final Assessments</span>
+                    <span className="text-slate-400 font-normal text-xs">
+                      {courseLevelQuizzes.length + courseLevelAssignments.length} total
+                    </span>
+                  </CardTitle>
+                  <CardDescription className="text-xs xs:text-sm sm:text-base leading-relaxed break-words">
+                    Complete these to finish the course.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 xs:space-y-6 p-3 xs:p-4 sm:p-6">
+                  {courseLevelQuizzes.length > 0 && (
+                    <div>
+                      <h3 className="font-medium mb-3 xs:mb-4 text-slate-700 text-xs xs:text-sm sm:text-base">
+                        Final Quizzes ({courseLevelQuizzes.length})
+                      </h3>
+                      <div className="grid gap-3 xs:gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2">
+                        {courseLevelQuizzes.map((quiz, index) => (
+                          <Card key={index} className="border-slate-200">
+                            <CardHeader className="pb-2 xs:pb-3 p-3 xs:p-4 sm:p-6">
+                              <CardTitle className="text-xs xs:text-sm sm:text-base lg:text-lg">
+                                <span className="truncate break-words text-xs xs:text-sm sm:text-base min-w-0 block">{quiz.title || 'Final Course Quiz'}</span>
+                              </CardTitle>
+                              {quiz.description && (
+                                <CardDescription className="text-xs sm:text-sm leading-relaxed break-words">
+                                  {quiz.description}
+                                </CardDescription>
+                              )}
+                            </CardHeader>
+                            <CardContent className="p-3 xs:p-4 sm:p-6">
+                              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-slate-400 mb-3 xs:mb-4">
+                                <span>{quiz.questions?.length || 0} questions</span>
+                                <span>Pass {quiz.passingScore || 70}%</span>
+                                <span>{quiz.timeLimit || 60} min</span>
+                                <span>{quiz.attemptsAllowed || 1} {quiz.attemptsAllowed === 1 ? 'try' : 'tries'}</span>
+                              </div>
+                              <Button
+                                className="w-full bg-slate-800 hover:bg-slate-900 text-xs xs:text-sm min-h-[44px]"
+                                onClick={() => handleStartQuiz(quiz)}
+                                size="sm"
+                              >
+                                Start Quiz
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        ))}
                       </div>
                     </div>
-                  </ModuleAssessmentProvider>
-                );
-              })
+                  )}
+
+                  {courseLevelAssignments.length > 0 && (
+                    <div>
+                      <h3 className="font-medium mb-3 xs:mb-4 text-slate-700 text-xs xs:text-sm sm:text-base">
+                        Final Assignments ({courseLevelAssignments.length})
+                      </h3>
+                      <div className="grid gap-3 xs:gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2">
+                        {courseLevelAssignments.map((assignment, index) => (
+                          <Card key={index} className="border-slate-200">
+                            <CardHeader className="pb-2 xs:pb-3 p-3 xs:p-4 sm:p-6">
+                              <CardTitle className="text-xs xs:text-sm sm:text-base lg:text-lg">
+                                <span className="truncate break-words text-xs xs:text-sm sm:text-base min-w-0 block">{assignment.title || 'Final Assignment'}</span>
+                              </CardTitle>
+                              {assignment.description && (
+                                <CardDescription className="text-xs sm:text-sm leading-relaxed break-words">
+                                  {assignment.description}
+                                </CardDescription>
+                              )}
+                            </CardHeader>
+                            <CardContent className="p-3 xs:p-4 sm:p-6">
+                              <div className="flex flex-col gap-1 text-xs text-slate-400 mb-3 xs:mb-4">
+                                <span>
+                                  Due: {assignment.dueDate
+                                    ? new Date(assignment.dueDate).toLocaleDateString()
+                                    : 'No deadline'
+                                  }
+                                </span>
+                                <span>Max: {assignment.maxScore || 100} pts</span>
+                              </div>
+                              <div className="flex flex-col gap-2">
+                                <Button variant="outline" className="w-full text-xs min-h-[44px] border-slate-200">
+                                  View Details
+                                </Button>
+                                <Button className="w-full bg-slate-800 hover:bg-slate-900 text-xs min-h-[44px]">
+                                  Submit Work
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Course-Level Assessments (appear after all modules completed) */}
-        {allModulesCompleted && (courseLevelQuizzes.length > 0 || courseLevelAssignments.length > 0) && (
-          <Card className="border-2 border-[#fcd34d] bg-gradient-to-br from-[#fefce8] to-[#fffbeb]">
-            <CardHeader className="bg-gradient-to-r from-[#fef9c3] to-[#fef3c7]">
-              <CardTitle className="flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-[#ca8a04]" />
-                Final Course Assessments
-              </CardTitle>
-              <CardDescription>
-                🎉 Congratulations on completing all modules! Complete these final assessments to finish the course.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-4">
-              {courseLevelQuizzes.length > 0 && (
-                <div className="mb-4">
-                  <h3 className="text-sm font-semibold mb-2">Final Quizzes</h3>
-                  <StudentModuleQuizzes
-                    quizzes={courseLevelQuizzes}
-                    attempts={attemptsByQuiz}
-                    isUnlocked={true}
-                    onStart={handleStartQuiz}
-                    extraGrantedQuizIds={extraGrantedQuizIds}
-                    rejectedQuizIds={rejectedQuizIds}
-                  />
-                </div>
-              )}
-
-              {courseLevelAssignments.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold mb-2">Final Assignments</h3>
-                  <StudentModuleAssignments
-                    assignments={courseLevelAssignments}
-                    submissions={submissionsByAssignment}
-                    isUnlocked={true}
-                    onViewDetails={handleAssignmentViewDetails}
-                    onSubmit={handleAssignmentSubmit}
-                  />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Course Resources Component */}
-        <StudentCourseResources
-          resources={courseResources}
-          courseTitle={department?.course?.title || department?.course?.name}
-        />
+          </main>
+        </div>
 
         {/* Assignment Modals */}
         <AssignmentDetailsModal

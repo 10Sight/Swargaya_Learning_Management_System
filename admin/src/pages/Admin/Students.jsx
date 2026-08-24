@@ -132,6 +132,7 @@ const Students = () => {
     department: "",
     lines: [],
     machines: [],
+    currentMachine: "",
   });
   const [formErrors, setFormErrors] = useState({});
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -287,12 +288,19 @@ const Students = () => {
         setAvailableMachines(deduped);
 
         // Drop any previously-selected machines whose line is no longer selected
-        setFormData((prev) => ({
-          ...prev,
-          machines: (prev.machines || []).filter((m) =>
+        setFormData((prev) => {
+          const nextMachines = (prev.machines || []).filter((m) =>
             selectedLineIds.includes(m.lineId)
-          ),
-        }));
+          );
+          const currentMachineStillValid = nextMachines.some(
+            (m) => String(m.id) === String(prev.currentMachine)
+          );
+          return {
+            ...prev,
+            machines: nextMachines,
+            currentMachine: currentMachineStillValid ? prev.currentMachine : "",
+          };
+        });
       } finally {
         if (!cancelled) setMachinesLoading(false);
       }
@@ -312,6 +320,7 @@ const Students = () => {
       department: "",
       lines: [],
       machines: [],
+      currentMachine: "",
     }));
     setAvailableMachines([]);
   };
@@ -322,6 +331,7 @@ const Students = () => {
       department: value,
       lines: [],
       machines: [],
+      currentMachine: "",
     }));
     setAvailableMachines([]);
   };
@@ -341,6 +351,8 @@ const Students = () => {
   const toggleMachineSelection = (machine) => {
     setFormData((prev) => {
       const isSelected = (prev.machines || []).some((m) => m.id === machine.id);
+      const isUnselectingCurrentMachine =
+        isSelected && String(prev.currentMachine) === String(machine.id);
       return {
         ...prev,
         machines: isSelected
@@ -349,6 +361,7 @@ const Students = () => {
               ...(prev.machines || []),
               { id: machine.id, name: machine.name, lineId: machine.line },
             ],
+        currentMachine: isUnselectingCurrentMachine ? "" : prev.currentMachine,
       };
     });
   };
@@ -558,6 +571,7 @@ const Students = () => {
       department: "",
       lines: [],
       machines: [],
+      currentMachine: "",
     });
     setFormErrors({});
     setAvailableMachines([]);
@@ -645,6 +659,7 @@ const Students = () => {
         department: formData.department || null,
         lines: formData.lines || [],
         machines: formData.machines || [],
+        currentMachine: formData.currentMachine || null,
       };
 
       const result = await registerStudent(studentData).unwrap();
@@ -718,6 +733,7 @@ const Students = () => {
         department: updateData.department || null,
         lines: updateData.lines || [],
         machines: updateData.machines || [],
+        currentMachine: updateData.currentMachine || null,
       };
 
       await updateStudent({
@@ -799,6 +815,9 @@ const Students = () => {
       department: departmentId ? String(departmentId) : "",
       lines: Array.isArray(student.lines) ? student.lines : [],
       machines: Array.isArray(student.machines) ? student.machines : [],
+      currentMachine: student.currentMachine
+        ? String(student.currentMachine?.id ?? student.currentMachine)
+        : "",
     });
     setIsEditDialogOpen(true);
   };
@@ -1245,6 +1264,7 @@ const Students = () => {
                 <TableHead>Department</TableHead>
                 <TableHead>Lines</TableHead>
                 <TableHead>Machines</TableHead>
+                <TableHead>Current Machine</TableHead>
                 <TableHead>Joining Date</TableHead>
                 <TableHead>Leaving Date</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -1387,6 +1407,13 @@ const Students = () => {
                       </div>
                     </TableCell>
                     <TableCell>
+                      {student.currentMachine ? (
+                        <Badge variant="outline">{student.currentMachine.name}</Badge>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
                       <div className="text-sm">
                         {student.doj
                           ? new Date(student.doj).toLocaleDateString()
@@ -1460,7 +1487,7 @@ const Students = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center py-10">
+                  <TableCell colSpan={12} className="text-center py-10">
                     <div className="flex flex-col items-center space-y-3">
                       <IconUsers className="h-12 w-12 text-muted-foreground/60" />
                       <p className="text-muted-foreground font-medium">
@@ -1781,6 +1808,31 @@ const Students = () => {
               </div>
             </div>
             <div className="grid gap-2">
+              <Label htmlFor="currentMachine">Current Machine</Label>
+              <Select
+                value={formData.currentMachine || "none"}
+                onValueChange={(value) =>
+                  setFormData({
+                    ...formData,
+                    currentMachine: value === "none" ? "" : value,
+                  })
+                }
+                disabled={!formData.machines?.length}
+              >
+                <SelectTrigger id="currentMachine">
+                  <SelectValue placeholder="Select current machine" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {(formData.machines || []).map((machine) => (
+                    <SelectItem key={machine.id} value={String(machine.id)}>
+                      {machine.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
@@ -2010,6 +2062,31 @@ const Students = () => {
                   </p>
                 )}
               </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-currentMachine">Current Machine</Label>
+              <Select
+                value={formData.currentMachine || "none"}
+                onValueChange={(value) =>
+                  setFormData({
+                    ...formData,
+                    currentMachine: value === "none" ? "" : value,
+                  })
+                }
+                disabled={!formData.machines?.length}
+              >
+                <SelectTrigger id="edit-currentMachine">
+                  <SelectValue placeholder="Select current machine" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {(formData.machines || []).map((machine) => (
+                    <SelectItem key={machine.id} value={String(machine.id)}>
+                      {machine.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

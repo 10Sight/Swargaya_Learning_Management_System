@@ -67,10 +67,12 @@ export const getAllUsers = asyncHandler(async (req, res) => {
   // Fetch
   const [users] = await pool.query(`
         SELECT u.id, u.fullName, u.userName, u.slug, u.email, u.phoneNumber, u.role, u.designation, u.status, u.unit, u.doj, u.leavingDate, u.createdAt, u.avatar,
-               u.lines, u.machines,
-               d.name as departmentName, d.id as departmentId
+               u.lines, u.machines, u.currentMachine,
+               d.name as departmentName, d.id as departmentId,
+               cm.id as cmId, cm.name as cmName, cm.line as cmLine
         FROM users u
         LEFT JOIN departments d ON u.department = d.id
+        LEFT JOIN machines cm ON u.currentMachine = cm.id
         ${whereSQL}
         ORDER BY ${sortBy} ${order}
         OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
@@ -84,7 +86,8 @@ export const getAllUsers = asyncHandler(async (req, res) => {
     avatar: parseJSON(u.avatar),
     lines: parseJSON(u.lines, []),
     machines: parseJSON(u.machines, []),
-  })).map(u => { delete u.departmentName; delete u.departmentId; return u; });
+    currentMachine: u.cmId ? { id: u.cmId, name: u.cmName, lineId: u.cmLine } : null,
+  })).map(u => { delete u.departmentName; delete u.departmentId; delete u.cmId; delete u.cmName; delete u.cmLine; return u; });
 
   res.json(new ApiResponse(200, {
     users: formatted,
@@ -103,9 +106,11 @@ export const getUserById = asyncHandler(async (req, res) => {
   const term = rawId.toLowerCase();
 
   const [rows] = await pool.query(`
-        SELECT TOP 1 u.*, d.name as departmentName
+        SELECT TOP 1 u.*, d.name as departmentName,
+               cm.id as cmId, cm.name as cmName, cm.line as cmLine
         FROM users u
         LEFT JOIN departments d ON u.department = d.id
+        LEFT JOIN machines cm ON u.currentMachine = cm.id
         WHERE u.id = ? OR u.slug = ? OR u.userName = ?
     `, [rawId, term, term]);
 
@@ -126,8 +131,10 @@ export const getUserById = asyncHandler(async (req, res) => {
   user.avatar = parseJSON(user.avatar);
   user.lines = parseJSON(user.lines, []);
   user.machines = parseJSON(user.machines, []);
+  user.currentMachine = user.cmId ? { id: user.cmId, name: user.cmName, lineId: user.cmLine } : null;
   user.department = user.department ? { _id: user.department, name: user.departmentName } : null;
   delete user.departmentName;
+  delete user.cmId; delete user.cmName; delete user.cmLine;
   user._id = user.id; // compat
 
   res.json(new ApiResponse(200, user, "User fetched successfully!"));
@@ -226,7 +233,7 @@ export const updateAvatar = asyncHandler(async (req, res) => {
 
 // Create User
 export const createUser = asyncHandler(async (req, res) => {
-  const { fullName, userName, email, phoneNumber, role = "STUDENT", designation, education, password, unit, doj, dob, department, lines, machines } = req.body;
+  const { fullName, userName, email, phoneNumber, role = "STUDENT", designation, education, password, unit, doj, dob, department, lines, machines, currentMachine } = req.body;
 
   if (!fullName || !userName || !email || !phoneNumber || !password || !unit) {
     throw new ApiError("All fields are required", 400);
@@ -254,10 +261,15 @@ export const createUser = asyncHandler(async (req, res) => {
   const hashedPassword = await bcrypt.hash(password, 10);
   const slug = userName.toLowerCase().replace(/ /g, '-');
 
+  // currentMachine must reference one of the machines being assigned, otherwise it's dropped
+  const assignedMachineIds = (machines || []).map(m => (m && typeof m === 'object') ? m.id : m).map(String);
+  const currentMachineId = currentMachine && typeof currentMachine === 'object' ? currentMachine.id : currentMachine;
+  const resolvedCurrentMachine = (currentMachineId && assignedMachineIds.includes(String(currentMachineId))) ? currentMachineId : null;
+
   const [result] = await pool.query(`
-        INSERT INTO users (fullName, userName, slug, email, phoneNumber, role, designation, education, password, unit, status, doj, dob, department, lines, machines, createdAt, updatedAt)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PRESENT', ?, ?, ?, ?, ?, GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;
-    `, [fullName, userName.toLowerCase(), slug, email.toLowerCase(), phoneNumber, role, designation || 'Employee', education || '', hashedPassword, unit, doj || null, dob || null, department || null, JSON.stringify(lines || []), JSON.stringify(machines || [])]);
+        INSERT INTO users (fullName, userName, slug, email, phoneNumber, role, designation, education, password, unit, status, doj, dob, department, lines, machines, currentMachine, createdAt, updatedAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PRESENT', ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;
+    `, [fullName, userName.toLowerCase(), slug, email.toLowerCase(), phoneNumber, role, designation || 'Employee', education || '', hashedPassword, unit, doj || null, dob || null, department || null, JSON.stringify(lines || []), JSON.stringify(machines || []), resolvedCurrentMachine]);
 
   const newUserId = result[0].id;
 
@@ -269,9 +281,11 @@ export const createUser = asyncHandler(async (req, res) => {
   });
 
   const [newUser] = await pool.query(`
-        SELECT u.*, d.name as departmentName
+        SELECT u.*, d.name as departmentName,
+               cm.id as cmId, cm.name as cmName, cm.line as cmLine
         FROM users u
         LEFT JOIN departments d ON u.department = d.id
+        LEFT JOIN machines cm ON u.currentMachine = cm.id
         WHERE u.id = ?
     `, [newUserId]);
   const u = newUser[0];
@@ -280,6 +294,8 @@ export const createUser = asyncHandler(async (req, res) => {
   delete u.departmentName;
   u.lines = parseJSON(u.lines, []);
   u.machines = parseJSON(u.machines, []);
+  u.currentMachine = u.cmId ? { id: u.cmId, name: u.cmName, lineId: u.cmLine } : null;
+  delete u.cmId; delete u.cmName; delete u.cmLine;
   u._id = u.id;
 
   await logAudit(req.user.id, "CREATE_USER", { userId: u.id, role });
@@ -302,7 +318,7 @@ export const createUser = asyncHandler(async (req, res) => {
 // Update User
 export const updateUser = asyncHandler(async (req, res) => {
   const userId = req.params.id;
-  const { fullName, userName, email, phoneNumber, role, designation, education, status, unit, doj, dob, department, lines, machines } = req.body;
+  const { fullName, userName, email, phoneNumber, role, designation, education, status, unit, doj, dob, department, lines, machines, currentMachine } = req.body;
 
   const [rows] = await pool.query("SELECT * FROM users WHERE id = ?", [userId]);
   if (rows.length === 0) throw new ApiError("User not found", 404);
@@ -367,23 +383,39 @@ export const updateUser = asyncHandler(async (req, res) => {
   if (lines !== undefined) { updates.push("lines = ?"); values.push(JSON.stringify(lines || [])); }
   if (machines !== undefined) { updates.push("machines = ?"); values.push(JSON.stringify(machines || [])); }
 
+  // currentMachine must always reference a machine still in the (possibly just-updated) machines
+  // list; otherwise it's cleared. Re-evaluated whenever either field changes.
+  if (currentMachine !== undefined || machines !== undefined) {
+    const effectiveMachineIds = (machines !== undefined ? (machines || []) : parseJSON(user.machines, []))
+      .map(m => (m && typeof m === 'object') ? m.id : m)
+      .map(String);
+    let resolvedCurrentMachine = currentMachine !== undefined ? currentMachine : user.currentMachine;
+    resolvedCurrentMachine = (resolvedCurrentMachine && typeof resolvedCurrentMachine === 'object') ? resolvedCurrentMachine.id : resolvedCurrentMachine;
+    if (!resolvedCurrentMachine || !effectiveMachineIds.includes(String(resolvedCurrentMachine))) {
+      resolvedCurrentMachine = null;
+    }
+    updates.push("currentMachine = ?"); values.push(resolvedCurrentMachine);
+  }
+
   if (values.length > 0) {
     await pool.query(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`, [...values, userId]);
   }
 
-  if (department !== undefined || machines !== undefined) {
-    await syncUserRelations({
-      userId,
-      oldDepartmentId: user.department,
-      newDepartmentId: department !== undefined ? (department || null) : undefined,
-      machineIds: machines !== undefined ? (machines || []) : undefined,
-    });
-  }
+  // Always resync — self-healing even when this update didn't touch department/machines,
+  // e.g. recovers a user whose department/machine_operators rows drifted out of sync earlier.
+  await syncUserRelations({
+    userId,
+    oldDepartmentId: user.department,
+    newDepartmentId: department !== undefined ? (department || null) : (user.department || null),
+    machineIds: machines !== undefined ? (machines || []) : undefined,
+  });
 
   const [updated] = await pool.query(`
-        SELECT u.*, d.name as departmentName 
-        FROM users u 
-        LEFT JOIN departments d ON u.department = d.id 
+        SELECT u.*, d.name as departmentName,
+               cm.id as cmId, cm.name as cmName, cm.line as cmLine
+        FROM users u
+        LEFT JOIN departments d ON u.department = d.id
+        LEFT JOIN machines cm ON u.currentMachine = cm.id
         WHERE u.id = ?
     `, [userId]);
 
@@ -393,6 +425,8 @@ export const updateUser = asyncHandler(async (req, res) => {
   delete u.departmentName;
   u.lines = parseJSON(u.lines, []);
   u.machines = parseJSON(u.machines, []);
+  u.currentMachine = u.cmId ? { id: u.cmId, name: u.cmName, lineId: u.cmLine } : null;
+  delete u.cmId; delete u.cmName; delete u.cmLine;
   u._id = u.id;
 
   await logAudit(req.user.id, "UPDATE_USER", { userId });
@@ -492,9 +526,11 @@ export const getAllStudents = asyncHandler(async (req, res) => {
   // Enrolled courses? Complex join. Skipping or fetching separately if critical.
   // Basic fetch:
   const [students] = await pool.query(`
-        SELECT u.*, d.name as deptName, d.instructor as deptInstructor
+        SELECT u.*, d.name as deptName, d.instructor as deptInstructor,
+               cm.id as cmId, cm.name as cmName, cm.line as cmLine
         FROM users u
         LEFT JOIN departments d ON u.department = d.id
+        LEFT JOIN machines cm ON u.currentMachine = cm.id
         WHERE ${whereSQL}
         ORDER BY u.createdAt DESC
         OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
@@ -507,6 +543,7 @@ export const getAllStudents = asyncHandler(async (req, res) => {
     avatar: parseJSON(u.avatar),
     lines: parseJSON(u.lines, []),
     machines: parseJSON(u.machines, []),
+    currentMachine: u.cmId ? { id: u.cmId, name: u.cmName, lineId: u.cmLine } : null,
     department: u.department ? { _id: u.department, name: u.deptName, instructor: u.deptInstructor } : null
   }));
 

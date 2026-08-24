@@ -1,5 +1,17 @@
 import axiosBaseQuery from "@/Helper/axiosBaseQuery";
 import { createApi } from "@reduxjs/toolkit/query/react";
+import { userApi } from "./UserApi";
+import { instructorApi } from "./InstructorApi";
+
+// Adding/removing students (and creating/deleting departments outright) mirrors changes
+// onto the users table server-side, so the Students page's caches need invalidating too.
+const invalidateUserCaches = async (_arg, { dispatch, queryFulfilled }) => {
+    try {
+        await queryFulfilled;
+        dispatch(userApi.util.invalidateTags(['User']));
+        dispatch(instructorApi.util.invalidateTags(['Instructor']));
+    } catch { }
+};
 
 export const departmentApi = createApi({
     reducerPath: "departmentApi",
@@ -13,6 +25,7 @@ export const departmentApi = createApi({
                 data: { name, instructorId, courseId, courseIds, startDate, endDate, capacity, unit }
             }),
             invalidatesTags: ['Department'],
+            onQueryStarted: invalidateUserCaches,
         }),
 
         assignInstructor: builder.mutation({
@@ -41,6 +54,7 @@ export const departmentApi = createApi({
                 data: { departmentId, studentId, studentIds }
             }),
             invalidatesTags: ['Department'],
+            onQueryStarted: invalidateUserCaches,
         }),
 
         removeStudentFromDepartment: builder.mutation({
@@ -50,6 +64,7 @@ export const departmentApi = createApi({
                 data: { departmentId, studentId }
             }),
             invalidatesTags: ['Department'],
+            onQueryStarted: invalidateUserCaches,
         }),
 
         getAllDepartments: builder.query({
@@ -76,6 +91,7 @@ export const departmentApi = createApi({
                 data: data
             }),
             invalidatesTags: ['Department'],
+            onQueryStarted: invalidateUserCaches,
         }),
 
         deleteDepartment: builder.mutation({
@@ -84,6 +100,7 @@ export const departmentApi = createApi({
                 method: "DELETE",
             }),
             invalidatesTags: ['Department'],
+            onQueryStarted: invalidateUserCaches,
         }),
 
         getDepartmentProgress: builder.query({

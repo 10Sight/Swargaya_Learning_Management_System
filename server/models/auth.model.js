@@ -34,6 +34,7 @@ class User {
         this.departments = typeof data.departments === 'string' ? JSON.parse(data.departments) : (data.departments || []);
         this.lines = typeof data.lines === 'string' ? JSON.parse(data.lines) : (data.lines || []);
         this.machines = typeof data.machines === 'string' ? JSON.parse(data.machines) : (data.machines || []);
+        this.currentMachine = data.currentMachine ?? null;
         this.unit = data.unit;
         this.doj = data.doj ? new Date(data.doj) : null;
         this.dob = data.dob ? new Date(data.dob) : null;
@@ -77,6 +78,7 @@ class User {
                     departments NVARCHAR(MAX),
                     lines NVARCHAR(MAX),
                     machines NVARCHAR(MAX),
+                    currentMachine INT NULL,
                     unit NVARCHAR(50) NOT NULL,
                     doj DATETIME,
                     dob DATETIME,
@@ -131,6 +133,13 @@ class User {
                 BEGIN
                     ALTER TABLE dbo.users ADD education NVARCHAR(255) NULL;
                 END
+                IF NOT EXISTS (
+                    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'currentMachine'
+                )
+                BEGIN
+                    ALTER TABLE dbo.users ADD currentMachine INT NULL;
+                END
             END
         `;
         try {
@@ -161,7 +170,7 @@ class User {
             "fullName", "userName", "slug", "email", "phoneNumber", "password",
             "avatar", "refreshToken", "role", "designation", "education", "currentLevel", "status", "isVerified",
             "enrolledCourses", "createdCourses", "lastLogin", "loginHistory",
-            "isDeleted", "department", "departments", "lines", "machines", "unit", "doj", "dob", "createdAt"
+            "isDeleted", "department", "departments", "lines", "machines", "currentMachine", "unit", "doj", "dob", "createdAt"
         ];
 
         // Apply defaults if fields are missing in userData
@@ -270,7 +279,7 @@ class User {
             "fullName", "userName", "slug", "email", "phoneNumber", "password",
             "avatar", "refreshToken", "role", "designation", "education", "currentLevel", "status", "isVerified",
             "enrolledCourses", "createdCourses", "lastLogin", "loginHistory",
-            "isDeleted", "department", "departments", "lines", "machines", "unit", "doj", "dob", "leavingDate", "resetPasswordToken", "resetPasswordExpiry", "updatedAt"
+            "isDeleted", "department", "departments", "lines", "machines", "currentMachine", "unit", "doj", "dob", "leavingDate", "resetPasswordToken", "resetPasswordExpiry", "updatedAt"
         ];
 
         // Only update fields that are defined on the instance

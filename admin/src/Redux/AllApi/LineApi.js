@@ -1,5 +1,13 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import axiosBaseQuery from "@/Helper/axiosBaseQuery";
+import { departmentApi } from "./DepartmentApi";
+
+const invalidateDepartmentCache = async (_arg, { dispatch, queryFulfilled }) => {
+    try {
+        await queryFulfilled;
+        dispatch(departmentApi.util.invalidateTags(['Department']));
+    } catch { }
+};
 
 export const LineApi = createApi({
     reducerPath: "LineApi",
@@ -14,6 +22,7 @@ export const LineApi = createApi({
                 data,
             }),
             invalidatesTags: ["Line"],
+            onQueryStarted: invalidateDepartmentCache,
         }),
 
         // Get Lines by Department
@@ -33,6 +42,7 @@ export const LineApi = createApi({
                 data,
             }),
             invalidatesTags: ["Line"],
+            onQueryStarted: invalidateDepartmentCache,
         }),
 
         // Delete Line
@@ -42,6 +52,7 @@ export const LineApi = createApi({
                 method: "DELETE",
             }),
             invalidatesTags: ["Line"],
+            onQueryStarted: invalidateDepartmentCache,
         }),
     }),
 });

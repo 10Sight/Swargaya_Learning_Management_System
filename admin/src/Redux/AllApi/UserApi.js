@@ -1,5 +1,22 @@
 import axiosBaseQuery from "@/Helper/axiosBaseQuery";
 import { createApi } from "@reduxjs/toolkit/query/react";
+import { instructorApi } from "./InstructorApi";
+import { departmentApi } from "./DepartmentApi";
+import { MachineApi } from "./MachineApi";
+import { LineApi } from "./LineApi";
+
+// A user's department/lines/machines are mirrored into department, machine, and line
+// records server-side, so a user mutation here must also invalidate those other API
+// slices' caches or the Students page and the Department/Machine/Line pages drift apart.
+const invalidateRelatedCaches = async (_arg, { dispatch, queryFulfilled }) => {
+    try {
+        await queryFulfilled;
+        dispatch(instructorApi.util.invalidateTags(['Instructor']));
+        dispatch(departmentApi.util.invalidateTags(['Department']));
+        dispatch(MachineApi.util.invalidateTags(['Machine']));
+        dispatch(LineApi.util.invalidateTags(['Line']));
+    } catch { }
+};
 
 export const userApi = createApi({
     reducerPath: "userApi",
@@ -49,6 +66,7 @@ export const userApi = createApi({
                 data: userData
             }),
             invalidatesTags: ['User'],
+            onQueryStarted: invalidateRelatedCaches,
         }),
 
         createUser: builder.mutation({
@@ -58,6 +76,7 @@ export const userApi = createApi({
                 data: userData
             }),
             invalidatesTags: ['User'],
+            onQueryStarted: invalidateRelatedCaches,
         }),
 
         deleteUser: builder.mutation({
@@ -66,6 +85,7 @@ export const userApi = createApi({
                 method: "DELETE",
             }),
             invalidatesTags: ['User'],
+            onQueryStarted: invalidateRelatedCaches,
         }),
 
         // Super Admin functions
