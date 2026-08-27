@@ -636,7 +636,7 @@ const SkillMatrix = () => {
         // --- Table Headers ---
         // Row 6: Main Headers
         const headerRowIndex = 6;
-        const headers = ["Sr No", "ID", "Name", "Department", "Type", "Emp.id", "Education", "DOJ", "Assigned Station"];
+        const headers = ["Sr No", "ID", "Name", "Department", "Emp.id", "Education", "DOJ", "Assigned Station"];
 
         // Machine Columns
         const machines = machinesData?.data || [];
@@ -673,7 +673,6 @@ const SkillMatrix = () => {
                 entry.isManual ? "-" : entry._id, // Hide ID for manual rows if needed, or show manual ID
                 entry.name,
                 entry.department,
-                entry.type,
                 entry.username || "-",
                 entry.education || "-",
                 entry.doj,
@@ -1004,7 +1003,6 @@ const SkillMatrix = () => {
                     <div className="flex border-b border-black text-[10px] font-bold bg-[#e5e7eb] text-center">
                         <div className="w-8 border-r border-black p-2 flex items-center justify-center">Sr.No.</div>
                         <div className="w-32 border-r border-black p-2 flex items-center justify-center">OPERATOR NAME</div>
-                        <div className="w-12 border-r border-black p-2 flex items-center justify-center">TNR/EMP</div>
                         <div className="w-16 border-r border-black p-2 flex items-center justify-center">Emp.id</div>
                         <div className="w-20 border-r border-black p-2 flex items-center justify-center">Education</div>
                         <div className="w-16 border-r border-black p-2 flex items-center justify-center">MATA/CAS</div>
@@ -1051,7 +1049,6 @@ const SkillMatrix = () => {
                                         row.name
                                     )}
                                 </div>
-                                <div className="w-12 border-r border-black p-2 flex items-center justify-center font-bold">{row.type}</div>
                                 <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold">{row.username || "-"}</div>
                                 <div className="w-20 border-r border-black p-2 flex items-center justify-center font-bold">{row.education || "-"}</div>
                                 <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold">
