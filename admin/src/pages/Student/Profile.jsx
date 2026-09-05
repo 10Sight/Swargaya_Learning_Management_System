@@ -5,6 +5,7 @@ import AccountStatusNotification from '../../components/student/AccountStatusNot
 import AccountStatusWrapper from '../../components/student/AccountStatusWrapper';
 import { useUpdateAvatarMutation } from '@/Redux/AllApi/UserApi';
 import { profile } from '@/Redux/Slice/AuthSlice';
+import { BRAND } from '@/utils/brandColors';
 
 const Profile = () => {
   const dispatch = useDispatch();
@@ -46,7 +47,7 @@ const Profile = () => {
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2563eb]"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: BRAND.blue }}></div>
       </div>
     );
   }
@@ -87,11 +88,11 @@ const Profile = () => {
 
         <div className="bg-white shadow-lg rounded-xl overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-[#3b82f6] to-[#2563eb] px-6 py-8">
+          <div className="px-6 py-8" style={{ background: `linear-gradient(135deg, ${BRAND.navy}, ${BRAND.blueDark})` }}>
             <div className="flex items-center space-x-6">
               <div className="relative">
                 <img
-                  src={preview || user.avatar?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || user.userName)}&background=ffffff&color=2563eb&size=128`}
+                  src={preview || user.avatar?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || user.userName)}&background=ffffff&color=0090CE&size=128`}
                   alt="Profile"
                   className="w-24 h-24 rounded-full border-4 border-white shadow-lg object-cover"
                 />
@@ -99,7 +100,8 @@ const Profile = () => {
                 <button
                   type="button"
                   onClick={onPickImage}
-                  className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-white text-[#2563eb] rounded-full p-2 shadow hover:bg-[#eff6ff]"
+                  className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-white rounded-full p-2 shadow hover:bg-[#E3F4FC]"
+                  style={{ color: BRAND.blue }}
                   title="Change profile picture"
                 >
                   <IconCamera className="w-4 h-4" />
@@ -110,7 +112,10 @@ const Profile = () => {
                       type="button"
                       onClick={onUpload}
                       disabled={uploading}
-                      className="px-3 py-1 bg-[#2563eb] text-white rounded hover:bg-[#1d4ed8] text-xs"
+                      className="px-3 py-1 text-white rounded text-xs"
+                      style={{ backgroundColor: BRAND.blue }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = BRAND.blueDark; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = BRAND.blue; }}
                     >
                       {uploading ? 'Saving...' : 'Save'}
                     </button>
@@ -129,16 +134,16 @@ const Profile = () => {
               </div>
               <div className="text-white">
                 <h1 className="text-3xl font-bold mb-2">{user.fullName}</h1>
-                <p className="text-[#dbeafe] text-lg">@{user.userName}</p>
-                <p className="text-[#bfdbfe] capitalize">{user.role?.toLowerCase()}</p>
+                <p className="text-lg" style={{ color: BRAND.blueSoft }}>@{user.userName}</p>
+                <p className="capitalize" style={{ color: `${BRAND.blueSoft}cc` }}>{user.role?.toLowerCase()}</p>
               </div>
             </div>
           </div>
 
           {/* Profile Information */}
           <div className="p-6">
-            <h2 className="text-xl font-semibold text-[#111827] mb-6 flex items-center">
-              <IconUser className="w-5 h-5 mr-2 text-[#2563eb]" />
+            <h2 className="text-xl font-semibold text-slate-800 mb-6 flex items-center">
+              <IconUser className="w-5 h-5 mr-2" style={{ color: BRAND.blue }} />
               Personal Information
             </h2>
 
@@ -200,38 +205,40 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* Account Status Information */}
-            {user.status !== 'ACTIVE' && (
-              <div className="mt-8 p-6 bg-[#f9fafb] rounded-lg">
-                <h3 className="text-lg font-medium text-[#111827] mb-3">Account Status Information</h3>
-                {user.status === 'PENDING' && (
-                  <p className="text-[#374151]">
-                    Your account is currently pending approval from an administrator. Once approved,
-                    you will have full access to all learning materials and features.
-                  </p>
-                )}
-                {user.status === 'SUSPENDED' && (
-                  <p className="text-[#374151]">
-                    Your account has been suspended. This may be temporary. Please contact your
-                    instructor or administrator for more information about restoring your access.
-                  </p>
-                )}
-                {user.status === 'BANNED' && (
-                  <p className="text-[#374151]">
-                    Your account has been banned from the platform. Please contact your instructor
-                    or administrator if you believe this is an error.
-                  </p>
-                )}
-              </div>
-            )}
+            <div className={`mt-8 grid grid-cols-1 gap-6 ${user.status !== 'ACTIVE' ? 'md:grid-cols-2' : ''}`}>
+              {/* Account Status Information */}
+              {user.status !== 'ACTIVE' && (
+                <div className="p-6 bg-[#f9fafb] rounded-lg">
+                  <h3 className="text-lg font-medium text-[#111827] mb-3">Account Status Information</h3>
+                  {user.status === 'PENDING' && (
+                    <p className="text-[#374151]">
+                      Your account is currently pending approval from an administrator. Once approved,
+                      you will have full access to all learning materials and features.
+                    </p>
+                  )}
+                  {user.status === 'SUSPENDED' && (
+                    <p className="text-[#374151]">
+                      Your account has been suspended. This may be temporary. Please contact your
+                      instructor or administrator for more information about restoring your access.
+                    </p>
+                  )}
+                  {user.status === 'BANNED' && (
+                    <p className="text-[#374151]">
+                      Your account has been banned from the platform. Please contact your instructor
+                      or administrator if you believe this is an error.
+                    </p>
+                  )}
+                </div>
+              )}
 
-            {/* Contact Information */}
-            <div className="mt-8 p-6 bg-[#eff6ff] border border-[#bfdbfe] rounded-lg">
-              <h3 className="text-lg font-medium text-[#1e3a8a] mb-2">Need Help?</h3>
-              <p className="text-[#1d4ed8]">
-                If you have any questions about your account or need assistance,
-                please contact your instructor or the system administrator.
-              </p>
+              {/* Contact Information */}
+              <div className="p-6 rounded-lg border" style={{ backgroundColor: BRAND.blueSoft, borderColor: `${BRAND.blue}55` }}>
+                <h3 className="text-lg font-medium mb-2" style={{ color: BRAND.navy }}>Need Help?</h3>
+                <p style={{ color: BRAND.blueDark }}>
+                  If you have any questions about your account or need assistance,
+                  please contact your instructor or the system administrator.
+                </p>
+              </div>
             </div>
           </div>
         </div>

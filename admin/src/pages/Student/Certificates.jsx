@@ -21,6 +21,7 @@ import {
   Printer
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { BRAND } from '@/utils/brandColors'
 
 const Certificates = () => {
   const [selectedCertificate, setSelectedCertificate] = useState(null)
@@ -58,17 +59,17 @@ const Certificates = () => {
   }
 
   const getGradeBadgeColor = (grade) => {
-    if (!grade) return 'bg-[#f3f4f6] text-[#1f2937]';
+    if (!grade) return 'bg-[#f1f5f9] text-[#475569]';
 
     switch (grade.toString().toUpperCase()) {
       case 'A+':
-      case 'A': return 'bg-[#dcfce7] text-[#166534]'
+      case 'A': return 'bg-[#E3F4FC] text-[#0F2A4F]'
       case 'B+':
-      case 'B': return 'bg-[#dbeafe] text-[#1e40af]'
+      case 'B': return 'bg-[#E3F4FC] text-[#0090CE]'
       case 'C+':
-      case 'C': return 'bg-[#fef9c3] text-[#854d0e]'
-      case 'PASS': return 'bg-[#10b981] text-[#065f46]'
-      default: return 'bg-[#f3f4f6] text-[#1f2937]'
+      case 'C': return 'bg-[#f1f5f9] text-[#475569]'
+      case 'PASS': return 'bg-emerald-50 text-emerald-700'
+      default: return 'bg-[#f1f5f9] text-[#475569]'
     }
   }
 
@@ -489,12 +490,15 @@ const Certificates = () => {
       {/* Header */}
       <div className="text-center space-y-4">
         <div className="flex justify-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-[#facc15] to-[#f97316] rounded-full flex items-center justify-center">
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center"
+            style={{ background: `linear-gradient(135deg, ${BRAND.navy}, ${BRAND.blueDark})` }}
+          >
             <Award className="h-8 w-8 text-white" />
           </div>
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-[#111827]">My Certificates</h1>
+          <h1 className="text-3xl font-bold text-slate-800">My Certificates</h1>
           <p className="text-lg text-muted-foreground mt-2">
             Your earned course completion certificates
           </p>
@@ -505,11 +509,11 @@ const Certificates = () => {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardContent className="flex items-center p-6">
-            <div className="flex items-center justify-center w-12 h-12 bg-[#fef9c3] rounded-lg mr-4">
-              <Award className="h-6 w-6 text-[#ca8a04]" />
+            <div className="flex items-center justify-center w-12 h-12 rounded-lg mr-4" style={{ backgroundColor: BRAND.blueSoft }}>
+              <Award className="h-6 w-6" style={{ color: BRAND.blue }} />
             </div>
             <div>
-              <p className="text-2xl font-bold text-[#111827]">{certificates.length}</p>
+              <p className="text-2xl font-bold text-slate-800">{certificates.length}</p>
               <p className="text-sm text-muted-foreground">Total Certificates</p>
             </div>
           </CardContent>
@@ -517,11 +521,11 @@ const Certificates = () => {
 
         <Card>
           <CardContent className="flex items-center p-6">
-            <div className="flex items-center justify-center w-12 h-12 bg-[#dcfce7] rounded-lg mr-4">
-              <GraduationCap className="h-6 w-6 text-[#16a34a]" />
+            <div className="flex items-center justify-center w-12 h-12 rounded-lg mr-4" style={{ backgroundColor: 'rgba(15, 42, 79, 0.08)' }}>
+              <GraduationCap className="h-6 w-6" style={{ color: BRAND.navy }} />
             </div>
             <div>
-              <p className="text-2xl font-bold text-[#111827]">
+              <p className="text-2xl font-bold text-slate-800">
                 {certificates.filter(c => c.status === 'ACTIVE').length}
               </p>
               <p className="text-sm text-muted-foreground">Active Certificates</p>
@@ -531,11 +535,11 @@ const Certificates = () => {
 
         <Card>
           <CardContent className="flex items-center p-6">
-            <div className="flex items-center justify-center w-12 h-12 bg-[#dbeafe] rounded-lg mr-4">
-              <Calendar className="h-6 w-6 text-[#2563eb]" />
+            <div className="flex items-center justify-center w-12 h-12 rounded-lg mr-4" style={{ backgroundColor: BRAND.redSoft }}>
+              <Calendar className="h-6 w-6" style={{ color: BRAND.red }} />
             </div>
             <div>
-              <p className="text-2xl font-bold text-[#111827]">
+              <p className="text-2xl font-bold text-slate-800">
                 {certificates.length > 0
                   ? new Date(Math.max(...certificates.map(c => new Date(c.issueDate)))).getFullYear()
                   : 'N/A'
@@ -552,14 +556,18 @@ const Certificates = () => {
         certificates.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {certificates.map((certificate) => (
-              <Card key={certificate._id} className="hover:shadow-lg transition-shadow">
+              <Card key={certificate._id} className="relative overflow-hidden hover:shadow-lg transition-shadow">
+                <div
+                  className="absolute top-0 left-0 right-0 h-1"
+                  style={{ background: `linear-gradient(90deg, ${BRAND.navy}, ${BRAND.blueDark})` }}
+                ></div>
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <CardTitle className="text-lg leading-6 mb-2">
                         {certificate.course?.title || 'Course Certificate'}
-                        {certificate.level && <span className="block text-sm font-medium text-[#2563eb] mt-1">({certificate.level})</span>}
-                        {certificate.type === 'SKILL_UPGRADATION' && !certificate.level && <span className="block text-sm font-medium text-[#2563eb] mt-1">(Skill Upgradation)</span>}
+                        {certificate.level && <span className="block text-sm font-medium mt-1" style={{ color: BRAND.blue }}>({certificate.level})</span>}
+                        {certificate.type === 'SKILL_UPGRADATION' && !certificate.level && <span className="block text-sm font-medium mt-1" style={{ color: BRAND.blue }}>(Skill Upgradation)</span>}
                       </CardTitle>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                         <Calendar className="h-4 w-4" />
@@ -631,11 +639,11 @@ const Certificates = () => {
           <Card className="text-center py-12">
             <CardContent>
               <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 bg-[#f3f4f6] rounded-full flex items-center justify-center">
-                  <Award className="h-8 w-8 text-[#9ca3af]" />
+                <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: BRAND.blueSoft }}>
+                  <Award className="h-8 w-8" style={{ color: BRAND.blue }} />
                 </div>
               </div>
-              <h3 className="text-xl font-semibold text-[#111827] mb-2">No Certificates Yet</h3>
+              <h3 className="text-xl font-semibold text-slate-800 mb-2">No Certificates Yet</h3>
               <p className="text-muted-foreground mb-4">
                 Complete your courses to earn certificates that showcase your achievements!
               </p>
@@ -664,7 +672,7 @@ const Certificates = () => {
             {/* Modal Content */}
             <div className="relative w-full h-full max-w-[95vw] max-h-[95vh] bg-white/95 shadow-2xl rounded-xl overflow-hidden flex flex-col border border-white/20 animate-in fade-in zoom-in-95 duration-200">
               <div className="flex items-center justify-between px-6 py-4 border-b border-[#f3f4f6] bg-white/50 backdrop-blur-sm sticky top-0 z-10">
-                <h2 className="text-xl font-semibold text-[#1f2937]">
+                <h2 className="text-xl font-semibold" style={{ color: BRAND.navy }}>
                   Certificate - {selectedCertificate?.course?.title}
                 </h2>
                 <Button
@@ -759,11 +767,19 @@ const Certificates = () => {
               </div>
 
               <div className="px-6 py-4 border-t border-[#f3f4f6] bg-white/50 flex justify-end gap-3 backdrop-blur-sm">
-                <Button onClick={() => handlePrintCertificate(selectedCertificate)}>
+                <Button
+                  onClick={() => handlePrintCertificate(selectedCertificate)}
+                  className="text-white border-0"
+                  style={{ background: `linear-gradient(135deg, ${BRAND.navy}, ${BRAND.blueDark})` }}
+                >
                   <Printer className="h-4 w-4 mr-2" />
                   Print
                 </Button>
-                <Button onClick={() => handleDownloadCertificate(selectedCertificate)}>
+                <Button
+                  onClick={() => handleDownloadCertificate(selectedCertificate)}
+                  className="text-white border-0"
+                  style={{ background: `linear-gradient(135deg, ${BRAND.navy}, ${BRAND.blueDark})` }}
+                >
                   <Download className="h-4 w-4 mr-2" />
                   Download
                 </Button>
