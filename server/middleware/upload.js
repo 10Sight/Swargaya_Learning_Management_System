@@ -1,6 +1,7 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { isAllowedUpload } from '../config/resourceTypes.config.js';
 
 // Ensure upload directory exists
 const uploadDir = 'uploads';
@@ -21,26 +22,14 @@ const storage = multer.diskStorage({
   }
 });
 
-// File filter to check file types
+// Stream-level MIME + extension verification against the resource type matrix.
+// This only confirms the file is *some* supported type; resource.controller.js
+// separately cross-checks it against the declared `type` field.
 const fileFilter = (req, file, cb) => {
-  // Broaden allowed types to include MS Office and other documents
-  const allowedExtensions = /jpeg|jpg|png|gif|pdf|doc|docx|xls|xlsx|ppt|pptx|txt|mp4|mov|avi|wmv|webm/;
-  const extname = allowedExtensions.test(path.extname(file.originalname).toLowerCase());
-  
-  // For mimetypes, we'll be more inclusive for application types (Office docs)
-  const isDocument = file.mimetype.includes('application/vnd') || 
-                     file.mimetype.includes('application/msword') ||
-                     file.mimetype.includes('application/pdf') ||
-                     file.mimetype.includes('text/plain');
-                     
-  const isImage = file.mimetype.startsWith('image/');
-  const isVideo = file.mimetype.startsWith('video/');
-
-  if (extname && (isDocument || isImage || isVideo)) {
+  if (isAllowedUpload(file.originalname, file.mimetype)) {
     return cb(null, true);
-  } else {
-    cb(new Error('Invalid file type. Only images, documents (PDF, Word, Excel, PPT), and videos are allowed.'));
   }
+  cb(new Error('Invalid file type. Only images, videos, PDFs, text files, and Office documents (Word, Excel, PowerPoint) are allowed.'));
 };
 
 // Configure multer

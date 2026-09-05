@@ -272,6 +272,7 @@ const Course = () => {
   const [departmentFilter, setDepartmentFilter] = useState("ALL");
   const [lineFilter, setLineFilter] = useState("ALL");
   const [machineFilter, setMachineFilter] = useState("ALL");
+  const [unitFilter, setUnitFilter] = useState("ALL");
   const [activeTab, setActiveTab] = useState("all");
 
   // Filter row: Department -> Line -> Machine (single-select cascading filters)
@@ -322,6 +323,7 @@ const Course = () => {
       search: debouncedSearchTerm || "",
       category: categoryFilter !== "ALL" ? categoryFilter : "",
       status: statusFilter !== "ALL" ? statusFilter : "",
+      unit: isSuperAdmin && unitFilter !== "ALL" ? unitFilter : "",
     },
     {
       refetchOnMountOrArgChange: true,
@@ -379,6 +381,11 @@ const Course = () => {
     ...filterMachines.map((machine) => ({ value: String(machine.id), label: machine.name })),
   ];
 
+  const unitOptions = [
+    { value: "ALL", label: "All Units" },
+    ...allUnits.map((u) => ({ value: u.title, label: u.title })),
+  ];
+
   // Client-side narrowing by Department/Line/Machine (associations are multi-select,
   // so this mirrors how Students.jsx filters on a user's assigned lines/machines).
   const filteredCourses = useMemo(() => {
@@ -432,12 +439,16 @@ const Course = () => {
       filters.push({ label: "Machine", value: machineLabel });
     }
 
+    if (isSuperAdmin && unitFilter !== "ALL") {
+      filters.push({ label: "Unit", value: unitFilter });
+    }
+
     if (searchTerm) {
       filters.push({ label: "Search", value: searchTerm });
     }
 
     return filters;
-  }, [statusFilter, categoryFilter, departmentFilter, lineFilter, machineFilter, searchTerm, statusOptions]);
+  }, [statusFilter, categoryFilter, departmentFilter, lineFilter, machineFilter, unitFilter, isSuperAdmin, searchTerm, statusOptions]);
 
   // Toast helpers
   const showToast = useCallback(
@@ -679,6 +690,7 @@ const Course = () => {
     setDepartmentFilter("ALL");
     setLineFilter("ALL");
     setMachineFilter("ALL");
+    setUnitFilter("ALL");
     setSearchTerm("");
     setActiveTab("all");
   };
@@ -911,6 +923,20 @@ const Course = () => {
                   className="min-w-0 xs:w-[140px]"
                   disabled={lineFilter === "ALL" || filterMachinesLoading}
                 />
+
+                {isSuperAdmin && (
+                  <FilterSelect
+                    value={unitFilter}
+                    onValueChange={(v) => {
+                      setUnitFilter(v);
+                      setCurrentPage(1);
+                    }}
+                    options={unitOptions}
+                    placeholder="Unit"
+                    icon={IconFilter}
+                    className="min-w-0 xs:w-[140px]"
+                  />
+                )}
               </div>
 
               {(statusFilter !== "ALL" ||
@@ -918,6 +944,7 @@ const Course = () => {
                 departmentFilter !== "ALL" ||
                 lineFilter !== "ALL" ||
                 machineFilter !== "ALL" ||
+                (isSuperAdmin && unitFilter !== "ALL") ||
                 searchTerm) && (
                   <Button
                     variant="outline"
@@ -943,7 +970,8 @@ const Course = () => {
                       format: 'excel',
                       category: categoryFilter !== 'ALL' ? categoryFilter : '',
                       status: statusFilter !== 'ALL' ? statusFilter : '',
-                      search: debouncedSearchTerm || ''
+                      search: debouncedSearchTerm || '',
+                      unit: isSuperAdmin && unitFilter !== 'ALL' ? unitFilter : ''
                     });
                     const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
                     const url = window.URL.createObjectURL(blob);
@@ -969,7 +997,8 @@ const Course = () => {
                       format: 'pdf',
                       category: categoryFilter !== 'ALL' ? categoryFilter : '',
                       status: statusFilter !== 'ALL' ? statusFilter : '',
-                      search: debouncedSearchTerm || ''
+                      search: debouncedSearchTerm || '',
+                      unit: isSuperAdmin && unitFilter !== 'ALL' ? unitFilter : ''
                     });
                     const blob = new Blob([data], { type: 'application/pdf' });
                     const url = window.URL.createObjectURL(blob);
@@ -1167,7 +1196,8 @@ const Course = () => {
                             categoryFilter !== "ALL" ||
                             departmentFilter !== "ALL" ||
                             lineFilter !== "ALL" ||
-                            machineFilter !== "ALL"
+                            machineFilter !== "ALL" ||
+                            (isSuperAdmin && unitFilter !== "ALL")
                             ? "Try adjusting your search or filters"
                             : "Add your first course to get started"}
                         </p>
@@ -1176,7 +1206,8 @@ const Course = () => {
                           categoryFilter !== "ALL" ||
                           departmentFilter !== "ALL" ||
                           lineFilter !== "ALL" ||
-                          machineFilter !== "ALL") && (
+                          machineFilter !== "ALL" ||
+                          (isSuperAdmin && unitFilter !== "ALL")) && (
                             <Button
                               variant="outline"
                               onClick={clearFilters}
@@ -1305,7 +1336,8 @@ const Course = () => {
                     categoryFilter !== "ALL" ||
                     departmentFilter !== "ALL" ||
                     lineFilter !== "ALL" ||
-                    machineFilter !== "ALL"
+                    machineFilter !== "ALL" ||
+                    (isSuperAdmin && unitFilter !== "ALL")
                     ? "Try adjusting your search or filters"
                     : "Add your first course to get started"}
                 </p>
@@ -1314,7 +1346,8 @@ const Course = () => {
                   categoryFilter !== "ALL" ||
                   departmentFilter !== "ALL" ||
                   lineFilter !== "ALL" ||
-                  machineFilter !== "ALL") && (
+                  machineFilter !== "ALL" ||
+                  (isSuperAdmin && unitFilter !== "ALL")) && (
                     <Button
                       variant="outline"
                       onClick={clearFilters}

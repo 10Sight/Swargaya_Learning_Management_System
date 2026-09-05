@@ -16,10 +16,10 @@ export const courseApi = createApi({
         }),
 
         getCourses: builder.query({
-            query: ({ page = 1, limit = 10, category = "", level = "", search = "", status = "" } = {}) => ({
+            query: ({ page = 1, limit = 10, category = "", level = "", search = "", status = "", unit = "" } = {}) => ({
                 url: "/api/courses",
                 method: "GET",
-                params: { page, limit, category, level, search, status }
+                params: { page, limit, category, level, search, status, unit }
             }),
             providesTags: ['Course'],
         }),
@@ -78,10 +78,10 @@ export const courseApi = createApi({
         }),
 
         exportCourses: builder.query({
-            query: ({ format = 'excel', category = '', level = '', search = '', status = '' } = {}) => ({
+            query: ({ format = 'excel', category = '', level = '', search = '', status = '', unit = '' } = {}) => ({
                 url: `/api/exports/courses`,
                 method: "GET",
-                params: { format, category, level, search, status },
+                params: { format, category, level, search, status, unit },
                 responseHandler: (response) => response.data
             }),
             keepUnusedDataFor: 0,

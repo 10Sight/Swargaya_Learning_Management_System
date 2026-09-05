@@ -93,23 +93,24 @@ const StudentCourseResources = ({ resources, courseTitle }) => {
   }
 
   return (
-    <Card className="border-[#d8b4fe] bg-gradient-to-br from-[#faf5ff] via-[#fdf2f8] to-[#fff1f2] shadow-xl">
-      <CardHeader className="pb-3 sm:pb-4 bg-gradient-to-r from-[#f3e8ff] to-[#fce7f3] border-b border-[#e9d5ff]">
+    <Card className="border-[#fecaca] bg-gradient-to-br from-[#fef2f2] via-[#fff5f5] to-white shadow-xl">
+      <CardHeader className="pb-3 sm:pb-4 bg-gradient-to-r from-[#fee2e2] to-[#fef2f2] border-b border-[#fecaca]">
         <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-          <div className="p-2 bg-[#a855f7] rounded-lg">
+          <div className="p-2 bg-[#dc2626] rounded-lg">
             <GraduationCap className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
           </div>
           <span>Course Resources</span>
-          <Badge className="bg-[#a855f7] text-white border-0 px-3 py-1 text-xs sm:text-sm">
+          <Badge className="bg-[#dc2626] text-white border-0 px-3 py-1 text-xs sm:text-sm">
             {resources.length} resource{resources.length > 1 ? 's' : ''}
           </Badge>
         </CardTitle>
-        <p className="text-xs sm:text-sm text-[#7e22ce] mt-2 leading-relaxed">
+        <p className="text-xs sm:text-sm text-[#b91c1c] mt-2 leading-relaxed">
           Additional course materials and references for your comprehensive learning journey
         </p>
       </CardHeader>
-      <CardContent className="p-4 sm:p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+      <CardContent className="p-3 sm:p-4">
+        {/* Sidebar-constrained: always a single-column compact list, never a multi-column grid */}
+        <div className="flex flex-col gap-3">
           {resources.map((resource, index) => {
             const resourceId = resource._id || resource.id || index;
             const previewImage = getPreviewImage(resource);
@@ -117,118 +118,92 @@ const StudentCourseResources = ({ resources, courseTitle }) => {
             return (
               <div
                 key={resourceId}
-                className="group bg-white rounded-lg border-2 border-[#e9d5ff] overflow-hidden hover:shadow-xl hover:border-[#d8b4fe] transition-all duration-300"
+                className="group bg-white rounded-lg border-2 border-[#fecaca] overflow-hidden hover:shadow-lg hover:border-[#fca5a5] transition-all duration-300"
               >
-                {/* Preview Image Box */}
-                <div
-                  className="relative h-32 sm:h-40 bg-gradient-to-br from-[#f3f4f6] to-[#e5e7eb] cursor-pointer overflow-hidden"
-                  onClick={() => handleResourceView(resource)}
-                >
-                  <img
-                    src={previewImage}
-                    alt={resource.title || `Resource ${index + 1}`}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    onError={(e) => {
-                      // Fallback to icon-based preview if image fails to load
-                      e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
-                    }}
-                  />
-                  {/* Fallback Icon Display */}
-                  <div className="absolute inset-0 hidden items-center justify-center bg-gradient-to-br from-[#f3e8ff] to-[#fce7f3]">
-                    <div className="text-center">
-                      <div className="p-4 bg-[#a855f7] rounded-full mb-2 inline-block">
-                        {getResourceIcon(resource.type)}
-                      </div>
-                      <p className="text-xs text-[#7e22ce] font-medium">
+                <div className="flex items-start gap-3 p-3">
+                  {/* Thumbnail */}
+                  <div
+                    className="relative h-14 w-14 sm:h-16 sm:w-16 shrink-0 rounded-md bg-gradient-to-br from-[#f3f4f6] to-[#e5e7eb] cursor-pointer overflow-hidden"
+                    onClick={() => handleResourceView(resource)}
+                  >
+                    <img
+                      src={previewImage}
+                      alt={resource.title || `Resource ${index + 1}`}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      onError={(e) => {
+                        // Fallback to icon-based preview if image fails to load
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                    {/* Fallback Icon Display */}
+                    <div className="absolute inset-0 hidden items-center justify-center bg-gradient-to-br from-[#fee2e2] to-[#fecaca]">
+                      {getResourceIcon(resource.type)}
+                    </div>
+
+                    {/* Overlay with preview icon */}
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                      <Maximize2 className="h-4 w-4 text-white" />
+                    </div>
+                  </div>
+
+                  {/* Resource Info */}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                      <Badge
+                        className={`text-[10px] font-bold px-1.5 py-0.5 shrink-0 ${resource.type === 'video' ? 'bg-[#ef4444] text-white' :
+                          resource.type === 'pdf' ? 'bg-[#3b82f6] text-white' :
+                            resource.type === 'image' ? 'bg-[#22c55e] text-white' :
+                              resource.type === 'link' ? 'bg-[#a855f7] text-white' :
+                                'bg-[#6b7280] text-white'
+                          }`}
+                      >
                         {resource.type?.toUpperCase() || 'FILE'}
-                      </p>
+                      </Badge>
                     </div>
-                  </div>
-
-                  {/* Overlay with preview icon */}
-                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                    <div className="bg-white/90 rounded-full p-2 sm:p-3">
-                      <Maximize2 className="h-4 w-4 sm:h-5 sm:w-5 text-[#9333ea]" />
-                    </div>
-                  </div>
-
-                  {/* Type Badge */}
-                  <div className="absolute top-2 right-2">
-                    <Badge
-                      className={`text-xs font-bold px-2 py-1 ${resource.type === 'video' ? 'bg-[#ef4444] text-white' :
-                        resource.type === 'pdf' ? 'bg-[#3b82f6] text-white' :
-                          resource.type === 'image' ? 'bg-[#22c55e] text-white' :
-                            resource.type === 'link' ? 'bg-[#a855f7] text-white' :
-                              'bg-[#6b7280] text-white'
-                        }`}
-                    >
-                      {resource.type?.toUpperCase() || 'FILE'}
-                    </Badge>
-                  </div>
-
-                  {/* Course Level Indicator */}
-                  <div className="absolute top-2 left-2">
-                    <Badge className="bg-gradient-to-r from-[#a855f7] to-[#ec4899] text-white text-xs px-2 py-1">
-                      COURSE
-                    </Badge>
+                    <h4 className="text-xs sm:text-sm font-semibold text-[#111827] leading-tight break-words line-clamp-2">
+                      {resource.title || `Resource ${index + 1}`}
+                    </h4>
                   </div>
                 </div>
 
-                {/* Resource Info */}
-                <div className="p-4 min-w-0">
-                  <h4 className="text-sm sm:text-base font-semibold text-[#111827] mb-2 line-clamp-2 leading-tight break-words">
-                    {resource.title || `Resource ${index + 1}`}
-                  </h4>
+                {/* Action Buttons */}
+                <div className="flex gap-2 px-3 pb-3">
+                  <Button
+                    onClick={() => handleResourceView(resource)}
+                    className="flex-1 min-w-0 h-8 text-xs bg-[#dc2626] hover:bg-[#b91c1c] text-white"
+                    size="sm"
+                  >
+                    {resource.type === 'video' ? (
+                      <>
+                        <Play className="h-3 w-3 mr-1 shrink-0" />
+                        <span className="truncate">Play</span>
+                      </>
+                    ) : resource.type === 'link' ? (
+                      <>
+                        <ExternalLink className="h-3 w-3 mr-1 shrink-0" />
+                        <span className="truncate">Visit</span>
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="h-3 w-3 mr-1 shrink-0" />
+                        <span className="truncate">Preview</span>
+                      </>
+                    )}
+                  </Button>
 
-                  {resource.description && (
-                    <p className="text-xs sm:text-sm text-[#4b5563] mb-3 line-clamp-2 leading-relaxed break-words">
-                      {resource.description}
-                    </p>
-                  )}
-
-                  {/* Action Buttons */}
-                  <div className="flex flex-col sm:flex-row gap-2">
+                  {/* Download Button (for non-link resources) */}
+                  {resource.type !== 'link' && (
                     <Button
-                      onClick={() => handleResourceView(resource)}
-                      className="flex-1 h-8 sm:h-9 text-xs sm:text-sm bg-[#9333ea] hover:bg-[#7e22ce] text-white min-h-[44px] sm:min-h-0"
+                      onClick={() => handleDownload(resource.url, resource.title)}
+                      variant="outline"
+                      className="flex-1 min-w-0 h-8 text-xs hover:bg-[#fef2f2] border-[#fecaca] hover:border-[#fca5a5]"
                       size="sm"
                     >
-                      {resource.type === 'video' ? (
-                        <>
-                          <Play className="h-3 w-3 mr-1.5" />
-                          <span className="hidden sm:inline">Play</span>
-                          <span className="sm:hidden">▶️</span>
-                        </>
-                      ) : resource.type === 'link' ? (
-                        <>
-                          <ExternalLink className="h-3 w-3 mr-1.5" />
-                          <span className="hidden sm:inline">Visit</span>
-                          <span className="sm:hidden">🔗</span>
-                        </>
-                      ) : (
-                        <>
-                          <Eye className="h-3 w-3 mr-1.5" />
-                          <span className="hidden sm:inline">Preview</span>
-                          <span className="sm:hidden">👁️</span>
-                        </>
-                      )}
+                      <Download className="h-3 w-3 mr-1 shrink-0" />
+                      <span className="truncate">Download</span>
                     </Button>
-
-                    {/* Download Button (for non-link resources) */}
-                    {resource.type !== 'link' && (
-                      <Button
-                        onClick={() => handleDownload(resource.url, resource.title)}
-                        variant="outline"
-                        className="flex-1 h-8 sm:h-9 text-xs sm:text-sm hover:bg-[#faf5ff] border-[#e9d5ff] hover:border-[#d8b4fe]"
-                        size="sm"
-                      >
-                        <Download className="h-3 w-3 mr-1.5" />
-                        <span className="hidden sm:inline">Download</span>
-                        <span className="sm:hidden">⬇️</span>
-                      </Button>
-                    )}
-                  </div>
+                  )}
                 </div>
               </div>
             );

@@ -5,6 +5,7 @@ import Course from "../models/course.model.js";
 import Progress from "../models/progress.model.js";
 import Submission from "../models/submission.model.js";
 import AttemptedQuiz from "../models/attemptedQuiz.model.js";
+import CourseLevelConfig from "../models/courseLevelConfig.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -592,38 +593,140 @@ export const getAllDepartmentsProgress = asyncHandler(async (req, res) => {
 
 // === Missing Exports Implementation ===
 
+// Resolves the level-order rank of a level name (e.g. "L1" -> 0, "L2" -> 1) using the
+// active CourseLevelConfig. Unknown/missing levels sort last so they never appear locked
+// ahead of a known level, and never accidentally unlock everything either.
+const buildLevelRankMap = async () => {
+    const config = await CourseLevelConfig.getActiveConfig();
+    const map = {};
+    (config?.levels || []).forEach(l => { map[String(l.name).toUpperCase()] = l.order; });
+    return map;
+};
+
+const levelRank = (rankMap, levelName) => {
+    const key = String(levelName || "L1").toUpperCase();
+    return Object.prototype.hasOwnProperty.call(rankMap, key) ? rankMap[key] : Number.MAX_SAFE_INTEGER;
+};
+
 export const getDepartmentCourseContent = asyncHandler(async (req, res) => {
     const userId = req.user.id;
-    // Get user's department
-    const [u] = await pool.query("SELECT department FROM users WHERE id = ?", [userId]);
+    // Get user's department and level
+    const [u] = await pool.query("SELECT department, currentLevel FROM users WHERE id = ?", [userId]);
     if (!u[0] || !u[0].department) {
         return res.json(new ApiResponse(200, [], "No department assigned"));
     }
     const deptId = u[0].department;
+    const userLevel = u[0].currentLevel || "L1";
 
-    // Get department's course
-    const [d] = await pool.query("SELECT course FROM departments WHERE id = ?", [deptId]);
-    if (!d[0] || !d[0].course) {
-        console.log("Debug: No course found for department", deptId, d[0]);
+    // Get department's assigned courses: combine the legacy single `course` column with
+    // the `courses` array column.
+    const [d] = await pool.query("SELECT course, courses FROM departments WHERE id = ?", [deptId]);
+    if (!d[0]) {
+        return res.json(new ApiResponse(200, [], "No department assigned"));
+    }
+    let deptCourseIds = [];
+    try { deptCourseIds = typeof d[0].courses === 'string' ? JSON.parse(d[0].courses) : (d[0].courses || []); } catch (e) { deptCourseIds = []; }
+    if (d[0].course && !deptCourseIds.map(String).includes(String(d[0].course))) {
+        deptCourseIds = [d[0].course, ...deptCourseIds];
+    }
+
+    // Also pick up any course that links back to this department via courses.departmentIds,
+    // in case it wasn't (yet) reflected in departments.courses.
+    const [allCourseLinks] = await pool.query("SELECT id, departmentIds FROM courses WHERE isDeleted IS NULL OR isDeleted = 0");
+    for (const row of allCourseLinks) {
+        let linkedDeptIds = [];
+        try { linkedDeptIds = typeof row.departmentIds === 'string' ? JSON.parse(row.departmentIds) : (row.departmentIds || []); } catch (e) { linkedDeptIds = []; }
+        if (linkedDeptIds.map(String).includes(String(deptId)) && !deptCourseIds.map(String).includes(String(row.id))) {
+            deptCourseIds.push(row.id);
+        }
+    }
+
+    if (deptCourseIds.length === 0) {
         return res.json(new ApiResponse(200, [], "No course assigned to department"));
     }
-    const courseId = d[0].course;
-    console.log("Debug: Fetching course content for CourseID:", courseId);
 
-    // Fetch Course
-    // Fetch Course
-    const [c] = await pool.query("SELECT * FROM courses WHERE id = ?", [courseId]);
-    if (c.length === 0) {
-        console.log("Debug: Course ID not found in DB:", courseId);
+    // Fetch candidate courses
+    const placeholders = deptCourseIds.map(() => '?').join(',');
+    const [candidateCourses] = await pool.query(
+        `SELECT id, title, slug, description, thumbnail, difficulty, status FROM courses WHERE id IN (${placeholders})`,
+        deptCourseIds
+    );
+    if (candidateCourses.length === 0) {
         return res.json(new ApiResponse(200, [], "Course not found"));
     }
 
-    if (c[0].status !== 'PUBLISHED') {
-        console.log("Debug: Course found but status is:", c[0].status);
-        // For testing, let's allow NON-published courses for now to verify data fetching works
-        // return res.json(new ApiResponse(200, [], `Course found but status is ${c[0].status} (must be PUBLISHED)`));
+    // Resolve level ordering
+    const rankMap = await buildLevelRankMap();
+    const userRank = levelRank(rankMap, userLevel);
+
+    // Fetch progress + module counts for every candidate course to build availableCourses summary
+    const courseIds = candidateCourses.map(c => c.id);
+    const coursePlaceholders = courseIds.map(() => '?').join(',');
+    const [moduleCounts] = await pool.query(
+        `SELECT course, COUNT(*) as total FROM modules WHERE course IN (${coursePlaceholders}) GROUP BY course`,
+        courseIds
+    );
+    const [progressRows] = await pool.query(
+        `SELECT * FROM progress WHERE student = ? AND course IN (${coursePlaceholders})`,
+        [userId, ...courseIds]
+    );
+
+    const availableCourses = candidateCourses.map(c => {
+        const courseRank = levelRank(rankMap, c.difficulty);
+        const isLocked = courseRank > userRank;
+        const totalModules = moduleCounts.find(m => String(m.course) === String(c.id))?.total || 0;
+        const prog = progressRows.find(p => String(p.course) === String(c.id));
+        let completedCount = 0;
+        if (prog?.completedModules) {
+            try {
+                const parsed = typeof prog.completedModules === 'string' ? JSON.parse(prog.completedModules) : prog.completedModules;
+                completedCount = Array.isArray(parsed) ? parsed.length : 0;
+            } catch (e) { completedCount = 0; }
+        }
+        const progressPercentage = totalModules > 0 ? Math.round((completedCount / totalModules) * 100) : 0;
+        return {
+            id: c.id,
+            _id: c.id,
+            title: c.title,
+            slug: c.slug,
+            level: c.difficulty || "L1",
+            status: c.status,
+            progressPercentage,
+            isLocked,
+            statusLabel: isLocked ? 'LOCKED' : (progressPercentage >= 100 ? 'COMPLETED' : 'ACTIVE'),
+        };
+    }).sort((a, b) => levelRank(rankMap, a.level) - levelRank(rankMap, b.level));
+
+    // Resolve the target course to display
+    const requestedCourseId = req.query.courseId;
+    let targetSummary = null;
+    if (requestedCourseId) {
+        const found = availableCourses.find(c => String(c.id) === String(requestedCourseId));
+        if (found && !found.isLocked) targetSummary = found;
     }
-    const course = c[0];
+    if (!targetSummary) {
+        // Prefer the course matching the user's current level
+        targetSummary = availableCourses.find(c => levelRank(rankMap, c.level) === userRank && !c.isLocked);
+    }
+    if (!targetSummary) {
+        // Fallback to the highest unlocked course
+        const unlocked = availableCourses.filter(c => !c.isLocked);
+        if (unlocked.length > 0) targetSummary = unlocked[unlocked.length - 1];
+    }
+    if (!targetSummary) {
+        // Fallback to the first department course
+        targetSummary = availableCourses[0];
+    }
+
+    const courseId = targetSummary.id;
+
+    // Fetch the full course row (all columns) for the target course, matching the
+    // original response shape consumers rely on (not just the trimmed summary columns).
+    const [fullCourseRows] = await pool.query("SELECT * FROM courses WHERE id = ?", [courseId]);
+    if (fullCourseRows.length === 0) {
+        return res.json(new ApiResponse(200, [], "Course not found"));
+    }
+    const course = fullCourseRows[0];
 
     // Fetch Modules
     const [modules] = await pool.query("SELECT * FROM modules WHERE course = ? ORDER BY [order] ASC, id ASC", [courseId]);
@@ -637,8 +740,8 @@ export const getDepartmentCourseContent = asyncHandler(async (req, res) => {
     course.modules = modules;
 
     // Fetch User Progress for this course
-    const [progParams] = await pool.query("SELECT * FROM progress WHERE student = ? AND course = ?", [userId, courseId]);
-    const progressData = progParams.length > 0 ? progParams[0] : {};
+    const progParams = progressRows.filter(p => String(p.course) === String(courseId));
+    const progressData = progParams.length > 0 ? { ...progParams[0] } : {};
 
     // Parse JSON fields in progress if they exist
     if (progressData.completedModules && typeof progressData.completedModules === 'string') {
@@ -651,6 +754,8 @@ export const getDepartmentCourseContent = asyncHandler(async (req, res) => {
     // Attach progress to the response (frontend expects courseData to contain it now, or we can wrap it)
     // To match my recent frontend change where `courseData` *is* the response data:
     course.progress = progressData;
+    course.availableCourses = availableCourses;
+    course.activeLevel = userLevel;
 
     res.json(new ApiResponse(200, course, "Department course content fetched successfully"));
 });

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,14 @@ export const ResourceForm = ({ resource, onUpdate, onRemove }) => {
   const fileInputRef = useRef(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const blobUrlRef = useRef(resource.uploadedFile ? resource.url : null);
+
+  // Revoke on unmount so a removed ResourceForm doesn't leak its object URL
+  useEffect(() => {
+    return () => {
+      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
+    };
+  }, []);
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
@@ -36,8 +44,10 @@ export const ResourceForm = ({ resource, onUpdate, onRemove }) => {
           clearInterval(interval);
           setTimeout(() => {
             setIsUploading(false);
-            // Generate a mock URL for the uploaded file
+            // Revoke the previous object URL before creating a new one
+            if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
             const mockFileUrl = URL.createObjectURL(file);
+            blobUrlRef.current = mockFileUrl;
             onUpdate("url", mockFileUrl);
             onUpdate("uploadedFile", file.name);
           }, 300);
@@ -49,6 +59,10 @@ export const ResourceForm = ({ resource, onUpdate, onRemove }) => {
   };
 
   const removeUploadedFile = () => {
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current);
+      blobUrlRef.current = null;
+    }
     onUpdate("url", "");
     onUpdate("uploadedFile", "");
     if (fileInputRef.current) {

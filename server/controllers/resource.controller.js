@@ -3,6 +3,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../config/cloudinary.js";
+import { validateDeclaredType } from "../config/resourceTypes.config.js";
 import fs from 'fs';
 import path from 'path';
 import ENV from "../configs/env.config.js";
@@ -66,6 +67,14 @@ export const createResource = asyncHandler(async (req, res) => {
     }
 
     if (!file && !url) throw new ApiError("Either file or URL must be provided", 400);
+
+    if (file) {
+        const typeCheck = validateDeclaredType(type, file);
+        if (!typeCheck.isValid) {
+            if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+            throw new ApiError(typeCheck.error, 400);
+        }
+    }
 
     let resourceData = {
         scope, title, type, description: description || "",
@@ -252,6 +261,12 @@ export const updateResource = asyncHandler(async (req, res) => {
     };
 
     if (file) {
+        const typeCheck = validateDeclaredType(updateData.type, file);
+        if (!typeCheck.isValid) {
+            if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+            throw new ApiError(typeCheck.error, 400);
+        }
+
         try {
             // Delete old file if exists
             if (resource.publicId) {

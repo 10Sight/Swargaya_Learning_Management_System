@@ -30,12 +30,14 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import { useDeleteResourceMutation } from "@/Redux/AllApi/resourceApi";
 import { toast } from "sonner";
+import { ResourceViewerModal } from "./ResourceViewerModal";
 
 const ResourceModule = ({ module, courseId }) => {
   const navigate = useNavigate();
   const location = useLocation();
   // Auto-expand if module already has resources
   const [isExpanded, setIsExpanded] = useState(Boolean(module.resources?.length));
+  const [viewingResource, setViewingResource] = useState(null);
   const [deleteResource, { isLoading: isDeletingResource }] = useDeleteResourceMutation();
 
   const basePath = React.useMemo(() => {
@@ -213,13 +215,13 @@ const ResourceModule = ({ module, courseId }) => {
                   </div>
 
                   <div className="flex gap-2">
-                    {/* Preview button for images and videos */}
-                    {resource.url && ['image', 'video'].includes(resource.type?.toLowerCase()) && (
+                    {/* View button opens the in-app previewer for every resource type */}
+                    {resource.url && (
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={(e) => { e.stopPropagation(); window.open(resource.url, '_blank'); }}
-                        title="Preview"
+                        onClick={(e) => { e.stopPropagation(); setViewingResource(resource); }}
+                        title="View"
                       >
                         <IconEye className="h-4 w-4" />
                       </Button>
@@ -290,6 +292,12 @@ const ResourceModule = ({ module, courseId }) => {
           )}
         </CardContent>
       )}
+
+      <ResourceViewerModal
+        resource={viewingResource}
+        open={!!viewingResource}
+        onClose={() => setViewingResource(null)}
+      />
     </Card>
   );
 };

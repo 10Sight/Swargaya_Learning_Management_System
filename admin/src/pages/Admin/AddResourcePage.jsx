@@ -36,6 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getAcceptString, validateFileForType, getResourceTypeConfig } from "@/utils/resourceConfig";
 
 const AddResourcePage = () => {
   const { courseId } = useParams();
@@ -99,6 +100,17 @@ const AddResourcePage = () => {
   }, [formData.scope]);
 
   const handleInputChange = (field, value) => {
+    if (field === "type") {
+      setFormData(prev => {
+        if (prev.file && !validateFileForType(prev.file, value).isValid) {
+          toast.info("Existing file removed because it doesn't match the new resource type");
+          return { ...prev, type: value, file: null };
+        }
+        return { ...prev, type: value };
+      });
+      setFilePreview(null);
+      return;
+    }
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -106,9 +118,10 @@ const AddResourcePage = () => {
     const file = event.target.files[0];
     if (!file) return;
 
-    // Validate file size (max 50MB)
-    if (file.size > 50 * 1024 * 1024) {
-      toast.error("File size must be less than 50MB");
+    const validation = validateFileForType(file, formData.type);
+    if (!validation.isValid) {
+      toast.error(validation.error);
+      event.target.value = "";
       return;
     }
 
@@ -460,12 +473,18 @@ const AddResourcePage = () => {
             {/* File Upload */}
             <div className="grid gap-2">
               <Label>Upload File</Label>
+              {getResourceTypeConfig(formData.type)?.extensions.length > 0 && (
+                <p className="text-xs text-[#6b7280]">
+                  Allowed formats: {getResourceTypeConfig(formData.type).extensions.map((e) => `.${e}`).join(", ")}
+                </p>
+              )}
               <div className="border-2 border-dashed border-[#d1d5db] rounded-lg p-6 text-center hover:border-[#60a5fa] transition-colors">
                 <input
                   type="file"
                   onChange={handleFileSelect}
                   className="hidden"
                   id="file-upload"
+                  accept={getAcceptString(formData.type) || "*"}
                 />
 
                 {formData.file ? (

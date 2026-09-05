@@ -94,7 +94,11 @@ app.use(cors(corsOptions));
 // Security headers
 app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'DENY');
+    // Uploaded resources (PDFs, text, etc.) must be embeddable in the admin's
+    // in-browser resource viewer <iframe>; DENY would silently block that.
+    if (!req.path.startsWith('/uploads')) {
+        res.setHeader('X-Frame-Options', 'DENY');
+    }
     res.setHeader('X-XSS-Protection', '1; mode=block');
     next();
 });

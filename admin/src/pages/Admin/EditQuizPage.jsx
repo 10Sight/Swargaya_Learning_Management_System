@@ -46,6 +46,8 @@ const EditQuizPage = () => {
     title: "",
     description: "",
     passingScore: 70,
+    timeLimit: "",
+    attemptsAllowed: 1,
     skillUpgradation: false,
     questions: [
       {
@@ -65,6 +67,8 @@ const EditQuizPage = () => {
         title: quiz.title || "",
         description: quiz.description || "",
         passingScore: quiz.passingScore ?? 70,
+        timeLimit: quiz.timeLimit || "",
+        attemptsAllowed: quiz.attemptsAllowed ?? 1,
         skillUpgradation: quiz.skillUpgradation || false,
         questions: Array.isArray(quiz.questions) && quiz.questions.length > 0
           ? quiz.questions.map((q) => ({
@@ -202,6 +206,18 @@ const EditQuizPage = () => {
         }
       }
     }
+    if (formData.passingScore < 0 || formData.passingScore > 100) {
+      toast.error("Passing score must be between 0 and 100");
+      return false;
+    }
+    if (formData.timeLimit && formData.timeLimit < 1) {
+      toast.error("Time limit must be at least 1 minute");
+      return false;
+    }
+    if (formData.attemptsAllowed < 0) {
+      toast.error("Attempts must be 0 (unlimited) or at least 1");
+      return false;
+    }
     return true;
   };
 
@@ -217,7 +233,8 @@ const EditQuizPage = () => {
         description: formData.description,
         questions: formData.questions,
         passingScore: parseInt(formData.passingScore),
-        // timeLimit and attemptsAllowed are not in state currently but should be if we want full editing
+        timeLimit: formData.timeLimit ? parseInt(formData.timeLimit) : null,
+        attemptsAllowed: parseInt(formData.attemptsAllowed),
         skillUpgradation: formData.skillUpgradation,
       }).unwrap();
 
@@ -274,29 +291,81 @@ const EditQuizPage = () => {
               <Label htmlFor="description">Description</Label>
               <Textarea id="description" name="description" value={formData.description} onChange={handleInputChange} rows={3} />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="skillUpgradation">Skill Upgradation</Label>
-              <Select
-                key={formData.skillUpgradation ? "yes" : "no"} // Force re-mount on change
-                value={formData.skillUpgradation ? "yes" : "no"}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    skillUpgradation: value === "yes",
-                  }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select option" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="no">No</SelectItem>
-                  <SelectItem value="yes">Yes</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-[10px] text-muted-foreground">
-                If Yes, student level will be upgraded upon passing this quiz.
-              </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="passingScore">Passing Score (%) *</Label>
+                <Input
+                  id="passingScore"
+                  name="passingScore"
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={formData.passingScore}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="timeLimit">Time Limit (minutes)</Label>
+                <Input
+                  id="timeLimit"
+                  name="timeLimit"
+                  type="number"
+                  min="1"
+                  value={formData.timeLimit}
+                  onChange={handleInputChange}
+                  placeholder="Optional"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="attemptsAllowed">Attempts Allowed *</Label>
+                <Select
+                  value={(formData.attemptsAllowed ?? 1).toString()}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      attemptsAllowed: parseInt(value),
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select attempts" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 attempt</SelectItem>
+                    <SelectItem value="2">2 attempts</SelectItem>
+                    <SelectItem value="3">3 attempts</SelectItem>
+                    <SelectItem value="0">Unlimited</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="skillUpgradation">Skill Upgradation</Label>
+                <Select
+                  key={formData.skillUpgradation ? "yes" : "no"} // Force re-mount on change
+                  value={formData.skillUpgradation ? "yes" : "no"}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      skillUpgradation: value === "yes",
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select option" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no">No</SelectItem>
+                    <SelectItem value="yes">Yes</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground">
+                  If Yes, student level will be upgraded upon passing this quiz.
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>

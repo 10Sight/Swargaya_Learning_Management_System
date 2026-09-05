@@ -71,7 +71,7 @@ const StudentModuleAssignments = ({
         <FileText className="h-4 w-4" />
         Assignments ({assignments.length})
       </h4>
-      <div className="space-y-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
         {assignments.map((assignment, idx) => {
           const submissionStatus = getSubmissionStatus(assignment);
           const dueDateStatus = getDueDateStatus(assignment);
@@ -80,31 +80,31 @@ const StudentModuleAssignments = ({
           return (
             <Card
               key={assignment._id || assignment.id || idx}
-              className={`${!isUnlocked ? "opacity-50" : ""}`}
+              className={`min-w-0 ${!isUnlocked ? "opacity-50" : ""}`}
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <CardTitle className="text-base flex items-center gap-2 min-w-0">
-                    {!isUnlocked && <Lock className="h-4 w-4" />}
-                    <FileText className="h-4 w-4" />
+                    {!isUnlocked && <Lock className="h-4 w-4 shrink-0" />}
+                    <FileText className="h-4 w-4 shrink-0" />
                     <span className="truncate break-words min-w-0">{assignment.title || "Module Assignment"}</span>
                   </CardTitle>
                 </div>
 
                 {/* Status Badges */}
                 <div className="flex flex-wrap gap-2 mt-2">
-                  <Badge className="bg-[#ffedd5] text-[#9a3412] text-xs border-[#fed7aa]">
+                  <Badge className="bg-[#dbeafe] text-[#1d4ed8] text-xs border-[#bfdbfe] shrink-0">
                     MODULE LEVEL
                   </Badge>
 
                   {dueDateStatus && (
-                    <Badge variant={dueDateStatus.color} className="text-xs">
+                    <Badge variant={dueDateStatus.color} className="text-xs shrink-0">
                       <Clock className="h-3 w-3 mr-1" />
                       {dueDateStatus.message}
                     </Badge>
                   )}
 
-                  <Badge variant={submissionStatus.color} className="text-xs">
+                  <Badge variant={submissionStatus.color} className="text-xs shrink-0">
                     <StatusIcon className="h-3 w-3 mr-1" />
                     {submissionStatus.message}
                   </Badge>
@@ -128,34 +128,34 @@ const StudentModuleAssignments = ({
                     Max Score: {assignment.maxScore || 100} points
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2 min-w-0">
                   <Button
                     variant="outline"
-                    className="flex-1"
+                    className="flex-1 min-w-0"
                     disabled={!isUnlocked}
                     onClick={() => handleViewDetails(assignment)}
                   >
-                    <Eye className="h-4 w-4 mr-2" />
-                    {!isUnlocked ? 'Locked' : 'View Details'}
+                    <Eye className="h-4 w-4 mr-2 shrink-0" />
+                    <span className="truncate">{!isUnlocked ? 'Locked' : 'View Details'}</span>
                   </Button>
                   {submissionStatus.status === 'not_submitted' ? (
                     <Button
-                      className="flex-1"
+                      className="flex-1 min-w-0"
                       disabled={!isUnlocked}
                       onClick={() => handleSubmit(assignment)}
                     >
-                      <FileText className="h-4 w-4 mr-2" />
-                      {!isUnlocked ? 'Locked' : 'Submit'}
+                      <FileText className="h-4 w-4 mr-2 shrink-0" />
+                      <span className="truncate">{!isUnlocked ? 'Locked' : 'Submit'}</span>
                     </Button>
                   ) : (
                     <Button
                       variant="outline"
-                      className="flex-1 border-[#bfdbfe] text-[#1d4ed8] hover:bg-[#eff6ff]"
+                      className="flex-1 min-w-0 border-[#bfdbfe] text-[#1d4ed8] hover:bg-[#eff6ff]"
                       disabled={!isUnlocked}
                       onClick={() => handleSubmit(assignment)}
                     >
-                      <Upload className="h-4 w-4 mr-2" />
-                      {!isUnlocked ? 'Locked' : 'Resubmit'}
+                      <Upload className="h-4 w-4 mr-2 shrink-0" />
+                      <span className="truncate">{!isUnlocked ? 'Locked' : 'Resubmit'}</span>
                     </Button>
                   )}
                 </div>

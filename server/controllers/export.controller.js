@@ -72,6 +72,14 @@ export const exportCourses = asyncHandler(async (req, res) => {
     params.push(category);
   }
 
+  if (req.user.role === 'ADMIN') {
+    sql += " AND (c.unit = ? OR c.unit IS NULL)";
+    params.push(req.user.unit);
+  } else if (req.user.role === 'SUPERADMIN' && req.query.unit) {
+    sql += " AND c.unit = ?";
+    params.push(req.query.unit);
+  }
+
   sql += " ORDER BY c.createdAt DESC";
 
   const [courses] = await pool.query(sql, params);

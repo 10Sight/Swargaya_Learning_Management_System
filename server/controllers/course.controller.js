@@ -149,6 +149,15 @@ export const getCourses = asyncHandler(async (req, res) => {
     if (level && level.trim()) { whereClauses.push("level = ?"); params.push(level); }
     if (status && status.trim()) { whereClauses.push("status = ?"); params.push(status); }
 
+    // Unit scoping: ADMINs see their unit + global (NULL) courses; SUPERADMINs can filter by unit via query param
+    if (req.user.role === "ADMIN") {
+        whereClauses.push("(unit = ? OR unit IS NULL)");
+        params.push(req.user.unit);
+    } else if (req.user.role === "SUPERADMIN" && req.query.unit) {
+        whereClauses.push("unit = ?");
+        params.push(req.query.unit);
+    }
+
     // Soft Delete
     if (!req.query.includeDeleted || req.user.role !== "SUPERADMIN") {
         whereClauses.push("(isDeleted = 0 OR isDeleted IS NULL)");
@@ -197,6 +206,10 @@ export const getCourseById = asyncHandler(async (req, res) => {
 
     if (!course) throw new ApiError("Course not found", 404);
 
+    if (req.user.role === "ADMIN" && course.unit !== null && course.unit !== req.user.unit) {
+        throw new ApiError("Access denied: course belongs to a different unit", 403);
+    }
+
     course = await populateCourse(course);
 
     return res
@@ -212,6 +225,10 @@ export const updatedCourse = asyncHandler(async (req, res) => {
         course = await Course.findOne({ slug: id });
     }
     if (!course) throw new ApiError("Course not found", 404);
+
+    if (req.user.role === "ADMIN" && course.unit !== null && course.unit !== req.user.unit) {
+        throw new ApiError("Access denied: course belongs to a different unit", 403);
+    }
 
     // Update using model wrapper or raw SQL
     // req.body contains fields.
@@ -256,6 +273,10 @@ export const deleteCourse = asyncHandler(async (req, res) => {
     }
     if (!course) throw new ApiError("Course not found", 404);
 
+    if (req.user.role === "ADMIN" && course.unit !== null && course.unit !== req.user.unit) {
+        throw new ApiError("Access denied: course belongs to a different unit", 403);
+    }
+
     if (req.user.role === "SUPERADMIN") {
         // Perm delete
         await pool.query("DELETE FROM courses WHERE id = ?", [course.id]);
@@ -287,6 +308,10 @@ export const togglePublishCourse = asyncHandler(async (req, res) => {
     }
     if (!course) throw new ApiError("Course not found", 404);
 
+    if (req.user.role === "ADMIN" && course.unit !== null && course.unit !== req.user.unit) {
+        throw new ApiError("Access denied: course belongs to a different unit", 403);
+    }
+
     course.status = course.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED";
     await course.save();
 
@@ -308,6 +333,10 @@ export const getCourseAnalytics = asyncHandler(async (req, res) => {
         course = await Course.findOne({ slug: courseId });
     }
     if (!course) throw new ApiError("Course not found", 404);
+
+    if (req.user.role === "ADMIN" && course.unit !== null && course.unit !== req.user.unit) {
+        throw new ApiError("Access denied: course belongs to a different unit", 403);
+    }
 
     const resolvedCourseId = course.id;
 
@@ -464,6 +493,11 @@ export const getCourseStudents = asyncHandler(async (req, res) => {
         course = await Course.findOne({ slug: courseId });
     }
     if (!course) throw new ApiError("Course not found", 404);
+
+    if (req.user.role === "ADMIN" && course.unit !== null && course.unit !== req.user.unit) {
+        throw new ApiError("Access denied: course belongs to a different unit", 403);
+    }
+
     const resolvedCourseId = course.id;
 
     // Get Modules Count

@@ -366,14 +366,30 @@ export const startQuiz = asyncHandler(async (req, res) => {
     const isUnlimited = quiz.attemptsAllowed === 0;
 
     if (!isUnlimited && attemptsRemainingWithExtra <= 0) {
+        const pendingRequest = await AttemptExtensionRequest.findOne({
+            student: userId,
+            quiz: quiz.id,
+            status: 'PENDING'
+        });
+
         return res.json(new ApiResponse(200, {
             canAttempt: false,
             reason: "No attempts remaining",
+            hasPendingRequest: !!pendingRequest,
+            pendingRequest: pendingRequest ? {
+                id: pendingRequest.id,
+                reason: pendingRequest.reason,
+                createdAt: pendingRequest.createdAt
+            } : null,
             attemptsUsed: previousAttempts,
             attemptsAllowed: attemptsAllowedWithExtra,
             quiz: {
                 _id: quiz.id,
+                id: quiz.id,
                 title: quiz.title,
+                description: quiz.description,
+                passingScore: quiz.passingScore,
+                timeLimit: quiz.timeLimit,
                 course: quiz.course,
                 module: quiz.module
             }
@@ -731,13 +747,26 @@ export const getQuizAttemptStatus = asyncHandler(async (req, res) => {
     );
     const hasPassed = passRows[0].passedCount > 0;
 
+    // Check if there is a pending request
+    const pendingRequest = await AttemptExtensionRequest.findOne({
+        student: userId,
+        quiz: quiz.id,
+        status: 'PENDING'
+    });
+
     res.json(new ApiResponse(200, {
         attemptsUsed,
         attemptsAllowed: isUnlimited ? 'Unlimited' : attemptsAllowed,
         attemptsRemaining: isUnlimited ? 'Unlimited' : (attemptsAllowed - attemptsUsed),
         bestScore,
         hasPassed,
-        canAttempt: isUnlimited ? true : (attemptsUsed < attemptsAllowed)
+        canAttempt: isUnlimited ? true : (attemptsUsed < attemptsAllowed),
+        hasPendingRequest: !!pendingRequest,
+        pendingRequest: pendingRequest ? {
+            id: pendingRequest.id,
+            reason: pendingRequest.reason,
+            createdAt: pendingRequest.createdAt
+        } : null
     }, "Quiz status fetched"));
 });
 

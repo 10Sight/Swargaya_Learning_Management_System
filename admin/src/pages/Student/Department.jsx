@@ -231,10 +231,23 @@ const StudentDepartment = () => {
                         <BookOpen className="h-4 w-4 text-[#2563eb]" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs sm:text-sm font-medium text-[#1d4ed8] uppercase tracking-wide">Course</p>
-                        <p className="font-bold text-sm sm:text-base text-[#111827] break-words leading-tight mt-1">
-                          {department.course?.title || department.course?.name || department.courses?.[0]?.title || department.courses?.[0]?.name || "N/A"}
+                        <p className="text-xs sm:text-sm font-medium text-[#1d4ed8] uppercase tracking-wide">
+                          {department.courses?.length > 1 ? "Courses" : "Course"}
                         </p>
+                        {department.courses && department.courses.length > 0 ? (
+                          <div className="mt-1 space-y-1">
+                            {department.courses.map((c) => (
+                              <p key={c._id || c.id} className="font-bold text-sm sm:text-base text-[#111827] break-words leading-tight">
+                                {c.difficulty ? <span className="text-[#2563eb] mr-1">{c.difficulty}:</span> : null}
+                                {c.title || c.name}
+                              </p>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="font-bold text-sm sm:text-base text-[#111827] break-words leading-tight mt-1">
+                            {department.course?.title || department.course?.name || "N/A"}
+                          </p>
+                        )}
                       </div>
                     </div>
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
   Card,
@@ -51,11 +51,13 @@ const STATUS_CONFIG = {
 };
 
 // Hook for managing course data
-const useCourseData = () => {
+const useCourseData = (courseId) => {
   const [state, setState] = useState({
     department: null,
     modules: [],
     currentLevel: "L1",
+    availableCourses: [],
+    activeLevel: "L1",
     completedModuleIds: [],
     completedLessonIds: [],
     loading: true,
@@ -72,8 +74,11 @@ const useCourseData = () => {
         setState(prev => ({ ...prev, loading: true }));
       }
 
-      // Get department course content
-      const response = await axiosInstance.get("/api/departments/me/course-content");
+      // Get department course content, optionally for a specific course/level
+      const url = courseId
+        ? `/api/departments/me/course-content?courseId=${encodeURIComponent(courseId)}`
+        : "/api/departments/me/course-content";
+      const response = await axiosInstance.get(url);
       const courseData = response?.data?.data;
 
       if (!courseData) {
@@ -105,6 +110,8 @@ const useCourseData = () => {
         currentLevel: progress.currentLevel || "L1",
         levelLockEnabled: progress.levelLockEnabled || false,
         lockedLevel: progress.lockedLevel || null,
+        availableCourses: courseData.availableCourses || [],
+        activeLevel: courseData.activeLevel || "L1",
         completedModuleIds,
         completedLessonIds,
         loading: false,
@@ -121,7 +128,7 @@ const useCourseData = () => {
       }));
       toast.error("Failed to load course data");
     }
-  }, []);
+  }, [courseId]);
 
   useEffect(() => {
     fetchCourseData();
@@ -299,19 +306,24 @@ const ModuleAssessmentProvider = ({ moduleId, courseId, children, onAssessmentsL
 // Main component
 const DepartmentCourse = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedCourseId = searchParams.get('courseId') || null;
+
   const {
     department,
     modules,
     currentLevel,
     levelLockEnabled,
     lockedLevel,
+    availableCourses,
+    activeLevel,
     completedModuleIds,
     completedLessonIds,
     loading,
     error,
     refreshing,
     refresh
-  } = useCourseData();
+  } = useCourseData(selectedCourseId);
 
 
 
@@ -436,6 +448,15 @@ const DepartmentCourse = () => {
   const getModuleId = (m) => m?._id || m?.id;
   const getLessonId = (l) => l?._id || l?.id;
   const getAssignmentId = (a) => a?._id || a?.id;
+
+  // Carries the active course id along so LessonDetail resolves the lesson against the
+  // same course/level the student is currently viewing, rather than defaulting back to
+  // whichever course matches their overall current level.
+  const getLessonNavPath = (lesson) => {
+    const activeCourseId = department?.course?._id || department?.course?.id;
+    const lessonId = getLessonId(lesson);
+    return activeCourseId ? `/student/lesson/${lessonId}?courseId=${activeCourseId}` : `/student/lesson/${lessonId}`;
+  };
 
   const isModuleCompleted = useCallback((module) => {
     const moduleId = String(getModuleId(module));
@@ -673,6 +694,13 @@ const DepartmentCourse = () => {
     setUiState(prev => ({ ...prev, activeModule: null, activeTab: 'lessons' }));
   };
 
+  const handleSelectCourse = (courseId) => {
+    if (!courseId) return;
+    const activeCourseId = department?.course?._id || department?.course?.id;
+    if (String(courseId) === String(activeCourseId)) return;
+    setSearchParams({ courseId: String(courseId) });
+  };
+
   const handleMarkModuleComplete = useCallback(async (module) => {
     if (!department?.course || uiState.processingAction) return;
 
@@ -807,6 +835,14 @@ const DepartmentCourse = () => {
     const module = modules[index];
     setUiState(prev => ({ ...prev, activeModule: module, activeTab: 'lessons' }));
   }, [modules, isModuleCompleted, getCurrentModuleIndex]);
+
+  // Reset per-course UI/navigation state whenever the student switches to a different
+  // course/level so the workspace pane and auto-select logic re-run for the new course.
+  useEffect(() => {
+    autoSelectDoneRef.current = false;
+    lastRequestedModuleRef.current = null;
+    setUiState(prev => ({ ...prev, activeModule: null, activeTab: 'lessons' }));
+  }, [selectedCourseId]);
 
   // Auto-refresh when page becomes visible/focused to sync completion state and attempts/submissions
   useEffect(() => {
@@ -1060,6 +1096,14 @@ const DepartmentCourse = () => {
   const currentModuleIndex = getCurrentModuleIndex();
   const currentModule = currentModuleIndex < modules.length ? modules[currentModuleIndex] : null;
 
+  // The level shown to the student should reflect the level of the course they're viewing
+  // (from availableCourses), falling back to the department-wide level and finally the
+  // per-course module progression level if neither is available (e.g. single-course departments).
+  const activeCourseSummary = availableCourses.find(
+    c => String(c.id) === String(department?.course?._id || department?.course?.id)
+  );
+  const displayLevel = activeCourseSummary?.level || activeLevel || currentLevel;
+
 
   // Filter out module-level items from course-level assessments
   const courseLevelQuizzes = (courseQuizzes || []).filter(q => !q?.module && !q?.moduleId && !(q?.module && (q.module._id || q.module.id)));
@@ -1113,11 +1157,49 @@ const DepartmentCourse = () => {
           </Alert>
         )}
 
+        {/* Level & Course Switcher */}
+        {availableCourses && availableCourses.length > 1 && (
+          <Card className="bg-white border-slate-200 shadow-sm">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 flex-wrap">
+                {availableCourses.map((c) => {
+                  const activeCourseId = department?.course?._id || department?.course?.id;
+                  const isActive = String(c.id) === String(activeCourseId);
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      disabled={c.isLocked}
+                      onClick={() => handleSelectCourse(c.id)}
+                      title={c.isLocked ? `Locked until you reach ${c.level}` : c.title}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs sm:text-sm font-medium transition-colors ${isActive
+                        ? "bg-slate-900 text-white border-slate-900"
+                        : c.isLocked
+                          ? "bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed"
+                          : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                        }`}
+                    >
+                      {c.isLocked ? (
+                        <Lock className="h-3 w-3" />
+                      ) : c.statusLabel === 'COMPLETED' ? (
+                        <CheckCircle2 className={`h-3 w-3 ${isActive ? 'text-white' : 'text-emerald-500'}`} />
+                      ) : null}
+                      <span>{c.level}</span>
+                      <span className={`hidden sm:inline ${isActive ? 'text-slate-200' : 'text-slate-400'}`}>·</span>
+                      <span className="hidden sm:inline truncate max-w-[160px]">{c.title}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Split Layout Grid: sidebar navigation + workspace */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8 items-start">
 
           {/* LEFT COLUMN: Sidebar Navigation */}
-          <aside className="lg:col-span-4 space-y-4 sm:space-y-6 lg:sticky lg:top-6">
+          <aside className="lg:col-span-4 min-w-0 space-y-4 sm:space-y-6 lg:sticky lg:top-6">
 
             {/* Course Progress Card */}
             <Card className="bg-white border-slate-200 shadow-sm">
@@ -1128,7 +1210,7 @@ const DepartmentCourse = () => {
                       {department.course?.title || department.course?.name || "Course"}
                     </h1>
                     <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                      {getLevelBadge(currentLevel)}
+                      {getLevelBadge(displayLevel)}
                       <Badge
                         variant="outline"
                         className={`text-xs px-2 py-0.5 font-medium border-transparent ${STATUS_CONFIG[department.status]?.color || 'bg-slate-100 text-slate-600'}`}
@@ -1299,7 +1381,7 @@ const DepartmentCourse = () => {
           </aside>
 
           {/* RIGHT COLUMN: Interactive Learning Workspace */}
-          <main className="lg:col-span-8 space-y-4 sm:space-y-6 min-h-[500px]">
+          <main className="lg:col-span-8 min-w-0 space-y-4 sm:space-y-6 min-h-[500px]">
 
         {/* Enhanced Completion Banner */}
         {allModulesCompleted && (
@@ -1434,7 +1516,7 @@ const DepartmentCourse = () => {
                                     <Button
                                       size="sm"
                                       variant={isLessonDone ? "outline" : "default"}
-                                      onClick={() => navigate(`/student/lesson/${getLessonId(lesson)}`)}
+                                      onClick={() => navigate(getLessonNavPath(lesson))}
                                       className={`w-full sm:w-auto text-xs sm:text-sm min-h-[44px] ${isLessonDone ?
                                         "border-slate-200 text-slate-600" :
                                         "bg-slate-800 hover:bg-slate-900 text-white"
@@ -1662,7 +1744,7 @@ const DepartmentCourse = () => {
                         <Button
                           onClick={() => {
                             if (nextIncompleteLesson) {
-                              navigate(`/student/lesson/${getLessonId(nextIncompleteLesson)}`);
+                              navigate(getLessonNavPath(nextIncompleteLesson));
                             } else {
                               handleModuleClick(currentModule, currentModuleIndex);
                             }
@@ -1688,7 +1770,7 @@ const DepartmentCourse = () => {
                   </Card>
                   <Card className="p-4 border-slate-200 shadow-sm">
                     <div className="text-[10px] sm:text-xs text-slate-400 font-medium uppercase tracking-wide">Current Level</div>
-                    <div className="text-2xl sm:text-3xl font-semibold mt-1 text-slate-900">{currentLevel}</div>
+                    <div className="text-2xl sm:text-3xl font-semibold mt-1 text-slate-900">{displayLevel}</div>
                   </Card>
                   <Card className="p-4 border-slate-200 shadow-sm">
                     <div className="text-[10px] sm:text-xs text-slate-400 font-medium uppercase tracking-wide">Attempts Logged</div>

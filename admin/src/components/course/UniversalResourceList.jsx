@@ -13,6 +13,7 @@ import {
   IconPlus,
   IconLoader,
   IconExternalLink,
+  IconEye,
   IconFileTypeDocx,
   IconFileTypeXls,
   IconFileTypePpt
@@ -25,6 +26,7 @@ import {
   useDeleteResourceMutation,
 } from "@/Redux/AllApi/resourceApi";
 import { ResourceManagementModal } from "./ResourceManagementModal";
+import { ResourceViewerModal } from "./ResourceViewerModal";
 
 const getResourceIcon = (type) => {
   switch (type?.toLowerCase()) {
@@ -71,6 +73,7 @@ export const UniversalResourceList = ({
   showAddButton = true
 }) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [viewingResource, setViewingResource] = useState(null);
   const [deleteResource, { isLoading: isDeletingResource }] = useDeleteResourceMutation();
 
   // Use the appropriate query hook based on scope
@@ -257,8 +260,19 @@ export const UniversalResourceList = ({
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => setViewingResource(resource)}
+                          title="View"
+                        >
+                          <IconEye className="h-4 w-4" />
+                        </Button>
+                      )}
+
+                      {resource.url && (
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => handleResourceClick(resource)}
-                          title={resource.type === 'link' ? "Open Link" : "Download/View"}
+                          title={resource.type === 'link' ? "Open Link" : "Download"}
                         >
                           {resource.type === 'link' ? (
                             <IconExternalLink className="h-4 w-4" />
@@ -298,6 +312,12 @@ export const UniversalResourceList = ({
         moduleId={moduleId}
         lessonId={lessonId}
         entityName={entityName}
+      />
+
+      <ResourceViewerModal
+        resource={viewingResource}
+        open={!!viewingResource}
+        onClose={() => setViewingResource(null)}
       />
     </>
   );

@@ -114,7 +114,7 @@ const StudentModuleResources = ({ resources, moduleTitle }) => {
         </p>
       </CardHeader>
       <CardContent className="p-4 sm:p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-5">
           {resources.map((resource, index) => {
             const resourceId = resource._id || resource.id || index;
             const previewImage = getPreviewImage(resource);
@@ -122,7 +122,7 @@ const StudentModuleResources = ({ resources, moduleTitle }) => {
             return (
               <div
                 key={resourceId}
-                className="group bg-white rounded-lg border-2 border-[#bfdbfe] overflow-hidden hover:shadow-lg hover:border-[#93c5fd] transition-all duration-300"
+                className="group bg-white rounded-lg border-2 border-[#bfdbfe] overflow-hidden hover:shadow-lg hover:border-[#93c5fd] transition-all duration-300 min-w-0"
               >
                 {/* Preview Image Box */}
                 <div
@@ -186,29 +186,26 @@ const StudentModuleResources = ({ resources, moduleTitle }) => {
                   )}
 
                   {/* Action Buttons */}
-                  <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 min-w-0">
                     <Button
                       onClick={() => handleResourceView(resource)}
-                      className="flex-1 h-8 sm:h-9 text-xs sm:text-sm bg-[#2563eb] hover:bg-[#1d4ed8] text-white min-h-[44px] sm:min-h-0"
+                      className="flex-1 min-w-0 h-8 sm:h-9 text-xs sm:text-sm bg-[#2563eb] hover:bg-[#1d4ed8] text-white min-h-[44px] sm:min-h-0"
                       size="sm"
                     >
                       {resource.type === 'video' ? (
                         <>
-                          <Play className="h-3 w-3 mr-1.5" />
-                          <span className="hidden sm:inline">Play</span>
-                          <span className="sm:hidden">▶️</span>
+                          <Play className="h-3 w-3 mr-1.5 shrink-0" />
+                          <span className="truncate">Play</span>
                         </>
                       ) : resource.type === 'link' ? (
                         <>
-                          <ExternalLink className="h-3 w-3 mr-1.5" />
-                          <span className="hidden sm:inline">Visit</span>
-                          <span className="sm:hidden">🔗</span>
+                          <ExternalLink className="h-3 w-3 mr-1.5 shrink-0" />
+                          <span className="truncate">Visit</span>
                         </>
                       ) : (
                         <>
-                          <Eye className="h-3 w-3 mr-1.5" />
-                          <span className="hidden sm:inline">Preview</span>
-                          <span className="sm:hidden">👁️</span>
+                          <Eye className="h-3 w-3 mr-1.5 shrink-0" />
+                          <span className="truncate">Preview</span>
                         </>
                       )}
                     </Button>
@@ -218,12 +215,11 @@ const StudentModuleResources = ({ resources, moduleTitle }) => {
                       <Button
                         onClick={() => handleDownload(resource.url, resource.title)}
                         variant="outline"
-                        className="flex-1 h-8 sm:h-9 text-xs sm:text-sm hover:bg-[#f9fafb]"
+                        className="flex-1 min-w-0 h-8 sm:h-9 text-xs sm:text-sm hover:bg-[#f9fafb]"
                         size="sm"
                       >
-                        <Download className="h-3 w-3 mr-1.5" />
-                        <span className="hidden sm:inline">Download</span>
-                        <span className="sm:hidden">⬇️</span>
+                        <Download className="h-3 w-3 mr-1.5 shrink-0" />
+                        <span className="truncate">Download</span>
                       </Button>
                     )}
                   </div>

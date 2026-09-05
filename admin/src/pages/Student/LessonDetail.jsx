@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
   Card,
@@ -39,6 +39,9 @@ import SlideRender from "@/components/common/SlideRender";
 const LessonDetail = () => {
   const { lessonId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const courseIdParam = searchParams.get('courseId');
+  const backToCoursePath = courseIdParam ? `/student/course?courseId=${courseIdParam}` : '/student/course';
   const scrollContainerRef = useRef(null);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
@@ -72,8 +75,13 @@ const LessonDetail = () => {
         setLoading(true);
         setError(null);
 
-        // 1) Get course content (for courseId and completion status)
-        const response = await axiosInstance.get('/api/departments/me/course-content');
+        // 1) Get course content (for courseId and completion status). Pass through the
+        // courseId this lesson was opened from so the correct level's course is resolved,
+        // rather than always defaulting to whichever course matches the student's overall level.
+        const contentUrl = courseIdParam
+          ? `/api/departments/me/course-content?courseId=${encodeURIComponent(courseIdParam)}`
+          : '/api/departments/me/course-content';
+        const response = await axiosInstance.get(contentUrl);
         const courseData = response?.data?.data;
         if (!courseData) throw new Error('Course not found');
 
@@ -138,7 +146,7 @@ const LessonDetail = () => {
     };
 
     fetchLessonData();
-  }, [lessonId]);
+  }, [lessonId, courseIdParam]);
 
   const lesson = lessonDataState;
 
@@ -248,7 +256,7 @@ const LessonDetail = () => {
         setIsCompleted(true);
         toast.success("🎉 Lesson completed!");
         // Navigate back to course to reflect progress and unlock next lesson
-        setTimeout(() => navigate('/student/course', { replace: true }), 600);
+        setTimeout(() => navigate(backToCoursePath, { replace: true }), 600);
       } else {
         throw new Error(response.data.message || 'Failed to complete lesson');
       }
@@ -295,7 +303,7 @@ const LessonDetail = () => {
   };
 
   const handleBackToCourse = () => {
-    navigate('/student/course');
+    navigate(backToCoursePath);
   };
 
   if (loading) {

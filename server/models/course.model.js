@@ -88,6 +88,11 @@ class Course {
             BEGIN
                 ALTER TABLE dbo.courses ADD departmentIds NVARCHAR(MAX) NULL, lineIds NVARCHAR(MAX) NULL, machineIds NVARCHAR(MAX) NULL;
             END
+
+            IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_course_unit' AND object_id = OBJECT_ID('dbo.courses'))
+            BEGIN
+                CREATE INDEX idx_course_unit ON dbo.courses(unit);
+            END
         `;
         try {
             await pool.query(query);

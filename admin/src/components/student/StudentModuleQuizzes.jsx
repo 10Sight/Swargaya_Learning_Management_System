@@ -213,7 +213,7 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
         <BarChart3 className="h-4 w-4" />
         Quizzes ({quizzes.length})
       </h4>
-      <div className="space-y-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
         {quizzes.map((quiz, idx) => {
           const quizStatus = getQuizStatus(quiz);
           const StatusIcon = quizStatus.icon;
@@ -229,23 +229,23 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
           return (
             <Card
               key={quiz._id || quiz.id || idx}
-              className={`${!isUnlocked ? "opacity-50" : ""}`}
+              className={`min-w-0 ${!isUnlocked ? "opacity-50" : ""}`}
             >
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2 min-w-0">
-                  {!isUnlocked && <Lock className="h-4 w-4" />}
-                  <Award className="h-4 w-4" />
+                  {!isUnlocked && <Lock className="h-4 w-4 shrink-0" />}
+                  <Award className="h-4 w-4 shrink-0" />
                   <span className="truncate break-words min-w-0">{quiz.title || "Module Quiz"}</span>
                 </CardTitle>
 
                 {/* Status Badges */}
                 <div className="flex flex-wrap gap-2 mt-2 items-center">
-                  <Badge className="bg-[#ffedd5] text-[#9a3412] text-xs border-[#fed7aa]">
+                  <Badge className="bg-[#dbeafe] text-[#1d4ed8] text-xs border-[#bfdbfe] shrink-0">
                     MODULE LEVEL
                   </Badge>
 
                   {isUnlocked && (
-                    <Badge variant={quizStatus.color} className="text-xs">
+                    <Badge variant={quizStatus.color} className="text-xs shrink-0">
                       <StatusIcon className="h-3 w-3 mr-1" />
                       {quizStatus.message}
                     </Badge>
@@ -260,7 +260,7 @@ const StudentModuleQuizzes = ({ quizzes = [], attempts = {}, isUnlocked = false,
                       left = Math.max(1, left);
                     }
                     return (
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge variant="secondary" className="text-xs shrink-0">
                         {isUnlimitedLocal ? "Attempts: Unlimited" : `Left: ${Math.max(0, left)}`}
                       </Badge>
                     );

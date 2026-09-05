@@ -17,28 +17,12 @@ import {
   IconX,
   IconFile,
   IconLoader,
-  IconVideo,
-  IconFileText,
-  IconPhoto,
-  IconLink,
-  IconFileZip,
-  IconFileTypeDocx,
-  IconFileTypeXls,
-  IconFileTypePpt
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { useCreateResourceMutation } from "@/Redux/AllApi/resourceApi";
+import { RESOURCE_TYPE_OPTIONS, getAcceptString, validateFileForType } from "@/utils/resourceConfig";
 
-const resourceTypeOptions = [
-  { value: "pdf", label: "PDF Document", icon: IconFileText },
-  { value: "video", label: "Video", icon: IconVideo },
-  { value: "image", label: "Image", icon: IconPhoto },
-  { value: "link", label: "External Link", icon: IconLink },
-  { value: "text", label: "Text Document", icon: IconFileText },
-  { value: "msword", label: "Word Document", icon: IconFileTypeDocx },
-  { value: "msexcel", label: "Excel Spreadsheet", icon: IconFileTypeXls },
-  { value: "msppt", label: "PowerPoint", icon: IconFileTypePpt },
-];
+const resourceTypeOptions = RESOURCE_TYPE_OPTIONS;
 
 export const ResourceManagementModal = ({
   isOpen,
@@ -79,6 +63,19 @@ export const ResourceManagementModal = ({
   };
 
   const handleInputChange = (field, value) => {
+    if (field === "type") {
+      // Switching types invalidates a previously selected file that doesn't match
+      setFormData(prev => {
+        if (prev.file && !validateFileForType(prev.file, value).isValid) {
+          toast.info(`Existing file removed because it doesn't match the new resource type`);
+          if (fileInputRef.current) fileInputRef.current.value = "";
+          return { ...prev, type: value, file: null };
+        }
+        return { ...prev, type: value };
+      });
+      return;
+    }
+
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -88,6 +85,13 @@ export const ResourceManagementModal = ({
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
     if (!file) return;
+
+    const validation = validateFileForType(file, formData.type);
+    if (!validation.isValid) {
+      toast.error(validation.error);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
 
     setFormData(prev => ({
       ...prev,
@@ -178,18 +182,7 @@ export const ResourceManagementModal = ({
     }
   };
 
-  const getFileAccept = () => {
-    switch (formData.type) {
-      case "pdf": return ".pdf";
-      case "image": return "image/*";
-      case "video": return "video/*";
-      case "text": return ".txt";
-      case "msword": return ".doc,.docx";
-      case "msexcel": return ".xls,.xlsx";
-      case "msppt": return ".ppt,.pptx";
-      default: return "*";
-    }
-  };
+  const getFileAccept = () => getAcceptString(formData.type) || "*";
 
   const getScopeDisplayName = () => {
     switch (scope) {

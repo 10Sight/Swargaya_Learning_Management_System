@@ -211,6 +211,16 @@ export const updateQuiz = asyncHandler(async (req, res) => {
     const [rows] = await pool.query("SELECT * FROM quizzes WHERE id = ?", [id]);
     if (rows.length === 0) throw new ApiError("Quiz not found", 404);
 
+    if (passingScore !== undefined && (Number(passingScore) < 0 || Number(passingScore) > 100)) {
+        throw new ApiError("Passing score must be between 0 and 100", 400);
+    }
+    if (attemptsAllowed !== undefined && Number(attemptsAllowed) < 0) {
+        throw new ApiError("Attempts allowed must be 0 (unlimited) or greater", 400);
+    }
+    if (timeLimit !== undefined && timeLimit !== null && Number(timeLimit) < 1) {
+        throw new ApiError("Time limit must be at least 1 minute", 400);
+    }
+
     let updates = [];
     let values = [];
 
@@ -218,8 +228,8 @@ export const updateQuiz = asyncHandler(async (req, res) => {
     if (description !== undefined) { updates.push("description = ?"); values.push(description); }
     if (questions && questions.length > 0) { updates.push("questions = ?"); values.push(JSON.stringify(questions)); }
     if (passingScore !== undefined) { updates.push("passingScore = ?"); values.push(Number(passingScore)); }
-    if (timeLimit !== undefined) { updates.push("timeLimit = ?"); values.push(timeLimit); }
-    if (attemptsAllowed !== undefined) { updates.push("attemptsAllowed = ?"); values.push(attemptsAllowed); }
+    if (timeLimit !== undefined) { updates.push("timeLimit = ?"); values.push(timeLimit === null || timeLimit === "" ? null : Number(timeLimit)); }
+    if (attemptsAllowed !== undefined) { updates.push("attemptsAllowed = ?"); values.push(Number(attemptsAllowed)); }
     if (skillUpgradation !== undefined) { updates.push("skillUpgradation = ?"); values.push(JSON.stringify(skillUpgradation)); }
 
     if (updates.length > 0) {
