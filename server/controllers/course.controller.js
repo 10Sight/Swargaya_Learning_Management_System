@@ -15,6 +15,20 @@ const sanitizeIds = (value) => {
     return [...new Set(arr.map(v => parseInt(v)).filter(v => !isNaN(v)))];
 };
 
+// Helper to normalize an incoming units array/value into a deduped array of trimmed strings
+const sanitizeUnits = (value) => {
+    const arr = Array.isArray(value) ? value : (value !== undefined && value !== null && value !== '' ? [value] : []);
+    return [...new Set(arr.map(v => String(v).trim()).filter(Boolean))];
+};
+
+// A course is accessible to a unit-scoped ADMIN if it is Global (no units assigned)
+// or if the admin's unit is among the course's assigned units.
+const isCourseAccessibleByAdmin = (course, adminUnit) => {
+    const units = Array.isArray(course.units) ? course.units : [];
+    if (units.length === 0) return true;
+    return units.includes(adminUnit);
+};
+
 // Helper to populate course details
 const populateCourse = async (course) => {
     if (!course) return null;
@@ -98,11 +112,19 @@ export const createCourse = asyncHandler(async (req, res) => {
         throw new ApiError("Title and description are required", 400);
     }
 
-    // Resolve unit: ADMINs are always scoped to their own unit
-    let unit = req.body.unit || null;
+    // Resolve units: ADMINs are always scoped to their own unit; SUPERADMINs may
+    // assign multiple units (or none, for a Global course), falling back to the
+    // legacy single `unit` field for older API clients.
+    let units;
     if (req.user.role === 'ADMIN') {
-        unit = req.user.unit || null;
+        units = req.user.unit ? [req.user.unit] : [];
+    } else {
+        units = sanitizeUnits(req.body.units);
+        if (units.length === 0 && req.body.unit) {
+            units = sanitizeUnits(req.body.unit);
+        }
     }
+    const unit = units.length > 0 ? units[0] : null;
 
     const courseData = {
         title,
@@ -117,6 +139,7 @@ export const createCourse = asyncHandler(async (req, res) => {
         status: 'DRAFT', // Default
         students: [],
         unit,
+        units,
         departmentIds: sanitizeIds(departmentIds),
         lineIds: sanitizeIds(lineIds),
         machineIds: sanitizeIds(machineIds)
@@ -149,13 +172,24 @@ export const getCourses = asyncHandler(async (req, res) => {
     if (level && level.trim()) { whereClauses.push("level = ?"); params.push(level); }
     if (status && status.trim()) { whereClauses.push("status = ?"); params.push(status); }
 
-    // Unit scoping: ADMINs see their unit + global (NULL) courses; SUPERADMINs can filter by unit via query param
+    // Unit scoping: ADMINs see courses assigned to their unit (single legacy `unit` column
+    // or multi-select `units` JSON array) plus Global courses (no unit/units assigned).
+    // SUPERADMINs can filter by unit via query param, matching either representation.
     if (req.user.role === "ADMIN") {
-        whereClauses.push("(unit = ? OR unit IS NULL)");
-        params.push(req.user.unit);
+        whereClauses.push(`(
+            unit IS NULL
+            OR unit = ?
+            OR units IS NULL
+            OR units = '[]'
+            OR EXISTS (SELECT 1 FROM OPENJSON(units) WHERE value = ?)
+        )`);
+        params.push(req.user.unit, req.user.unit);
     } else if (req.user.role === "SUPERADMIN" && req.query.unit) {
-        whereClauses.push("unit = ?");
-        params.push(req.query.unit);
+        whereClauses.push(`(
+            unit = ?
+            OR EXISTS (SELECT 1 FROM OPENJSON(units) WHERE value = ?)
+        )`);
+        params.push(req.query.unit, req.query.unit);
     }
 
     // Soft Delete
@@ -206,7 +240,7 @@ export const getCourseById = asyncHandler(async (req, res) => {
 
     if (!course) throw new ApiError("Course not found", 404);
 
-    if (req.user.role === "ADMIN" && course.unit !== null && course.unit !== req.user.unit) {
+    if (req.user.role === "ADMIN" && !isCourseAccessibleByAdmin(course, req.user.unit)) {
         throw new ApiError("Access denied: course belongs to a different unit", 403);
     }
 
@@ -226,7 +260,7 @@ export const updatedCourse = asyncHandler(async (req, res) => {
     }
     if (!course) throw new ApiError("Course not found", 404);
 
-    if (req.user.role === "ADMIN" && course.unit !== null && course.unit !== req.user.unit) {
+    if (req.user.role === "ADMIN" && !isCourseAccessibleByAdmin(course, req.user.unit)) {
         throw new ApiError("Access denied: course belongs to a different unit", 403);
     }
 
@@ -242,9 +276,17 @@ export const updatedCourse = asyncHandler(async (req, res) => {
     if (req.body.lineIds !== undefined) course.lineIds = sanitizeIds(req.body.lineIds);
     if (req.body.machineIds !== undefined) course.machineIds = sanitizeIds(req.body.machineIds);
 
-    // Unit can only be reassigned by SUPERADMIN; ADMIN-created courses stay scoped to their unit
-    if (req.user.role === "SUPERADMIN" && req.body.unit !== undefined) {
-        course.unit = req.body.unit || null;
+    // Units can only be reassigned by SUPERADMIN; ADMIN-created courses stay scoped to their unit.
+    // `units` (array) takes precedence when provided; `unit` (legacy single value) is supported
+    // for older API clients and is kept in sync as the first entry.
+    if (req.user.role === "SUPERADMIN") {
+        if (req.body.units !== undefined) {
+            course.units = sanitizeUnits(req.body.units);
+            course.unit = course.units.length > 0 ? course.units[0] : null;
+        } else if (req.body.unit !== undefined) {
+            course.unit = req.body.unit || null;
+            course.units = course.unit ? [course.unit] : [];
+        }
     }
 
     course.updatedBy = req.user.id; // if exists in schema
@@ -273,7 +315,7 @@ export const deleteCourse = asyncHandler(async (req, res) => {
     }
     if (!course) throw new ApiError("Course not found", 404);
 
-    if (req.user.role === "ADMIN" && course.unit !== null && course.unit !== req.user.unit) {
+    if (req.user.role === "ADMIN" && !isCourseAccessibleByAdmin(course, req.user.unit)) {
         throw new ApiError("Access denied: course belongs to a different unit", 403);
     }
 
@@ -308,7 +350,7 @@ export const togglePublishCourse = asyncHandler(async (req, res) => {
     }
     if (!course) throw new ApiError("Course not found", 404);
 
-    if (req.user.role === "ADMIN" && course.unit !== null && course.unit !== req.user.unit) {
+    if (req.user.role === "ADMIN" && !isCourseAccessibleByAdmin(course, req.user.unit)) {
         throw new ApiError("Access denied: course belongs to a different unit", 403);
     }
 
@@ -334,7 +376,7 @@ export const getCourseAnalytics = asyncHandler(async (req, res) => {
     }
     if (!course) throw new ApiError("Course not found", 404);
 
-    if (req.user.role === "ADMIN" && course.unit !== null && course.unit !== req.user.unit) {
+    if (req.user.role === "ADMIN" && !isCourseAccessibleByAdmin(course, req.user.unit)) {
         throw new ApiError("Access denied: course belongs to a different unit", 403);
     }
 
@@ -494,7 +536,7 @@ export const getCourseStudents = asyncHandler(async (req, res) => {
     }
     if (!course) throw new ApiError("Course not found", 404);
 
-    if (req.user.role === "ADMIN" && course.unit !== null && course.unit !== req.user.unit) {
+    if (req.user.role === "ADMIN" && !isCourseAccessibleByAdmin(course, req.user.unit)) {
         throw new ApiError("Access denied: course belongs to a different unit", 403);
     }
 

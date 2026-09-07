@@ -54,6 +54,7 @@ import SystemSettings from "./models/systemSettings.model.js";
 import Resource from "./models/resource.model.js";
 import Certificate from "./models/certificate.model.js";
 import Unit from "./models/unit.model.js";
+import UserLevelHistory from "./models/userLevelHistory.model.js"; // Initialize table
 
 const app = express();
 const server = createServer(app);

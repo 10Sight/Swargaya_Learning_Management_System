@@ -23,7 +23,26 @@ class Course {
         this.averageRating = data.averageRating !== undefined ? data.averageRating : 0;
         this.slug = data.slug;
         this.createdBy = data.createdBy;
+
+        // Unit scoping: `units` (JSON array) is the source of truth; `unit` (single string)
+        // is kept in sync as the first entry for backward compatibility with older records
+        // and third-party queries that only know about the legacy single-unit column.
         this.unit = data.unit || null;
+        let unitsArr = [];
+        if (typeof data.units === 'string' && data.units.trim() !== '') {
+            try { unitsArr = JSON.parse(data.units); } catch (e) { unitsArr = []; }
+        } else if (Array.isArray(data.units)) {
+            unitsArr = data.units;
+        }
+        if (!Array.isArray(unitsArr)) unitsArr = [];
+        if (unitsArr.length === 0 && this.unit) {
+            unitsArr = [this.unit];
+        }
+        this.units = unitsArr;
+        if (!this.unit && this.units.length > 0) {
+            this.unit = this.units[0];
+        }
+
         this.departmentIds = typeof data.departmentIds === 'string' ? JSON.parse(data.departmentIds) : (data.departmentIds || []);
         this.lineIds = typeof data.lineIds === 'string' ? JSON.parse(data.lineIds) : (data.lineIds || []);
         this.machineIds = typeof data.machineIds === 'string' ? JSON.parse(data.machineIds) : (data.machineIds || []);
@@ -68,6 +87,7 @@ class Course {
                     resources NVARCHAR(MAX),
                     isDeleted BIT DEFAULT 0,
                     unit NVARCHAR(255) NULL,
+                    units NVARCHAR(MAX) NULL,
                     departmentIds NVARCHAR(MAX) NULL,
                     lineIds NVARCHAR(MAX) NULL,
                     machineIds NVARCHAR(MAX) NULL,
@@ -87,6 +107,10 @@ class Course {
             ELSE IF COL_LENGTH(N'dbo.courses', N'departmentIds') IS NULL
             BEGIN
                 ALTER TABLE dbo.courses ADD departmentIds NVARCHAR(MAX) NULL, lineIds NVARCHAR(MAX) NULL, machineIds NVARCHAR(MAX) NULL;
+            END
+            ELSE IF COL_LENGTH(N'dbo.courses', N'units') IS NULL
+            BEGIN
+                ALTER TABLE dbo.courses ADD units NVARCHAR(MAX) NULL;
             END
 
             IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'idx_course_unit' AND object_id = OBJECT_ID('dbo.courses'))
@@ -120,7 +144,7 @@ class Course {
             "title", "description", "thumbnail", "category", "tags",
             "instructor", "students", "price", "difficulty", "status",
             "modules", "reviews", "totalEnrollments", "averageRating",
-            "slug", "createdBy", "quizzes", "assignments", "resources", "isDeleted", "unit",
+            "slug", "createdBy", "quizzes", "assignments", "resources", "isDeleted", "unit", "units",
             "departmentIds", "lineIds", "machineIds", "createdAt"
         ];
 
@@ -128,7 +152,7 @@ class Course {
 
         const values = fields.map(field => {
             let val = course[field];
-            if (['thumbnail', 'tags', 'students', 'modules', 'reviews', 'quizzes', 'assignments', 'resources', 'departmentIds', 'lineIds', 'machineIds'].includes(field)) {
+            if (['thumbnail', 'tags', 'students', 'modules', 'reviews', 'quizzes', 'assignments', 'resources', 'units', 'departmentIds', 'lineIds', 'machineIds'].includes(field)) {
                 return JSON.stringify(val);
             }
             if (val === undefined) return null;
@@ -204,14 +228,14 @@ class Course {
             "title", "description", "thumbnail", "category", "tags",
             "instructor", "students", "price", "difficulty", "status",
             "modules", "reviews", "totalEnrollments", "averageRating",
-            "slug", "createdBy", "quizzes", "assignments", "resources", "isDeleted", "unit",
+            "slug", "createdBy", "quizzes", "assignments", "resources", "isDeleted", "unit", "units",
             "departmentIds", "lineIds", "machineIds", "updatedAt"
         ];
 
         const setClause = fields.map(field => `${field} = ?`).join(", ");
         const values = fields.map(field => {
             let val = this[field];
-            if (['thumbnail', 'tags', 'students', 'modules', 'reviews', 'quizzes', 'assignments', 'resources', 'departmentIds', 'lineIds', 'machineIds'].includes(field)) {
+            if (['thumbnail', 'tags', 'students', 'modules', 'reviews', 'quizzes', 'assignments', 'resources', 'units', 'departmentIds', 'lineIds', 'machineIds'].includes(field)) {
                 return JSON.stringify(val);
             }
             return val;

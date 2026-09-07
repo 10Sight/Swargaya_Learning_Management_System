@@ -52,9 +52,9 @@ export const exportCourses = asyncHandler(async (req, res) => {
   const { format = 'excel', search = '', status = '', category = '' } = req.query;
 
   let sql = `
-    SELECT c.title, c.category, c.difficulty, c.status, c.totalEnrollments, c.createdAt, u.fullName as instructorName 
-    FROM courses c 
-    LEFT JOIN users u ON c.instructor = u.id 
+    SELECT c.title, c.category, c.difficulty, c.status, c.totalEnrollments, c.createdAt, c.unit, c.units, u.fullName as instructorName
+    FROM courses c
+    LEFT JOIN users u ON c.instructor = u.id
     WHERE (c.isDeleted IS NULL OR c.isDeleted = 0)
   `;
   const params = [];
@@ -73,11 +73,20 @@ export const exportCourses = asyncHandler(async (req, res) => {
   }
 
   if (req.user.role === 'ADMIN') {
-    sql += " AND (c.unit = ? OR c.unit IS NULL)";
-    params.push(req.user.unit);
+    sql += ` AND (
+      c.unit IS NULL
+      OR c.unit = ?
+      OR c.units IS NULL
+      OR c.units = '[]'
+      OR EXISTS (SELECT 1 FROM OPENJSON(c.units) WHERE value = ?)
+    )`;
+    params.push(req.user.unit, req.user.unit);
   } else if (req.user.role === 'SUPERADMIN' && req.query.unit) {
-    sql += " AND c.unit = ?";
-    params.push(req.query.unit);
+    sql += ` AND (
+      c.unit = ?
+      OR EXISTS (SELECT 1 FROM OPENJSON(c.units) WHERE value = ?)
+    )`;
+    params.push(req.query.unit, req.query.unit);
   }
 
   sql += " ORDER BY c.createdAt DESC";
@@ -90,19 +99,31 @@ export const exportCourses = asyncHandler(async (req, res) => {
     { header: 'Difficulty', key: 'difficulty', width: 14 },
     { header: 'Status', key: 'status', width: 12 },
     { header: 'Instructor', key: 'instructorName', width: 24 },
+    { header: 'Units', key: 'units', width: 22 },
     { header: 'Enrollments', key: 'totalEnrollments', width: 12 },
     { header: 'Created At', key: 'createdAt', width: 22 },
   ];
 
-  const rows = courses.map(c => ({
-    title: c.title,
-    category: c.category,
-    difficulty: c.difficulty,
-    status: c.status,
-    instructorName: c.instructorName || '',
-    totalEnrollments: c.totalEnrollments || 0,
-    createdAt: c.createdAt ? new Date(c.createdAt).toISOString() : '',
-  }));
+  const rows = courses.map(c => {
+    let unitsArr = [];
+    if (c.units) {
+      try { unitsArr = typeof c.units === 'string' ? JSON.parse(c.units) : c.units; } catch (e) { unitsArr = []; }
+    }
+    if (!Array.isArray(unitsArr) || unitsArr.length === 0) {
+      unitsArr = c.unit ? [c.unit] : [];
+    }
+
+    return {
+      title: c.title,
+      category: c.category,
+      difficulty: c.difficulty,
+      status: c.status,
+      instructorName: c.instructorName || '',
+      units: unitsArr.length > 0 ? unitsArr.join(', ') : 'Global',
+      totalEnrollments: c.totalEnrollments || 0,
+      createdAt: c.createdAt ? new Date(c.createdAt).toISOString() : '',
+    };
+  });
 
   const filename = `courses_${new Date().toISOString().slice(0, 10)}`;
   if (format === 'pdf') return sendPDF(res, filename, 'Courses Export', columns, rows);

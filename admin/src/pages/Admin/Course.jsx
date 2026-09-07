@@ -121,7 +121,7 @@ const Course = () => {
     category: "",
     difficulty: "L1",
     status: "DRAFT",
-    unit: "",
+    units: [], // array of unit title strings; empty means Global
     departments: [], // [{ id, name }]
     lines: [], // [{ id, name, departmentId }]
     machines: [], // [{ id, name, lineId }]
@@ -481,7 +481,7 @@ const Course = () => {
       category: "",
       difficulty: "L1",
       status: "DRAFT",
-      unit: "",
+      units: [],
       departments: [],
       lines: [],
       machines: [],
@@ -515,7 +515,7 @@ const Course = () => {
         category: formData.category.trim(),
         difficulty: formData.difficulty,
         status: formData.status,
-        unit: formData.unit,
+        units: formData.units,
         departmentIds: formData.departments.map((d) => d.id),
         lineIds: formData.lines.map((l) => l.id),
         machineIds: formData.machines.map((m) => m.id),
@@ -602,7 +602,9 @@ const Course = () => {
       category: course.category,
       difficulty: getNormalizedDifficulty(course.difficulty),
       status: course.status,
-      unit: course.unit || "",
+      units: Array.isArray(course.units) && course.units.length > 0
+        ? course.units
+        : (course.unit ? [course.unit] : []),
       departments: Array.isArray(course.departments)
         ? course.departments.map((d) => ({ id: d._id, name: d.name }))
         : [],
@@ -1128,11 +1130,17 @@ const Course = () => {
                       </TableCell>
                       {isSuperAdmin && (
                         <TableCell>
-                          {course.unit ? (
-                            <Badge variant="outline" className="text-xs">{course.unit}</Badge>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
+                          <div className="flex flex-wrap gap-1 max-w-[160px]">
+                            {Array.isArray(course.units) && course.units.length > 0 ? (
+                              course.units.map((u) => (
+                                <Badge key={u} variant="outline" className="text-xs">{u}</Badge>
+                              ))
+                            ) : course.unit ? (
+                              <Badge variant="outline" className="text-xs">{course.unit}</Badge>
+                            ) : (
+                              <Badge variant="secondary" className="text-xs">Global</Badge>
+                            )}
+                          </div>
                         </TableCell>
                       )}
                       <TableCell className="text-right">
@@ -1260,8 +1268,16 @@ const Course = () => {
                           </Badge>
                           {getDifficultyBadge(course.difficulty)}
                           {getStatusBadge(course.status)}
-                          {isSuperAdmin && course.unit && (
-                            <Badge variant="outline" className="text-xs">{course.unit}</Badge>
+                          {isSuperAdmin && (
+                            Array.isArray(course.units) && course.units.length > 0 ? (
+                              course.units.map((u) => (
+                                <Badge key={u} variant="outline" className="text-xs">{u}</Badge>
+                              ))
+                            ) : course.unit ? (
+                              <Badge variant="outline" className="text-xs">{course.unit}</Badge>
+                            ) : (
+                              <Badge variant="secondary" className="text-xs">Global</Badge>
+                            )
                           )}
                           {Array.isArray(course.departments) && course.departments.map((d) => (
                             <Badge key={d._id} variant="outline" className="text-xs">{d.name}</Badge>
@@ -1489,25 +1505,69 @@ const Course = () => {
 
             {isSuperAdmin && (
               <div className="grid gap-2">
-                <Label htmlFor="edit-unit">Unit</Label>
-                <Select
-                  value={formData.unit || "none"}
-                  onValueChange={(v) =>
-                    setFormData((prev) => ({ ...prev, unit: v === "none" ? "" : v }))
-                  }
-                >
-                  <SelectTrigger id="edit-unit">
-                    <SelectValue placeholder="Select unit (Global if none)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Global (No unit)</SelectItem>
-                    {allUnits.map((u) => (
-                      <SelectItem key={u._id || u.id} value={u.title}>
-                        {u.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center justify-between">
+                  <Label>Units</Label>
+                  <div className="flex items-center gap-2">
+                    {formData.units?.length > 0 && (
+                      <Badge variant="secondary" className="text-xs">
+                        {formData.units.length} selected
+                      </Badge>
+                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs"
+                      onClick={() =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          units: allUnits.map((u) => u.title),
+                        }))
+                      }
+                    >
+                      Select All
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs"
+                      onClick={() => setFormData((prev) => ({ ...prev, units: [] }))}
+                    >
+                      Clear All (Global)
+                    </Button>
+                  </div>
+                </div>
+                <div className="max-h-40 overflow-y-auto rounded-md border p-2 space-y-1">
+                  {allUnits.length > 0 ? (
+                    allUnits.map((u) => (
+                      <label
+                        key={u._id || u.id}
+                        className="flex items-center gap-2 px-1 py-1 rounded hover:bg-muted/50 cursor-pointer"
+                      >
+                        <Checkbox
+                          checked={formData.units?.includes(u.title)}
+                          onCheckedChange={(checked) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              units: checked
+                                ? [...(prev.units || []), u.title]
+                                : (prev.units || []).filter((t) => t !== u.title),
+                            }))
+                          }
+                        />
+                        <span className="text-sm">{u.title}</span>
+                      </label>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground px-1">No units found</p>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {formData.units?.length > 0
+                    ? `Visible to: ${formData.units.join(", ")}`
+                    : "No units selected — course will be Global (visible to all units)"}
+                </p>
               </div>
             )}
 

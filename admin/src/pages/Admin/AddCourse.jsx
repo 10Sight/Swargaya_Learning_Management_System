@@ -15,6 +15,7 @@ import { useLazyGetMachinesByLineQuery } from "@/Redux/AllApi/MachineApi";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { FormCard, FormInput, FormTextarea, FormSelect } from "@/components/form";
 import { CModuleForm } from "@/components/course/CModuleForm";
 import { QuizForm } from "@/components/course/QuizForm";
@@ -57,7 +58,7 @@ const AddCourse = () => {
     category: "",
     level: "L1",
     instructor: "",
-    unit: "",
+    units: [], // array of unit title strings; empty means Global
     departments: [], // [{ id, name }]
     lines: [], // [{ id, name, departmentId }]
     machines: [], // [{ id, name, lineId }]
@@ -576,7 +577,7 @@ const AddCourse = () => {
         category: formData.category,
         level: formData.level,
         instructor: formData.instructor,
-        unit: formData.unit,
+        units: formData.units,
         departmentIds: formData.departments.map((d) => d.id),
         lineIds: formData.lines.map((l) => l.id),
         machineIds: formData.machines.map((m) => m.id)
@@ -781,23 +782,75 @@ const AddCourse = () => {
               placeholder="Select instructor"
               error={formErrors.instructor}
             />
-
-            {isSuperAdmin && (
-              <FormSelect
-                id="unit"
-                label="Unit"
-                optional
-                value={formData.unit || "none"}
-                onValueChange={(value) => handleSelectChange("unit", value === "none" ? "" : value)}
-                options={[
-                  { value: "none", label: "Global (No unit)" },
-                  ...allUnits.map((u) => ({ value: u.title, label: u.title })),
-                ]}
-                placeholder="Select unit (Global if none)"
-              />
-            )}
-
           </div>
+
+          {isSuperAdmin && (
+            <div className="grid gap-2">
+              <div className="flex items-center justify-between">
+                <Label>Units</Label>
+                <div className="flex items-center gap-2">
+                  {formData.units?.length > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      {formData.units.length} selected
+                    </Badge>
+                  )}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={() =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        units: allUnits.map((u) => u.title),
+                      }))
+                    }
+                  >
+                    Select All
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => setFormData((prev) => ({ ...prev, units: [] }))}
+                  >
+                    Clear All (Global)
+                  </Button>
+                </div>
+              </div>
+              <div className="max-h-40 overflow-y-auto rounded-md border p-2 space-y-1">
+                {allUnits.length > 0 ? (
+                  allUnits.map((u) => (
+                    <label
+                      key={u._id || u.id}
+                      className="flex items-center gap-2 px-1 py-1 rounded hover:bg-muted/50 cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={formData.units?.includes(u.title)}
+                        onCheckedChange={(checked) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            units: checked
+                              ? [...(prev.units || []), u.title]
+                              : (prev.units || []).filter((t) => t !== u.title),
+                          }))
+                        }
+                      />
+                      <span className="text-sm">{u.title}</span>
+                    </label>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground px-1">No units found</p>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {formData.units?.length > 0
+                  ? `Visible to: ${formData.units.join(", ")}`
+                  : "No units selected — course will be Global (visible to all units)"}
+              </p>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="grid gap-2">
