@@ -1,6 +1,5 @@
 import fs from "fs";
 import path from "path";
-import ENV from "../configs/env.config.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -12,7 +11,7 @@ export const uploadSingleFile = asyncHandler(async (req, res) => {
   }
 
   try {
-    const publicUrl = `${ENV.BACKEND_URL}/uploads/${req.file.filename}`;
+    const publicUrl = `/uploads/${req.file.filename}`;
 
     return res
       .status(200)
@@ -40,7 +39,7 @@ export const uploadMultipleFiles = asyncHandler(async (req, res) => {
   // Parallel uploads could be faster but serial is safer for resource limits
   for (const file of req.files) {
     try {
-      const publicUrl = `${ENV.BACKEND_URL}/uploads/${file.filename}`;
+      const publicUrl = `/uploads/${file.filename}`;
 
       results.push({
         url: publicUrl,

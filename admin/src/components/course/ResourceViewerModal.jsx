@@ -17,6 +17,7 @@ import {
   IconLoader,
 } from "@tabler/icons-react";
 import { getResourceTypeConfig, getResourceIcon } from "@/utils/resourceConfig";
+import { resolveResourceUrl } from "@/utils/urlHelper";
 
 // Backend hosts are frequently localhost/private during development; Microsoft's
 // Office Online viewer can only fetch publicly reachable URLs, so we detect that
@@ -273,27 +274,29 @@ export const ResourceViewerModal = ({ resource, open, onClose }) => {
       return <FallbackCard icon={IconAlertTriangle} title="No content available" />;
     }
 
+    const url = resolveResourceUrl(resource.url);
+
     switch (previewKind) {
       case "pdf":
-        return <PdfViewer url={resource.url} />;
+        return <PdfViewer url={url} />;
       case "video":
-        return <VideoViewer url={resource.url} />;
+        return <VideoViewer url={url} />;
       case "image":
-        return <ImageViewer url={resource.url} title={resource.title} />;
+        return <ImageViewer url={url} title={resource.title} />;
       case "office":
-        return <OfficeViewer url={resource.url} title={resource.title} />;
+        return <OfficeViewer url={url} title={resource.title} />;
       case "excel":
-        return <ExcelViewer url={resource.url} format={resource.format} />;
+        return <ExcelViewer url={url} format={resource.format} />;
       case "text":
-        return <TextViewer url={resource.url} />;
+        return <TextViewer url={url} />;
       case "link":
-        return <LinkViewer url={resource.url} />;
+        return <LinkViewer url={url} />;
       default:
         return (
           <FallbackCard
             icon={IconAlertTriangle}
             title="Preview not supported for this type"
-            url={resource.url}
+            url={url}
           />
         );
     }
@@ -319,7 +322,7 @@ export const ResourceViewerModal = ({ resource, open, onClose }) => {
         <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-[#f3f4f6]">
           {resource.url && resource.type !== "link" && (
             <Button asChild variant="outline" size="sm" className="gap-2">
-              <a href={resource.url} download={resource.fileName || true}>
+              <a href={resolveResourceUrl(resource.url)} download={resource.fileName || true}>
                 <IconDownload className="h-4 w-4" />
                 Download
               </a>
@@ -327,7 +330,7 @@ export const ResourceViewerModal = ({ resource, open, onClose }) => {
           )}
           {resource.url && (
             <Button asChild variant="outline" size="sm" className="gap-2">
-              <a href={resource.url} target="_blank" rel="noopener noreferrer">
+              <a href={resolveResourceUrl(resource.url)} target="_blank" rel="noopener noreferrer">
                 <IconExternalLink className="h-4 w-4" />
                 Open in New Tab
               </a>

@@ -19,6 +19,7 @@ import {
   IconFileTypePpt
 } from "@tabler/icons-react";
 import { toast } from "sonner";
+import { resolveResourceUrl } from "@/utils/urlHelper";
 import {
   useGetResourcesByModuleQuery,
   useGetResourcesByCourseQuery,
@@ -105,7 +106,7 @@ export const UniversalResourceList = ({
 
   const handleResourceClick = (resource) => {
     if (resource.url) {
-      window.open(resource.url, "_blank");
+      window.open(resolveResourceUrl(resource.url), "_blank");
     }
   };
 

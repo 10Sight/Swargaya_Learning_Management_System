@@ -19,6 +19,7 @@ import {
   GraduationCap,
   Maximize2,
 } from "lucide-react";
+import { resolveResourceUrl } from "@/utils/urlHelper";
 
 const StudentCourseResources = ({ resources, courseTitle }) => {
   const navigate = useNavigate();
@@ -66,7 +67,7 @@ const StudentCourseResources = ({ resources, courseTitle }) => {
   const handleResourceView = (resource) => {
     const { url, type, title } = resource;
     if (type === 'link') {
-      window.open(url, '_blank');
+      window.open(resolveResourceUrl(url), '_blank');
     } else {
       // Navigate to preview page
       const resourceId = resource._id || resource.id || 'view';
@@ -81,7 +82,7 @@ const StudentCourseResources = ({ resources, courseTitle }) => {
 
   const handleDownload = (url, filename) => {
     const link = document.createElement('a');
-    link.href = url;
+    link.href = resolveResourceUrl(url);
     link.download = filename || 'resource';
     document.body.appendChild(link);
     link.click();

@@ -6,7 +6,6 @@ import { uploadToCloudinary, deleteFromCloudinary } from "../config/cloudinary.j
 import { validateDeclaredType } from "../config/resourceTypes.config.js";
 import fs from 'fs';
 import path from 'path';
-import ENV from "../configs/env.config.js";
 
 // Create Resource
 export const createResource = asyncHandler(async (req, res) => {
@@ -86,7 +85,7 @@ export const createResource = asyncHandler(async (req, res) => {
     if (file) {
         try {
             // Local Storage Logic
-            const publicUrl = `${ENV.BACKEND_URL}/uploads/${file.filename}`;
+            const publicUrl = `/uploads/${file.filename}`;
             
             resourceData.url = publicUrl;
             resourceData.publicId = file.filename; // Using filename as identifier for deletion
@@ -274,7 +273,7 @@ export const updateResource = asyncHandler(async (req, res) => {
                 if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
             }
 
-            const publicUrl = `${ENV.BACKEND_URL}/uploads/${file.filename}`;
+            const publicUrl = `/uploads/${file.filename}`;
             updateData.url = publicUrl;
             updateData.publicId = file.filename;
             updateData.fileSize = file.size;

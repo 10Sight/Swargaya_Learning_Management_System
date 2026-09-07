@@ -20,6 +20,7 @@ import {
   CheckCircle2,
   ArrowRight,
 } from "lucide-react";
+import { resolveResourceUrl } from "@/utils/urlHelper";
 
 const ModuleResources = ({
   resources,
@@ -51,7 +52,7 @@ const ModuleResources = ({
     if (!isUnlocked) return;
 
     // Open in new window/tab
-    window.open(url, '_blank');
+    window.open(resolveResourceUrl(url), '_blank');
 
     // Mark as viewed
     if (!viewedResources.has(resourceId)) {
@@ -70,7 +71,7 @@ const ModuleResources = ({
 
     // Create download link
     const link = document.createElement('a');
-    link.href = url;
+    link.href = resolveResourceUrl(url);
     link.download = filename || 'resource';
     document.body.appendChild(link);
     link.click();

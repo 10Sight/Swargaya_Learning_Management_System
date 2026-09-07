@@ -25,6 +25,7 @@ import {
   Eye,
   Loader2,
 } from "lucide-react";
+import { resolveResourceUrl } from "@/utils/urlHelper";
 
 const isLocalUrl = (url) => {
   if (!url) return false;
@@ -286,7 +287,7 @@ const ResourcePreview = () => {
 
   const handleDownload = () => {
     const link = document.createElement('a');
-    link.href = resource.url;
+    link.href = resolveResourceUrl(resource.url);
     link.download = resource.title || 'resource';
     document.body.appendChild(link);
     link.click();
@@ -298,7 +299,8 @@ const ResourcePreview = () => {
   };
 
   const renderPreviewContent = () => {
-    const { type, url, title } = resource;
+    const { type, title } = resource;
+    const url = resolveResourceUrl(resource.url);
 
     if (isLoading) {
       return (

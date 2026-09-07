@@ -58,17 +58,26 @@ import UserLevelHistory from "./models/userLevelHistory.model.js"; // Initialize
 
 const app = express();
 const server = createServer(app);
+
+// Private network IPs (LAN) so the app is reachable from other devices on the
+// same network without having to list every machine's IP in ALLOWED_ORIGINS.
+const PRIVATE_NETWORK_ORIGIN_PATTERN = /^https?:\/\/(192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})(:\d+)?$/;
+
+const isAllowedOrigin = (origin) => {
+    if (!origin) return true;
+    if (ENV.ALLOWED_ORIGINS.indexOf(origin) !== -1) return true;
+    if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) return true;
+    if (PRIVATE_NETWORK_ORIGIN_PATTERN.test(origin)) return true;
+    return false;
+};
+
 const io = new Server(server, {
     cors: {
         origin: (origin, callback) => {
-            // Allow requests with no origin (like mobile apps or curl requests)
-            if (!origin) return callback(null, true);
-
-            if (ENV.ALLOWED_ORIGINS.indexOf(origin) !== -1 || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+            if (isAllowedOrigin(origin)) {
                 return callback(null, true);
-            } else {
-                return callback(new Error('Not allowed by CORS'));
             }
+            return callback(new Error('Not allowed by CORS'));
         },
         credentials: true,
         methods: ["GET", "POST"]
@@ -85,7 +94,12 @@ app.use(cookieParser()); // Add cookie parser middleware
 
 // CORS with caching for preflight
 const corsOptions = {
-    origin: ENV.ALLOWED_ORIGINS,
+    origin: (origin, callback) => {
+        if (isAllowedOrigin(origin)) {
+            return callback(null, true);
+        }
+        return callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
     optionsSuccessStatus: 200, // For legacy browser support
     maxAge: 86400, // Cache preflight for 24 hours

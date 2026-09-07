@@ -28,6 +28,7 @@ import {
   IconFileTypePpt,
 } from "@tabler/icons-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { resolveResourceUrl } from "@/utils/urlHelper";
 import { useDeleteResourceMutation } from "@/Redux/AllApi/resourceApi";
 import { toast } from "sonner";
 import { ResourceViewerModal } from "./ResourceViewerModal";
@@ -232,7 +233,7 @@ const ResourceModule = ({ module, courseId }) => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={(e) => { e.stopPropagation(); window.open(resource.url, '_blank'); }}
+                        onClick={(e) => { e.stopPropagation(); window.open(resolveResourceUrl(resource.url), '_blank'); }}
                         title="Download"
                       >
                         <IconDownload className="h-4 w-4" />
@@ -244,7 +245,7 @@ const ResourceModule = ({ module, courseId }) => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={(e) => { e.stopPropagation(); window.open(resource.fileUrl, '_blank'); }}
+                        onClick={(e) => { e.stopPropagation(); window.open(resolveResourceUrl(resource.fileUrl), '_blank'); }}
                         title="Download"
                       >
                         <IconDownload className="h-4 w-4" />

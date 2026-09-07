@@ -18,6 +18,7 @@ import {
   Play,
   Maximize2,
 } from "lucide-react";
+import { resolveResourceUrl } from "@/utils/urlHelper";
 
 const StudentModuleResources = ({ resources, moduleTitle }) => {
   const navigate = useNavigate();
@@ -65,7 +66,7 @@ const StudentModuleResources = ({ resources, moduleTitle }) => {
   const handleResourceView = (resource) => {
     const { url, type, title } = resource;
     if (type === 'link') {
-      window.open(url, '_blank');
+      window.open(resolveResourceUrl(url), '_blank');
     } else {
       // Navigate to preview page
       const resourceId = resource._id || resource.id || 'view';
@@ -86,7 +87,7 @@ const StudentModuleResources = ({ resources, moduleTitle }) => {
 
   const handleDownload = (url, filename) => {
     const link = document.createElement('a');
-    link.href = url;
+    link.href = resolveResourceUrl(url);
     link.download = filename || 'resource';
     document.body.appendChild(link);
     link.click();

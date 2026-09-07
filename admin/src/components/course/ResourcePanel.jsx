@@ -47,6 +47,7 @@ import {
   IconX,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
+import { resolveResourceUrl } from "@/utils/urlHelper";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tooltip,
@@ -492,7 +493,7 @@ const ResourcePanel = ({ moduleId, moduleTitle }) => {
                   <div className="flex items-center gap-1">
                     {(resource.url || resource.fileUrl) && (
                       <a
-                        href={resource.url || resource.fileUrl}
+                        href={resolveResourceUrl(resource.url || resource.fileUrl)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-[#2563eb] hover:text-[#1e40af] flex items-center gap-1 p-1 rounded hover:bg-[#eff6ff]"

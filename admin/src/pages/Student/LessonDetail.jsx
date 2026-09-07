@@ -35,6 +35,7 @@ import {
 import { useGetResourcesByLessonQuery } from "@/Redux/AllApi/resourceApi";
 import axiosInstance from "@/Helper/axiosInstance";
 import SlideRender from "@/components/common/SlideRender";
+import { resolveResourceUrl } from "@/utils/urlHelper";
 
 const LessonDetail = () => {
   const { lessonId } = useParams();
@@ -285,17 +286,13 @@ const LessonDetail = () => {
     }
   };
 
-  const handleResourceView = (url, type, title) => {
-    if (type === 'link') {
-      window.open(url, '_blank');
-    } else {
-      window.open(url, '_blank');
-    }
+  const handleResourceView = (url) => {
+    window.open(resolveResourceUrl(url), '_blank');
   };
 
   const handleDownload = (url, filename) => {
     const link = document.createElement('a');
-    link.href = url;
+    link.href = resolveResourceUrl(url);
     link.download = filename || 'resource';
     document.body.appendChild(link);
     link.click();
