@@ -861,17 +861,236 @@ const parseJsonArray = (value) => {
     }
 };
 
+// ---- Date-range / time-series helpers for getPlanLevelDistribution ------------
+
+const MAX_BUCKETS = 366;
+const EMPTY_KPIS = { totalUsers: 0, compliantCount: 0, complianceRate: 0, underTrainedCount: 0, unassignedCount: 0 };
+
+const parseDateParam = (value, fallback) => {
+    if (!value) return fallback;
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? fallback : d;
+};
+
+const startOfDay = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+const endOfDay = (d) => { const x = new Date(d); x.setHours(23, 59, 59, 999); return x; };
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const startOfMonth = (d) => new Date(d.getFullYear(), d.getMonth(), 1);
+const endOfMonth = (d) => { const x = new Date(d.getFullYear(), d.getMonth() + 1, 0); x.setHours(23, 59, 59, 999); return x; };
+const formatISODate = (d) => d.toISOString().slice(0, 10);
+const formatShort = (d) => d.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
+
+// Monday-start ISO week
+const startOfWeek = (d) => {
+    const x = startOfDay(d);
+    const day = x.getDay();
+    x.setDate(x.getDate() + (day === 0 ? -6 : 1 - day));
+    return x;
+};
+const getISOWeekNumber = (d) => {
+    const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const dayNum = date.getUTCDay() || 7;
+    date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+    return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+};
+
+// How many buckets a [rangeStart, rangeEnd] window would produce for a timeframe,
+// checked before doing any bucket construction so an absurd range (e.g. 5 years of
+// "daily") fails fast with a clear error instead of building a huge payload.
+const estimateBucketCount = (timeframe, rangeStart, rangeEnd) => {
+    const dayCount = Math.floor((endOfDay(rangeEnd) - startOfDay(rangeStart)) / 86400000) + 1;
+    if (timeframe === 'weekly') return Math.ceil(dayCount / 7);
+    if (timeframe === 'monthly') {
+        return (rangeEnd.getFullYear() - rangeStart.getFullYear()) * 12 + (rangeEnd.getMonth() - rangeStart.getMonth()) + 1;
+    }
+    return dayCount;
+};
+
+const buildBuckets = (timeframe, rangeStart, rangeEnd, today) => {
+    const buckets = [];
+
+    if (timeframe === 'weekly') {
+        let cursor = startOfWeek(rangeStart);
+        while (cursor <= rangeEnd) {
+            const bucketStart = cursor;
+            const naturalEnd = endOfDay(addDays(cursor, 6));
+            const bucketEnd = naturalEnd > rangeEnd ? rangeEnd : naturalEnd;
+            buckets.push({
+                label: `W${getISOWeekNumber(bucketStart)} (${formatShort(bucketStart)} - ${formatShort(bucketEnd)})`,
+                startDate: bucketStart,
+                endDate: bucketEnd,
+                isCurrent: today >= bucketStart && today <= bucketEnd
+            });
+            cursor = addDays(cursor, 7);
+        }
+    } else if (timeframe === 'monthly') {
+        let cursor = startOfMonth(rangeStart);
+        while (cursor <= rangeEnd) {
+            const naturalEnd = endOfMonth(cursor);
+            const bucketEnd = naturalEnd > rangeEnd ? rangeEnd : naturalEnd;
+            buckets.push({
+                label: cursor.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+                startDate: cursor,
+                endDate: bucketEnd,
+                isCurrent: today.getFullYear() === cursor.getFullYear() && today.getMonth() === cursor.getMonth()
+            });
+            cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+        }
+    } else {
+        let cursor = startOfDay(rangeStart);
+        while (cursor <= rangeEnd) {
+            const naturalEnd = endOfDay(cursor);
+            const bucketEnd = naturalEnd > rangeEnd ? rangeEnd : naturalEnd;
+            buckets.push({
+                label: formatISODate(cursor),
+                startDate: cursor,
+                endDate: bucketEnd,
+                isCurrent: cursor.getTime() === today.getTime()
+            });
+            cursor = addDays(cursor, 1);
+        }
+    }
+    return buckets;
+};
+
+// Build a plan-level (required skill level) lookup from Skill Matrix data, keyed by userId.
+// Anyone without a matching entry falls back to the "Unassigned" bucket rather than being dropped.
+// Plan levels aren't historically tracked (Skill Matrix only holds the current requirement), so
+// this lookup applies uniformly across every bucket in a time-series request.
+const resolvePlanByUser = async (scopedUsers, lineId, machineId) => {
+    const deptIds = [...new Set(scopedUsers.map(u => String(u.department)).filter(id => id && id !== "null" && id !== "undefined"))];
+    const planByUser = new Map();
+    if (deptIds.length === 0) return planByUser;
+
+    const placeholders = deptIds.map(() => "?").join(",");
+    let matrixSql = `SELECT id, department, line, entries FROM skill_matrices WHERE department IN (${placeholders})`;
+    const matrixParams = [...deptIds];
+    if (lineId) {
+        matrixSql += " AND line = ?";
+        matrixParams.push(String(lineId));
+    }
+    const [matrixRows] = await pool.query(matrixSql, matrixParams);
+
+    for (const row of matrixRows) {
+        let entries = [];
+        try {
+            entries = typeof row.entries === "string" ? JSON.parse(row.entries) : (row.entries || []);
+        } catch {
+            continue;
+        }
+
+        for (const entry of entries) {
+            if (entry.userId == null) continue; // manual (non-account) rows aren't in the users table
+            const stations = Array.isArray(entry.stations) ? entry.stations : [];
+            if (stations.length === 0) continue;
+
+            let station = null;
+            if (machineId) {
+                station = stations.find(s => String(s.machineId) === String(machineId));
+            } else {
+                // Mirror the frontend's "current station" resolution: currentMachineId first,
+                // then the first assigned station, then whatever station exists.
+                const currentMachineId = entry.currentMachineId ? String(entry.currentMachineId) : null;
+                const assignedIds = Array.isArray(entry.assignedStationIds) ? entry.assignedStationIds.map(String) : [];
+                if (currentMachineId) {
+                    station = stations.find(s => String(s.machineId) === currentMachineId);
+                }
+                if (!station && assignedIds.length > 0) {
+                    station = stations.find(s => assignedIds.includes(String(s.machineId)));
+                }
+                if (!station) {
+                    station = stations[0];
+                }
+            }
+            if (station?.min) {
+                planByUser.set(String(entry.userId), String(station.min).toUpperCase());
+            }
+        }
+    }
+    return planByUser;
+};
+
+// Tally: plan (required level, or "UNASSIGNED") x current level (a missing/null level counts as L0).
+// forcedLevels/forcedPlanKeys let a time-series caller pin every bucket to the same columns
+// (computed as the union across all buckets) so the chart's legend doesn't shift between buckets.
+const tallyDistribution = (usersWithLevel, planByUser, forcedLevels = null, forcedPlanKeys = null) => {
+    const matrix = {};
+    const levelSet = new Set();
+    const planSet = new Set();
+    let totalUsers = 0;
+    let compliantCount = 0;
+    let unassignedCount = 0;
+
+    for (const user of usersWithLevel) {
+        const currLevel = String(user.level || "L0").toUpperCase();
+        const planLevel = planByUser.get(String(user.id)) || "UNASSIGNED";
+
+        levelSet.add(currLevel);
+        planSet.add(planLevel);
+        if (!matrix[planLevel]) matrix[planLevel] = {};
+        matrix[planLevel][currLevel] = (matrix[planLevel][currLevel] || 0) + 1;
+
+        totalUsers++;
+        if (planLevel === "UNASSIGNED") {
+            unassignedCount++;
+        } else if (levelRank(currLevel) >= levelRank(planLevel)) {
+            compliantCount++;
+        }
+    }
+
+    const levels = forcedLevels || sortLevels([...levelSet]);
+    let planKeys = forcedPlanKeys;
+    if (!planKeys) {
+        planKeys = sortLevels([...planSet].filter(p => p !== "UNASSIGNED"));
+        if (planSet.has("UNASSIGNED")) planKeys.push("UNASSIGNED");
+    }
+
+    const chartData = planKeys.map(plan => {
+        const dataRow = { plan: plan === "UNASSIGNED" ? "No Plan Set" : `Plan ${plan}`, total: 0 };
+        levels.forEach(level => {
+            const count = matrix[plan]?.[level] || 0;
+            dataRow[level] = count;
+            dataRow.total += count;
+        });
+        return dataRow;
+    });
+
+    const assignedUsers = totalUsers - unassignedCount;
+    const underTrainedCount = assignedUsers - compliantCount;
+    const complianceRate = assignedUsers > 0 ? Math.round((compliantCount / assignedUsers) * 100) : 0;
+
+    return {
+        chartData,
+        levels,
+        planKeys,
+        kpis: { totalUsers, compliantCount, complianceRate, underTrainedCount, unassignedCount }
+    };
+};
+
 // @desc    Plan (required skill level) vs Current Level distribution.
 //          Headcount comes straight from the users table (same base query as
 //          getAllStudents) so every employee in scope is represented — including
 //          those with no Skill Matrix entry yet, who fall into an "Unassigned" plan
 //          bucket instead of being silently dropped. A missing/null currentLevel
 //          is treated as L0.
+//
+//          timeframe=snapshot (default): unchanged, single-point response using live
+//          users.currentLevel — identical shape/behavior to the original endpoint.
+//
+//          timeframe=daily|weekly|monthly: returns a time-series over [startDate, endDate]
+//          (default: last 30 days). Every non-current bucket's level-per-user is reconstructed
+//          from the user_level_history ledger (latest transition with effectiveDate <= bucket
+//          end) instead of today's currentLevel, so past dates aren't distorted by later
+//          progress ("hallucination"). The bucket containing today always reads live
+//          users.currentLevel directly, which stays authoritative even if a level was ever
+//          changed through a path that doesn't write to the ledger.
 // @route   GET /api/analytics/plan-level-distribution
 // @access  Private (Admin scoped to own unit, SuperAdmin all/filtered)
 export const getPlanLevelDistribution = asyncHandler(async (req, res) => {
     const userRole = req.user?.role;
     const { departmentId, lineId, machineId } = req.query;
+    const timeframe = ['daily', 'weekly', 'monthly'].includes(req.query.timeframe) ? req.query.timeframe : 'snapshot';
 
     // Security: ADMIN is locked to their own unit; SUPERADMIN may optionally filter by unit
     const targetUnit = userRole === "SUPERADMIN" ? (req.query.unit || null) : (req.user?.unit || null);
@@ -888,7 +1107,7 @@ export const getPlanLevelDistribution = asyncHandler(async (req, res) => {
     }
 
     const [userRows] = await pool.query(
-        `SELECT id, currentLevel, department, lines, machines, currentMachine FROM users WHERE ${whereSql}`,
+        `SELECT id, currentLevel, department, lines, machines, currentMachine, createdAt FROM users WHERE ${whereSql}`,
         params
     );
 
@@ -897,6 +1116,7 @@ export const getPlanLevelDistribution = asyncHandler(async (req, res) => {
         currentLevel: u.currentLevel,
         department: u.department,
         currentMachine: u.currentMachine,
+        createdAt: u.createdAt ? new Date(u.createdAt) : null,
         lines: parseJsonArray(u.lines),
         machines: parseJsonArray(u.machines),
     }));
@@ -912,109 +1132,113 @@ export const getPlanLevelDistribution = asyncHandler(async (req, res) => {
     }
 
     if (scopedUsers.length === 0) {
+        if (timeframe === 'snapshot') {
+            return res.json(new ApiResponse(200, { plans: [], levels: [], chartData: [], kpis: EMPTY_KPIS }, "No employees in scope"));
+        }
+        return res.json(new ApiResponse(200, { mode: 'timeseries', timeframe, levels: [], plans: [], buckets: [], kpis: EMPTY_KPIS }, "No employees in scope"));
+    }
+
+    const planByUser = await resolvePlanByUser(scopedUsers, lineId, machineId);
+
+    if (timeframe === 'snapshot') {
+        const usersWithLevel = scopedUsers.map(u => ({ id: u.id, level: u.currentLevel }));
+        const { chartData, levels, kpis } = tallyDistribution(usersWithLevel, planByUser);
+
         return res.json(new ApiResponse(200, {
-            plans: [], levels: [], chartData: [],
-            kpis: { totalUsers: 0, compliantCount: 0, complianceRate: 0, underTrainedCount: 0, unassignedCount: 0 }
-        }, "No employees in scope"));
+            plans: chartData.map(r => r.plan),
+            levels,
+            chartData,
+            kpis
+        }, "Plan vs Current Level distribution fetched successfully"));
     }
 
-    // Build a plan-level (required skill level) lookup from Skill Matrix data, keyed by userId.
-    // Anyone without a matching entry falls back to the "Unassigned" bucket rather than being dropped.
-    const deptIds = [...new Set(scopedUsers.map(u => String(u.department)).filter(id => id && id !== "null" && id !== "undefined"))];
-    const planByUser = new Map();
-    if (deptIds.length > 0) {
-        const placeholders = deptIds.map(() => "?").join(",");
-        let matrixSql = `SELECT id, department, line, entries FROM skill_matrices WHERE department IN (${placeholders})`;
-        const matrixParams = [...deptIds];
-        if (lineId) {
-            matrixSql += " AND line = ?";
-            matrixParams.push(String(lineId));
-        }
-        const [matrixRows] = await pool.query(matrixSql, matrixParams);
+    // ---- Time-series mode -------------------------------------------------
+    const now = new Date();
+    const rangeStart = startOfDay(parseDateParam(req.query.startDate, addDays(now, -29)));
+    const rangeEnd = endOfDay(parseDateParam(req.query.endDate, now));
+    if (rangeStart > rangeEnd) {
+        throw new ApiError("startDate must be on or before endDate", 400);
+    }
+    if (estimateBucketCount(timeframe, rangeStart, rangeEnd) > MAX_BUCKETS) {
+        throw new ApiError(`Date range too large for the '${timeframe}' timeframe (max ${MAX_BUCKETS} buckets)`, 400);
+    }
 
-        for (const row of matrixRows) {
-            let entries = [];
-            try {
-                entries = typeof row.entries === "string" ? JSON.parse(row.entries) : (row.entries || []);
-            } catch {
-                continue;
+    const today = startOfDay(now);
+    const buckets = buildBuckets(timeframe, rangeStart, rangeEnd, today);
+
+    // Fetch every scoped user's ledger up to rangeEnd in one query, then reconstruct each
+    // bucket's levels in memory — avoids one round trip (and a huge per-bucket IN-clause) per bucket.
+    const scopedIdSet = new Set(scopedUsers.map(u => String(u.id)));
+    const [ledgerRows] = await pool.query(
+        "SELECT userId, newLevel, effectiveDate FROM user_level_history WHERE effectiveDate <= ? ORDER BY userId ASC, effectiveDate ASC, id ASC",
+        [rangeEnd]
+    );
+    const ledgerByUser = new Map();
+    for (const row of ledgerRows) {
+        const key = String(row.userId);
+        if (!scopedIdSet.has(key)) continue;
+        if (!ledgerByUser.has(key)) ledgerByUser.set(key, []);
+        ledgerByUser.get(key).push({ level: String(row.newLevel).toUpperCase(), at: new Date(row.effectiveDate) });
+    }
+
+    // Latest ledger level for a user as of `asOf`. Falls back to the user's live current level
+    // when they have no ledger entry at all (e.g. created after an empty-ledger bootstrap and
+    // never transitioned yet) — the same best-effort behavior the pre-ledger endpoint always had.
+    const levelAsOf = (user, asOf) => {
+        const history = ledgerByUser.get(String(user.id));
+        if (history) {
+            let resolved = null;
+            for (const entry of history) {
+                if (entry.at <= asOf) resolved = entry.level; else break;
             }
-
-            for (const entry of entries) {
-                if (entry.userId == null) continue; // manual (non-account) rows aren't in the users table
-                const stations = Array.isArray(entry.stations) ? entry.stations : [];
-                if (stations.length === 0) continue;
-
-                let station = null;
-                if (machineId) {
-                    station = stations.find(s => String(s.machineId) === String(machineId));
-                } else {
-                    // Mirror the frontend's "current station" resolution: currentMachineId first,
-                    // then the first assigned station, then whatever station exists.
-                    const currentMachineId = entry.currentMachineId ? String(entry.currentMachineId) : null;
-                    const assignedIds = Array.isArray(entry.assignedStationIds) ? entry.assignedStationIds.map(String) : [];
-                    if (currentMachineId) {
-                        station = stations.find(s => String(s.machineId) === currentMachineId);
-                    }
-                    if (!station && assignedIds.length > 0) {
-                        station = stations.find(s => assignedIds.includes(String(s.machineId)));
-                    }
-                    if (!station) {
-                        station = stations[0];
-                    }
-                }
-                if (station?.min) {
-                    planByUser.set(String(entry.userId), String(station.min).toUpperCase());
-                }
-            }
+            if (resolved) return resolved;
         }
-    }
+        return String(user.currentLevel || "L0").toUpperCase();
+    };
 
-    // Tally: plan (required level, or "UNASSIGNED") x current level (a missing/null level counts as L0)
-    const matrix = {};
-    const levelSet = new Set();
-    let totalUsers = 0;
-    let compliantCount = 0;
-    let unassignedCount = 0;
-
-    for (const user of scopedUsers) {
-        const currLevel = String(user.currentLevel || "L0").toUpperCase();
-        const planLevel = planByUser.get(String(user.id)) || "UNASSIGNED";
-
-        levelSet.add(currLevel);
-        if (!matrix[planLevel]) matrix[planLevel] = {};
-        matrix[planLevel][currLevel] = (matrix[planLevel][currLevel] || 0) + 1;
-
-        totalUsers++;
-        if (planLevel === "UNASSIGNED") {
-            unassignedCount++;
-        } else if (levelRank(currLevel) >= levelRank(planLevel)) {
-            compliantCount++;
-        }
-    }
-
-    const levels = sortLevels([...levelSet]);
-    const planKeys = sortLevels(Object.keys(matrix).filter(p => p !== "UNASSIGNED"));
-    if (matrix.UNASSIGNED) planKeys.push("UNASSIGNED");
-
-    const chartData = planKeys.map(plan => {
-        const dataRow = { plan: plan === "UNASSIGNED" ? "No Plan Set" : `Plan ${plan}`, total: 0 };
-        levels.forEach(level => {
-            const count = matrix[plan]?.[level] || 0;
-            dataRow[level] = count;
-            dataRow.total += count;
-        });
-        return dataRow;
+    const perBucket = buckets.map(bucket => {
+        const usersWithLevel = scopedUsers
+            .filter(u => !u.createdAt || u.createdAt <= bucket.endDate) // wasn't an employee yet
+            .map(u => ({
+                id: u.id,
+                level: bucket.isCurrent ? String(u.currentLevel || "L0").toUpperCase() : levelAsOf(u, bucket.endDate)
+            }));
+        return { bucket, usersWithLevel };
     });
 
-    const assignedUsers = totalUsers - unassignedCount;
-    const underTrainedCount = assignedUsers - compliantCount;
-    const complianceRate = assignedUsers > 0 ? Math.round((compliantCount / assignedUsers) * 100) : 0;
+    // Union levels/plans across every bucket so the chart's columns stay stable over time
+    const globalLevelSet = new Set();
+    const globalPlanSet = new Set();
+    for (const { usersWithLevel } of perBucket) {
+        for (const u of usersWithLevel) {
+            globalLevelSet.add(String(u.level || "L0").toUpperCase());
+            globalPlanSet.add(planByUser.get(String(u.id)) || "UNASSIGNED");
+        }
+    }
+    const levels = sortLevels([...globalLevelSet]);
+    const planKeys = sortLevels([...globalPlanSet].filter(p => p !== "UNASSIGNED"));
+    if (globalPlanSet.has("UNASSIGNED")) planKeys.push("UNASSIGNED");
+
+    const bucketsPayload = perBucket.map(({ bucket, usersWithLevel }) => {
+        const { chartData, kpis } = tallyDistribution(usersWithLevel, planByUser, levels, planKeys);
+        return {
+            label: bucket.label,
+            startDate: formatISODate(bucket.startDate),
+            endDate: formatISODate(bucket.endDate),
+            isCurrent: bucket.isCurrent,
+            chartData,
+            kpis
+        };
+    });
+
+    const currentBucket = bucketsPayload.find(b => b.isCurrent) || bucketsPayload[bucketsPayload.length - 1];
 
     res.json(new ApiResponse(200, {
-        plans: chartData.map(r => r.plan),
+        mode: 'timeseries',
+        timeframe,
         levels,
-        chartData,
-        kpis: { totalUsers, compliantCount, complianceRate, underTrainedCount, unassignedCount }
-    }, "Plan vs Current Level distribution fetched successfully"));
+        plans: planKeys.map(p => p === "UNASSIGNED" ? "No Plan Set" : `Plan ${p}`),
+        buckets: bucketsPayload,
+        kpis: currentBucket ? currentBucket.kpis : EMPTY_KPIS
+    }, "Plan vs Current Level time-series fetched successfully"));
 });

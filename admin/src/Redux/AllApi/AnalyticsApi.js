@@ -83,12 +83,23 @@ export const analyticsApi = createApi({
             keepUnusedDataFor: 0,
         }),
 
-        // Plan (required skill level) vs Current Level distribution — sourced from Skill Matrix data
+        // Plan (required skill level) vs Current Level distribution — sourced from Skill Matrix data.
+        // timeframe: 'snapshot' (default, single point-in-time) | 'daily' | 'weekly' | 'monthly'
+        // (time-series over [startDate, endDate], default last 30 days — reconstructed from the
+        // level-history ledger for past buckets, see server/controllers/analytics.controller.js).
         getPlanLevelDistribution: builder.query({
-            query: ({ unit = '', departmentId = '', lineId = '', machineId = '' } = {}) => ({
+            query: ({
+                unit = '',
+                departmentId = '',
+                lineId = '',
+                machineId = '',
+                timeframe = 'snapshot',
+                startDate = '',
+                endDate = '',
+            } = {}) => ({
                 url: "/api/analytics/plan-level-distribution",
                 method: "GET",
-                params: { unit, departmentId, lineId, machineId }
+                params: { unit, departmentId, lineId, machineId, timeframe, startDate, endDate }
             }),
             providesTags: ['Analytics'],
         }),

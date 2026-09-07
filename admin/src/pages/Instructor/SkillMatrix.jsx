@@ -730,32 +730,6 @@ const InstructorSkillMatrix = () => {
             revRowIdx++;
         });
 
-
-        // --- Signatures ---
-        const sigRow = worksheet.rowCount + 2;
-        worksheet.mergeCells(`A${sigRow}:G${sigRow}`);
-        worksheet.getCell(`A${sigRow}`).value = "Prepared By";
-        worksheet.getCell(`A${sigRow}`).border = borderStyle;
-
-        worksheet.mergeCells(`H${sigRow}:N${sigRow}`);
-        worksheet.getCell(`H${sigRow}`).value = "Checked By";
-        worksheet.getCell(`H${sigRow}`).border = borderStyle;
-
-        worksheet.mergeCells(`O${sigRow}:U${sigRow}`);
-        worksheet.getCell(`O${sigRow}`).value = "Approved By";
-        worksheet.getCell(`O${sigRow}`).border = borderStyle;
-
-        const sigValRow = sigRow + 1;
-        worksheet.mergeCells(`A${sigValRow}:G${sigValRow + 2}`);
-        worksheet.getCell(`A${sigValRow}`).border = borderStyle;
-
-        worksheet.mergeCells(`H${sigValRow}:N${sigValRow + 2}`);
-        worksheet.getCell(`H${sigValRow}`).border = borderStyle;
-
-        worksheet.mergeCells(`O${sigValRow}:U${sigValRow + 2}`);
-        worksheet.getCell(`O${sigValRow}`).border = borderStyle;
-
-
         // Set column widths
         worksheet.columns.forEach(column => {
             column.width = 15;
@@ -1228,18 +1202,6 @@ const InstructorSkillMatrix = () => {
                                     </div>
                                 </div>
                             ))}
-                        </div>
-                    </div>
-
-                    {/* Footer Info / Signatures */}
-                    <div className="border-t border-black">
-                        <div className="p-1 text-[10px] font-bold border-b border-black pl-2">
-                            Rev. History - Rev-06- Operation wise Minimum Skill define
-                        </div>
-                        <div className="flex justify-between text-[8px] p-2 pt-8 pb-2">
-                            <div>Prepared by ( DOSJO ) :-</div>
-                            <div>Checked by ( Supervisor ) :-</div>
-                            <div>Approved Vy ( HOD ) :-</div>
                         </div>
                     </div>
                 </div>

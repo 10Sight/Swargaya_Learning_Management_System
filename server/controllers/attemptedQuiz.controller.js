@@ -8,6 +8,7 @@ import ExtraAttemptAllowance from "../models/extraAttempt.model.js";
 import CourseLevelConfig from "../models/courseLevelConfig.model.js";
 import Certificate from "../models/certificate.model.js";
 import CertificateTemplate from "../models/certificateTemplate.model.js";
+import UserLevelHistory from "../models/userLevelHistory.model.js";
 
 import AttemptExtensionRequest from "../models/attemptExtensionRequest.model.js"; // Missing model import
 
@@ -579,6 +580,7 @@ export const submitQuiz = asyncHandler(async (req, res) => {
                 console.log(`[DEBUG] Next Level: ${nextLevel ? nextLevel.name : 'None'}`);
 
                 if (nextLevel && nextLevel.name !== progress.currentLevel) {
+                    const previousLevel = progress.currentLevel;
                     progress.currentLevel = nextLevel.name;
                     levelUpgraded = true;
                     newLevel = nextLevel.name;
@@ -599,6 +601,17 @@ export const submitQuiz = asyncHandler(async (req, res) => {
 
                     // Sync to Users table
                     await pool.query("UPDATE users SET currentLevel = ? WHERE id = ?", [newLevel, userId]);
+
+                    // Record the transition in the level history ledger
+                    await UserLevelHistory.create({
+                        userId,
+                        courseId: quiz.course.id,
+                        previousLevel,
+                        newLevel,
+                        source: "QUIZ_PASSED",
+                        referenceId: String(attempt.id),
+                        effectiveDate: new Date()
+                    });
 
                     // Certificate issuance
                     const courseIdStr = String(quiz.course.id || quiz.course._id || quiz.course);

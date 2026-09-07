@@ -7,6 +7,7 @@ import Certificate from "../models/certificate.model.js";
 // Assuming CourseLevelConfig is refactored or we query the table directly if needed. 
 // If it has a model file with helper methods, we import it. 
 import CourseLevelConfig from "../models/courseLevelConfig.model.js";
+import UserLevelHistory from "../models/userLevelHistory.model.js";
 
 // Helper to safely parse JSON
 const parseJSON = (data, fallback = []) => {
@@ -210,6 +211,16 @@ export const markModuleComplete = asyncHandler(async (req, res) => {
         // Sync to user profile if level changed (e.g. enforced lock)
         if (currentLevel !== progress.currentLevel) {
             await pool.query("UPDATE users SET currentLevel = ? WHERE id = ?", [currentLevel, userId]);
+            await UserLevelHistory.create({
+                userId,
+                courseId,
+                previousLevel: progress.currentLevel,
+                newLevel: currentLevel,
+                source: "ADMIN_MANUAL",
+                referenceId: null,
+                effectiveDate: new Date(),
+                metadata: { reason: "level_lock_enforced" }
+            });
         }
         progress.currentLevel = currentLevel;
     } else {
@@ -254,6 +265,15 @@ export const upgradeLevel = asyncHandler(async (req, res) => {
         const nextLevel = levels[currentIdx + 1];
         await pool.query("UPDATE progress SET currentLevel = ? WHERE id = ?", [nextLevel.name, progress.id]);
         await pool.query("UPDATE users SET currentLevel = ? WHERE id = ?", [nextLevel.name, userId]);
+        await UserLevelHistory.create({
+            userId,
+            courseId,
+            previousLevel: progress.currentLevel,
+            newLevel: nextLevel.name,
+            source: "PROGRESS_COMPLETE",
+            referenceId: String(progress.id),
+            effectiveDate: new Date()
+        });
         progress.currentLevel = nextLevel.name;
         res.json(new ApiResponse(200, progress, "Level upgraded successfully"));
     } else if (currentIdx === levels.length - 1) {
@@ -521,6 +541,17 @@ export const setStudentLevel = asyncHandler(async (req, res) => {
         // Sync to user profile if level changed
         if (level) {
             await pool.query("UPDATE users SET currentLevel = ? WHERE id = ?", [level, studentId]);
+            if (level !== progress.currentLevel) {
+                await UserLevelHistory.create({
+                    userId: studentId,
+                    courseId,
+                    previousLevel: progress.currentLevel,
+                    newLevel: level,
+                    source: "ADMIN_MANUAL",
+                    referenceId: String(req.user.id),
+                    effectiveDate: new Date()
+                });
+            }
         }
 
         // Refresh
