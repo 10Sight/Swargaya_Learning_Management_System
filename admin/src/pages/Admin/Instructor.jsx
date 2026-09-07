@@ -488,9 +488,6 @@ const Instructor = () => {
     if (!formData.userName?.trim()) {
       errors.userName = "Username is required";
     }
-    if (!formData.email?.trim()) {
-      errors.email = "Email is required";
-    }
     if (!formData.phoneNumber?.trim()) {
       errors.phoneNumber = "Phone number is required";
     }
@@ -541,7 +538,7 @@ const Instructor = () => {
       const instructorData = {
         fullName: formData.fullName.trim(),
         userName: formData.userName.trim().toLowerCase(),
-        email: formData.email.trim().toLowerCase(),
+        email: formData.email?.trim() ? formData.email.trim().toLowerCase() : null,
         phoneNumber: formData.phoneNumber.trim(),
         password: formData.password.trim(),
         role: "INSTRUCTOR",
@@ -595,10 +592,15 @@ const Instructor = () => {
     if (
       !formData.fullName?.trim() ||
       !formData.userName?.trim() ||
-      !formData.email?.trim() ||
       !formData.phoneNumber?.trim()
     ) {
       showToast("error", "All fields are required");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (formData.email?.trim() && !emailRegex.test(formData.email.trim())) {
+      showToast("error", "Please enter a valid email address");
       return;
     }
 
@@ -610,7 +612,7 @@ const Instructor = () => {
       const cleanedData = {
         fullName: updateData.fullName.trim(),
         userName: updateData.userName.trim().toLowerCase(),
-        email: updateData.email.trim().toLowerCase(),
+        email: updateData.email?.trim() ? updateData.email.trim().toLowerCase() : null,
         phoneNumber: updateData.phoneNumber.trim(),
         status: updateData.status,
         unit: updateData.unit,
@@ -1382,7 +1384,7 @@ const Instructor = () => {
               Add New Trainer
             </DialogTitle>
             <DialogDescription>
-              Add a new trainer to the system. All fields are required.
+              Add a new trainer to the system. Email address is optional.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -1568,7 +1570,7 @@ const Instructor = () => {
               Edit Trainer
             </DialogTitle>
             <DialogDescription>
-              Update trainer information. All fields are required.
+              Update trainer information. Email address is optional.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">

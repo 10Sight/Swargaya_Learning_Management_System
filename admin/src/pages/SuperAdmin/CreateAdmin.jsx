@@ -113,8 +113,8 @@ const CreateAdmin = () => {
 
     const handleCreateSubmit = async (e) => {
         e.preventDefault();
-        const { fullName, userName, email, password, unit } = createFormData;
-        if (!fullName || !userName || !email || !password || !unit) {
+        const { fullName, userName, password, unit } = createFormData;
+        if (!fullName || !userName || !password || !unit) {
             toast.error("Please fill in all required fields");
             return;
         }
@@ -415,7 +415,7 @@ const CreateAdmin = () => {
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <Label htmlFor="c-email">Email Address *</Label>
+                                <Label htmlFor="c-email">Email Address (Optional)</Label>
                                 <Input
                                     id="c-email"
                                     name="email"

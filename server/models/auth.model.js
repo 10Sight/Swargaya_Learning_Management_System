@@ -57,7 +57,7 @@ class User {
                     fullName NVARCHAR(255) NOT NULL,
                     userName NVARCHAR(255) NOT NULL,
                     slug NVARCHAR(255),
-                    email NVARCHAR(255) NOT NULL,
+                    email NVARCHAR(255) NULL,
                     phoneNumber NVARCHAR(50) NOT NULL,
                     password NVARCHAR(255) NOT NULL,
                     avatar NVARCHAR(MAX),
@@ -139,6 +139,13 @@ class User {
                 )
                 BEGIN
                     ALTER TABLE dbo.users ADD currentMachine INT NULL;
+                END
+                IF EXISTS (
+                    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'email' AND IS_NULLABLE = 'NO'
+                )
+                BEGIN
+                    ALTER TABLE dbo.users ALTER COLUMN email NVARCHAR(255) NULL;
                 END
             END
         `;

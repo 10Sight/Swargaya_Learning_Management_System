@@ -87,14 +87,13 @@ const EditInstructorDialog = ({ open, onOpenChange, instructor, onSave, isLoadin
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email (Optional)</Label>
               <Input
                 id="email"
                 name="email"
                 type="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                required
               />
             </div>
 

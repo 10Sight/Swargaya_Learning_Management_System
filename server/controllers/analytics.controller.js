@@ -2,6 +2,7 @@ import { pool } from "../db/connectDB.js";
 import User from "../models/auth.model.js";
 import Course from "../models/course.model.js";
 import Department from "../models/department.model.js";
+import { SkillMatrix } from "../models/skillMatrix.model.js";
 import AttemptedQuiz from "../models/attemptedQuiz.model.js";
 import Progress from "../models/progress.model.js";
 import Audit from "../models/audit.model.js";
@@ -835,4 +836,185 @@ export const exportAnalyticsData = asyncHandler(async (req, res) => {
 
     if (format === 'pdf') return sendPDF(res, filename, `${type} Report`, columns, rows);
     return sendExcel(res, filename, columns, rows);
+});
+
+// Numeric rank for level strings like "L0".."L5" so mixed/unknown labels still sort sanely
+const levelRank = (levelName) => {
+    const match = /^L?(\d+)/i.exec(String(levelName || "").trim());
+    return match ? parseInt(match[1], 10) : Number.MAX_SAFE_INTEGER;
+};
+
+const sortLevels = (levels) => {
+    return [...levels].sort((a, b) => {
+        const diff = levelRank(a) - levelRank(b);
+        return diff !== 0 ? diff : String(a).localeCompare(String(b));
+    });
+};
+
+// Best-effort JSON parse for the users.lines / users.machines columns
+const parseJsonArray = (value) => {
+    try {
+        const parsed = typeof value === "string" ? JSON.parse(value) : (value || []);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+};
+
+// @desc    Plan (required skill level) vs Current Level distribution.
+//          Headcount comes straight from the users table (same base query as
+//          getAllStudents) so every employee in scope is represented — including
+//          those with no Skill Matrix entry yet, who fall into an "Unassigned" plan
+//          bucket instead of being silently dropped. A missing/null currentLevel
+//          is treated as L0.
+// @route   GET /api/analytics/plan-level-distribution
+// @access  Private (Admin scoped to own unit, SuperAdmin all/filtered)
+export const getPlanLevelDistribution = asyncHandler(async (req, res) => {
+    const userRole = req.user?.role;
+    const { departmentId, lineId, machineId } = req.query;
+
+    // Security: ADMIN is locked to their own unit; SUPERADMIN may optionally filter by unit
+    const targetUnit = userRole === "SUPERADMIN" ? (req.query.unit || null) : (req.user?.unit || null);
+
+    let whereSql = "role = 'STUDENT' AND (isDeleted = 0 OR isDeleted IS NULL)";
+    const params = [];
+    if (targetUnit) {
+        whereSql += " AND unit = ?";
+        params.push(targetUnit);
+    }
+    if (departmentId) {
+        whereSql += " AND department = ?";
+        params.push(departmentId);
+    }
+
+    const [userRows] = await pool.query(
+        `SELECT id, currentLevel, department, lines, machines, currentMachine FROM users WHERE ${whereSql}`,
+        params
+    );
+
+    let scopedUsers = userRows.map(u => ({
+        id: u.id,
+        currentLevel: u.currentLevel,
+        department: u.department,
+        currentMachine: u.currentMachine,
+        lines: parseJsonArray(u.lines),
+        machines: parseJsonArray(u.machines),
+    }));
+
+    if (lineId) {
+        scopedUsers = scopedUsers.filter(u => u.lines.some(l => String(l?.id ?? l) === String(lineId)));
+    }
+    if (machineId) {
+        scopedUsers = scopedUsers.filter(u =>
+            String(u.currentMachine) === String(machineId) ||
+            u.machines.some(m => String(m?.id ?? m) === String(machineId))
+        );
+    }
+
+    if (scopedUsers.length === 0) {
+        return res.json(new ApiResponse(200, {
+            plans: [], levels: [], chartData: [],
+            kpis: { totalUsers: 0, compliantCount: 0, complianceRate: 0, underTrainedCount: 0, unassignedCount: 0 }
+        }, "No employees in scope"));
+    }
+
+    // Build a plan-level (required skill level) lookup from Skill Matrix data, keyed by userId.
+    // Anyone without a matching entry falls back to the "Unassigned" bucket rather than being dropped.
+    const deptIds = [...new Set(scopedUsers.map(u => String(u.department)).filter(id => id && id !== "null" && id !== "undefined"))];
+    const planByUser = new Map();
+    if (deptIds.length > 0) {
+        const placeholders = deptIds.map(() => "?").join(",");
+        let matrixSql = `SELECT id, department, line, entries FROM skill_matrices WHERE department IN (${placeholders})`;
+        const matrixParams = [...deptIds];
+        if (lineId) {
+            matrixSql += " AND line = ?";
+            matrixParams.push(String(lineId));
+        }
+        const [matrixRows] = await pool.query(matrixSql, matrixParams);
+
+        for (const row of matrixRows) {
+            let entries = [];
+            try {
+                entries = typeof row.entries === "string" ? JSON.parse(row.entries) : (row.entries || []);
+            } catch {
+                continue;
+            }
+
+            for (const entry of entries) {
+                if (entry.userId == null) continue; // manual (non-account) rows aren't in the users table
+                const stations = Array.isArray(entry.stations) ? entry.stations : [];
+                if (stations.length === 0) continue;
+
+                let station = null;
+                if (machineId) {
+                    station = stations.find(s => String(s.machineId) === String(machineId));
+                } else {
+                    // Mirror the frontend's "current station" resolution: currentMachineId first,
+                    // then the first assigned station, then whatever station exists.
+                    const currentMachineId = entry.currentMachineId ? String(entry.currentMachineId) : null;
+                    const assignedIds = Array.isArray(entry.assignedStationIds) ? entry.assignedStationIds.map(String) : [];
+                    if (currentMachineId) {
+                        station = stations.find(s => String(s.machineId) === currentMachineId);
+                    }
+                    if (!station && assignedIds.length > 0) {
+                        station = stations.find(s => assignedIds.includes(String(s.machineId)));
+                    }
+                    if (!station) {
+                        station = stations[0];
+                    }
+                }
+                if (station?.min) {
+                    planByUser.set(String(entry.userId), String(station.min).toUpperCase());
+                }
+            }
+        }
+    }
+
+    // Tally: plan (required level, or "UNASSIGNED") x current level (a missing/null level counts as L0)
+    const matrix = {};
+    const levelSet = new Set();
+    let totalUsers = 0;
+    let compliantCount = 0;
+    let unassignedCount = 0;
+
+    for (const user of scopedUsers) {
+        const currLevel = String(user.currentLevel || "L0").toUpperCase();
+        const planLevel = planByUser.get(String(user.id)) || "UNASSIGNED";
+
+        levelSet.add(currLevel);
+        if (!matrix[planLevel]) matrix[planLevel] = {};
+        matrix[planLevel][currLevel] = (matrix[planLevel][currLevel] || 0) + 1;
+
+        totalUsers++;
+        if (planLevel === "UNASSIGNED") {
+            unassignedCount++;
+        } else if (levelRank(currLevel) >= levelRank(planLevel)) {
+            compliantCount++;
+        }
+    }
+
+    const levels = sortLevels([...levelSet]);
+    const planKeys = sortLevels(Object.keys(matrix).filter(p => p !== "UNASSIGNED"));
+    if (matrix.UNASSIGNED) planKeys.push("UNASSIGNED");
+
+    const chartData = planKeys.map(plan => {
+        const dataRow = { plan: plan === "UNASSIGNED" ? "No Plan Set" : `Plan ${plan}`, total: 0 };
+        levels.forEach(level => {
+            const count = matrix[plan]?.[level] || 0;
+            dataRow[level] = count;
+            dataRow.total += count;
+        });
+        return dataRow;
+    });
+
+    const assignedUsers = totalUsers - unassignedCount;
+    const underTrainedCount = assignedUsers - compliantCount;
+    const complianceRate = assignedUsers > 0 ? Math.round((compliantCount / assignedUsers) * 100) : 0;
+
+    res.json(new ApiResponse(200, {
+        plans: chartData.map(r => r.plan),
+        levels,
+        chartData,
+        kpis: { totalUsers, compliantCount, complianceRate, underTrainedCount, unassignedCount }
+    }, "Plan vs Current Level distribution fetched successfully"));
 });

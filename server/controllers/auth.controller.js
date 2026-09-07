@@ -39,11 +39,11 @@ export const generateAuthTokens = async (userId) => {
 export const register = asyncHandler(async (req, res) => {
   let { fullName, userName, email, phoneNumber, role = "STUDENT", designation, education, password, unit, department, lines, machines, currentMachine } = req.body;
 
-  if (!fullName || !userName || !email || !phoneNumber || !password || !unit) {
+  if (!fullName || !userName || !phoneNumber || !password || !unit) {
     throw new ApiError("All fields are required", 400);
   }
 
-  if (!validator.isEmail(email)) {
+  if (email && email.trim() && !validator.isEmail(email.trim())) {
     throw new ApiError("Invalid email address", 400);
   }
 
@@ -55,11 +55,8 @@ export const register = asyncHandler(async (req, res) => {
     throw new ApiError("Username must be 3-20 characters long", 400);
   }
 
-  email = email.toLowerCase();
+  email = email && email.trim() ? email.trim().toLowerCase() : null;
   userName = userName.toLowerCase();
-
-  // const emailExists = await User.findOne({ email });
-  // if (emailExists) throw new ApiError("Email already in use", 400);
 
   const usernameExists = await User.findOne({ userName });
   if (usernameExists) throw new ApiError("Username already in use", 400);

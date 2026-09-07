@@ -11,7 +11,8 @@ import {
     getSystemPerformanceHistory,
     getComprehensiveAnalytics,
     generateCustomReport,
-    exportAnalyticsData
+    exportAnalyticsData,
+    getPlanLevelDistribution
 } from "../controllers/analytics.controller.js";
 import verifyJWT from "../middlewares/auth.middleware.js";
 import authorizeRoles from "../middlewares/authrization.middleware.js";
@@ -28,6 +29,7 @@ router.get("/users", getUserStats);
 router.get("/courses", getCourseStats);
 router.get("/engagement", getEngagementStats);
 router.get("/health", getSystemHealth);
+router.get("/plan-level-distribution", getPlanLevelDistribution);
 
 // Exam history stats and export
 import { getExamHistoryStats, exportExamHistoryStats, getAuditStats, exportAuditStats } from "../controllers/analytics.controller.js";

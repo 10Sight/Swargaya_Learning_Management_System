@@ -26,6 +26,7 @@ import { useGetDashboardStatsQuery } from "@/Redux/AllApi/index";
 import { useGetAllUsersQuery } from "@/Redux/AllApi/SuperAdminApi";
 import { useGetAllAuditLogsQuery } from "@/Redux/AllApi/SuperAdminApi";
 import { toast } from "sonner";
+import PlanCurrentLevelChart from "@/components/analytics/PlanCurrentLevelChart";
 
 // shadcn/ui components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -252,6 +253,9 @@ const SuperAdminDashboard = () => {
           </>
         )}
       </div>
+
+      {/* Plan vs Current Level Distribution */}
+      <PlanCurrentLevelChart isSuperAdmin={true} />
 
       {/* System Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

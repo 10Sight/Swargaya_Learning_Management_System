@@ -151,10 +151,6 @@ export const updateProfile = asyncHandler(async (req, res) => {
 
   if (email) {
     if (!validator.isEmail(email)) throw new ApiError("Invalid email address", 400);
-    if (email !== user.email) {
-      const [exist] = await pool.query("SELECT id FROM users WHERE email = ? AND id != ?", [email, userId]);
-      if (exist.length > 0) throw new ApiError("Email already in use", 400);
-    }
   }
 
   if (phoneNumber && !validator.isMobilePhone(phoneNumber, "any")) {
@@ -235,21 +231,23 @@ export const updateAvatar = asyncHandler(async (req, res) => {
 export const createUser = asyncHandler(async (req, res) => {
   const { fullName, userName, email, phoneNumber, role = "STUDENT", designation, education, password, unit, doj, dob, department, lines, machines, currentMachine } = req.body;
 
-  if (!fullName || !userName || !email || !phoneNumber || !password || !unit) {
+  if (!fullName || !userName || !phoneNumber || !password || !unit) {
     throw new ApiError("All fields are required", 400);
   }
 
   if (req.user.role === 'ADMIN' && unit !== req.user.unit) {
     throw new ApiError("You are not authorized to create users outside your unit", 403);
   }
-  if (!validator.isEmail(email)) throw new ApiError("Invalid email address", 400);
+  if (email && email.trim() && !validator.isEmail(email.trim())) throw new ApiError("Invalid email address", 400);
   if (!validator.isMobilePhone(phoneNumber, "any")) throw new ApiError("Invalid phone number", 400);
   if (!AvailableUserRoles.includes(role)) throw new ApiError("Invalid role", 400);
   if (!AvailableUnits.includes(unit) && !(await Unit.exists({ title: unit }))) throw new ApiError("Invalid unit", 400);
 
-  // Check duplicates
-  const [dupes] = await pool.query("SELECT id FROM users WHERE email = ? OR userName = ?", [email.toLowerCase(), userName.toLowerCase()]);
-  if (dupes.length > 0) throw new ApiError("Email or Username already in use", 400);
+  const normalizedEmail = email && email.trim() ? email.trim().toLowerCase() : null;
+
+  // Check duplicates (username only — email is no longer required to be unique)
+  const [dupes] = await pool.query("SELECT id FROM users WHERE userName = ?", [userName.toLowerCase()]);
+  if (dupes.length > 0) throw new ApiError("Username already in use", 400);
 
   const plainTextPassword = password; // Only for email usage
 
@@ -269,7 +267,7 @@ export const createUser = asyncHandler(async (req, res) => {
   const [result] = await pool.query(`
         INSERT INTO users (fullName, userName, slug, email, phoneNumber, role, designation, education, password, unit, status, doj, dob, department, lines, machines, currentMachine, createdAt, updatedAt)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PRESENT', ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;
-    `, [fullName, userName.toLowerCase(), slug, email.toLowerCase(), phoneNumber, role, designation || 'Employee', education || '', hashedPassword, unit, doj || null, dob || null, department || null, JSON.stringify(lines || []), JSON.stringify(machines || []), resolvedCurrentMachine]);
+    `, [fullName, userName.toLowerCase(), slug, normalizedEmail, phoneNumber, role, designation || 'Employee', education || '', hashedPassword, unit, doj || null, dob || null, department || null, JSON.stringify(lines || []), JSON.stringify(machines || []), resolvedCurrentMachine]);
 
   const newUserId = result[0].id;
 
@@ -300,17 +298,19 @@ export const createUser = asyncHandler(async (req, res) => {
 
   await logAudit(req.user.id, "CREATE_USER", { userId: u.id, role });
 
-  // Email logic
-  try {
-    let loginUrl = ENV.FRONTEND_URL;
-    if (role === 'ADMIN' || role === 'SUPERADMIN') loginUrl = ENV.ADMIN_URL;
-    else if (role === 'INSTRUCTOR') loginUrl = ENV.INSTRUCTOR_URL;
-    else if (role === 'STUDENT') loginUrl = ENV.STUDENT_URL;
+  // Email logic — only when an email address was actually provided
+  if (normalizedEmail) {
+    try {
+      let loginUrl = ENV.FRONTEND_URL;
+      if (role === 'ADMIN' || role === 'SUPERADMIN') loginUrl = ENV.ADMIN_URL;
+      else if (role === 'INSTRUCTOR') loginUrl = ENV.INSTRUCTOR_URL;
+      else if (role === 'STUDENT') loginUrl = ENV.STUDENT_URL;
 
-    const userData = { fullName, email, userName, phoneNumber, password: plainTextPassword, role };
-    const emailHtml = generateWelcomeEmail(userData, loginUrl);
-    await sendMail(email.toLowerCase(), `Welcome to 10Sight LMS`, emailHtml);
-  } catch (e) { }
+      const userData = { fullName, email: normalizedEmail, userName, phoneNumber, password: plainTextPassword, role };
+      const emailHtml = generateWelcomeEmail(userData, loginUrl);
+      await sendMail(normalizedEmail, `Welcome to 10Sight LMS`, emailHtml);
+    } catch (e) { }
+  }
 
   res.status(201).json(new ApiResponse(201, u, "User created successfully"));
 });
@@ -345,11 +345,10 @@ export const updateUser = asyncHandler(async (req, res) => {
     if (ex.length > 0) throw new ApiError("Username already in use", 400);
     updates.push("userName = ?"); values.push(userName.toLowerCase());
   }
-  if (email) {
-    if (!validator.isEmail(email)) throw new ApiError("Invalid email", 400);
-    const [ex] = await pool.query("SELECT id FROM users WHERE email = ? AND id != ?", [email.toLowerCase(), userId]);
-    if (ex.length > 0) throw new ApiError("Email already in use", 400);
-    updates.push("email = ?"); values.push(email.toLowerCase());
+  if (email !== undefined) {
+    const trimmedEmail = email && email.trim() ? email.trim().toLowerCase() : null;
+    if (trimmedEmail && !validator.isEmail(trimmedEmail)) throw new ApiError("Invalid email", 400);
+    updates.push("email = ?"); values.push(trimmedEmail);
   }
   if (phoneNumber) {
     if (!validator.isMobilePhone(phoneNumber, "any")) throw new ApiError("Invalid phone", 400);

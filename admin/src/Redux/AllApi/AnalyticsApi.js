@@ -82,6 +82,16 @@ export const analyticsApi = createApi({
             }),
             keepUnusedDataFor: 0,
         }),
+
+        // Plan (required skill level) vs Current Level distribution — sourced from Skill Matrix data
+        getPlanLevelDistribution: builder.query({
+            query: ({ unit = '', departmentId = '', lineId = '', machineId = '' } = {}) => ({
+                url: "/api/analytics/plan-level-distribution",
+                method: "GET",
+                params: { unit, departmentId, lineId, machineId }
+            }),
+            providesTags: ['Analytics'],
+        }),
     }),
 });
 
@@ -94,4 +104,5 @@ export const {
     useLazyExportExamHistoryQuery,
     useGetAuditStatsQuery,
     useLazyExportAuditStatsQuery,
+    useGetPlanLevelDistributionQuery,
 } = analyticsApi;

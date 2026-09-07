@@ -5,6 +5,7 @@ import { useGetAllInstructorsQuery, useGetAllStudentsQuery } from '@/Redux/AllAp
 import { useGetAllDepartmentsQuery } from '@/Redux/AllApi/DepartmentApi';
 import { useGetCoursesQuery } from '@/Redux/AllApi/CourseApi';
 import { useGetAllAuditsQuery } from '@/Redux/AllApi/AuditApi';
+import PlanCurrentLevelChart from '@/components/analytics/PlanCurrentLevelChart';
 import {
   Card,
   CardContent,
@@ -12,22 +13,16 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
 import {
   IconUsers,
   IconSchool,
   IconCalendar,
   IconBook,
   IconTrendingUp,
-  IconActivity,
   IconPlus,
   IconEye,
   IconSettings,
   IconChartBar,
-  IconUserCheck,
-  IconBook2,
   IconClipboardCheck,
 } from "@tabler/icons-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -149,7 +144,7 @@ const Home = () => {
     category: "",
     status: ""
   });
-  const { data: auditsData, isLoading: auditsLoading } = useGetAllAuditsQuery({
+  const { data: auditsData } = useGetAllAuditsQuery({
     page: 1,
     limit: 10
   });
@@ -176,11 +171,6 @@ const Home = () => {
     if (!coursesData?.data?.courses) return 0;
     return coursesData.data.courses.filter(course => course.status === 'PUBLISHED').length;
   }, [coursesData]);
-
-  // Calculate engagement metrics
-  const studentEngagement = totalStudents > 0 ? Math.round((activeStudents / totalStudents) * 100) : 0;
-  const departmentUtilization = totalDepartments > 0 ? Math.round((activeDepartments / totalDepartments) * 100) : 0;
-  const courseCompletion = totalCourses > 0 ? Math.round((publishedCourses / totalCourses) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -243,157 +233,54 @@ const Home = () => {
         />
       </div>
 
-      {/* Engagement Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium" style={{ color: '#4b5563' }}>Employee Engagement</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-2xl font-bold" style={{ color: '#111827' }}>{studentEngagement}%</span>
-              <IconUserCheck className="h-5 w-5" style={{ color: '#2563eb' }} />
-            </div>
-            <Progress value={studentEngagement} className="mb-2" />
-            <p className="text-xs" style={{ color: '#6b7280' }}>Active employees participating</p>
-          </CardContent>
-        </Card>
+      {/* Plan vs Current Level Distribution */}
+      <PlanCurrentLevelChart isSuperAdmin={false} />
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium" style={{ color: '#4b5563' }}>Department Utilization</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-2xl font-bold" style={{ color: '#111827' }}>{departmentUtilization}%</span>
-              <IconSchool className="h-5 w-5" style={{ color: '#9333ea' }} />
-            </div>
-            <Progress value={departmentUtilization} className="mb-2" />
-            <p className="text-xs" style={{ color: '#6b7280' }}>Active learning groups</p>
-          </CardContent>
-        </Card>
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <IconSettings className="h-5 w-5" />
+            Quick Actions
+          </CardTitle>
+          <CardDescription>Common administrative tasks</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <QuickActionCard
+              title="Add New Course"
+              description="Create a new learning course"
+              icon={IconPlus}
+              linkTo="/admin/add-course"
+              color="blue"
+            />
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium" style={{ color: '#4b5563' }}>Course Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-2xl font-bold" style={{ color: '#111827' }}>{courseCompletion}%</span>
-              <IconBook2 className="h-5 w-5" style={{ color: '#16a34a' }} />
-            </div>
-            <Progress value={courseCompletion} className="mb-2" />
-            <p className="text-xs" style={{ color: '#6b7280' }}>Published and available</p>
-          </CardContent>
-        </Card>
-      </div>
+            <QuickActionCard
+              title="Manage Departments"
+              description="View and organize departments"
+              icon={IconCalendar}
+              linkTo="/admin/departments"
+              color="purple"
+            />
 
-      {/* Main Content Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Activity */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <IconActivity className="h-5 w-5" />
-                Recent Activity
-              </CardTitle>
-              <CardDescription>Latest system events</CardDescription>
-            </div>
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/admin/analytics">View All</Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {auditsLoading ? (
-              <div className="space-y-3">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="flex items-center space-x-3">
-                    <Skeleton className="h-8 w-8 rounded-full" />
-                    <div className="space-y-1 flex-1">
-                      <Skeleton className="h-4 w-3/4" />
-                      <Skeleton className="h-3 w-1/2" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : recentActivities.length > 0 ? (
-              <div className="space-y-4">
-                {recentActivities.slice(0, 5).map((activity, index) => (
-                  <div key={activity._id || index} className="flex items-start space-x-3">
-                    <div
-                      className="h-2 w-2 rounded-full mt-2 flex-shrink-0"
-                      style={{ backgroundColor: '#2563eb' }}
-                    ></div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm truncate" style={{ color: '#111827' }}>
-                        {activity.action || 'System activity'}
-                      </p>
-                      <p className="text-xs" style={{ color: '#6b7280' }}>
-                        {activity.user?.fullName || 'System'} • {new Date(activity.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <Badge variant="outline" className="text-xs">
-                      {activity.action?.split(' ')[0] || 'Activity'}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8" style={{ color: '#6b7280' }}>
-                <IconActivity className="h-8 w-8 mx-auto mb-2" style={{ color: '#9ca3af' }} />
-                <p>No recent activity</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            <QuickActionCard
+              title="View Reports"
+              description="Analytics and insights"
+              icon={IconChartBar}
+              linkTo="/admin/analytics"
+              color="green"
+            />
 
-        {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <IconSettings className="h-5 w-5" />
-              Quick Actions
-            </CardTitle>
-            <CardDescription>Common administrative tasks</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <QuickActionCard
-                title="Add New Course"
-                description="Create a new learning course"
-                icon={IconPlus}
-                linkTo="/admin/add-course"
-                color="blue"
-              />
-
-              <QuickActionCard
-                title="Manage Departments"
-                description="View and organize departments"
-                icon={IconCalendar}
-                linkTo="/admin/departments"
-                color="purple"
-              />
-
-              <QuickActionCard
-                title="View Reports"
-                description="Analytics and insights"
-                icon={IconChartBar}
-                linkTo="/admin/analytics"
-                color="green"
-              />
-
-              <QuickActionCard
-                title="Employee Management"
-                description="Manage employee accounts"
-                icon={IconUsers}
-                linkTo="/admin/employees"
-                color="orange"
-              />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            <QuickActionCard
+              title="Employee Management"
+              description="Manage employee accounts"
+              icon={IconUsers}
+              linkTo="/admin/employees"
+              color="orange"
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       {/* System Health Indicators */}
       <Card>

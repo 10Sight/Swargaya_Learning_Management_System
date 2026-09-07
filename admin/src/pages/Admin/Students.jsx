@@ -595,9 +595,6 @@ const Students = () => {
     if (!formData.userName?.trim()) {
       errors.userName = "Username is required";
     }
-    if (!formData.email?.trim()) {
-      errors.email = "Email is required";
-    }
     if (!formData.phoneNumber?.trim()) {
       errors.phoneNumber = "Phone number is required";
     }
@@ -648,7 +645,7 @@ const Students = () => {
       const studentData = {
         fullName: formData.fullName.trim(),
         userName: formData.userName.trim().toLowerCase(),
-        email: formData.email.trim().toLowerCase(),
+        email: formData.email?.trim() ? formData.email.trim().toLowerCase() : null,
         phoneNumber: formData.phoneNumber.trim(),
         password: formData.password.trim(),
         role: "STUDENT",
@@ -708,10 +705,15 @@ const Students = () => {
     if (
       !formData.fullName?.trim() ||
       !formData.userName?.trim() ||
-      !formData.email?.trim() ||
       !formData.phoneNumber?.trim()
     ) {
       showToast("error", "All fields are required");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (formData.email?.trim() && !emailRegex.test(formData.email.trim())) {
+      showToast("error", "Please enter a valid email address");
       return;
     }
 
@@ -723,7 +725,7 @@ const Students = () => {
       const cleanedData = {
         fullName: updateData.fullName.trim(),
         userName: updateData.userName.trim().toLowerCase(),
-        email: updateData.email.trim().toLowerCase(),
+        email: updateData.email?.trim() ? updateData.email.trim().toLowerCase() : null,
         phoneNumber: updateData.phoneNumber.trim(),
         designation: updateData.designation,
         education: updateData.education?.trim() || "",
@@ -1568,7 +1570,7 @@ const Students = () => {
               Add New Employee
             </DialogTitle>
             <DialogDescription>
-              Add a new employee to the system. All fields are required.
+              Add a new employee to the system. Email address is optional.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -1883,7 +1885,7 @@ const Students = () => {
               Edit Employee
             </DialogTitle>
             <DialogDescription>
-              Update employee information. All fields are required.
+              Update employee information. Email address is optional.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
