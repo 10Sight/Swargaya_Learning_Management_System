@@ -37,6 +37,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getAcceptString, validateFileForType, getResourceTypeConfig } from "@/utils/resourceConfig";
+import { ResourceUploadProgressModal } from "@/components/course/ResourceUploadProgressModal";
 
 const AddResourcePage = () => {
   const { courseId } = useParams();
@@ -89,6 +90,8 @@ const AddResourcePage = () => {
   const lessons = lessonsData?.data || [];
 
   const [filePreview, setFilePreview] = useState(null);
+  const [uploadStatus, setUploadStatus] = useState('idle'); // 'idle' | 'uploading' | 'success' | 'error'
+  const [uploadError, setUploadError] = useState('');
 
   // Clear dependent fields when scope changes
   useEffect(() => {
@@ -189,6 +192,8 @@ const AddResourcePage = () => {
 
     if (!validateForm()) return;
 
+    setUploadStatus('uploading');
+
     try {
       const formDataToSend = new FormData();
 
@@ -219,6 +224,7 @@ const AddResourcePage = () => {
 
       await createResource(formDataToSend).unwrap();
 
+      setUploadStatus('success');
       toast.success(`Resource added to ${formData.scope} successfully!`);
       const basePath = (() => {
         const p = location.pathname || '';
@@ -226,10 +232,15 @@ const AddResourcePage = () => {
         if (p.startsWith('/instructor')) return '/instructor';
         return '/admin';
       })();
-      navigate(`${basePath}/courses/${courseId}`);
+      setTimeout(() => {
+        navigate(`${basePath}/courses/${courseId}`);
+      }, 1000);
     } catch (error) {
       console.error("Create resource error:", error);
-      toast.error(error?.data?.message || `Failed to add resource to ${formData.scope}`);
+      const message = error?.data?.message || `Failed to add resource to ${formData.scope}`;
+      setUploadError(message);
+      setUploadStatus('error');
+      toast.error(message);
     }
   };
 
@@ -587,6 +598,15 @@ const AddResourcePage = () => {
           </Button>
         </div>
       </form>
+
+      <ResourceUploadProgressModal
+        open={uploadStatus !== 'idle'}
+        file={formData.file}
+        resourceType={formData.type}
+        status={uploadStatus}
+        errorMessage={uploadError}
+        onClose={() => setUploadStatus('idle')}
+      />
     </div>
   );
 };

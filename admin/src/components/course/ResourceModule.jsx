@@ -32,6 +32,7 @@ import { resolveResourceUrl } from "@/utils/urlHelper";
 import { useDeleteResourceMutation } from "@/Redux/AllApi/resourceApi";
 import { toast } from "sonner";
 import { ResourceViewerModal } from "./ResourceViewerModal";
+import { DeleteResourceDialog } from "./DeleteResourceDialog";
 
 const ResourceModule = ({ module, courseId }) => {
   const navigate = useNavigate();
@@ -39,7 +40,9 @@ const ResourceModule = ({ module, courseId }) => {
   // Auto-expand if module already has resources
   const [isExpanded, setIsExpanded] = useState(Boolean(module.resources?.length));
   const [viewingResource, setViewingResource] = useState(null);
-  const [deleteResource, { isLoading: isDeletingResource }] = useDeleteResourceMutation();
+  const [resourceToDelete, setResourceToDelete] = useState(null);
+  const [deletingResourceId, setDeletingResourceId] = useState(null);
+  const [deleteResource] = useDeleteResourceMutation();
 
   const basePath = React.useMemo(() => {
     const p = location.pathname || '';
@@ -55,18 +58,20 @@ const ResourceModule = ({ module, courseId }) => {
 
   const resourcesLoading = false;
 
-  const handleDeleteResource = async (resourceId) => {
-    if (!window.confirm("Are you sure you want to delete this resource? This action cannot be undone.")) {
-      return;
-    }
-
+  const handleConfirmDelete = async () => {
+    if (!resourceToDelete) return;
+    const resourceId = resourceToDelete._id || resourceToDelete.id;
+    setDeletingResourceId(resourceId);
     try {
       await deleteResource(resourceId).unwrap();
       toast.success("Resource deleted successfully!");
+      setResourceToDelete(null);
       // Note: Parent component should handle refetching modules to update resource lists
     } catch (error) {
       console.error("Delete resource error:", error);
       toast.error(error?.data?.message || "Failed to delete resource");
+    } finally {
+      setDeletingResourceId(null);
     }
   };
 
@@ -262,10 +267,10 @@ const ResourceModule = ({ module, courseId }) => {
                       variant="outline"
                       size="sm"
                       className="text-[#dc2626] hover:text-[#991b1b] hover:bg-[#fef2f2]"
-                      onClick={() => handleDeleteResource(resource._id)}
-                      disabled={isDeletingResource}
+                      onClick={(e) => { e.stopPropagation(); setResourceToDelete(resource); }}
+                      disabled={deletingResourceId === (resource._id || resource.id)}
                     >
-                      {isDeletingResource ? (
+                      {deletingResourceId === (resource._id || resource.id) ? (
                         <IconLoader className="h-4 w-4 animate-spin" />
                       ) : (
                         <IconTrash className="h-4 w-4" />
@@ -298,6 +303,14 @@ const ResourceModule = ({ module, courseId }) => {
         resource={viewingResource}
         open={!!viewingResource}
         onClose={() => setViewingResource(null)}
+      />
+
+      <DeleteResourceDialog
+        open={!!resourceToDelete}
+        resourceTitle={resourceToDelete?.title}
+        isDeleting={!!deletingResourceId}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setResourceToDelete(null)}
       />
     </Card>
   );

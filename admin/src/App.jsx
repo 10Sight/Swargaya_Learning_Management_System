@@ -36,6 +36,7 @@ const AddQuizPage = lazy(() => import("./pages/Admin/AddQuizPage"));
 const EditQuizPage = lazy(() => import("./pages/Admin/EditQuizPage"));
 const AddAssignmentPage = lazy(() => import("./pages/Admin/AddAssignmentPage"));
 const AddResourcePage = lazy(() => import("./pages/Admin/AddResourcePage"));
+const EditResourcePage = lazy(() => import("./pages/Admin/EditResourcePage"));
 const AddLessonPage = lazy(() => import("./pages/Admin/AddLessonPage"));
 const EditLessonPage = lazy(() => import("./pages/Admin/EditLessonPage"));
 const InstructorDetail = lazy(() => import("./pages/Admin/InstructorDetail"));
@@ -155,6 +156,7 @@ const App = () => {
             <Route path="add-lesson/:moduleId" element={<AddLessonPage />} />
             <Route path="add-assignment/:courseId" element={<AddAssignmentPage />} />
             <Route path="add-resource/:courseId" element={<AddResourcePage />} />
+            <Route path="edit-resource/:resourceId" element={<EditResourcePage />} />
             <Route path="edit-lesson/:moduleId/:lessonId" element={<EditLessonPage />} />
             <Route path="quiz-monitoring" element={<AdminQuizMonitoring />} />
             <Route path="attempt-requests" element={<AdminAttemptRequests />} />
@@ -191,6 +193,7 @@ const App = () => {
             <Route path="edit-quiz/:quizId" element={<EditQuizPage />} />
             <Route path="add-assignment/:courseId" element={<AddAssignmentPage />} />
             <Route path="add-resource/:courseId" element={<AddResourcePage />} />
+            <Route path="edit-resource/:resourceId" element={<EditResourcePage />} />
             <Route path="departments" element={<InstructorDepartments />} />
             <Route path="employees" element={<InstructorStudents />} />
             <Route path="employees/:studentId" element={<InstructorStudentDetail />} />
@@ -232,6 +235,7 @@ const App = () => {
             <Route path="add-lesson/:moduleId" element={<AddLessonPage />} />
             <Route path="add-assignment/:courseId" element={<AddAssignmentPage />} />
             <Route path="add-resource/:courseId" element={<AddResourcePage />} />
+            <Route path="edit-resource/:resourceId" element={<EditResourcePage />} />
             <Route path="edit-lesson/:moduleId/:lessonId" element={<EditLessonPage />} />
             <Route path="departments" element={<Departments pageName="Departments" />} />
             <Route path="departments/:departmentId" element={<DepartmentDetail pageName="Department Detail" />} />

@@ -3,6 +3,7 @@ import path from "path";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
+import { uploadToCloudinary } from "../config/cloudinary.js";
 
 // Upload single file
 export const uploadSingleFile = asyncHandler(async (req, res) => {
@@ -11,19 +12,26 @@ export const uploadSingleFile = asyncHandler(async (req, res) => {
   }
 
   try {
-    const publicUrl = `/uploads/${req.file.filename}`;
+    const uploadResult = await uploadToCloudinary(req.file.path, 'general-uploads');
+    if (!uploadResult.success) {
+      throw new ApiError(`Cloudinary upload failed: ${uploadResult.error}`, 500);
+    }
 
     return res
       .status(200)
       .json(
         new ApiResponse(200, {
-          url: publicUrl,
-          public_id: req.file.filename,
+          url: uploadResult.url,
+          public_id: uploadResult.public_id,
+          format: uploadResult.format,
+          size: uploadResult.size,
         }, "File uploaded successfully")
       );
   } catch (err) {
-    try { if (req.file?.path && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path); } catch (_) { }
-    throw new ApiError(err?.message || "Failed to store file", 500);
+    if (req.file?.path && fs.existsSync(req.file.path)) {
+      try { fs.unlinkSync(req.file.path); } catch (_) { }
+    }
+    throw new ApiError(err?.message || "Failed to upload file to Cloudinary", err?.statusCode || 500);
   }
 });
 
@@ -36,18 +44,24 @@ export const uploadMultipleFiles = asyncHandler(async (req, res) => {
   const results = [];
   const errors = [];
 
-  // Parallel uploads could be faster but serial is safer for resource limits
   for (const file of req.files) {
     try {
-      const publicUrl = `/uploads/${file.filename}`;
-
-      results.push({
-        url: publicUrl,
-        public_id: file.filename,
-        originalName: file.originalname
-      });
+      const uploadResult = await uploadToCloudinary(file.path, 'general-uploads');
+      if (uploadResult.success) {
+        results.push({
+          url: uploadResult.url,
+          public_id: uploadResult.public_id,
+          originalName: file.originalname,
+          format: uploadResult.format,
+          size: uploadResult.size
+        });
+      } else {
+        errors.push({ file: file.originalname, error: uploadResult.error });
+      }
     } catch (err) {
-      try { if (fs.existsSync(file.path)) fs.unlinkSync(file.path); } catch (_) { }
+      if (fs.existsSync(file.path)) {
+        try { fs.unlinkSync(file.path); } catch (_) { }
+      }
       errors.push({ file: file.originalname, error: err.message });
     }
   }

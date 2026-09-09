@@ -84,17 +84,21 @@ export const createResource = asyncHandler(async (req, res) => {
 
     if (file) {
         try {
-            // Local Storage Logic
-            const publicUrl = `/uploads/${file.filename}`;
+            const uploadResult = await uploadToCloudinary(file.path, `resources/${scope}s`);
+            if (!uploadResult.success) {
+                throw new ApiError(`Cloudinary upload failed: ${uploadResult.error}`, 500);
+            }
             
-            resourceData.url = publicUrl;
-            resourceData.publicId = file.filename; // Using filename as identifier for deletion
-            resourceData.fileSize = file.size;
-            resourceData.format = path.extname(file.originalname).substring(1);
+            resourceData.url = uploadResult.url;
+            resourceData.publicId = uploadResult.public_id;
+            resourceData.fileSize = uploadResult.size || file.size;
+            resourceData.format = uploadResult.format || path.extname(file.originalname).substring(1);
             resourceData.fileName = file.originalname;
         } catch (error) {
-            if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
-            throw new ApiError(`File storage failed: ${error.message}`, 500);
+            if (fs.existsSync(file.path)) {
+                try { fs.unlinkSync(file.path); } catch (_) {}
+            }
+            throw new ApiError(error.message || "File storage failed", error.statusCode || 500);
         }
     }
 
@@ -219,6 +223,28 @@ export const getResourcesByLesson = asyncHandler(async (req, res) => {
     res.json(new ApiResponse(200, formatted, "Resources retrieved successfully"));
 });
 
+// Get Single Resource
+export const getResourceById = asyncHandler(async (req, res) => {
+    const { resourceId } = req.params;
+    const [rows] = await pool.query(`
+        SELECT r.*, u.fullName as creatorName, u.email as creatorEmail
+        FROM resources r
+        LEFT JOIN users u ON r.createdBy = u.id
+        WHERE r.id = ?
+    `, [resourceId]);
+    if (rows.length === 0) throw new ApiError("Resource not found", 404);
+
+    const resource = rows[0];
+    const formatted = {
+        ...resource,
+        createdBy: { id: resource.createdBy, name: resource.creatorName, email: resource.creatorEmail },
+    };
+    delete formatted.creatorName;
+    delete formatted.creatorEmail;
+
+    res.json(new ApiResponse(200, formatted, "Resource retrieved successfully"));
+});
+
 // Delete Resource
 export const deleteResource = asyncHandler(async (req, res) => {
     const { resourceId } = req.params;
@@ -229,9 +255,19 @@ export const deleteResource = asyncHandler(async (req, res) => {
     if (resource.publicId) {
         try { 
             const filePath = path.join('uploads', resource.publicId);
-            if (fs.existsSync(filePath)) fs.unlinkSync(filePath); 
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath); 
+            } else {
+                let resType = 'image';
+                if (resource.type === 'video' || resource.format === 'mp4' || resource.format === 'webm') {
+                    resType = 'video';
+                } else if (resource.type === 'document' || resource.format === 'pdf' || resource.format === 'pptx' || resource.format === 'docx') {
+                    resType = 'raw';
+                }
+                await deleteFromCloudinary(resource.publicId, resType);
+            }
         } catch (e) { 
-            console.error("Failed to delete local file:", e);
+            console.error("Failed to delete resource file:", e);
         }
     }
 
@@ -256,7 +292,8 @@ export const updateResource = asyncHandler(async (req, res) => {
         url: resource.url,
         publicId: resource.publicId,
         fileSize: resource.fileSize,
-        format: resource.format
+        format: resource.format,
+        fileName: resource.fileName
     };
 
     if (file) {
@@ -270,32 +307,54 @@ export const updateResource = asyncHandler(async (req, res) => {
             // Delete old file if exists
             if (resource.publicId) {
                 const oldPath = path.join('uploads', resource.publicId);
-                if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+                if (fs.existsSync(oldPath)) {
+                    fs.unlinkSync(oldPath);
+                } else {
+                    let oldResType = 'image';
+                    if (resource.type === 'video' || resource.format === 'mp4') oldResType = 'video';
+                    else if (resource.type === 'document' || resource.format === 'pdf') oldResType = 'raw';
+                    await deleteFromCloudinary(resource.publicId, oldResType);
+                }
             }
 
-            const publicUrl = `/uploads/${file.filename}`;
-            updateData.url = publicUrl;
-            updateData.publicId = file.filename;
-            updateData.fileSize = file.size;
-            updateData.format = path.extname(file.originalname).substring(1);
+            const uploadResult = await uploadToCloudinary(file.path, `resources`);
+            if (!uploadResult.success) {
+                throw new ApiError(`Cloudinary upload failed: ${uploadResult.error}`, 500);
+            }
+
+            updateData.url = uploadResult.url;
+            updateData.publicId = uploadResult.public_id;
+            updateData.fileSize = uploadResult.size || file.size;
+            updateData.format = uploadResult.format || path.extname(file.originalname).substring(1);
+            updateData.fileName = file.originalname;
         } catch (e) {
-            if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
-            throw new ApiError(`Upload failed: ${e.message}`, 500);
+            if (fs.existsSync(file.path)) {
+                try { fs.unlinkSync(file.path); } catch (_) {}
+            }
+            throw new ApiError(e.message || "Upload failed", e.statusCode || 500);
         }
     } else if (url) {
         if (resource.publicId) {
             const oldPath = path.join('uploads', resource.publicId);
-            if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+            if (fs.existsSync(oldPath)) {
+                fs.unlinkSync(oldPath);
+            } else {
+                let oldResType = 'image';
+                if (resource.type === 'video' || resource.format === 'mp4') oldResType = 'video';
+                else if (resource.type === 'document' || resource.format === 'pdf') oldResType = 'raw';
+                await deleteFromCloudinary(resource.publicId, oldResType);
+            }
         }
         updateData.url = url;
         updateData.publicId = null;
         updateData.fileSize = null;
         updateData.format = null;
+        updateData.fileName = null;
     }
 
     await pool.query(
-        `UPDATE resources SET title=?, type=?, description=?, url=?, publicId=?, fileSize=?, format=?, updatedAt=GETDATE() WHERE id=?`,
-        [updateData.title, updateData.type, updateData.description, updateData.url, updateData.publicId, updateData.fileSize, updateData.format, resourceId]
+        `UPDATE resources SET title=?, type=?, description=?, url=?, publicId=?, fileSize=?, format=?, fileName=?, updatedAt=GETDATE() WHERE id=?`,
+        [updateData.title, updateData.type, updateData.description, updateData.url, updateData.publicId, updateData.fileSize, updateData.format, updateData.fileName, resourceId]
     );
 
     const [updated] = await pool.query("SELECT * FROM resources WHERE id = ?", [resourceId]);

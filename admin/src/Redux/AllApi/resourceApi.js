@@ -44,6 +44,12 @@ export const resourceApi = createApi({
                 { type: 'Resource', id: `lesson-${lessonId}` },
             ],
         }),
+        getResourceById: builder.query({
+            query: (resourceId) => ({ url: `/api/resources/${resourceId}` }),
+            providesTags: (result, error, resourceId) => [
+                { type: 'Resource', id: resourceId },
+            ],
+        }),
         deleteResource: builder.mutation({
             query: (resourceId) => ({
                 url: `/api/resources/${resourceId}`,
@@ -84,6 +90,7 @@ export const {
     useGetResourcesByModuleQuery,
     useGetResourcesByCourseQuery,
     useGetResourcesByLessonQuery,
+    useGetResourceByIdQuery,
     useDeleteResourceMutation,
     useUpdateResourceMutation,
 } = resourceApi;

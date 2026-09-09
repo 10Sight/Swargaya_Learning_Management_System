@@ -294,7 +294,7 @@ const CourseDetailPage = () => {
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid grid-cols-3 md:grid-cols-7 mb-6">
+        <TabsList className="grid grid-cols-3 md:grid-cols-6 mb-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
 

@@ -1,11 +1,12 @@
 import express from "express";
-import { 
-    createResource, 
+import {
+    createResource,
     getResourcesByModule,
     getResourcesByCourse,
     getResourcesByLesson,
-    deleteResource, 
-    updateResource 
+    getResourceById,
+    deleteResource,
+    updateResource
 } from "../controllers/resource.controller.js";
 import verifyJWT from "../middlewares/auth.middleware.js";
 import { authorizeRole } from "../middlewares/roleAuth.middleware.js";
@@ -21,6 +22,7 @@ router.use(verifyJWT);
 router.get("/course/:courseId", authorizeRole([SYSTEM_PERMISSIONS.RESOURCE_READ]), getResourcesByCourse);
 router.get("/module/:moduleId", authorizeRole([SYSTEM_PERMISSIONS.RESOURCE_READ]), getResourcesByModule);
 router.get("/lesson/:lessonId", authorizeRole([SYSTEM_PERMISSIONS.RESOURCE_READ]), getResourcesByLesson);
+router.get("/:resourceId", authorizeRole([SYSTEM_PERMISSIONS.RESOURCE_READ]), getResourceById);
 
 // Create resource with file upload (supports course, module, and lesson scopes)
 router.post("/", upload.single('file'), authorizeRole([SYSTEM_PERMISSIONS.RESOURCE_CREATE]), createResource);

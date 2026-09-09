@@ -48,6 +48,7 @@ import {
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { resolveResourceUrl } from "@/utils/urlHelper";
+import { DeleteResourceDialog } from "./DeleteResourceDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tooltip,
@@ -63,8 +64,7 @@ const ResourcePanel = ({ moduleId, moduleTitle }) => {
   );
   const [createResource, { isLoading: isCreatingResource }] =
     useCreateResourceMutation();
-  const [deleteResource, { isLoading: isDeletingResource }] =
-    useDeleteResourceMutation();
+  const [deleteResource] = useDeleteResourceMutation();
 
   const [newResource, setNewResource] = useState({
     title: "",
@@ -75,6 +75,8 @@ const ResourcePanel = ({ moduleId, moduleTitle }) => {
   const [showAddResource, setShowAddResource] = useState(false);
   const [resourceErrors, setResourceErrors] = useState({});
   const [fileName, setFileName] = useState("");
+  const [resourceToDelete, setResourceToDelete] = useState(null);
+  const [deletingResourceId, setDeletingResourceId] = useState(null);
 
   const handleResourceInputChange = (e) => {
     const { name, value } = e.target;
@@ -144,19 +146,21 @@ const ResourcePanel = ({ moduleId, moduleTitle }) => {
     }
   };
 
-  const handleDeleteResource = async (resourceId) => {
-    if (!window.confirm("Are you sure you want to delete this resource?")) {
-      return;
-    }
-
+  const handleConfirmDelete = async () => {
+    if (!resourceToDelete) return;
+    const resourceId = resourceToDelete._id || resourceToDelete.id;
+    setDeletingResourceId(resourceId);
     try {
       await deleteResource(resourceId).unwrap();
       toast.success("Resource deleted successfully!");
+      setResourceToDelete(null);
       refetch();
     } catch (err) {
       console.error("Delete resource error:", err);
       const errorMessage = err?.data?.message || "Failed to delete resource";
       toast.error(errorMessage);
+    } finally {
+      setDeletingResourceId(null);
     }
   };
 
@@ -245,6 +249,7 @@ const ResourcePanel = ({ moduleId, moduleTitle }) => {
   const resources = data?.data || [];
 
   return (
+    <>
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
@@ -507,12 +512,16 @@ const ResourcePanel = ({ moduleId, moduleTitle }) => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => handleDeleteResource(resource._id)}
-                      disabled={isDeletingResource}
+                      onClick={() => setResourceToDelete(resource)}
+                      disabled={deletingResourceId === resource._id}
                       className="h-8 w-8 text-[#dc2626] hover:text-[#991b1b] hover:bg-[#fef2f2]"
                       title="Delete resource"
                     >
-                      <IconTrash className="h-4 w-4" />
+                      {deletingResourceId === resource._id ? (
+                        <IconLoader className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <IconTrash className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -522,6 +531,15 @@ const ResourcePanel = ({ moduleId, moduleTitle }) => {
         )}
       </CardContent>
     </Card>
+
+    <DeleteResourceDialog
+      open={!!resourceToDelete}
+      resourceTitle={resourceToDelete?.title}
+      isDeleting={!!deletingResourceId}
+      onConfirm={handleConfirmDelete}
+      onCancel={() => setResourceToDelete(null)}
+    />
+    </>
   );
 };
 

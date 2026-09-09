@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner";
 import { useCreateResourceMutation } from "@/Redux/AllApi/resourceApi";
 import { RESOURCE_TYPE_OPTIONS, getAcceptString, validateFileForType } from "@/utils/resourceConfig";
+import { ResourceUploadProgressModal } from "./ResourceUploadProgressModal";
 
 const resourceTypeOptions = RESOURCE_TYPE_OPTIONS;
 
@@ -44,8 +45,8 @@ export const ResourceManagementModal = ({
     file: null,
   });
 
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState('idle'); // 'idle' | 'uploading' | 'success' | 'error'
+  const [uploadError, setUploadError] = useState('');
 
   const resetForm = () => {
     setFormData({
@@ -55,8 +56,8 @@ export const ResourceManagementModal = ({
       url: "",
       file: null,
     });
-    setIsUploading(false);
-    setUploadProgress(0);
+    setUploadStatus('idle');
+    setUploadError('');
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -143,6 +144,8 @@ export const ResourceManagementModal = ({
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
+    setUploadStatus('uploading');
+
     try {
       const formDataToSend = new FormData();
 
@@ -173,12 +176,18 @@ export const ResourceManagementModal = ({
 
       await createResource(formDataToSend).unwrap();
 
+      setUploadStatus('success');
       toast.success(`Resource added to ${scope} successfully!`);
-      resetForm();
-      onClose();
+      setTimeout(() => {
+        resetForm();
+        onClose();
+      }, 1000);
     } catch (error) {
       console.error("Create resource error:", error);
-      toast.error(error?.data?.message || `Failed to add resource to ${scope}`);
+      const message = error?.data?.message || `Failed to add resource to ${scope}`;
+      setUploadError(message);
+      setUploadStatus('error');
+      toast.error(message);
     }
   };
 
@@ -194,6 +203,7 @@ export const ResourceManagementModal = ({
   };
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -346,5 +356,15 @@ export const ResourceManagementModal = ({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <ResourceUploadProgressModal
+      open={uploadStatus !== 'idle'}
+      file={formData.file}
+      resourceType={formData.type}
+      status={uploadStatus}
+      errorMessage={uploadError}
+      onClose={() => setUploadStatus('idle')}
+    />
+    </>
   );
 };

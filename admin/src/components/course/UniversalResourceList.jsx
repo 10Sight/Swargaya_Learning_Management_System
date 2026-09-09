@@ -28,6 +28,7 @@ import {
 } from "@/Redux/AllApi/resourceApi";
 import { ResourceManagementModal } from "./ResourceManagementModal";
 import { ResourceViewerModal } from "./ResourceViewerModal";
+import { DeleteResourceDialog } from "./DeleteResourceDialog";
 
 const getResourceIcon = (type) => {
   switch (type?.toLowerCase()) {
@@ -75,7 +76,9 @@ export const UniversalResourceList = ({
 }) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [viewingResource, setViewingResource] = useState(null);
-  const [deleteResource, { isLoading: isDeletingResource }] = useDeleteResourceMutation();
+  const [resourceToDelete, setResourceToDelete] = useState(null);
+  const [deletingResourceId, setDeletingResourceId] = useState(null);
+  const [deleteResource] = useDeleteResourceMutation();
 
   // Use the appropriate query hook based on scope
   const courseQuery = useGetResourcesByCourseQuery(courseId, { skip: scope !== "course" || !courseId });
@@ -89,18 +92,20 @@ export const UniversalResourceList = ({
 
   const resources = resourcesResponse?.data || [];
 
-  const handleDeleteResource = async (resourceId) => {
-    if (!window.confirm("Are you sure you want to delete this resource?")) {
-      return;
-    }
-
+  const handleConfirmDelete = async () => {
+    if (!resourceToDelete) return;
+    const resourceId = resourceToDelete._id || resourceToDelete.id;
+    setDeletingResourceId(resourceId);
     try {
       await deleteResource(resourceId).unwrap();
       toast.success("Resource deleted successfully!");
+      setResourceToDelete(null);
       refetch(); // Refetch the resources
     } catch (error) {
       console.error("Delete resource error:", error);
       toast.error(error?.data?.message || "Failed to delete resource");
+    } finally {
+      setDeletingResourceId(null);
     }
   };
 
@@ -286,11 +291,11 @@ export const UniversalResourceList = ({
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleDeleteResource(resource._id || resource.id)}
-                        disabled={isDeletingResource}
+                        onClick={() => setResourceToDelete(resource)}
+                        disabled={deletingResourceId === (resource._id || resource.id)}
                         className="text-[#dc2626] hover:text-[#991b1b] hover:bg-[#fef2f2]"
                       >
-                        {isDeletingResource ? (
+                        {deletingResourceId === (resource._id || resource.id) ? (
                           <IconLoader className="h-4 w-4 animate-spin" />
                         ) : (
                           <IconTrash className="h-4 w-4" />
@@ -319,6 +324,14 @@ export const UniversalResourceList = ({
         resource={viewingResource}
         open={!!viewingResource}
         onClose={() => setViewingResource(null)}
+      />
+
+      <DeleteResourceDialog
+        open={!!resourceToDelete}
+        resourceTitle={resourceToDelete?.title}
+        isDeleting={!!deletingResourceId}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setResourceToDelete(null)}
       />
     </>
   );
