@@ -6,20 +6,31 @@ const CourseLevelConfigApi = createApi({
   baseQuery: axiosBaseQuery,
   tagTypes: ["CourseLevelConfig"],
   endpoints: (builder) => ({
-    // Get active configuration
+    // Get active configuration (accepts optional { unit, departmentId })
     getActiveConfig: builder.query({
-      query: () => ({
+      query: (params) => ({
         url: "/api/course-level-config/active",
+        method: "GET",
+        params: params || {},
+      }),
+      providesTags: ["CourseLevelConfig"],
+    }),
+
+    // Get hierarchy matrix (Global + all Units + all Departments)
+    getHierarchyMatrix: builder.query({
+      query: () => ({
+        url: "/api/course-level-config/hierarchy-matrix",
         method: "GET",
       }),
       providesTags: ["CourseLevelConfig"],
     }),
     
-    // Get all configurations
+    // Get all configurations (optional filters: { scopeType, unit, departmentId })
     getAllConfigs: builder.query({
-      query: () => ({
+      query: (params) => ({
         url: "/api/course-level-config",
         method: "GET",
+        params: params || {},
       }),
       providesTags: ["CourseLevelConfig"],
     }),
@@ -33,7 +44,7 @@ const CourseLevelConfigApi = createApi({
       providesTags: (result, error, id) => [{ type: "CourseLevelConfig", id }],
     }),
     
-    // Create new configuration
+    // Create new configuration or override
     createConfig: builder.mutation({
       query: (data) => ({
         url: "/api/course-level-config",
@@ -64,8 +75,18 @@ const CourseLevelConfigApi = createApi({
       }),
       invalidatesTags: ["CourseLevelConfig"],
     }),
+
+    // Delete a scope override (reverts Unit or Department to parent inheritance)
+    deleteScopeOverride: builder.mutation({
+      query: (data) => ({
+        url: "/api/course-level-config/scope-override",
+        method: "DELETE",
+        data: data,
+      }),
+      invalidatesTags: ["CourseLevelConfig"],
+    }),
     
-    // Set configuration as default
+    // Set configuration as default (Global only)
     setAsDefault: builder.mutation({
       query: (id) => ({
         url: `/api/course-level-config/${id}/set-default`,
@@ -97,11 +118,13 @@ const CourseLevelConfigApi = createApi({
 
 export const {
   useGetActiveConfigQuery,
+  useGetHierarchyMatrixQuery,
   useGetAllConfigsQuery,
   useGetConfigByIdQuery,
   useCreateConfigMutation,
   useUpdateConfigMutation,
   useDeleteConfigMutation,
+  useDeleteScopeOverrideMutation,
   useSetAsDefaultMutation,
   useValidateCompatibilityMutation,
   useMigrateLevelsMutation,

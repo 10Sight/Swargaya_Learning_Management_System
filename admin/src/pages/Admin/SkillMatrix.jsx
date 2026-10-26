@@ -1,11 +1,14 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import { Button } from "@/components/ui/button";
-import { IconPrinter, IconLoader, IconDeviceFloppy, IconDownload, IconSettings } from "@tabler/icons-react";
+import { IconPrinter, IconLoader, IconDeviceFloppy, IconDownload, IconSettings, IconBuilding } from "@tabler/icons-react";
 import { useGetAllDepartmentsQuery } from '@/Redux/AllApi/DepartmentApi';
 import { useGetLinesByDepartmentQuery } from '@/Redux/AllApi/LineApi';
 import { useGetMachinesByLineQuery } from '@/Redux/AllApi/MachineApi';
+import { useGetAllUnitsQuery } from '@/Redux/AllApi/UnitApi';
 import { useGetActiveConfigQuery } from '@/Redux/AllApi/CourseLevelConfigApi';
 import { useGetSkillMatrixQuery, useSaveSkillMatrixMutation } from '@/Redux/AllApi/SkillMatrixApi';
+import SkillLevelCircle, { getLevelFillCount } from "@/components/common/SkillLevelCircle";
 import { toast } from "sonner";
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -27,6 +30,10 @@ import { Card, CardContent } from "@/components/ui/card";
 
 const SkillMatrix = () => {
     const componentRef = useRef();
+    const { user } = useSelector((state) => state.auth);
+    const isSuperAdmin = user?.role === "SUPERADMIN";
+
+    const [unitFilter, setUnitFilter] = useState("ALL");
     const [selectedDepartment, setSelectedDepartment] = useState("");
     const [selectedLine, setSelectedLine] = useState("");
 
@@ -42,8 +49,23 @@ const SkillMatrix = () => {
 
     // --- Data Fetching ---
 
-    // 1. Departments for Dropdown
-    const { data: departmentsData, isLoading: isDeptLoading } = useGetAllDepartmentsQuery();
+    // 0. Units for SuperAdmin Dropdown
+    const { data: unitsData } = useGetAllUnitsQuery(undefined, { skip: !isSuperAdmin });
+    const allUnits = Array.isArray(unitsData?.data) ? unitsData.data : [];
+
+    // 1. Departments for Dropdown (scoped by Unit for SuperAdmin)
+    const { data: departmentsData, isLoading: isDeptLoading } = useGetAllDepartmentsQuery({
+        page: 1,
+        limit: 100,
+        ...(isSuperAdmin && unitFilter !== "ALL" ? { unit: unitFilter } : {}),
+    });
+
+    const handleUnitChange = (val) => {
+        setUnitFilter(val);
+        setSelectedDepartment("");
+        setSelectedLine("");
+        setMatrixEntries([]);
+    };
 
     // 2. Lines for Dropdown (Dependent on Department)
     const { data: linesData, isLoading: isLinesLoading } = useGetLinesByDepartmentQuery(selectedDepartment, {
@@ -61,14 +83,16 @@ const SkillMatrix = () => {
     // We no longer fetch all users globally to avoid performance issues and stale data filtering.
 
     // 5. Config
-    const { data: levelConfigData } = useGetActiveConfigQuery();
+    const { data: levelConfigData } = useGetActiveConfigQuery(
+        selectedDepartment ? { departmentId: selectedDepartment } : undefined
+    );
     const levelConfig = levelConfigData?.data;
     const availableLevels = levelConfig?.levels || [
-        { name: "L1", color: "#3B82F6" },
-        { name: "L2", color: "#F97316" },
-        { name: "L3", color: "#10B981" },
-        { name: "L4", color: "#8B5CF6" },
-        { name: "L5", color: "#EC4899" },
+        { name: "L1", order: 0, color: "#3B82F6", description: "Beginner" },
+        { name: "L2", order: 1, color: "#F97316", description: "Intermediate" },
+        { name: "L3", order: 2, color: "#10B981", description: "Advanced" },
+        { name: "L4", order: 3, color: "#8B5CF6", description: "Expert" },
+        { name: "L5", order: 4, color: "#EC4899", description: "Master" },
     ];
 
     const [matrixEntries, setMatrixEntries] = useState([]);
@@ -608,7 +632,7 @@ const SkillMatrix = () => {
 
         worksheet.mergeCells('D1:Q4'); // Title Area
         const titleCell = worksheet.getCell('D1');
-        titleCell.value = `SKILL MATRIX\nLine: ${lineName}\nDepartment: ${selectedDeptName}`;
+        titleCell.value = `SKILL MATRIX\nPlant / Unit: ${plantName}\nLine: ${lineName}\nDepartment: ${selectedDeptName}`;
         titleCell.alignment = centerStyle;
         titleCell.font = { size: 14, bold: true };
         titleCell.border = borderStyle;
@@ -798,53 +822,29 @@ const SkillMatrix = () => {
     };
 
     const parseLevel = (levelStr) => {
-        if (!levelStr) return 0;
-        const idx = availableLevels.findIndex(l => l.name === levelStr);
-        if (idx !== -1) {
-            if (idx === 0) return 0;
-            return idx;
-        }
-        const num = parseInt(levelStr.replace(/\D/g, ''));
-        return isNaN(num) ? 0 : Math.max(0, num - 1);
+        return getLevelFillCount(levelStr, availableLevels);
     };
 
-    // SVG Icon Component
-    const SkillIcon = ({ level, size = 24, className = "" }) => {
-        const totalSlices = level > 0 ? Math.max(1, availableLevels.length - 1) : 4;
-        const center = size / 2;
-        const radius = size / 2.2;
-        const createSlicePath = (startAngle, endAngle) => {
-            const startRad = (startAngle - 90) * Math.PI / 180;
-            const endRad = (endAngle - 90) * Math.PI / 180;
-            const x1 = center + radius * Math.cos(startRad);
-            const y1 = center + radius * Math.sin(startRad);
-            const x2 = center + radius * Math.cos(endRad);
-            const y2 = center + radius * Math.sin(endRad);
-            return `M ${center} ${center} L ${x1} ${y1} A ${radius} ${radius} 0 0 1 ${x2} ${y2} Z`;
-        };
-        const sliceAngle = 360 / totalSlices;
-        const slices = Array.from({ length: totalSlices }, (_, i) =>
-            createSlicePath(i * sliceAngle, (i + 1) * sliceAngle)
-        );
+    // SVG Icon Component using shared SkillLevelCircle
+    const SkillIcon = ({ level, levelName, size = 20, className = "" }) => {
         return (
-            <svg className={`flex-shrink-0 ${className}`} width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-                {slices.map((d, i) => (
-                    <path key={`bg-${i}`} d={d} fill="none" stroke="black" strokeWidth="0.5" />
-                ))}
-                {slices.map((d, i) => {
-                    if (i < level) {
-                        return <path key={`fill-${i}`} d={d} fill="black" stroke="black" strokeWidth="0.5" />;
-                    }
-                    return null;
-                })}
-                <circle cx={center} cy={center} r={radius} fill="none" stroke="black" strokeWidth="1" />
-            </svg>
+            <SkillLevelCircle
+                levelName={levelName}
+                levelIndex={typeof level === "number" && level > 0 ? level - 1 : (level === 0 ? -1 : undefined)}
+                levels={availableLevels}
+                size={size}
+                className={className}
+                fillColor="#000000"
+                strokeColor="#000000"
+            />
         );
     };
 
-    const selectedDeptName = departmentsData?.data?.departments?.find(d => String(d._id) === String(selectedDepartment))?.name || "Select Department";
+    const selectedDept = departmentsData?.data?.departments?.find(d => String(d._id) === String(selectedDepartment));
+    const selectedDeptName = selectedDept?.name || "Select Department";
     const selectedLineDetail = linesData?.data?.find(l => String(l.id || l._id) === String(selectedLine));
     const lineName = selectedLineDetail?.name || "Select Line";
+    const plantName = selectedDept?.unit || user?.unit || "-";
 
     // Auto-size the Station/Machine Name column to fit the longest name
     const stationColWidth = React.useMemo(() => {
@@ -854,14 +854,14 @@ const SkillMatrix = () => {
     }, [machinesData]);
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 w-fit min-w-full pr-10 sm:pr-16 pb-8">
             <style>
                 {`
           @media print {
             @page { size: landscape; margin: 10mm; }
             body * { visibility: hidden; }
             #printable-matrix, #printable-matrix * { visibility: visible; }
-            #printable-matrix { position: absolute; left: 0; top: 0; width: 100%; }
+            #printable-matrix { position: absolute; left: 0; top: 0; width: 100%; margin: 0 !important; }
             .no-print { display: none !important; }
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             /* Hide select carets/borders in print */
@@ -875,7 +875,7 @@ const SkillMatrix = () => {
             </style>
 
             {/* Selection Header (No Print) */}
-            <div className="no-print bg-white p-4 rounded-lg shadow-sm border space-y-4">
+            <div className="no-print bg-white p-4 rounded-lg shadow-sm border space-y-4 w-full">
                 <div className="flex justify-between items-center">
                     <div>
                         <h1 className="text-xl font-bold text-[#1f2937]">Skill Matrix Generator</h1>
@@ -884,6 +884,25 @@ const SkillMatrix = () => {
                 </div>
 
                 <div className="flex flex-wrap gap-4">
+                    {isSuperAdmin && (
+                        <div className="w-[200px]">
+                            <Select value={unitFilter} onValueChange={handleUnitChange}>
+                                <SelectTrigger className="border-purple-300 bg-purple-50/30">
+                                    <div className="flex items-center gap-1.5 truncate">
+                                        <IconBuilding className="h-4 w-4 text-purple-600 shrink-0" />
+                                        <SelectValue placeholder="All Units" />
+                                    </div>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="ALL">All Units</SelectItem>
+                                    {allUnits.map(u => (
+                                        <SelectItem key={u._id || u.id} value={u.title}>{u.title}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+
                     <div className="w-[250px]">
                         <Select value={selectedDepartment} onValueChange={(val) => { setSelectedDepartment(val); setSelectedLine(""); }}>
                             <SelectTrigger>
@@ -891,7 +910,9 @@ const SkillMatrix = () => {
                             </SelectTrigger>
                             <SelectContent>
                                 {departmentsData?.data?.departments?.map(dept => (
-                                    <SelectItem key={String(dept._id)} value={String(dept._id)}>{dept.name}</SelectItem>
+                                    <SelectItem key={String(dept._id)} value={String(dept._id)}>
+                                        {dept.name}{isSuperAdmin && unitFilter === "ALL" && dept.unit ? ` (${dept.unit})` : ""}
+                                    </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -942,8 +963,9 @@ const SkillMatrix = () => {
                     No machines found for this line.
                 </div>
             ) : (
-                <div id="printable-matrix" className="bg-white text-xs text-black border-2 border-black">
-                    {/* Header Section */}
+                <div className="w-fit min-w-full pb-8 pr-10 sm:pr-16">
+                    <div id="printable-matrix" className="bg-white text-xs text-black border-2 border-black w-max min-w-full mr-10 sm:mr-16">
+                        {/* Header Section */}
                     <div className="flex border-b border-black">
                         <div className="w-[150px] border-r border-black p-2 flex items-center justify-center">
                             <img src="/motherson+marelli.png" alt="Logo" className="h-10" />
@@ -969,30 +991,30 @@ const SkillMatrix = () => {
                     </div>
 
                     <div className="flex border-b border-black text-xs font-semibold bg-[#f9fafb]">
-                        <div className="w-[30%] border-r border-black p-1">Plant : MMLI,Pune</div>
+                        <div className="w-[30%] border-r border-black p-1">Plant / Unit : <span className="ml-2 font-bold">{plantName}</span></div>
                         <div className="flex-1 p-1 text-right pr-10">Department : <span className="ml-4">{selectedDeptName}</span></div>
                     </div>
 
                     {/* Table Header */}
-                    <div className="flex border-b border-black text-[10px] font-bold bg-[#e5e7eb] text-center">
-                        <div className="w-8 border-r border-black p-2 flex items-center justify-center">Sr.No.</div>
-                        <div className="w-32 border-r border-black p-2 flex items-center justify-center">OPERATOR NAME</div>
-                        <div className="w-16 border-r border-black p-2 flex items-center justify-center">Emp.id</div>
-                        <div className="w-20 border-r border-black p-2 flex items-center justify-center">Education</div>
-                        <div className="w-16 border-r border-black p-2 flex items-center justify-center">MATA/CAS</div>
-                        <div className="w-20 border-r border-black p-2 flex items-center justify-center">DOJ</div>
+                    <div className="flex border-b border-black text-[10px] font-bold bg-[#e5e7eb] text-center w-full">
+                        <div className="w-8 border-r border-black p-2 flex items-center justify-center flex-shrink-0">Sr.No.</div>
+                        <div className="w-32 border-r border-black p-2 flex items-center justify-center flex-shrink-0">OPERATOR NAME</div>
+                        <div className="w-16 border-r border-black p-2 flex items-center justify-center flex-shrink-0">Emp.id</div>
+                        <div className="w-20 border-r border-black p-2 flex items-center justify-center flex-shrink-0">Education</div>
+                        <div className="w-16 border-r border-black p-2 flex items-center justify-center flex-shrink-0">MATA/CAS</div>
+                        <div className="w-20 border-r border-black p-2 flex items-center justify-center flex-shrink-0">DOJ</div>
                         <div style={{ width: stationColWidth }} className="flex-shrink-0 border-r border-black p-2 flex items-center justify-center bg-[#f3f4f6]">Station / Machine Name</div>
-                        <div className="w-24 border-r border-black p-2 flex items-center justify-center bg-[#f3f4f6] text-[9px] leading-tight">Critical & Non Critical</div>
-                        <div className="w-16 border-r border-black p-2 flex items-center justify-center bg-[#f3f4f6] text-[9px] leading-tight">Minimum Skill Level Required</div>
-                        <div className="w-16 border-r border-black p-2 flex items-center justify-center bg-[#f3f4f6] text-[9px] leading-tight">Current Skill Level</div>
+                        <div className="w-24 border-r border-black p-2 flex items-center justify-center bg-[#f3f4f6] text-[9px] leading-tight flex-shrink-0">Critical & Non Critical</div>
+                        <div className="w-16 border-r border-black p-2 flex items-center justify-center bg-[#f3f4f6] text-[9px] leading-tight flex-shrink-0">Minimum Skill Level Required</div>
+                        <div className="w-16 border-r border-black p-2 flex items-center justify-center bg-[#f3f4f6] text-[9px] leading-tight flex-shrink-0">Current Skill Level</div>
 
-                        <div className="flex-1 flex overflow-x-auto">
+                        <div className="flex flex-shrink-0">
                             {(machinesData?.data || []).map((machine) => (
-                                <div key={String(machine.id ?? machine._id)} className="w-20 border-r border-black p-1 flex items-center justify-center text-[9px] font-bold break-words text-center min-w-[60px]">
+                                <div key={String(machine.id ?? machine._id)} className="w-20 border-r border-black p-1 flex items-center justify-center text-[9px] font-bold break-words text-center min-w-[70px] flex-shrink-0">
                                     {machine.name}
                                 </div>
                             ))}
-                            <div className="w-16 p-1 flex items-center justify-center text-[9px] font-bold">EOSH & EnMS</div>
+                            <div className="w-16 p-1 flex items-center justify-center text-[9px] font-bold flex-shrink-0">EOSH & EnMS</div>
                         </div>
                     </div>
 
@@ -1005,9 +1027,9 @@ const SkillMatrix = () => {
                             : (row.stations[0] ? [String(row.stations[0]._id)] : []);
                         const assignedStations = row.stations.filter(s => assignedIds.includes(String(s._id)));
                         return (
-                            <div key={row._id} className="flex border-b border-black text-[10px] text-center min-h-[50px]">
-                                <div className="w-8 border-r border-black p-2 flex items-center justify-center font-bold">{row.srNo}</div>
-                                <div className="w-32 border-r border-black p-2 flex items-center justify-start font-bold text-left min-w-[128px]">
+                            <div key={row._id} className="flex border-b border-black text-[10px] text-center min-h-[50px] w-full">
+                                <div className="w-8 border-r border-black p-2 flex items-center justify-center font-bold flex-shrink-0">{row.srNo}</div>
+                                <div className="w-32 border-r border-black p-2 flex items-center justify-start font-bold text-left min-w-[128px] flex-shrink-0">
                                     {row.isManual ? (
                                         <Select onValueChange={(val) => handleUserSelect(idx, val)}>
                                             <SelectTrigger className="w-full h-8 text-[10px]">
@@ -1023,9 +1045,9 @@ const SkillMatrix = () => {
                                         row.name
                                     )}
                                 </div>
-                                <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold">{row.username || "-"}</div>
-                                <div className="w-20 border-r border-black p-2 flex items-center justify-center font-bold">{row.education || "-"}</div>
-                                <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold">
+                                <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold flex-shrink-0">{row.username || "-"}</div>
+                                <div className="w-20 border-r border-black p-2 flex items-center justify-center font-bold flex-shrink-0">{row.education || "-"}</div>
+                                <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold flex-shrink-0">
                                     <input
                                         type="text"
                                         className="w-full h-full text-center bg-transparent border-none focus:ring-0 p-0 text-[10px] font-bold"
@@ -1033,7 +1055,7 @@ const SkillMatrix = () => {
                                         onChange={(e) => handleDetCasChange(idx, e.target.value)}
                                     />
                                 </div>
-                                <div className="w-20 border-r border-black p-2 flex items-center justify-center font-bold">{row.doj}</div>
+                                <div className="w-20 border-r border-black p-2 flex items-center justify-center font-bold flex-shrink-0">{row.doj}</div>
 
                                 {/* Assigned Station Details — one stacked line per assigned machine */}
                                 {(() => {
@@ -1043,11 +1065,11 @@ const SkillMatrix = () => {
                                                 <div style={{ width: stationColWidth }} className="flex-shrink-0 border-r border-black p-1 flex items-center justify-center">
                                                     <span className="text-[9px] font-bold">Team Leader</span>
                                                 </div>
-                                                <div className="w-24 border-r border-black p-2 flex items-center justify-center font-bold text-[9px]">
+                                                <div className="w-24 border-r border-black p-2 flex items-center justify-center font-bold text-[9px] flex-shrink-0">
                                                     <span className="text-[9px] font-bold">Not Applicable</span>
                                                 </div>
-                                                <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold">L5</div>
-                                                <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold">{assignedStations[0]?.curr || "-"}</div>
+                                                <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold flex-shrink-0">L5</div>
+                                                <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold flex-shrink-0">{assignedStations[0]?.curr || "-"}</div>
                                             </>
                                         );
                                     }
@@ -1104,7 +1126,7 @@ const SkillMatrix = () => {
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </div>
-                                            <div className="w-24 border-r border-black p-1 flex items-center justify-center font-bold text-[9px]">
+                                            <div className="w-24 border-r border-black p-1 flex items-center justify-center font-bold text-[9px] flex-shrink-0">
                                                 {currentStation ? (
                                                     <Select value={String(currentStation.critical || "")} onValueChange={(val) => handleCriticalityChange(idx, currentStationIdx, val)}>
                                                         <SelectTrigger className="w-full h-5 border-none p-0 text-[9px] font-bold bg-transparent">
@@ -1117,7 +1139,7 @@ const SkillMatrix = () => {
                                                     </Select>
                                                 ) : "-"}
                                             </div>
-                                            <div className="w-16 border-r border-black p-1 flex items-center justify-center font-bold">
+                                            <div className="w-16 border-r border-black p-1 flex items-center justify-center font-bold flex-shrink-0">
                                                 {currentStation ? (
                                                     <Select value={String(currentStation.min || "")} onValueChange={(val) => handleMinLevelChange(idx, currentStationIdx, val)}>
                                                         <SelectTrigger className="w-full h-5 border-none p-0 text-[10px] font-bold bg-transparent">
@@ -1133,21 +1155,20 @@ const SkillMatrix = () => {
                                                     </Select>
                                                 ) : "-"}
                                             </div>
-                                            <div className="w-16 border-r border-black p-1 flex items-center justify-center font-bold">
+                                            <div className="w-16 border-r border-black p-1 flex items-center justify-center font-bold flex-shrink-0">
                                                 <span className="h-5 flex items-center justify-center text-[10px]">{currentStation?.curr || "-"}</span>
                                             </div>
                                         </>
                                     );
                                 })()}
 
-                                <div className="flex-1 flex overflow-x-auto">
+                                <div className="flex flex-shrink-0">
                                     {row.stations.map((station, sIdx) => {
                                         const isAssigned = row.type === 'TNR' || assignedIds.includes(String(station._id));
                                         const currentLevelStr = station.curr || "L0";
-                                        const level = parseLevel(currentLevelStr);
 
                                         return (
-                                            <div key={String(station._id)} className="w-20 border-r border-black flex items-center justify-center min-w-[60px] p-1">
+                                            <div key={String(station._id)} className="w-20 border-r border-black flex items-center justify-center min-w-[70px] p-1 flex-shrink-0">
                                                 {isAssigned && (
                                                     <Select
                                                         value={currentLevelStr}
@@ -1155,14 +1176,26 @@ const SkillMatrix = () => {
                                                     >
                                                         <SelectTrigger className="w-full h-full border-none p-0 flex justify-center bg-transparent focus:ring-0 select-trigger">
                                                             <div>
-                                                                <SkillIcon level={level} size={20} />
+                                                                <SkillLevelCircle
+                                                                    levelName={currentLevelStr}
+                                                                    levels={availableLevels}
+                                                                    size={20}
+                                                                    fillColor="#000000"
+                                                                    strokeColor="#000000"
+                                                                />
                                                             </div>
                                                         </SelectTrigger>
                                                         <SelectContent>
                                                             {availableLevels.map((lvl) => (
                                                                 <SelectItem key={String(lvl.name)} value={String(lvl.name)}>
                                                                     <div className="flex items-center gap-2">
-                                                                        <SkillIcon level={parseLevel(lvl.name)} size={16} />
+                                                                        <SkillLevelCircle
+                                                                            levelName={lvl.name}
+                                                                            levels={availableLevels}
+                                                                            size={16}
+                                                                            fillColor="#000000"
+                                                                            strokeColor="#000000"
+                                                                        />
                                                                         <span>{lvl.name}</span>
                                                                     </div>
                                                                 </SelectItem>
@@ -1173,8 +1206,14 @@ const SkillMatrix = () => {
                                             </div>
                                         );
                                     })}
-                                    <div className="w-16 p-2 flex items-center justify-center">
-                                        <SkillIcon level={parseLevel("L1")} />
+                                    <div className="w-16 p-2 flex items-center justify-center flex-shrink-0">
+                                        <SkillLevelCircle
+                                            levelName="L1"
+                                            levels={availableLevels}
+                                            size={20}
+                                            fillColor="#000000"
+                                            strokeColor="#000000"
+                                        />
                                     </div>
                                 </div>
                             </div>
@@ -1187,7 +1226,13 @@ const SkillMatrix = () => {
                             <div className="font-bold mb-1">Level Legend:</div>
                             {availableLevels.map((lvl) => (
                                 <div key={lvl.name} className="flex items-center gap-2 mb-2">
-                                    <SkillIcon level={parseLevel(lvl.name)} size={20} />
+                                    <SkillLevelCircle
+                                        levelName={lvl.name}
+                                        levels={availableLevels}
+                                        size={20}
+                                        fillColor="#000000"
+                                        strokeColor="#000000"
+                                    />
                                     <div className="flex flex-col">
                                         <span className="font-bold">{lvl.name}</span>
                                         <span className="text-[9px] text-[#4b5563] leading-tight">{lvl.description || ""}</span>
@@ -1262,6 +1307,7 @@ const SkillMatrix = () => {
                         </div>
                     </div>
                 </div>
+            </div>
             )}
         </div>
     );

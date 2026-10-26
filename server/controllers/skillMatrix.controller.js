@@ -11,6 +11,19 @@ const parseJSON = (data, fallback = null) => {
     return data || fallback;
 };
 
+// Helper to check department existence and unit access
+const assertDepartmentAccess = async (req, departmentId) => {
+    const [depts] = await pool.query("SELECT id, unit FROM departments WHERE id = ?", [departmentId]);
+    if (depts.length === 0) {
+        throw new ApiError("Department not found", 404);
+    }
+    const dept = depts[0];
+    if (req.user?.role === "ADMIN" && dept.unit !== null && dept.unit !== req.user.unit) {
+        throw new ApiError("Access denied: department belongs to a different unit", 403);
+    }
+    return dept;
+};
+
 // @desc    Save (Upsert) Skill Matrix
 // @route   POST /api/v1/skill-matrix/save
 // @access  Private (Admin)
@@ -33,6 +46,9 @@ const saveSkillMatrix = asyncHandler(async (req, res) => {
     if (!line) {
         throw new ApiError(`Line is required (Received: '${req.body.line}', type: ${typeof req.body.line})`, 400);
     }
+
+    // Enforce unit access for Admin
+    await assertDepartmentAccess(req, department);
 
     // Prepare JSON strings
     const entriesJson = JSON.stringify(entries || []);
@@ -88,6 +104,9 @@ const getSkillMatrix = asyncHandler(async (req, res) => {
     if (!departmentId || !lineId) {
         throw new ApiError("Department ID and Line ID are required", 400);
     }
+
+    // Enforce unit access for Admin
+    await assertDepartmentAccess(req, departmentId);
 
     // Auto-cleanup bad data (Fix for "undefined" string issue)
     await pool.query("DELETE FROM skill_matrices WHERE line = 'undefined' OR department = 'undefined'");

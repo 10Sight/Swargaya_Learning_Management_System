@@ -596,8 +596,8 @@ export const getAllDepartmentsProgress = asyncHandler(async (req, res) => {
 // Resolves the level-order rank of a level name (e.g. "L1" -> 0, "L2" -> 1) using the
 // active CourseLevelConfig. Unknown/missing levels sort last so they never appear locked
 // ahead of a known level, and never accidentally unlock everything either.
-const buildLevelRankMap = async () => {
-    const config = await CourseLevelConfig.getActiveConfig();
+const buildLevelRankMap = async (options = {}) => {
+    const config = await CourseLevelConfig.getActiveConfig(options);
     const map = {};
     (config?.levels || []).forEach(l => { map[String(l.name).toUpperCase()] = l.order; });
     return map;
@@ -610,8 +610,8 @@ const levelRank = (rankMap, levelName) => {
 
 export const getDepartmentCourseContent = asyncHandler(async (req, res) => {
     const userId = req.user.id;
-    // Get user's department and level
-    const [u] = await pool.query("SELECT department, currentLevel FROM users WHERE id = ?", [userId]);
+    // Get user's department, unit, and level
+    const [u] = await pool.query("SELECT department, unit, currentLevel FROM users WHERE id = ?", [userId]);
     if (!u[0] || !u[0].department) {
         return res.json(new ApiResponse(200, [], "No department assigned"));
     }
@@ -620,10 +620,11 @@ export const getDepartmentCourseContent = asyncHandler(async (req, res) => {
 
     // Get department's assigned courses: combine the legacy single `course` column with
     // the `courses` array column.
-    const [d] = await pool.query("SELECT course, courses FROM departments WHERE id = ?", [deptId]);
+    const [d] = await pool.query("SELECT course, courses, unit FROM departments WHERE id = ?", [deptId]);
     if (!d[0]) {
         return res.json(new ApiResponse(200, [], "No department assigned"));
     }
+    const deptUnit = d[0].unit || u[0].unit;
     let deptCourseIds = [];
     try { deptCourseIds = typeof d[0].courses === 'string' ? JSON.parse(d[0].courses) : (d[0].courses || []); } catch (e) { deptCourseIds = []; }
     if (d[0].course && !deptCourseIds.map(String).includes(String(d[0].course))) {
@@ -655,8 +656,8 @@ export const getDepartmentCourseContent = asyncHandler(async (req, res) => {
         return res.json(new ApiResponse(200, [], "Course not found"));
     }
 
-    // Resolve level ordering
-    const rankMap = await buildLevelRankMap();
+    // Resolve level ordering using unit & department cascade
+    const rankMap = await buildLevelRankMap({ unit: deptUnit, departmentId: deptId });
     const userRank = levelRank(rankMap, userLevel);
 
     // Fetch progress + module counts for every candidate course to build availableCourses summary

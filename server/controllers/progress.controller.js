@@ -17,15 +17,9 @@ const parseJSON = (data, fallback = []) => {
     return data || fallback;
 };
 
-// Helper to get active config (if model not fully available, replicate logic)
-const getActiveLevelConfig = async () => {
-    // If CourseLevelConfig model has SQL method, use it. Otherwise query.
-    // Assuming model is refactored to export helper. If not, we query.
-    // Let's assume we can query 'course_level_configs' table.
-    const [rows] = await pool.query("SELECT TOP 1 * FROM course_level_configs WHERE isActive = 1");
-    if (rows.length === 0) return null;
-    rows[0].levels = parseJSON(rows[0].levels, []);
-    return rows[0]; // with levels parsed
+// Helper to get active config using CourseLevelConfig model
+const getActiveLevelConfig = async (options = {}) => {
+    return await CourseLevelConfig.getActiveConfig(options);
 };
 
 export const initializeProgress = asyncHandler(async (req, res) => {
@@ -40,8 +34,11 @@ export const initializeProgress = asyncHandler(async (req, res) => {
     const [existing] = await pool.query("SELECT id FROM progress WHERE student = ? AND course = ?", [userId, courseId]);
     if (existing.length > 0) throw new ApiError("Progress already initialized for this course", 400);
 
-    const levelConfig = await getActiveLevelConfig();
-    const firstLevel = levelConfig && levelConfig.levels.length > 0 ? levelConfig.levels[0].name : "L1";
+    const levelConfig = await getActiveLevelConfig({
+        unit: req.user?.unit,
+        departmentId: req.user?.department
+    });
+    const firstLevel = levelConfig && levelConfig.levels && levelConfig.levels.length > 0 ? levelConfig.levels[0].name : "L1";
 
     const [result] = await pool.query(
         `INSERT INTO progress 

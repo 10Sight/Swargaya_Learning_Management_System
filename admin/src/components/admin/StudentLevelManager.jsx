@@ -57,18 +57,20 @@ const StudentLevelManager = () => {
   const { data: departmentsData, isLoading: departmentsLoading } = useGetAllDepartmentsQuery({ limit: 100 });
   const departments = departmentsData?.data?.departments || [];
 
-  // Fetch active level configuration
-  const { data: levelConfigData, isLoading: configLoading } = useGetActiveConfigQuery();
+  // Get course ID and unit from selected department
+  const selectedDepartmentData = departments.find(dept => (dept._id || dept.id) === selectedDepartment);
+  const courseId = selectedDepartmentData?.course?._id || selectedDepartmentData?.courseId;
+
+  // Fetch active level configuration scoped to selected department & unit
+  const { data: levelConfigData, isLoading: configLoading } = useGetActiveConfigQuery(
+    selectedDepartment ? { departmentId: selectedDepartment, unit: selectedDepartmentData?.unit } : undefined
+  );
   const levelConfig = levelConfigData?.data;
   const availableLevels = levelConfig?.levels || [
     { name: "L1", color: "#3B82F6" },
     { name: "L2", color: "#F97316" },
     { name: "L3", color: "#10B981" },
   ];
-
-  // Get course ID from selected department
-  const selectedDepartmentData = departments.find(dept => dept._id === selectedDepartment);
-  const courseId = selectedDepartmentData?.course?._id || selectedDepartmentData?.courseId;
 
   // Auto-select first department if none selected or invalid selection
   useEffect(() => {

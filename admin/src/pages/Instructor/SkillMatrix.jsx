@@ -6,6 +6,7 @@ import { useGetLinesByDepartmentQuery } from '@/Redux/AllApi/LineApi';
 import { useGetMachinesByLineQuery } from '@/Redux/AllApi/MachineApi';
 import { useGetActiveConfigQuery } from '@/Redux/AllApi/CourseLevelConfigApi';
 import { useGetSkillMatrixQuery, useSaveSkillMatrixMutation } from '@/Redux/AllApi/SkillMatrixApi';
+import SkillLevelCircle, { getLevelFillCount } from "@/components/common/SkillLevelCircle";
 import { toast } from "sonner";
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -61,14 +62,16 @@ const InstructorSkillMatrix = () => {
     // We no longer fetch all users globally to avoid performance issues and stale data filtering.
 
     // 5. Config
-    const { data: levelConfigData } = useGetActiveConfigQuery();
+    const { data: levelConfigData } = useGetActiveConfigQuery(
+        selectedDepartment ? { departmentId: selectedDepartment } : undefined
+    );
     const levelConfig = levelConfigData?.data;
     const availableLevels = levelConfig?.levels || [
-        { name: "L1", color: "#3B82F6" },
-        { name: "L2", color: "#F97316" },
-        { name: "L3", color: "#10B981" },
-        { name: "L4", color: "#8B5CF6" },
-        { name: "L5", color: "#EC4899" },
+        { name: "L1", order: 0, color: "#3B82F6", description: "Beginner" },
+        { name: "L2", order: 1, color: "#F97316", description: "Intermediate" },
+        { name: "L3", order: 2, color: "#10B981", description: "Advanced" },
+        { name: "L4", order: 3, color: "#8B5CF6", description: "Expert" },
+        { name: "L5", order: 4, color: "#EC4899", description: "Master" },
     ];
 
     const [matrixEntries, setMatrixEntries] = useState([]);
@@ -742,47 +745,21 @@ const InstructorSkillMatrix = () => {
     };
 
     const parseLevel = (levelStr) => {
-        if (!levelStr) return 0;
-        const idx = availableLevels.findIndex(l => l.name === levelStr);
-        if (idx !== -1) {
-            if (idx === 0) return 0;
-            return idx;
-        }
-        const num = parseInt(levelStr.replace(/\D/g, ''));
-        return isNaN(num) ? 0 : Math.max(0, num - 1);
+        return getLevelFillCount(levelStr, availableLevels);
     };
 
-    // SVG Icon Component
-    const SkillIcon = ({ level, size = 24, className = "" }) => {
-        const totalSlices = level > 0 ? Math.max(1, availableLevels.length - 1) : 4;
-        const center = size / 2;
-        const radius = size / 2.2;
-        const createSlicePath = (startAngle, endAngle) => {
-            const startRad = (startAngle - 90) * Math.PI / 180;
-            const endRad = (endAngle - 90) * Math.PI / 180;
-            const x1 = center + radius * Math.cos(startRad);
-            const y1 = center + radius * Math.sin(startRad);
-            const x2 = center + radius * Math.cos(endRad);
-            const y2 = center + radius * Math.sin(endRad);
-            return `M ${center} ${center} L ${x1} ${y1} A ${radius} ${radius} 0 0 1 ${x2} ${y2} Z`;
-        };
-        const sliceAngle = 360 / totalSlices;
-        const slices = Array.from({ length: totalSlices }, (_, i) =>
-            createSlicePath(i * sliceAngle, (i + 1) * sliceAngle)
-        );
+    // SVG Icon Component using shared SkillLevelCircle
+    const SkillIcon = ({ level, levelName, size = 20, className = "" }) => {
         return (
-            <svg className={`flex-shrink-0 ${className}`} width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-                {slices.map((d, i) => (
-                    <path key={`bg-${i}`} d={d} fill="none" stroke="black" strokeWidth="0.5" />
-                ))}
-                {slices.map((d, i) => {
-                    if (i < level) {
-                        return <path key={`fill-${i}`} d={d} fill="black" stroke="black" strokeWidth="0.5" />;
-                    }
-                    return null;
-                })}
-                <circle cx={center} cy={center} r={radius} fill="none" stroke="black" strokeWidth="1" />
-            </svg>
+            <SkillLevelCircle
+                levelName={levelName}
+                levelIndex={typeof level === "number" && level > 0 ? level - 1 : (level === 0 ? -1 : undefined)}
+                levels={availableLevels}
+                size={size}
+                className={className}
+                fillColor="#000000"
+                strokeColor="#000000"
+            />
         );
     };
 
@@ -791,14 +768,14 @@ const InstructorSkillMatrix = () => {
     const lineName = selectedLineDetail?.name || "Select Line";
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 w-fit min-w-full pr-10 sm:pr-16 pb-8">
             <style>
                 {`
           @media print {
             @page { size: landscape; margin: 10mm; }
             body * { visibility: hidden; }
             #printable-matrix, #printable-matrix * { visibility: visible; }
-            #printable-matrix { position: absolute; left: 0; top: 0; width: 100%; }
+            #printable-matrix { position: absolute; left: 0; top: 0; width: 100%; margin: 0 !important; }
             .no-print { display: none !important; }
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             /* Hide select carets/borders in print */
@@ -812,7 +789,7 @@ const InstructorSkillMatrix = () => {
             </style>
 
             {/* Selection Header (No Print) */}
-            <div className="no-print bg-white p-4 rounded-lg shadow-sm border space-y-4">
+            <div className="no-print bg-white p-4 rounded-lg shadow-sm border space-y-4 w-full">
                 <div className="flex justify-between items-center">
                     <div>
                         <h1 className="text-xl font-bold text-[#1f2937]">Skill Matrix Generator</h1>
@@ -879,8 +856,9 @@ const InstructorSkillMatrix = () => {
                     No machines found for this line.
                 </div>
             ) : (
-                <div id="printable-matrix" className="bg-white text-xs text-black border-2 border-black">
-                    {/* Header Section */}
+                <div className="w-fit min-w-full pb-8 pr-10 sm:pr-16">
+                    <div id="printable-matrix" className="bg-white text-xs text-black border-2 border-black w-max min-w-full mr-10 sm:mr-16">
+                        {/* Header Section */}
                     <div className="flex border-b border-black">
                         <div className="w-[150px] border-r border-black p-2 flex items-center justify-center">
                             <img src="/motherson+marelli.png" alt="Logo" className="h-10" />
@@ -915,26 +893,26 @@ const InstructorSkillMatrix = () => {
                     </div>
 
                     {/* Table Header */}
-                    <div className="flex border-b border-black text-[10px] font-bold bg-[#e5e7eb] text-center">
-                        <div className="w-8 border-r border-black p-2 flex items-center justify-center">Sr.No.</div>
-                        <div className="w-32 border-r border-black p-2 flex items-center justify-center">OPERATOR NAME</div>
-                        <div className="w-12 border-r border-black p-2 flex items-center justify-center">TNR/EMP</div>
-                        <div className="w-16 border-r border-black p-2 flex items-center justify-center">Emp.id</div>
-                        <div className="w-20 border-r border-black p-2 flex items-center justify-center">Education</div>
-                        <div className="w-16 border-r border-black p-2 flex items-center justify-center">DET/CAS</div>
-                        <div className="w-20 border-r border-black p-2 flex items-center justify-center">DOJ</div>
-                        <div className="w-32 border-r border-black p-2 flex items-center justify-center bg-[#f3f4f6]">Station / Machine Name</div>
-                        <div className="w-24 border-r border-black p-2 flex items-center justify-center bg-[#f3f4f6] text-[9px] leading-tight">Critical & Non Critical</div>
-                        <div className="w-16 border-r border-black p-2 flex items-center justify-center bg-[#f3f4f6] text-[9px] leading-tight">Minimum Skill Level Required</div>
-                        <div className="w-16 border-r border-black p-2 flex items-center justify-center bg-[#f3f4f6] text-[9px] leading-tight">Current Skill Level</div>
+                    <div className="flex border-b border-black text-[10px] font-bold bg-[#e5e7eb] text-center w-full">
+                        <div className="w-8 border-r border-black p-2 flex items-center justify-center flex-shrink-0">Sr.No.</div>
+                        <div className="w-32 border-r border-black p-2 flex items-center justify-center flex-shrink-0">OPERATOR NAME</div>
+                        <div className="w-12 border-r border-black p-2 flex items-center justify-center flex-shrink-0">TNR/EMP</div>
+                        <div className="w-16 border-r border-black p-2 flex items-center justify-center flex-shrink-0">Emp.id</div>
+                        <div className="w-20 border-r border-black p-2 flex items-center justify-center flex-shrink-0">Education</div>
+                        <div className="w-16 border-r border-black p-2 flex items-center justify-center flex-shrink-0">DET/CAS</div>
+                        <div className="w-20 border-r border-black p-2 flex items-center justify-center flex-shrink-0">DOJ</div>
+                        <div className="w-32 border-r border-black p-2 flex items-center justify-center bg-[#f3f4f6] flex-shrink-0">Station / Machine Name</div>
+                        <div className="w-24 border-r border-black p-2 flex items-center justify-center bg-[#f3f4f6] text-[9px] leading-tight flex-shrink-0">Critical & Non Critical</div>
+                        <div className="w-16 border-r border-black p-2 flex items-center justify-center bg-[#f3f4f6] text-[9px] leading-tight flex-shrink-0">Minimum Skill Level Required</div>
+                        <div className="w-16 border-r border-black p-2 flex items-center justify-center bg-[#f3f4f6] text-[9px] leading-tight flex-shrink-0">Current Skill Level</div>
 
-                        <div className="flex-1 flex overflow-x-auto">
+                        <div className="flex flex-shrink-0">
                             {(machinesData?.data || []).map((machine) => (
-                                <div key={String(machine.id ?? machine._id)} className="w-20 border-r border-black p-1 flex items-center justify-center text-[9px] font-bold break-words text-center min-w-[60px]">
+                                <div key={String(machine.id ?? machine._id)} className="w-20 border-r border-black p-1 flex items-center justify-center text-[9px] font-bold break-words text-center min-w-[70px] flex-shrink-0">
                                     {machine.name}
                                 </div>
                             ))}
-                            <div className="w-16 p-1 flex items-center justify-center text-[9px] font-bold">EOSH & EnMS</div>
+                            <div className="w-16 p-1 flex items-center justify-center text-[9px] font-bold flex-shrink-0">EOSH & EnMS</div>
                         </div>
                     </div>
 
@@ -946,181 +924,198 @@ const InstructorSkillMatrix = () => {
                             ? row.assignedStationIds.map(String)
                             : (row.stations[0] ? [String(row.stations[0]._id)] : []);
                         const assignedStations = row.stations.filter(s => assignedIds.includes(String(s._id)));
-                        return (
-                        <div key={row._id} className="flex border-b border-black text-[10px] text-center min-h-[50px]">
-                            <div className="w-8 border-r border-black p-2 flex items-center justify-center font-bold">{row.srNo}</div>
-                            <div className="w-32 border-r border-black p-2 flex items-center justify-start font-bold text-left min-w-[128px]">
-                                {row.isManual ? (
-                                    <Select onValueChange={(val) => handleUserSelect(idx, val)}>
-                                        <SelectTrigger className="w-full h-8 text-[10px]">
-                                            <SelectValue placeholder="Select Operator" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {departmentUsers.map(u => (
-                                                <SelectItem key={String(u._id)} value={String(u._id)}>{u.fullName}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                ) : (
-                                    row.name
-                                )}
-                            </div>
-                            <div className="w-12 border-r border-black p-2 flex items-center justify-center font-bold">{row.type}</div>
-                            <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold">{row.username || "-"}</div>
-                            <div className="w-20 border-r border-black p-2 flex items-center justify-center font-bold">{row.education || "-"}</div>
-                            <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold">
-                                <input
-                                    type="text"
-                                    className="w-full h-full text-center bg-transparent border-none focus:ring-0 p-0 text-[10px] font-bold"
-                                    value={row.detCas}
-                                    onChange={(e) => handleDetCasChange(idx, e.target.value)}
-                                />
-                            </div>
-                            <div className="w-20 border-r border-black p-2 flex items-center justify-center font-bold">{row.doj}</div>
+                            return (
+                            <div key={row._id} className="flex border-b border-black text-[10px] text-center min-h-[50px] w-full">
+                                <div className="w-8 border-r border-black p-2 flex items-center justify-center font-bold flex-shrink-0">{row.srNo}</div>
+                                <div className="w-32 border-r border-black p-2 flex items-center justify-start font-bold text-left min-w-[128px] flex-shrink-0">
+                                    {row.isManual ? (
+                                        <Select onValueChange={(val) => handleUserSelect(idx, val)}>
+                                            <SelectTrigger className="w-full h-8 text-[10px]">
+                                                <SelectValue placeholder="Select Operator" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {departmentUsers.map(u => (
+                                                    <SelectItem key={String(u._id)} value={String(u._id)}>{u.fullName}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    ) : (
+                                        row.name
+                                    )}
+                                </div>
+                                <div className="w-12 border-r border-black p-2 flex items-center justify-center font-bold flex-shrink-0">{row.type}</div>
+                                <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold flex-shrink-0">{row.username || "-"}</div>
+                                <div className="w-20 border-r border-black p-2 flex items-center justify-center font-bold flex-shrink-0">{row.education || "-"}</div>
+                                <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold flex-shrink-0">
+                                    <input
+                                        type="text"
+                                        className="w-full h-full text-center bg-transparent border-none focus:ring-0 p-0 text-[10px] font-bold"
+                                        value={row.detCas}
+                                        onChange={(e) => handleDetCasChange(idx, e.target.value)}
+                                    />
+                                </div>
+                                <div className="w-20 border-r border-black p-2 flex items-center justify-center font-bold flex-shrink-0">{row.doj}</div>
 
-                            {/* Assigned Station Details — one stacked line per assigned machine */}
-                            {(() => {
-                                if (row.type === 'TNR') {
+                                {/* Assigned Station Details — one stacked line per assigned machine */}
+                                {(() => {
+                                    if (row.type === 'TNR') {
+                                        return (
+                                            <>
+                                                <div className="w-32 border-r border-black p-1 flex items-center justify-center flex-shrink-0">
+                                                    <span className="text-[9px] font-bold">Team Leader</span>
+                                                </div>
+                                                <div className="w-24 border-r border-black p-2 flex items-center justify-center font-bold text-[9px] flex-shrink-0">
+                                                    <span className="text-[9px] font-bold">Not Applicable</span>
+                                                </div>
+                                                <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold flex-shrink-0">L5</div>
+                                                <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold flex-shrink-0">{assignedStations[0]?.curr || "-"}</div>
+                                            </>
+                                        );
+                                    }
+                                    // The user's single "current machine" drives the core columns; the
+                                    // gear icon's checklist still controls the full assigned set that
+                                    // feeds the dynamic per-machine columns further right.
+                                    let currentStationIdx = row.currentMachineId
+                                        ? row.stations.findIndex(st => String(st._id) === String(row.currentMachineId))
+                                        : -1;
+                                    if (currentStationIdx === -1 && assignedStations[0]) {
+                                        currentStationIdx = row.stations.findIndex(st => String(st._id) === String(assignedStations[0]._id));
+                                    }
+                                    const currentStation = currentStationIdx !== -1 ? row.stations[currentStationIdx] : null;
+
                                     return (
                                         <>
-                                            <div className="w-32 border-r border-black p-1 flex items-center justify-center">
-                                                <span className="text-[9px] font-bold">Team Leader</span>
+                                            <div className="w-32 border-r border-black p-1 flex items-center justify-center gap-1 flex-shrink-0">
+                                                <Select
+                                                    value={currentStation ? String(currentStation._id) : ""}
+                                                    onValueChange={(val) => handleCurrentMachineChange(idx, val)}
+                                                >
+                                                    <SelectTrigger className="flex-1 h-6 border-none p-0 text-[9px] font-bold bg-transparent [&>svg]:hidden">
+                                                        <SelectValue placeholder="— Select —" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {row.stations.map(s => (
+                                                            <SelectItem key={String(s._id)} value={String(s._id)} className="text-xs">
+                                                                {s.name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <button
+                                                            type="button"
+                                                            className="no-print flex-shrink-0 p-0.5 rounded hover:bg-black/10"
+                                                            title="Assigned machines"
+                                                        >
+                                                            <IconSettings className="h-3 w-3" />
+                                                        </button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="start" className="max-h-64 overflow-y-auto">
+                                                        {row.stations.map(s => (
+                                                            <DropdownMenuCheckboxItem
+                                                                key={String(s._id)}
+                                                                checked={assignedIds.includes(String(s._id))}
+                                                                onSelect={(e) => e.preventDefault()}
+                                                                onCheckedChange={(checked) => handleAssignedStationsToggle(idx, s._id, checked)}
+                                                            >
+                                                                {s.name}
+                                                            </DropdownMenuCheckboxItem>
+                                                        ))}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </div>
-                                            <div className="w-24 border-r border-black p-2 flex items-center justify-center font-bold text-[9px]">
-                                                <span className="text-[9px] font-bold">Not Applicable</span>
+                                            <div className="w-24 border-r border-black p-1 flex items-center justify-center font-bold text-[9px] flex-shrink-0">
+                                                {currentStation ? (
+                                                    <Select value={currentStation.critical || ""} onValueChange={(val) => handleCriticalityChange(idx, currentStationIdx, val)}>
+                                                        <SelectTrigger className="w-full h-5 border-none p-0 text-[9px] font-bold bg-transparent">
+                                                            <div className="truncate">{currentStation.critical || "-"}</div>
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="Critical">Critical</SelectItem>
+                                                            <SelectItem value="Non-Critical">Non-Critical</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                ) : "-"}
                                             </div>
-                                            <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold">L5</div>
-                                            <div className="w-16 border-r border-black p-2 flex items-center justify-center font-bold">{assignedStations[0]?.curr || "-"}</div>
+                                            <div className="w-16 border-r border-black p-1 flex items-center justify-center font-bold flex-shrink-0">
+                                                {currentStation ? (
+                                                    <Select value={String(currentStation.min || "")} onValueChange={(val) => handleMinLevelChange(idx, currentStationIdx, val)}>
+                                                        <SelectTrigger className="w-full h-5 border-none p-0 text-[10px] font-bold bg-transparent">
+                                                            <SelectValue placeholder="-" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {availableLevels.map((lvl) => (
+                                                                <SelectItem key={lvl.name} value={lvl.name} className="text-xs">
+                                                                    {lvl.name}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                ) : "-"}
+                                            </div>
+                                            <div className="w-16 border-r border-black p-1 flex items-center justify-center font-bold flex-shrink-0">
+                                                <span className="h-5 flex items-center justify-center text-[10px]">{currentStation?.curr || "-"}</span>
+                                            </div>
                                         </>
                                     );
-                                }
-                                // The user's single "current machine" drives the core columns; the
-                                // gear icon's checklist still controls the full assigned set that
-                                // feeds the dynamic per-machine columns further right.
-                                let currentStationIdx = row.currentMachineId
-                                    ? row.stations.findIndex(st => String(st._id) === String(row.currentMachineId))
-                                    : -1;
-                                if (currentStationIdx === -1 && assignedStations[0]) {
-                                    currentStationIdx = row.stations.findIndex(st => String(st._id) === String(assignedStations[0]._id));
-                                }
-                                const currentStation = currentStationIdx !== -1 ? row.stations[currentStationIdx] : null;
+                                })()}
 
-                                return (
-                                    <>
-                                        <div className="w-32 border-r border-black p-1 flex items-center justify-center gap-1">
-                                            <Select
-                                                value={currentStation ? String(currentStation._id) : ""}
-                                                onValueChange={(val) => handleCurrentMachineChange(idx, val)}
-                                            >
-                                                <SelectTrigger className="flex-1 h-6 border-none p-0 text-[9px] font-bold bg-transparent [&>svg]:hidden">
-                                                    <SelectValue placeholder="— Select —" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {row.stations.map(s => (
-                                                        <SelectItem key={String(s._id)} value={String(s._id)} className="text-xs">
-                                                            {s.name}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <button
-                                                        type="button"
-                                                        className="no-print flex-shrink-0 p-0.5 rounded hover:bg-black/10"
-                                                        title="Assigned machines"
+                                <div className="flex flex-shrink-0">
+                                    {row.stations.map((station, sIdx) => {
+                                        const isAssigned = row.type === 'TNR' || assignedIds.includes(String(station._id));
+                                        const currentLevelStr = station.curr || "L0";
+
+                                        return (
+                                            <div key={String(station._id)} className="w-20 border-r border-black flex items-center justify-center min-w-[70px] p-1 flex-shrink-0">
+                                                {isAssigned && (
+                                                    <Select
+                                                        value={currentLevelStr}
+                                                        onValueChange={(val) => handleLevelChange(idx, sIdx, val)}
                                                     >
-                                                        <IconSettings className="h-3 w-3" />
-                                                    </button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="start" className="max-h-64 overflow-y-auto">
-                                                    {row.stations.map(s => (
-                                                        <DropdownMenuCheckboxItem
-                                                            key={String(s._id)}
-                                                            checked={assignedIds.includes(String(s._id))}
-                                                            onSelect={(e) => e.preventDefault()}
-                                                            onCheckedChange={(checked) => handleAssignedStationsToggle(idx, s._id, checked)}
-                                                        >
-                                                            {s.name}
-                                                        </DropdownMenuCheckboxItem>
-                                                    ))}
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </div>
-                                        <div className="w-24 border-r border-black p-1 flex items-center justify-center font-bold text-[9px]">
-                                            {currentStation ? (
-                                                <Select value={currentStation.critical || ""} onValueChange={(val) => handleCriticalityChange(idx, currentStationIdx, val)}>
-                                                    <SelectTrigger className="w-full h-5 border-none p-0 text-[9px] font-bold bg-transparent">
-                                                        <div className="truncate">{currentStation.critical || "-"}</div>
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="Critical">Critical</SelectItem>
-                                                        <SelectItem value="Non-Critical">Non-Critical</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            ) : "-"}
-                                        </div>
-                                        <div className="w-16 border-r border-black p-1 flex items-center justify-center font-bold">
-                                            {currentStation ? (
-                                                <Select value={String(currentStation.min || "")} onValueChange={(val) => handleMinLevelChange(idx, currentStationIdx, val)}>
-                                                    <SelectTrigger className="w-full h-5 border-none p-0 text-[10px] font-bold bg-transparent">
-                                                        <SelectValue placeholder="-" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {availableLevels.map((lvl) => (
-                                                            <SelectItem key={lvl.name} value={lvl.name} className="text-xs">
-                                                                {lvl.name}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            ) : "-"}
-                                        </div>
-                                        <div className="w-16 border-r border-black p-1 flex items-center justify-center font-bold">
-                                            <span className="h-5 flex items-center justify-center text-[10px]">{currentStation?.curr || "-"}</span>
-                                        </div>
-                                    </>
-                                );
-                            })()}
-
-                            <div className="flex-1 flex overflow-x-auto">
-                                {row.stations.map((station, sIdx) => {
-                                    const isAssigned = row.type === 'TNR' || assignedIds.includes(String(station._id));
-                                    const currentLevelStr = station.curr || "L0";
-                                    const level = parseLevel(currentLevelStr);
-
-                                    return (
-                                        <div key={String(station._id)} className="w-20 border-r border-black flex items-center justify-center min-w-[60px] p-1">
-                                            {isAssigned && (
-                                                <Select
-                                                    value={currentLevelStr}
-                                                    onValueChange={(val) => handleLevelChange(idx, sIdx, val)}
-                                                >
-                                                    <SelectTrigger className="w-full h-full border-none p-0 flex justify-center bg-transparent focus:ring-0 select-trigger">
-                                                        <div>
-                                                            <SkillIcon level={level} size={20} />
-                                                        </div>
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {availableLevels.map((lvl) => (
-                                                            <SelectItem key={String(lvl.name)} value={String(lvl.name)}>
-                                                                <div className="flex items-center gap-2">
-                                                                    <SkillIcon level={parseLevel(lvl.name)} size={16} />
-                                                                    <span>{lvl.name}</span>
-                                                                </div>
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                                <div className="w-16 p-2 flex items-center justify-center">
-                                    <SkillIcon level={parseLevel("L1")} />
+                                                        <SelectTrigger className="w-full h-full border-none p-0 flex justify-center bg-transparent focus:ring-0 select-trigger">
+                                                            <div>
+                                                                <SkillLevelCircle
+                                                                    levelName={currentLevelStr}
+                                                                    levels={availableLevels}
+                                                                    size={20}
+                                                                    fillColor="#000000"
+                                                                    strokeColor="#000000"
+                                                                />
+                                                            </div>
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {availableLevels.map((lvl) => (
+                                                                <SelectItem key={String(lvl.name)} value={String(lvl.name)}>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <SkillLevelCircle
+                                                                            levelName={lvl.name}
+                                                                            levels={availableLevels}
+                                                                            size={16}
+                                                                            fillColor="#000000"
+                                                                            strokeColor="#000000"
+                                                                        />
+                                                                        <span>{lvl.name}</span>
+                                                                    </div>
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                    <div className="w-16 p-2 flex items-center justify-center flex-shrink-0">
+                                        <SkillLevelCircle
+                                            levelName="L1"
+                                            levels={availableLevels}
+                                            size={20}
+                                            fillColor="#000000"
+                                            strokeColor="#000000"
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
                         );
                     })}
 
@@ -1130,7 +1125,13 @@ const InstructorSkillMatrix = () => {
                             <div className="font-bold mb-1">Level Legend:</div>
                             {availableLevels.map((lvl) => (
                                 <div key={lvl.name} className="flex items-center gap-2 mb-2">
-                                    <SkillIcon level={parseLevel(lvl.name)} size={20} />
+                                    <SkillLevelCircle
+                                        levelName={lvl.name}
+                                        levels={availableLevels}
+                                        size={20}
+                                        fillColor="#000000"
+                                        strokeColor="#000000"
+                                    />
                                     <div className="flex flex-col">
                                         <span className="font-bold">{lvl.name}</span>
                                         <span className="text-[9px] text-[#4b5563] leading-tight">{lvl.description || ""}</span>
@@ -1205,6 +1206,7 @@ const InstructorSkillMatrix = () => {
                         </div>
                     </div>
                 </div>
+            </div>
             )}
         </div>
     );

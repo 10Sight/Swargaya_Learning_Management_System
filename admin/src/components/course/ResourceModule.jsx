@@ -26,9 +26,11 @@ import {
   IconFileTypeDocx,
   IconFileTypeXls,
   IconFileTypePpt,
+  IconAlertTriangle,
 } from "@tabler/icons-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { resolveResourceUrl } from "@/utils/urlHelper";
+import { getResourceFileInfo } from "@/utils/resourceFileHelper";
 import { useDeleteResourceMutation } from "@/Redux/AllApi/resourceApi";
 import { toast } from "sonner";
 import { ResourceViewerModal } from "./ResourceViewerModal";
@@ -73,6 +75,24 @@ const ResourceModule = ({ module, courseId }) => {
     } finally {
       setDeletingResourceId(null);
     }
+  };
+
+  const handleViewResource = (resource, fileInfo) => {
+    if (fileInfo.isOffice || !fileInfo.canPreviewInBrowser) {
+      toast.warning("Can't open in browser. Please download first.", {
+        description: fileInfo.isTypeMismatch
+          ? fileInfo.mismatchWarning
+          : `${fileInfo.friendlyName || "Office"} files cannot open in the browser. Please download the file to view it.`,
+        action: {
+          label: "Download",
+          onClick: () => {
+            const fileUrl = resource.url || resource.fileUrl;
+            if (fileUrl) window.open(resolveResourceUrl(fileUrl), "_blank");
+          },
+        },
+      });
+    }
+    setViewingResource(resource);
   };
 
   const formatFileSize = (bytes) => {
@@ -188,25 +208,36 @@ const ResourceModule = ({ module, courseId }) => {
             </div>
           ) : resources.length > 0 ? (
             <div className="space-y-3">
-              {resources.map((resource, index) => (
+              {resources.map((resource, index) => {
+                const fileInfo = getResourceFileInfo(resource);
+                return (
                 <div key={resource._id || index} className="border rounded-lg p-4 flex items-start justify-between hover:bg-muted/30 transition-colors">
                   <div className="flex items-start gap-3 flex-1">
                     <div className="p-2 bg-muted rounded-full mt-1">
                       {getFileIcon(resource)}
                     </div>
                     <div className="flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <h5 className="font-medium">{resource.title || resource.fileName}</h5>
                         <Badge variant="outline" className="text-xs">
                           {resource.type || 'File'}
                         </Badge>
+                        {fileInfo.isTypeMismatch && (
+                          <span
+                            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#fef3c7] text-[#92400e] border border-[#fde68a]"
+                            title={fileInfo.mismatchWarning || `Uploaded as .${fileInfo.extension.toUpperCase()}`}
+                          >
+                            <IconAlertTriangle className="h-3.5 w-3.5 text-[#d97706]" />
+                            {fileInfo.mismatchBadge || `Uploaded as .${fileInfo.extension.toUpperCase()}`}
+                          </span>
+                        )}
                       </div>
                       {resource.description && (
                         <p className="text-sm text-muted-foreground mt-1">
                           {resource.description}
                         </p>
                       )}
-                      <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
                         {resource.fileName && (
                           <span>{resource.fileName}</span>
                         )}
@@ -216,18 +247,35 @@ const ResourceModule = ({ module, courseId }) => {
                         {resource.createdAt && (
                           <span>Added {new Date(resource.createdAt).toLocaleDateString()}</span>
                         )}
+                        {fileInfo.isTypeMismatch && (
+                          <span className="text-[#b45309] font-medium">
+                            ⚠️ {fileInfo.mismatchWarning}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
 
                   <div className="flex gap-2">
                     {/* View button opens the in-app previewer for every resource type */}
-                    {resource.url && (
+                    {(resource.url || resource.fileUrl) && (
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={(e) => { e.stopPropagation(); setViewingResource(resource); }}
-                        title="View"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewResource(resource, fileInfo);
+                        }}
+                        title={
+                          fileInfo.isOffice || !fileInfo.canPreviewInBrowser
+                            ? "Can't open in browser, first download that"
+                            : "View"
+                        }
+                        className={
+                          fileInfo.isOffice || !fileInfo.canPreviewInBrowser
+                            ? "border-[#fde68a] text-[#b45309] hover:bg-[#fffbeb] hover:text-[#92400e]"
+                            : ""
+                        }
                       >
                         <IconEye className="h-4 w-4" />
                       </Button>
@@ -278,8 +326,9 @@ const ResourceModule = ({ module, courseId }) => {
                     </Button>
                   </div>
                 </div>
-              ))}
-            </div>
+              );
+            })}
+          </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-6 text-center border rounded-lg bg-muted/20">
               <IconPaperclip className="h-10 w-10 text-muted-foreground/60 mb-2" />

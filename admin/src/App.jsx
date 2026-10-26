@@ -78,6 +78,7 @@ const SystemAuditLogs = lazy(() => import("./pages/SuperAdmin/SystemAuditLogs"))
 const DataManagement = lazy(() => import("./pages/SuperAdmin/DataManagement"));
 const SystemMonitoring = lazy(() => import("./pages/SuperAdmin/SystemMonitoring"));
 const UnitManagement = lazy(() => import("./pages/SuperAdmin/UnitManagement"));
+const SuperAdminCourseLevelConfig = lazy(() => import("./pages/SuperAdmin/CourseLevelConfig"));
 
 // Student Pages
 const StudentDashboard = lazy(() => import("./pages/Student/Dashboard"));
@@ -168,6 +169,7 @@ const App = () => {
             <Route path="module-timelines" element={<ModuleTimelines pageName="Module Timelines" />} />
             <Route path="course-level-settings" element={<CourseLevelSettings />} />
             <Route path="course-level-setting" element={<CourseLevelSettings />} />
+            <Route path="course-level-config" element={<CourseLevelSettings />} />
             <Route path="skill-matrix" element={<SkillMatrix />} />
             <Route path="on-job-training" element={<OnJobTrainingPage />} />
             <Route path="on-job-training/:studentId" element={<OnJobTrainingStudentPage />} />
@@ -244,6 +246,7 @@ const App = () => {
             <Route path="module-timelines" element={<ModuleTimelines pageName="Module Timelines" />} />
             <Route path="on-job-training" element={<OnJobTrainingPage />} />
             <Route path="on-job-training/:studentId" element={<OnJobTrainingStudentPage />} />
+            <Route path="skill-matrix" element={<SkillMatrix />} />
 
             {/* System Management Routes */}
             <Route path="units" element={<UnitManagement />} />
@@ -256,8 +259,9 @@ const App = () => {
             {/* Legacy Routes for Compatibility */}
             <Route path="student-levels" element={<StudentLevelManagement />} />
             <Route path="certificate-templates" element={<CertificateTemplates pageName="Certificate Templates" />} />
-            <Route path="course-level-settings" element={<CourseLevelSettings />} />
-            <Route path="course-level-setting" element={<CourseLevelSettings />} />
+            <Route path="course-level-config" element={<SuperAdminCourseLevelConfig />} />
+            <Route path="course-level-settings" element={<SuperAdminCourseLevelConfig />} />
+            <Route path="course-level-setting" element={<SuperAdminCourseLevelConfig />} />
           </Route>
 
           {/* Student routes */}

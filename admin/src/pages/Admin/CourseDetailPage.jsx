@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import React, { useState, useEffect, useMemo } from "react";
+import { useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { useGetCourseByIdQuery, useGetCourseAnalyticsQuery, useGetCourseStudentsQuery } from "@/Redux/AllApi/CourseApi";
 import { useGetModulesByCourseQuery } from "@/Redux/AllApi/moduleApi";
 import { useGetQuizzesByCourseQuery } from "@/Redux/AllApi/QuizApi";
@@ -48,11 +48,42 @@ import AssignmentList from "@/components/course/AssignmentList";
 import ResourceList from "@/components/course/ResourceList";
 import CourseStats from "@/components/course/CourseStats";
 
+const VALID_TABS = ["overview", "analytics", "modules", "quizzes", "assignments", "resources"];
+
 const CourseDetailPage = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const tabFromUrl = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState(
+    VALID_TABS.includes(tabFromUrl) ? tabFromUrl : "overview"
+  );
+
+  // Keep state in sync if tab in URL changes (e.g. browser back/forward buttons or direct links)
+  useEffect(() => {
+    if (tabFromUrl && VALID_TABS.includes(tabFromUrl) && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [tabFromUrl]);
+
+  // Keep the URL ?tab= param in sync with activeTab so refreshing stays on the selected tab
+  const handleTabChange = (value) => {
+    setActiveTab(value);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (value === "overview") {
+          next.delete("tab");
+        } else {
+          next.set("tab", value);
+        }
+        return next;
+      },
+      { replace: true }
+    );
+  };
 
   const basePath = React.useMemo(() => {
     const p = location.pathname || '';
@@ -293,7 +324,7 @@ const CourseDetailPage = () => {
       />
 
       {/* Main Content */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid grid-cols-3 md:grid-cols-6 mb-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>

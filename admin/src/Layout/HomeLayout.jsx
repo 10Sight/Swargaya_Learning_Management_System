@@ -189,7 +189,7 @@ export function HomeLayout() {
   };
 
   return (
-    <div className="flex min-h-screen" style={{ background: 'linear-gradient(to bottom right, #f9fafb, rgba(239, 246, 255, 0.3), rgba(238, 242, 255, 0.2))' }}>
+    <div className="flex min-h-screen w-fit min-w-full" style={{ background: 'linear-gradient(to bottom right, #f9fafb, rgba(239, 246, 255, 0.3), rgba(238, 242, 255, 0.2))' }}>
       {/* Mobile overlay */}
       {!collapsed && isMobile && (
         <div
@@ -238,7 +238,8 @@ export function HomeLayout() {
             const isActive =
               pathname === item.link ||
               (item.link === "/admin" && pathname === "/admin") ||
-              (item.link !== "/admin" && pathname.startsWith(item.link));
+              (item.link !== "/admin" && pathname.startsWith(item.link)) ||
+              (item.link === "/admin/course-level-settings" && pathname === "/admin/course-level-config");
 
             return (
               <div
@@ -321,7 +322,7 @@ export function HomeLayout() {
 
       {/* Main Content Area */}
       <div
-        className={`flex-1 min-w-0 transition-all duration-300 ${collapsed ? "ml-16" : "ml-64"
+        className={`flex-1 min-w-0 w-fit transition-all duration-300 ${collapsed ? "ml-16" : "ml-64"
           }`}
       >
         {/* Header */}
@@ -461,8 +462,8 @@ export function HomeLayout() {
         </header>
 
         {/* Page Content */}
-        <div className="pt-20 pb-6 px-4 sm:px-6 min-h-screen">
-          <div className="backdrop-blur-sm rounded-xl shadow-sm p-4 sm:p-6 transition-all duration-300 hover:shadow-md"
+        <div className="pt-20 pb-6 px-4 sm:px-6 min-h-screen w-fit min-w-full">
+          <div className="backdrop-blur-sm rounded-xl shadow-sm p-4 sm:p-6 transition-all duration-300 hover:shadow-md w-fit min-w-full"
             style={{
               backgroundColor: 'rgba(255, 255, 255, 0.8)',
               border: '1px solid rgba(229, 231, 235, 0.5)'

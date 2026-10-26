@@ -16,10 +16,12 @@ import {
   IconEye,
   IconFileTypeDocx,
   IconFileTypeXls,
-  IconFileTypePpt
+  IconFileTypePpt,
+  IconAlertTriangle,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { resolveResourceUrl } from "@/utils/urlHelper";
+import { getResourceFileInfo } from "@/utils/resourceFileHelper";
 import {
   useGetResourcesByModuleQuery,
   useGetResourcesByCourseQuery,
@@ -113,6 +115,23 @@ export const UniversalResourceList = ({
     if (resource.url) {
       window.open(resolveResourceUrl(resource.url), "_blank");
     }
+  };
+
+  const handleViewResource = (resource, fileInfo) => {
+    if (fileInfo.isOffice || !fileInfo.canPreviewInBrowser) {
+      toast.warning("Can't open in browser. Please download first.", {
+        description: fileInfo.isTypeMismatch
+          ? fileInfo.mismatchWarning
+          : `${fileInfo.friendlyName || "Office"} files cannot open in the browser. Please download the file to view it.`,
+        action: {
+          label: "Download",
+          onClick: () => {
+            if (resource.url) window.open(resolveResourceUrl(resource.url), "_blank");
+          },
+        },
+      });
+    }
+    setViewingResource(resource);
   };
 
   const getScopeDisplayName = () => {
@@ -217,6 +236,7 @@ export const UniversalResourceList = ({
             <div className="grid gap-4">
               {resources.map((resource) => {
                 const IconComponent = getResourceIcon(resource.type);
+                const fileInfo = getResourceFileInfo(resource);
 
                 return (
                   <div
@@ -229,7 +249,7 @@ export const UniversalResourceList = ({
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <h4 className="font-medium text-[#111827] truncate">
                             {resource.title}
                           </h4>
@@ -238,6 +258,15 @@ export const UniversalResourceList = ({
                           >
                             {resource.type?.toUpperCase()}
                           </span>
+                          {fileInfo.isTypeMismatch && (
+                            <span
+                              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#fef3c7] text-[#92400e] border border-[#fde68a]"
+                              title={fileInfo.mismatchWarning || `Uploaded as .${fileInfo.extension.toUpperCase()}`}
+                            >
+                              <IconAlertTriangle className="h-3.5 w-3.5 text-[#d97706]" />
+                              {fileInfo.mismatchBadge || `Uploaded as .${fileInfo.extension.toUpperCase()}`}
+                            </span>
+                          )}
                         </div>
 
                         {resource.description && (
@@ -246,7 +275,7 @@ export const UniversalResourceList = ({
                           </p>
                         )}
 
-                        <div className="flex items-center gap-4 text-xs text-[#6b7280]">
+                        <div className="flex items-center gap-4 text-xs text-[#6b7280] flex-wrap">
                           {resource.fileName && (
                             <span>📁 {resource.fileName}</span>
                           )}
@@ -257,6 +286,11 @@ export const UniversalResourceList = ({
                             <span>👤 {resource.createdBy.name}</span>
                           )}
                           <span>📅 {new Date(resource.createdAt).toLocaleDateString()}</span>
+                          {fileInfo.isTypeMismatch && (
+                            <span className="text-[#b45309] font-medium">
+                              ⚠️ {fileInfo.mismatchWarning}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -266,8 +300,17 @@ export const UniversalResourceList = ({
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setViewingResource(resource)}
-                          title="View"
+                          onClick={() => handleViewResource(resource, fileInfo)}
+                          title={
+                            fileInfo.isOffice || !fileInfo.canPreviewInBrowser
+                              ? "Can't open in browser, first download that"
+                              : "View"
+                          }
+                          className={
+                            fileInfo.isOffice || !fileInfo.canPreviewInBrowser
+                              ? "border-[#fde68a] text-[#b45309] hover:bg-[#fffbeb] hover:text-[#92400e]"
+                              : ""
+                          }
                         >
                           <IconEye className="h-4 w-4" />
                         </Button>

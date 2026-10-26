@@ -18,6 +18,7 @@ import {
 } from "@tabler/icons-react";
 import { getResourceTypeConfig, getResourceIcon } from "@/utils/resourceConfig";
 import { resolveResourceUrl } from "@/utils/urlHelper";
+import { getResourceFileInfo } from "@/utils/resourceFileHelper";
 
 // Backend hosts are frequently localhost/private during development; Microsoft's
 // Office Online viewer can only fetch publicly reachable URLs, so we detect that
@@ -38,20 +39,30 @@ const isPubliclyReachable = (url) => {
   }
 };
 
-const FallbackCard = ({ icon, title, message, url }) => {
+const FallbackCard = ({ icon, title, message, url, fileName = "" }) => {
   const Icon = icon;
   return (
     <div className="flex flex-col items-center justify-center gap-3 text-center py-16 px-6">
-      <Icon className="h-12 w-12 text-[#9ca3af]" />
-      <p className="font-medium text-[#111827]">{title}</p>
-      {message && <p className="text-sm text-[#6b7280] max-w-md">{message}</p>}
+      <div className="p-4 rounded-full bg-amber-50 border border-amber-200">
+        <Icon className="h-10 w-10 text-amber-600" />
+      </div>
+      <p className="font-semibold text-lg text-[#111827]">{title}</p>
+      {message && <p className="text-sm text-[#4b5563] max-w-md leading-relaxed">{message}</p>}
       {url && (
-        <Button asChild className="gap-2 mt-2">
-          <a href={url} target="_blank" rel="noopener noreferrer">
-            <IconExternalLink className="h-4 w-4" />
-            Open in New Tab
-          </a>
-        </Button>
+        <div className="flex flex-wrap items-center justify-center gap-3 mt-3">
+          <Button asChild className="gap-2">
+            <a href={url} download={fileName || true}>
+              <IconDownload className="h-4 w-4" />
+              Download File
+            </a>
+          </Button>
+          <Button asChild variant="outline" className="gap-2">
+            <a href={url} target="_blank" rel="noopener noreferrer">
+              <IconExternalLink className="h-4 w-4" />
+              Open in New Tab
+            </a>
+          </Button>
+        </div>
       )}
     </div>
   );
@@ -275,6 +286,33 @@ export const ResourceViewerModal = ({ resource, open, onClose }) => {
     }
 
     const url = resolveResourceUrl(resource.url);
+    const fileInfo = getResourceFileInfo(resource);
+
+    // Guard 1: Type mismatch (e.g. marked as PDF, but uploaded file is PPTX or another format)
+    if (fileInfo.isTypeMismatch) {
+      return (
+        <FallbackCard
+          icon={IconAlertTriangle}
+          title="Please download to view this file"
+          message={`${fileInfo.mismatchWarning} Browsers can only display PDFs directly, so please download this file to open it on your device.`}
+          url={url}
+          fileName={fileInfo.fileName}
+        />
+      );
+    }
+
+    // Guard 2: Microsoft Office files (PPTX, XLSX, DOCX, PPT, XLS, DOC)
+    if (fileInfo.isOffice) {
+      return (
+        <FallbackCard
+          icon={IconAlertTriangle}
+          title="Can't open in browser"
+          message={`${fileInfo.friendlyName} files cannot open directly inside the browser. Please download this file to view it on your device.`}
+          url={url}
+          fileName={fileInfo.fileName}
+        />
+      );
+    }
 
     switch (previewKind) {
       case "pdf":

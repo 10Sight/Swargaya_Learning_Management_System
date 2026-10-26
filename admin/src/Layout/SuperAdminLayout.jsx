@@ -62,9 +62,10 @@ const tabs = [
       { link: "/superadmin/courses", labelKey: "nav.courses", icon: IconCertificate },
       { link: "/superadmin/departments", labelKey: "nav.departments", icon: IconFolder },
       { link: "/superadmin/module-timelines", labelKey: "nav.moduleTimelines", icon: IconClock },
-      { link: "/superadmin/course-level-settings", labelKey: "nav.courseLevelSettings", icon: IconLayersIntersect },
+      { link: "/superadmin/course-level-config", label: "Course Level Config", labelKey: "nav.courseLevelSettings", icon: IconLayersIntersect },
       { link: "/superadmin/student-levels", labelKey: "nav.studentLevels", icon: IconSettings },
       { link: "/superadmin/on-job-training", labelKey: "nav.onJobTraining", icon: IconClipboardCheck },
+      { link: "/superadmin/skill-matrix", label: "Skill Matrix", labelKey: "nav.skillMatrix", icon: IconTarget },
     ]
   },
   {

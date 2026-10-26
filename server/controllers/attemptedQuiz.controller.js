@@ -572,7 +572,10 @@ export const submitQuiz = asyncHandler(async (req, res) => {
         // Logic for skill upgrade
         const progress = await Progress.findOne({ student: userId, course: quiz.course.id });
         if (progress) {
-            const levelConfig = await CourseLevelConfig.getActiveConfig();
+            const [studentRows] = await pool.query("SELECT unit, department FROM users WHERE id = ?", [userId]);
+            const studentUnit = studentRows[0]?.unit;
+            const studentDept = studentRows[0]?.department;
+            const levelConfig = await CourseLevelConfig.getActiveConfig({ unit: studentUnit, departmentId: studentDept });
             console.log(`[DEBUG] Level Config Found: ${!!levelConfig}, Current Level: ${progress.currentLevel}`);
 
             if (levelConfig) {

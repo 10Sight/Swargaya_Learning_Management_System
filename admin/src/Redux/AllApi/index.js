@@ -308,11 +308,13 @@ export {
 // CourseLevelConfig API exports
 export {
     useGetActiveConfigQuery,
+    useGetHierarchyMatrixQuery,
     useGetAllConfigsQuery,
     useGetConfigByIdQuery,
     useCreateConfigMutation,
     useUpdateConfigMutation,
     useDeleteConfigMutation,
+    useDeleteScopeOverrideMutation,
     useSetAsDefaultMutation,
     useValidateCompatibilityMutation,
     useMigrateLevelsMutation,
