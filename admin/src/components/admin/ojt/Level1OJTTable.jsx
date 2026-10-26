@@ -1,0 +1,704 @@
+import { useRef, useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { IconPrinter, IconDeviceFloppy, IconArrowLeft } from "@tabler/icons-react";
+import { toast } from "sonner";
+import { useGetOnJobTrainingByIdQuery, useUpdateOnJobTrainingMutation } from "@/Redux/AllApi/OnJobTrainingApi";
+
+const Level1OJTTable = ({ ojtId, studentName = "Associate Name", model: initialModel = "Model Name", readOnly = false, onBack }) => {
+    const componentRef = useRef();
+
+    const { data: ojtData, isLoading, refetch } = useGetOnJobTrainingByIdQuery(ojtId, { skip: !ojtId });
+    const [updateOnJobTraining, { isLoading: isSaving }] = useUpdateOnJobTrainingMutation();
+
+    const [entries, setEntries] = useState(Array(15).fill({}));
+    const [remarks, setRemarks] = useState("");
+
+    const [docDetails, setDocDetails] = useState({
+        docNo: "MMI/OJT/01/001",
+        revNo: "06",
+        revDate: "15-06-2024"
+    });
+
+    const [headerInfo, setHeaderInfo] = useState({
+        name: "",
+        line: "",
+        machine: "",
+        doj: "",
+        model: ""
+    });
+
+    const [summary, setSummary] = useState({
+        totalMarks: "36",
+        totalMarksObtained: "",
+        totalPercentage: "",
+        result: "",
+    });
+
+    const [scoring, setScoring] = useState({
+        evaluationPercentages: {
+            hours: "",
+            productionTarget: "",
+            totalPartProduction: "",
+            okParts: "",
+            rejection: "",
+            cycleTimeActual: ""
+        },
+        evaluationMarks: {
+            hours: "",
+            productionTarget: "",
+            totalPartProduction: "",
+            okParts: "",
+            rejection: "",
+            cycleTimeActual: ""
+        }
+    });
+
+    useEffect(() => {
+        if (ojtData?.data) {
+            const data = ojtData.data;
+            const fetchedEntries = data.entries || [];
+            const mergedEntries = Array(15).fill({}).map((_, i) => fetchedEntries[i] || {});
+            setEntries(mergedEntries);
+
+            setRemarks(data.remarks || "");
+            setSummary({
+                totalMarks: data.totalMarks || "36",
+                totalMarksObtained: data.totalMarksObtained || "",
+                totalPercentage: data.totalPercentage || "",
+                result: data.result || "",
+            });
+
+            setDocDetails({
+                docNo: data.docNo || "MMI/OJT/01/001",
+                revNo: data.revNo || "06",
+                revDate: data.revDate || "15-06-2024"
+            });
+
+            const fetchedScoring = data.scoring || {};
+            setScoring({
+                evaluationPercentages: {
+                    hours: fetchedScoring.evaluationPercentages?.hours ?? "",
+                    productionTarget: fetchedScoring.evaluationPercentages?.productionTarget ?? "",
+                    totalPartProduction: fetchedScoring.evaluationPercentages?.totalPartProduction ?? "",
+                    okParts: fetchedScoring.evaluationPercentages?.okParts ?? "",
+                    rejection: fetchedScoring.evaluationPercentages?.rejection ?? "",
+                    cycleTimeActual: fetchedScoring.evaluationPercentages?.cycleTimeActual ?? ""
+                },
+                evaluationMarks: {
+                    hours: fetchedScoring.evaluationMarks?.hours ?? "",
+                    productionTarget: fetchedScoring.evaluationMarks?.productionTarget ?? "",
+                    totalPartProduction: fetchedScoring.evaluationMarks?.totalPartProduction ?? "",
+                    okParts: fetchedScoring.evaluationMarks?.okParts ?? "",
+                    rejection: fetchedScoring.evaluationMarks?.rejection ?? "",
+                    cycleTimeActual: fetchedScoring.evaluationMarks?.cycleTimeActual ?? ""
+                }
+            });
+
+            setHeaderInfo({
+                name: data.name || "Level-1 Practical Evaluation of On the Job Training",
+                line: data.line?.name || "",
+                machine: data.machine?.name + (data.machine?.machineName ? ` (${data.machine.machineName})` : "") || "",
+                doj: data.student?.doj
+                    ? new Date(data.student.doj).toLocaleDateString()
+                    : (data.student?.createdAt ? new Date(data.student.createdAt).toLocaleDateString() : ""),
+                model: data.model || initialModel
+            });
+        }
+    }, [ojtData]);
+
+    useEffect(() => {
+        const total = parseFloat(summary.totalMarks);
+        const obtained = parseFloat(summary.totalMarksObtained);
+
+        if (!isNaN(total) && !isNaN(obtained) && total > 0) {
+            const percentage = ((obtained / total) * 100).toFixed(2);
+            setSummary(prev => {
+                if (prev.totalPercentage !== percentage) {
+                    return { ...prev, totalPercentage: percentage };
+                }
+                return prev;
+            });
+        } else if ((isNaN(obtained) || obtained === 0) && summary.totalPercentage !== "") {
+            setSummary(prev => {
+                if (prev.totalPercentage !== "") {
+                    return { ...prev, totalPercentage: "" };
+                }
+                return prev;
+            });
+        }
+    }, [summary.totalMarks, summary.totalMarksObtained, summary.totalPercentage]);
+
+    useEffect(() => {
+        const totalPartProductionSum = entries.reduce((sum, row) => sum + (Number(row.totalPartProduction) || 0), 0);
+        const productionTargetSum = entries.reduce((sum, row) => sum + (Number(row.productionTarget) || 0), 0);
+        const okPartsSum = entries.reduce((sum, row) => sum + (Number(row.okParts) || 0), 0);
+        const rejectionSum = entries.reduce((sum, row) => sum + (Number(row.rejection) || 0), 0);
+        const cycleTimeTargetSum = entries.reduce((sum, row) => sum + (Number(row.cycleTimeTarget) || 0), 0);
+        const cycleTimeActualSum = entries.reduce((sum, row) => sum + (Number(row.cycleTimeActual) || 0), 0);
+
+        const calculated = {
+            evaluationPercentages: {
+                totalPartProduction: productionTargetSum > 0 ? ((totalPartProductionSum / productionTargetSum) * 100).toFixed(2) : "",
+                okParts: productionTargetSum > 0 ? ((okPartsSum / productionTargetSum) * 100).toFixed(2) : "",
+                rejection: totalPartProductionSum > 0 ? ((rejectionSum / totalPartProductionSum) * 100).toFixed(2) : "",
+                cycleTimeActual: cycleTimeActualSum > 0 ? ((cycleTimeTargetSum / cycleTimeActualSum) * 100).toFixed(2) : ""
+            }
+        };
+
+        const getProductionMark = (pct) => {
+            if (pct === "") return "";
+            const num = parseFloat(pct);
+            if (num >= 95) return "3";
+            if (num >= 90) return "2";
+            if (num >= 85) return "1";
+            return "0";
+        };
+
+        const getRejectionMark = (pct) => {
+            if (pct === "") return "";
+            const num = parseFloat(pct);
+            if (num === 0) return "3";
+            return "Fail";
+        };
+
+        const getCycleTimeMark = (pct) => {
+            if (pct === "") return "";
+            const num = parseFloat(pct);
+            if (num >= 95) return "3";
+            if (num >= 85) return "1";
+            return "0";
+        };
+
+        calculated.evaluationMarks = {
+            totalPartProduction: getProductionMark(calculated.evaluationPercentages.totalPartProduction),
+            okParts: getProductionMark(calculated.evaluationPercentages.okParts),
+            rejection: getRejectionMark(calculated.evaluationPercentages.rejection),
+            cycleTimeActual: getCycleTimeMark(calculated.evaluationPercentages.cycleTimeActual)
+        };
+
+        setScoring(prev => {
+            const nextPercentages = { ...prev.evaluationPercentages };
+            const nextMarks = { ...prev.evaluationMarks };
+
+            if (!nextPercentages.totalPartProduction) nextPercentages.totalPartProduction = calculated.evaluationPercentages.totalPartProduction;
+            if (!nextPercentages.okParts) nextPercentages.okParts = calculated.evaluationPercentages.okParts;
+            if (!nextPercentages.rejection) nextPercentages.rejection = calculated.evaluationPercentages.rejection;
+            if (!nextPercentages.cycleTimeActual) nextPercentages.cycleTimeActual = calculated.evaluationPercentages.cycleTimeActual;
+
+            if (!nextMarks.totalPartProduction) nextMarks.totalPartProduction = calculated.evaluationMarks.totalPartProduction;
+            if (!nextMarks.okParts) nextMarks.okParts = calculated.evaluationMarks.okParts;
+            if (!nextMarks.rejection) nextMarks.rejection = calculated.evaluationMarks.rejection;
+            if (!nextMarks.cycleTimeActual) nextMarks.cycleTimeActual = calculated.evaluationMarks.cycleTimeActual;
+
+            return {
+                evaluationPercentages: nextPercentages,
+                evaluationMarks: nextMarks
+            };
+        });
+    }, [entries]);
+
+    const handlePrint = () => {
+        window.print();
+    };
+
+    const handleEntryChange = (index, field, value) => {
+        if (readOnly) return;
+        const newEntries = [...entries];
+        newEntries[index] = { ...newEntries[index], [field]: value };
+        setEntries(newEntries);
+    };
+
+    const handleSummaryChange = (field, value) => {
+        if (readOnly) return;
+        setSummary(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleDocDetailChange = (field, value) => {
+        if (readOnly) return;
+        setDocDetails(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleScoringChange = (section, field, value) => {
+        if (readOnly) return;
+        setScoring(prev => ({
+            ...prev,
+            [section]: {
+                ...prev[section],
+                [field]: value
+            }
+        }));
+    };
+
+    const handleSave = async () => {
+        if (!ojtId) {
+            toast.error("OJT ID is missing");
+            return;
+        }
+        try {
+            const payload = {
+                id: ojtId,
+                studentId: ojtData?.data?.student?.id,
+                data: {
+                    entries,
+                    remarks,
+                    totalMarks: summary.totalMarks,
+                    totalMarksObtained: summary.totalMarksObtained,
+                    totalPercentage: summary.totalPercentage,
+                    result: summary.result,
+                    model: headerInfo.model,
+                    scoring,
+                    ...docDetails
+                }
+            };
+
+            await updateOnJobTraining(payload).unwrap();
+            toast.success("Evaluation saved successfully!");
+            refetch();
+        } catch (error) {
+            toast.error(error?.data?.message || "Failed to save evaluation");
+        }
+    };
+
+    if (isLoading) return <div className="p-4 text-center">Loading evaluation data...</div>;
+
+    return (
+        <div className="space-y-6 print:space-y-0 text-xs sm:text-xs w-fit min-w-full pb-8 pr-10 sm:pr-16">
+            <style>
+                {`
+          @media print {
+            body * {
+              visibility: hidden;
+            }
+            #printable-content, #printable-content * {
+              visibility: visible;
+            }
+            #printable-content {
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 100%;
+            }
+            .no-print {
+              display: none !important;
+            }
+            input {
+                border: none !important;
+                background: transparent !important;
+                padding: 0 !important;
+                text-align: center;
+            }
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+          }
+        `}
+            </style>
+            <div className="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm no-print border">
+                <div className="flex items-center gap-4">
+                    <Button variant="outline" size="sm" onClick={onBack}>
+                        <IconArrowLeft className="w-4 h-4 mr-2" />
+                        Back
+                    </Button>
+                    <div>
+                        <h1 className="text-xl font-bold text-[#1f2937]">{headerInfo.name || "Level-1 Practical Evaluation of On the Job Training"}</h1>
+                        <p className="text-sm text-[#6b7280]">
+                            Level-1 Practical Evaluation of On the Job Training
+                        </p>
+                    </div>
+                </div>
+                <div className="flex gap-2">
+                    {!readOnly && (
+                        <Button onClick={handleSave} disabled={isSaving} className="gap-2 bg-[#2563eb] hover:bg-[#1d4ed8]">
+                            <IconDeviceFloppy className="w-4 h-4" />
+                            {isSaving ? "Saving..." : "Save Data"}
+                        </Button>
+                    )}
+                    <Button variant="outline" className="gap-2" onClick={handlePrint}>
+                        <IconPrinter className="w-4 h-4" />
+                        Print Form
+                    </Button>
+                </div>
+            </div>
+
+            <div className="w-fit min-w-full pb-8 pr-10 sm:pr-16">
+                <div className="p-2 w-max min-w-[1200px] bg-white border border-slate-300 shadow-sm" ref={componentRef} id="printable-content">
+                        {/* Header Details */}
+                        <div className="flex justify-between items-start mb-2 border-b-2 border-black pb-2">
+                            <div className="flex items-center gap-4">
+                                <img src="/motherson+marelli.png" alt="Logo" className="h-8 md:h-10" />
+                                <h2 className="font-bold text-lg border-b border-black">{headerInfo.name || "Level-1 Practical Evaluation of On the Job Training"}</h2>
+                            </div>
+                            <div className="grid grid-cols-1 border border-black text-xs">
+                                <div className="flex border-b border-black">
+                                    <span className="p-1 border-r border-black font-semibold bg-[#f3f4f6] w-20">Doc. No.</span>
+                                    <span className="p-1 w-32">
+                                        <Input disabled={readOnly}
+                                            className="h-full w-full border-none p-1 focus-visible:ring-0"
+                                            value={docDetails.docNo}
+                                            onChange={e => handleDocDetailChange('docNo', e.target.value)}
+                                        />
+                                    </span>
+                                </div>
+                                <div className="flex border-b border-black">
+                                    <span className="p-1 border-r border-black font-semibold bg-[#f3f4f6] w-20">Rev. No.</span>
+                                    <span className="p-1 w-32">
+                                        <Input disabled={readOnly}
+                                            className="h-full w-full border-none p-1 focus-visible:ring-0"
+                                            value={docDetails.revNo}
+                                            onChange={e => handleDocDetailChange('revNo', e.target.value)}
+                                        />
+                                    </span>
+                                </div>
+                                <div className="flex">
+                                    <span className="p-1 border-r border-black font-semibold bg-[#f3f4f6] w-20">Rev. Date</span>
+                                    <span className="p-1 w-32">
+                                        <Input disabled={readOnly}
+                                            className="h-full w-full border-none p-1 focus-visible:ring-0"
+                                            value={docDetails.revDate}
+                                            onChange={e => handleDocDetailChange('revDate', e.target.value)}
+                                        />
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mb-4 grid grid-cols-2 gap-8 text-xs">
+                            <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
+                                <span className="font-bold">Model:</span>
+                                <div className="border-b border-black h-5 px-2 font-medium">
+                                    <Input
+                                        disabled={readOnly}
+                                        className="h-full w-full border-none p-0 text-left focus-visible:ring-0 bg-transparent font-medium"
+                                        value={headerInfo.model}
+                                        onChange={(e) => setHeaderInfo(prev => ({ ...prev, model: e.target.value }))}
+                                        placeholder="Enter Model"
+                                    />
+                                </div>
+                                <span className="font-bold">Name of Associate:</span>
+                                <div className="border-b border-black h-5 px-2 font-medium">{studentName}</div>
+                            </div>
+                            <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
+                                <span className="font-bold">Line/Machine:</span>
+                                <div className="border-b border-black h-5 px-2 font-medium">{headerInfo.line} / {headerInfo.machine}</div>
+                                <span className="font-bold">Date of Joining:</span>
+                                <div className="border-b border-black h-5 px-2 font-medium">{headerInfo.doj}</div>
+                            </div>
+                        </div>
+
+                        {/* Main Table */}
+                        <div className="border border-black mb-4">
+                            <table className="w-full text-center text-xs border-collapse">
+                                <thead>
+                                    <tr className="bg-[#f3f4f6] font-bold">
+                                        <th rowSpan="2" className="border border-black p-1 w-16">Date</th>
+                                        <th rowSpan="2" className="border border-black p-1 w-12">HOURS</th>
+                                        <th rowSpan="2" className="border border-black p-1 w-20">PRODUCTION TARGET</th>
+                                        <th rowSpan="2" className="border border-black p-1 w-20">TOTAL PART PRODUCTION</th>
+                                        <th rowSpan="2" className="border border-black p-1 w-16">OK PARTS</th>
+                                        <th rowSpan="2" className="border border-black p-1 w-16">Rejection</th>
+                                        <th colSpan="2" className="border border-black p-1">CYCLE TIME</th>
+                                        <th rowSpan="2" className="border border-black p-1 bg-[#e5e7eb]">NC Tag (critical)</th>
+                                        <th rowSpan="2" className="border border-black p-1">ESCALATION SYSTEM</th>
+                                        <th rowSpan="2" className="border border-black p-1">SOS FOLLOW</th>
+                                        <th rowSpan="2" className="border border-black p-1 bg-[#e5e7eb]">Customer Complaint (critical)</th>
+                                        <th rowSpan="2" className="border border-black p-1">PPE USES</th>
+                                        <th rowSpan="2" className="border border-black p-1">Associate sign</th>
+                                        <th rowSpan="2" className="border border-black p-1">MTS Trainer Sign</th>
+                                        <th rowSpan="2" className="border border-black p-1">TL Sign</th>
+                                        <th rowSpan="2" className="border border-black p-1">Shift Incharge Sign</th>
+                                    </tr>
+                                    <tr className="bg-[#f3f4f6] font-bold">
+                                        <th className="border border-black p-1 w-12">Target</th>
+                                        <th className="border border-black p-1 w-12">Actual</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {entries.map((row, index) => (
+                                        <tr key={index}>
+                                            <td className="border border-black p-0 h-8">
+                                                <Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0"
+                                                    value={row.date?.toString().split('T')[0] ?? ""}
+                                                    onChange={e => handleEntryChange(index, 'date', e.target.value)} type="date" />
+                                            </td>
+                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.hours ?? ""} onChange={e => handleEntryChange(index, 'hours', e.target.value)} /></td>
+                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.productionTarget ?? ""} onChange={e => handleEntryChange(index, 'productionTarget', e.target.value)} /></td>
+                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.totalPartProduction ?? ""} onChange={e => handleEntryChange(index, 'totalPartProduction', e.target.value)} /></td>
+                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.okParts ?? ""} onChange={e => handleEntryChange(index, 'okParts', e.target.value)} /></td>
+                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.rejection ?? ""} onChange={e => handleEntryChange(index, 'rejection', e.target.value)} /></td>
+                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.cycleTimeTarget ?? ""} onChange={e => handleEntryChange(index, 'cycleTimeTarget', e.target.value)} /></td>
+                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.cycleTimeActual ?? ""} onChange={e => handleEntryChange(index, 'cycleTimeActual', e.target.value)} /></td>
+                                            <td className="border border-black p-0 bg-[#f9fafb]"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 bg-transparent focus-visible:ring-0" value={row.ncTag ?? ""} onChange={e => handleEntryChange(index, 'ncTag', e.target.value)} /></td>
+                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.escalationSystem ?? ""} onChange={e => handleEntryChange(index, 'escalationSystem', e.target.value)} /></td>
+                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.sosFollow ?? ""} onChange={e => handleEntryChange(index, 'sosFollow', e.target.value)} /></td>
+                                            <td className="border border-black p-0 bg-[#f9fafb]"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 bg-transparent focus-visible:ring-0" value={row.customerComplaint ?? ""} onChange={e => handleEntryChange(index, 'customerComplaint', e.target.value)} /></td>
+                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.ppeUses ?? ""} onChange={e => handleEntryChange(index, 'ppeUses', e.target.value)} /></td>
+                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.associateSign ?? ""} onChange={e => handleEntryChange(index, 'associateSign', e.target.value)} /></td>
+                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.mtsTrainerSign ?? ""} onChange={e => handleEntryChange(index, 'mtsTrainerSign', e.target.value)} /></td>
+                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.tlSign ?? ""} onChange={e => handleEntryChange(index, 'tlSign', e.target.value)} /></td>
+                                            <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={row.shiftInchargeSign ?? ""} onChange={e => handleEntryChange(index, 'shiftInchargeSign', e.target.value)} /></td>
+                                        </tr>
+                                    ))}
+
+                                    {/* Summary Rows */}
+                                    <tr>
+                                        <td className="border border-black p-1 font-bold">Total</td>
+                                        <td className="border border-black p-1 font-bold">{entries.reduce((sum, row) => sum + (Number(row.hours) || 0), 0)}</td>
+                                        <td className="border border-black p-1 font-bold">{entries.reduce((sum, row) => sum + (Number(row.productionTarget) || 0), 0)}</td>
+                                        <td className="border border-black p-1 font-bold">{entries.reduce((sum, row) => sum + (Number(row.totalPartProduction) || 0), 0)}</td>
+                                        <td className="border border-black p-1 font-bold">{entries.reduce((sum, row) => sum + (Number(row.okParts) || 0), 0)}</td>
+                                        <td className="border border-black p-1 font-bold">{entries.reduce((sum, row) => sum + (Number(row.rejection) || 0), 0)}</td>
+                                        <td className="border border-black p-1 font-bold">{entries.reduce((sum, row) => sum + (Number(row.cycleTimeTarget) || 0), 0)}</td>
+                                        <td className="border border-black p-1 font-bold">{entries.reduce((sum, row) => sum + (Number(row.cycleTimeActual) || 0), 0)}</td>
+                                        <td colSpan={5} rowSpan={3} className="border border-black p-0 align-top">
+                                            <div className="flex h-full">
+                                                <div className="flex-1 flex flex-col border-r border-black">
+                                                    <div className="border-b border-black flex-1 flex items-center justify-center p-1 text-center font-bold text-[10px]">Average Pass &gt; 90%<br />Fail &lt; 90%</div>
+                                                    <div className="flex-1"></div>
+                                                </div>
+                                                <div className="w-20 border-r border-black flex flex-col">
+                                                    <div className="border-b border-black p-1 font-bold text-center text-[10px] h-10 flex items-center justify-center">TOTAL MARKS</div>
+                                                    <div className="flex-1 p-0">
+                                                        <Input disabled={readOnly}
+                                                            className="h-full w-full border-none text-center text-lg font-bold p-0 focus-visible:ring-0"
+                                                            value={summary.totalMarks}
+                                                            onChange={e => handleSummaryChange('totalMarks', e.target.value)}
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="w-20 border-r border-black flex flex-col">
+                                                    <div className="border-b border-black p-1 font-bold text-center text-[10px] h-10 flex items-center justify-center">TOTAL MARKS OBTAINED</div>
+                                                    <div className="flex-1 p-0">
+                                                        <Input disabled={readOnly}
+                                                            className="h-full w-full border-none text-center text-lg font-bold p-0 focus-visible:ring-0"
+                                                            value={summary.totalMarksObtained}
+                                                            onChange={e => handleSummaryChange('totalMarksObtained', e.target.value)}
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="w-16 border-r border-black flex flex-col">
+                                                    <div className="border-b border-black p-1 font-bold text-center text-[10px] h-10 flex items-center justify-center">Total %</div>
+                                                    <div className="flex-1 p-0">
+                                                        <Input disabled={readOnly}
+                                                            className="h-full w-full border-none text-center text-lg font-bold p-0 focus-visible:ring-0"
+                                                            value={summary.totalPercentage}
+                                                            onChange={e => handleSummaryChange('totalPercentage', e.target.value)}
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="w-16 flex flex-col">
+                                                    <div className="border-b border-black p-1 font-bold text-center text-[10px] h-10 flex items-center justify-center" >Result</div>
+                                                    <div className="flex-1 p-0 h-full">
+                                                        <select
+                                                            disabled={readOnly}
+                                                            className={`h-full w-full border-none text-center text-lg font-bold p-0 focus:outline-none bg-transparent ${summary.result === 'Pass' ? 'text-[#16a34a]' : summary.result === 'Fail' ? 'text-[#dc2626]' : ''}`}
+                                                            value={summary.result}
+                                                            onChange={e => handleSummaryChange('result', e.target.value)}
+                                                        >
+                                                            <option value="">Select</option>
+                                                            <option value="Pass" className="text-[#16a34a]">Pass</option>
+                                                            <option value="Fail" className="text-[#dc2626]">Fail</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td colSpan={4} className="border border-black p-1 bg-[#e5e7eb]"></td>
+                                    </tr>
+                                    <tr>
+                                        <td className="border border-black p-1 font-bold">Evaluation %</td>
+                                        <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={scoring.evaluationPercentages.hours} onChange={e => handleScoringChange('evaluationPercentages', 'hours', e.target.value)} /></td>
+                                        <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={scoring.evaluationPercentages.productionTarget} onChange={e => handleScoringChange('evaluationPercentages', 'productionTarget', e.target.value)} /></td>
+                                        <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={scoring.evaluationPercentages.totalPartProduction} onChange={e => handleScoringChange('evaluationPercentages', 'totalPartProduction', e.target.value)} /></td>
+                                        <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={scoring.evaluationPercentages.okParts} onChange={e => handleScoringChange('evaluationPercentages', 'okParts', e.target.value)} /></td>
+                                        <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={scoring.evaluationPercentages.rejection} onChange={e => handleScoringChange('evaluationPercentages', 'rejection', e.target.value)} /></td>
+                                        <td className="border border-black p-1 bg-[#e5e7eb]"></td>
+                                        <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={scoring.evaluationPercentages.cycleTimeActual} onChange={e => handleScoringChange('evaluationPercentages', 'cycleTimeActual', e.target.value)} /></td>
+                                        <td colSpan={4} className="border border-black p-1 bg-[#e5e7eb]"></td>
+                                    </tr>
+                                    <tr>
+                                        <td className="border border-black p-1 font-bold">Evaluation Mark</td>
+                                        <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={scoring.evaluationMarks.hours} onChange={e => handleScoringChange('evaluationMarks', 'hours', e.target.value)} /></td>
+                                        <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={scoring.evaluationMarks.productionTarget} onChange={e => handleScoringChange('evaluationMarks', 'productionTarget', e.target.value)} /></td>
+                                        <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={scoring.evaluationMarks.totalPartProduction} onChange={e => handleScoringChange('evaluationMarks', 'totalPartProduction', e.target.value)} /></td>
+                                        <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={scoring.evaluationMarks.okParts} onChange={e => handleScoringChange('evaluationMarks', 'okParts', e.target.value)} /></td>
+                                        <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={scoring.evaluationMarks.rejection} onChange={e => handleScoringChange('evaluationMarks', 'rejection', e.target.value)} /></td>
+                                        <td className="border border-black p-1 bg-[#e5e7eb]"></td>
+                                        <td className="border border-black p-0"><Input disabled={readOnly} className="h-full w-full border-none text-center p-0 focus-visible:ring-0" value={scoring.evaluationMarks.cycleTimeActual} onChange={e => handleScoringChange('evaluationMarks', 'cycleTimeActual', e.target.value)} /></td>
+                                        <td colSpan={4} className="border border-black p-1 bg-[#e5e7eb]"></td>
+                                    </tr>
+                                    <tr>
+                                        <td colSpan={13} className="border border-black p-1 text-right font-bold pr-4">Result- Pass/ Fail</td>
+                                        <td colSpan={5} className="border border-black p-1"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Scoring Matrix */}
+                        <div className="border border-black mb-4">
+                            <table className="w-full text-center text-xs border-collapse">
+                                <thead>
+                                    <tr className="bg-[#f3f4f6]">
+                                        <th colSpan={2} className="border border-black p-1 w-32">Total Production</th>
+                                        <th colSpan={2} className="border border-black p-1 w-32">OK Production</th>
+                                        <th colSpan={2} className="border border-black p-1 w-32">Rejection</th>
+                                        <th colSpan={2} className="border border-black p-1 w-32">Average Cycle Time</th>
+                                        <th className="border border-black p-1 w-40">Process</th>
+                                        <th className="border border-black p-1 w-20">Follow (Aware)</th>
+                                        <th className="border border-black p-1 w-20">Not Follow (Not Aware)</th>
+                                        <th className="border border-black p-1 bg-[#f9fafb] flex-1"></th>
+                                        <th className="border border-black p-1 bg-[#f9fafb] flex-1"></th>
+                                        <th className="border border-black p-1 bg-[#f9fafb] flex-1"></th>
+                                        <th className="border border-black p-1 bg-[#f9fafb] flex-1"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td className="border border-black p-1 text-left pl-2">Target Achieved above - 95%</td>
+                                        <td className="border border-black p-1 w-8">3</td>
+                                        <td className="border border-black p-1 text-left pl-2">Target Achieved Above - 95%</td>
+                                        <td className="border border-black p-1 w-8">3</td>
+                                        <td className="border border-black p-1 text-left pl-2">Below - 0%</td>
+                                        <td className="border border-black p-1 w-8">3</td>
+                                        <td className="border border-black p-1 text-left pl-2">Above - 95%</td>
+                                        <td className="border border-black p-1 w-8">3</td>
+                                        <td className="border border-black p-1">NC Tag</td>
+                                        <td className="border border-black p-1">3</td>
+                                        <td className="border border-black p-1">Fail</td>
+                                        <td colSpan={4} className="border border-black p-1 bg-white"></td>
+                                    </tr>
+                                    <tr>
+                                        <td className="border border-black p-1 text-left pl-2">Target Achieved Above - 90%</td>
+                                        <td className="border border-black p-1 w-8">2</td>
+                                        <td className="border border-black p-1 text-left pl-2">Target Achieved Above - 90%</td>
+                                        <td className="border border-black p-1 w-8">2</td>
+                                        <td className="border border-black p-1 text-left pl-2">Above - 0.5%</td>
+                                        <td className="border border-black p-1 w-8">Fail</td>
+                                        <td className="border border-black p-1 text-left pl-2">Above - 90%</td>
+                                        <td className="border border-black p-1 w-8">1</td>
+                                        <td className="border border-black p-1">Escalation</td>
+                                        <td className="border border-black p-1">3</td>
+                                        <td className="border border-black p-1">0</td>
+                                        <td colSpan={4} className="border border-black p-1 bg-white"></td>
+                                    </tr>
+                                    <tr>
+                                        <td className="border border-black p-1 text-left pl-2">Target Achieved Above - 85%</td>
+                                        <td className="border border-black p-1 w-8">1</td>
+                                        <td className="border border-black p-1 text-left pl-2">Target Achieved Above - 85%</td>
+                                        <td className="border border-black p-1 w-8">1</td>
+                                        <td className="border border-black p-1 text-left pl-2">Below - 1%</td>
+                                        <td className="border border-black p-1 w-8">Fail</td>
+                                        <td className="border border-black p-1 text-left pl-2">Above - 85%</td>
+                                        <td className="border border-black p-1 w-8">1</td>
+                                        <td className="border border-black p-1">SOS</td>
+                                        <td className="border border-black p-1">3</td>
+                                        <td className="border border-black p-1">0</td>
+                                        <td colSpan={4} className="border border-black p-1 bg-white"></td>
+                                    </tr>
+                                    <tr>
+                                        <td className="border border-black p-1 text-left pl-2">Target Achieved Below - 85%</td>
+                                        <td className="border border-black p-1 w-8">0</td>
+                                        <td className="border border-black p-1 text-left pl-2">Target Achieved Below - 85%</td>
+                                        <td className="border border-black p-1 w-8">0</td>
+                                        <td className="border border-black p-1 text-left pl-2">Above - 1%</td>
+                                        <td className="border border-black p-1 w-8">Fail</td>
+                                        <td className="border border-black p-1 text-left pl-2">Below - 85%</td>
+                                        <td className="border border-black p-1 w-8">0</td>
+                                        <td className="border border-black p-1">PPE</td>
+                                        <td className="border border-black p-1">3</td>
+                                        <td className="border border-black p-1">0</td>
+                                        <td colSpan={4} className="border border-black p-1 bg-white"></td>
+                                    </tr>
+                                    <tr>
+                                        <td colSpan={2} rowSpan={2} className="border border-black p-1"></td>
+                                        <td colSpan={2} rowSpan={2} className="border border-black p-1"></td>
+                                        <td colSpan={2} rowSpan={2} className="border border-black p-1"></td>
+                                        <td colSpan={2} rowSpan={2} className="border border-black p-1"></td>
+                                        <td className="border border-black p-1">Customer Complaint</td>
+                                        <td className="border border-black p-1">3</td>
+                                        <td className="border border-black p-1">Fail</td>
+                                        <td colSpan={4} className="border border-black p-1 bg-white"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Guidelines & Footer */}
+                        <div className="grid grid-cols-1 border border-black text-xs mb-4">
+                            <div className="grid grid-cols-[1fr_1fr] border-b border-black">
+                                <div className="p-2 border-r border-black">
+                                    <h3 className="font-bold underline mb-1">Guideline :-</h3>
+                                    <ul className="list-disc pl-4 space-y-0.5">
+                                        <li>Evaluation criteria is for quality 100% & overall 85%</li>
+                                        <li>If critical operation criteria (NC Tag/Customer Complaint) fail, then result is Fail.</li>
+                                        <li>Critical operation - Reprocess / NC part tracking / Customer Complaint.</li>
+                                        <li>This format applicable for all Department Employee (New Joining) & External.</li>
+                                    </ul>
+                                </div>
+                                <div className="p-2">
+                                    <h3 className="font-bold underline mb-1">Remark :-</h3>
+                                    <textarea disabled={readOnly}
+                                        className="w-full h-20 border-none resize-none focus:outline-none p-1 bg-transparent"
+                                        placeholder="Enter remarks here..."
+                                        value={remarks}
+                                        onChange={(e) => setRemarks(e.target.value)}
+                                    ></textarea>
+                                </div>
+                            </div>
+                            {/* Change Management Section */}
+                            <div className="p-1 font-bold text-center bg-[#f3f4f6] border-b border-black">Change Management</div>
+                            <div className="grid grid-cols-[100px_1fr_100px_60px_80px_1fr_80px] border-b border-black text-center font-semibold text-[10px]">
+                                <div className="border-r border-black p-1">Rev No & Date</div>
+                                <div className="border-r border-black p-1">What Change</div>
+                                <div className="border-r border-black p-1">Why Change</div>
+                                <div className="border-r border-black p-1">Rev No</div>
+                                <div className="border-r border-black p-1">Rev. Date</div>
+                                <div className="border-r border-black p-1">What Change</div>
+                                <div className="p-1">Why Change</div>
+                            </div>
+                            <div className="grid grid-cols-[100px_1fr_100px_60px_80px_1fr_80px] min-h-12 text-center text-[10px] border-b border-black">
+                                <div className="border-r border-black p-1 flex items-center justify-center">Rev Date: 12/11/2018</div>
+                                <div className="border-r border-black p-1 flex items-center justify-start text-left">Customer Complaint Awareness</div>
+                                <div className="border-r border-black p-1 flex items-center justify-center">IATF NC</div>
+                                <div className="border-r border-black p-1 flex items-center justify-center">5</div>
+                                <div className="border-r border-black p-1 flex items-center justify-center">02-03-2024</div>
+                                <div className="border-r border-black p-1 flex items-center justify-start text-left">Productivity, Quality & Cycle time & Format common for all department</div>
+                                <div className="p-1 flex items-center justify-center">VSA Audit</div>
+                            </div>
+                            <div className="grid grid-cols-[100px_1fr_100px_60px_80px_1fr_80px] min-h-12 text-center text-[10px] border-b border-black">
+                                <div className="border-r border-black p-1 flex items-center justify-center">Rev 03 Date: 02/09/2020</div>
+                                <div className="border-r border-black p-1 flex items-center justify-start text-left">Company Logo Change</div>
+                                <div className="border-r border-black p-1 flex items-center justify-center">Internal Audit</div>
+                                <div className="border-r border-black p-1 flex items-center justify-center"></div>
+                                <div className="border-r border-black p-1 flex items-center justify-center"></div>
+                                <div className="border-r border-black p-1 flex items-center justify-start text-left"></div>
+                                <div className="p-1 flex items-center justify-center"></div>
+                            </div>
+                            <div className="grid grid-cols-[100px_1fr_100px_60px_80px_1fr_80px] min-h-12 text-center text-[10px]">
+                                <div className="border-r border-black p-1 flex items-center justify-center">Rev no 4 Date 15/03/2023</div>
+                                <div className="border-r border-black p-1 flex items-center justify-start text-left">Critical operation evaluation criteria change</div>
+                                <div className="border-r border-black p-1 flex items-center justify-center">Customer requirement</div>
+                                <div className="border-r border-black p-1 flex items-center justify-center"></div>
+                                <div className="border-r border-black p-1 flex items-center justify-center"></div>
+                                <div className="border-r border-black p-1 flex items-center justify-start text-left"></div>
+                                <div className="p-1 flex items-center justify-center"></div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-4 border border-black text-xs text-center font-bold">
+                            <div className="p-2 border-r border-black">Prepared By</div>
+                            <div className="p-2 border-r border-black">Checked By</div>
+                            <div className="p-2 border-r border-black">Approved By (HOD)</div>
+                            <div className="p-2">HR Head</div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+    );
+};
+
+export default Level1OJTTable;

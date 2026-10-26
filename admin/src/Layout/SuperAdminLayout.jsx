@@ -353,8 +353,8 @@ export function SuperAdminLayout() {
         </header>
 
         {/* Page Content */}
-        <div className="pt-20 pb-6 px-4 sm:px-6 min-h-screen">
-          <div className="backdrop-blur-sm rounded-xl shadow-sm p-4 sm:p-6 transition-all duration-300 hover:shadow-md"
+        <div className="pt-20 pb-6 px-4 sm:px-6 min-h-screen w-fit min-w-full">
+          <div className="backdrop-blur-sm rounded-xl shadow-sm p-4 sm:p-6 transition-all duration-300 hover:shadow-md w-fit min-w-full"
             style={{
               backgroundColor: 'rgba(255, 255, 255, 0.9)',
               border: '1px solid rgba(229, 231, 235, 0.5)'

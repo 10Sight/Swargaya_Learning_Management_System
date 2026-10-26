@@ -977,13 +977,15 @@ const StudentDetail = () => {
 
         <TabsContent value="ojt">
           {selectedOjtId ? (
-            <OnJobTrainingTable
-              ojtId={selectedOjtId}
-              studentName={student.fullName}
-              model="-"
-              readOnly={false}
-              onBack={() => setSelectedOjtId(null)}
-            />
+            <div className="w-fit min-w-full pb-8 pr-10 sm:pr-16">
+              <OnJobTrainingTable
+                ojtId={selectedOjtId}
+                studentName={student.fullName}
+                model="-"
+                readOnly={false}
+                onBack={() => setSelectedOjtId(null)}
+              />
+            </div>
           ) : (
             <Card>
               <CardHeader>

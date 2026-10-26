@@ -6,11 +6,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { IconClipboardList, IconEye, IconArrowLeft } from "@tabler/icons-react";
 import OnJobTrainingTable from "@/components/admin/OnJobTrainingTable";
+import SkillLevelCircle from "@/components/common/SkillLevelCircle";
 import { useGetStudentOJTsQuery } from "@/Redux/AllApi/OnJobTrainingApi";
+import { useGetActiveConfigQuery } from "@/Redux/AllApi/CourseLevelConfigApi";
 
 const StudentOnJobTraining = () => {
     const { user } = useSelector((state) => state.auth);
     const [selectedOjt, setSelectedOjt] = useState(null);
+
+    const { data: levelConfigData } = useGetActiveConfigQuery();
+    const levels = levelConfigData?.data?.levels || [];
 
     const { data: ojtData, isLoading } = useGetStudentOJTsQuery(user?.id, {
         skip: !user?.id
@@ -59,6 +64,7 @@ const StudentOnJobTraining = () => {
                         <Table>
                             <TableHeader>
                                 <TableRow>
+                                    <TableHead>Level</TableHead>
                                     <TableHead>Training Name</TableHead>
                                     <TableHead>Line / Machine</TableHead>
                                     <TableHead>Created Date</TableHead>
@@ -67,12 +73,26 @@ const StudentOnJobTraining = () => {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {ojtData.data.map((ojtItem) => (
-                                    <TableRow key={ojtItem.id || ojtItem._id}>
-                                        <TableCell className="font-medium">{ojtItem.name || "Practical Evaluation"}</TableCell>
-                                        <TableCell>
-                                            {ojtItem.line?.name} / {ojtItem.machine?.name}
-                                        </TableCell>
+                                {ojtData.data.map((ojtItem) => {
+                                    const levelOrder = ojtItem.levelOrder !== undefined && ojtItem.levelOrder !== null ? Number(ojtItem.levelOrder) : 0;
+                                    const levelName = ojtItem.levelName || `L${levelOrder + 1}`;
+                                    return (
+                                        <TableRow key={ojtItem.id || ojtItem._id}>
+                                            <TableCell>
+                                                <Badge variant="outline" className="inline-flex items-center gap-1.5 font-bold border-blue-400 text-blue-700 bg-blue-50 py-1 px-2">
+                                                    <SkillLevelCircle
+                                                        levelName={levelName}
+                                                        levelIndex={levelOrder}
+                                                        levels={levels}
+                                                        size={14}
+                                                    />
+                                                    <span>{levelName}</span>
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="font-medium">{ojtItem.name || "Practical Evaluation"}</TableCell>
+                                            <TableCell>
+                                                {ojtItem.line?.name} / {ojtItem.machine?.name}
+                                            </TableCell>
                                         <TableCell>
                                             {new Date(ojtItem.createdAt).toLocaleDateString()}
                                         </TableCell>
@@ -88,7 +108,8 @@ const StudentOnJobTraining = () => {
                                             </Button>
                                         </TableCell>
                                     </TableRow>
-                                ))}
+                                );
+                            })}
                             </TableBody>
                         </Table>
                     ) : (

@@ -8,6 +8,9 @@ class OnJobTraining {
 
         this.student = data.student;
         this.name = data.name || "Level-1 Practical Evaluation of On the Job Training";
+        this.levelOrder = data.levelOrder !== undefined && data.levelOrder !== null ? Number(data.levelOrder) : 0;
+        this.levelName = data.levelName || "L1";
+        this.sheetKey = data.sheetKey || null;
         this.model = data.model;
         this.department = data.department;
         this.line = data.line;
@@ -38,6 +41,8 @@ class OnJobTraining {
                     id INT IDENTITY(1,1) PRIMARY KEY,
                     student NVARCHAR(255) NOT NULL,
                     name NVARCHAR(255) DEFAULT 'Level-1 Practical Evaluation of On the Job Training',
+                    levelOrder INT DEFAULT 0,
+                    levelName NVARCHAR(50) DEFAULT 'L1',
                     model NVARCHAR(255),
                     department NVARCHAR(255) NOT NULL,
                     line NVARCHAR(255) NOT NULL,
@@ -85,6 +90,32 @@ class OnJobTraining {
                 BEGIN
                     ALTER TABLE dbo.on_job_trainings ADD revDate NVARCHAR(50) NULL;
                 END
+                IF NOT EXISTS (
+                    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_NAME = 'on_job_trainings' AND COLUMN_NAME = 'levelOrder'
+                )
+                BEGIN
+                    ALTER TABLE dbo.on_job_trainings ADD levelOrder INT DEFAULT 0;
+                END
+                IF NOT EXISTS (
+                    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_NAME = 'on_job_trainings' AND COLUMN_NAME = 'levelName'
+                )
+                BEGIN
+                    ALTER TABLE dbo.on_job_trainings ADD levelName NVARCHAR(50) DEFAULT 'L1';
+                END
+                IF NOT EXISTS (
+                    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_NAME = 'on_job_trainings' AND COLUMN_NAME = 'sheetKey'
+                )
+                BEGIN
+                    ALTER TABLE dbo.on_job_trainings ADD sheetKey NVARCHAR(100) NULL;
+                END
+
+                -- Backfill existing legacy rows that have NULL levelOrder or levelName
+                UPDATE dbo.on_job_trainings
+                SET levelOrder = 0, levelName = 'L1'
+                WHERE levelOrder IS NULL OR levelName IS NULL;
             END
         `;
         try {
@@ -98,7 +129,7 @@ class OnJobTraining {
         const ojt = new OnJobTraining(data);
 
         const fields = [
-            "student", "name", "model", "department", "line", "machine",
+            "student", "name", "levelOrder", "levelName", "sheetKey", "model", "department", "line", "machine",
             "entries", "scoring", "totalMarks", "totalMarksObtained",
             "totalPercentage", "result", "guidelines", "remarks",
             "docNo", "revNo", "revDate",
@@ -175,7 +206,7 @@ class OnJobTraining {
         this.updatedAt = new Date(); // Manually update timestamp
 
         const fields = [
-            "student", "name", "model", "department", "line", "machine",
+            "student", "name", "levelOrder", "levelName", "model", "department", "line", "machine",
             "entries", "scoring", "totalMarks", "totalMarksObtained",
             "totalPercentage", "result", "guidelines", "remarks",
             "docNo", "revNo", "revDate",

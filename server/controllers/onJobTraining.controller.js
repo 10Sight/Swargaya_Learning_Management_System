@@ -16,7 +16,7 @@ const parseJSON = (data, fallback = []) => {
  */
 export const createOnJobTraining = async (req, res, next) => {
     try {
-        const { studentId, departmentId, lineId, machineId, name, model } = req.body;
+        const { studentId, departmentId, lineId, machineId, name, model, levelOrder, levelName, sheetKey } = req.body;
 
         if (!studentId || !departmentId || !lineId || !machineId) {
             return next(new ApiError("All fields (Student, Department, Line, Machine) are required", 400));
@@ -39,13 +39,15 @@ export const createOnJobTraining = async (req, res, next) => {
         const [machines] = await pool.query("SELECT id FROM machines WHERE id = ?", [machineId]);
         if (machines.length === 0) return next(new ApiError("Machine not found", 404));
 
-        const ojtName = name || "Level-1 Practical Evaluation of On the Job Training";
+        const parsedLevelOrder = levelOrder !== undefined && levelOrder !== null ? Number(levelOrder) : 0;
+        const parsedLevelName = levelName || (parsedLevelOrder === 0 ? "L1" : `L${parsedLevelOrder + 1}`);
+        const ojtName = name || `${parsedLevelName} Practical Evaluation of On the Job Training`;
 
         const [result] = await pool.query(
             `INSERT INTO on_job_trainings 
-            (student, name, model, department, line, machine, createdBy, updatedBy, entries, result, createdAt, updatedAt)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;`,
-            [userId, ojtName, model || null, departmentId, lineId, machineId, req.user.id, req.user.id, JSON.stringify([]), "Pending"]
+            (student, name, levelOrder, levelName, sheetKey, model, department, line, machine, createdBy, updatedBy, entries, result, createdAt, updatedAt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE()); SELECT SCOPE_IDENTITY() AS id;`,
+            [userId, ojtName, parsedLevelOrder, parsedLevelName, sheetKey || null, model || null, departmentId, lineId, machineId, req.user.id, req.user.id, JSON.stringify([]), "Pending"]
         );
 
         // Fetch created OJT with populated names
@@ -115,6 +117,8 @@ export const getStudentOnJobTrainings = async (req, res, next) => {
         const formatted = ojts.map(ojt => {
             ojt.entries = parseJSON(ojt.entries, []);
             ojt.scoring = parseJSON(ojt.scoring, null);
+            ojt.levelOrder = ojt.levelOrder !== null && ojt.levelOrder !== undefined ? Number(ojt.levelOrder) : 0;
+            ojt.levelName = ojt.levelName || (ojt.levelOrder === 0 ? "L1" : `L${ojt.levelOrder + 1}`);
             ojt.department = { id: ojt.department, name: ojt.deptName };
             ojt.line = { id: ojt.line, name: ojt.lineName };
             ojt.machine = { id: ojt.machine, name: ojt.machineName, machineName: ojt.machineDisplayName };
@@ -163,6 +167,8 @@ export const getOnJobTrainingById = async (req, res, next) => {
         const ojt = rows[0];
         ojt.entries = parseJSON(ojt.entries, []);
         ojt.scoring = parseJSON(ojt.scoring, null);
+        ojt.levelOrder = ojt.levelOrder !== null && ojt.levelOrder !== undefined ? Number(ojt.levelOrder) : 0;
+        ojt.levelName = ojt.levelName || (ojt.levelOrder === 0 ? "L1" : `L${ojt.levelOrder + 1}`);
         ojt.department = { id: ojt.department, name: ojt.deptName };
         ojt.line = { id: ojt.line, name: ojt.lineName };
         ojt.machine = { id: ojt.machine, name: ojt.machineName, machineName: ojt.machineDisplayName };
@@ -258,7 +264,7 @@ export const getAllOnJobTrainings = async (req, res, next) => {
                 GROUP BY student
             ) agg ON agg.student = u.id
             OUTER APPLY (
-                SELECT TOP 1 ojt.id, ojt.result, ojt.docNo, ojt.entries, ojt.updatedAt, ojt.updatedBy
+                SELECT TOP 1 ojt.id, ojt.result, ojt.docNo, ojt.levelOrder, ojt.levelName, ojt.entries, ojt.updatedAt, ojt.updatedBy
                 FROM on_job_trainings ojt
                 WHERE ojt.student = u.id
                 ORDER BY ojt.updatedAt DESC
@@ -288,6 +294,8 @@ export const getAllOnJobTrainings = async (req, res, next) => {
                 createdAt: row.studentCreatedAt,
                 sheetCount: row.sheetCount,
                 latestSheetId: row.latestSheetId,
+                latestLevelOrder: row.latestLevelOrder ?? 0,
+                latestLevelName: row.latestLevelName || "L1",
                 latestResult: row.latestResult,
                 latestDocNo: row.latestDocNo,
                 lastFilledDate,

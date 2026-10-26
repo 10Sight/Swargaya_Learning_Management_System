@@ -28,6 +28,8 @@ import {
 import { toast } from "sonner";
 import CreateOJTDialog from "@/components/admin/CreateOJTDialog";
 import OnJobTrainingTable from "@/components/admin/OnJobTrainingTable";
+import SkillLevelCircle from "@/components/common/SkillLevelCircle";
+import { useGetActiveConfigQuery } from "@/Redux/AllApi/CourseLevelConfigApi";
 
 const formatDate = (value) => (value ? new Date(value).toLocaleDateString() : "—");
 
@@ -46,6 +48,8 @@ const OnJobTrainingStudentPage = () => {
         isLoading: ojtsLoading,
         error: ojtsError,
     } = useGetStudentOJTsQuery(studentId, { refetchOnMountOrArgChange: true });
+    const { data: levelConfigData } = useGetActiveConfigQuery();
+    const levels = levelConfigData?.data?.levels || [];
 
     const [deleteOnJobTraining, { isLoading: isDeleting }] = useDeleteOnJobTrainingMutation();
 
@@ -75,13 +79,15 @@ const OnJobTrainingStudentPage = () => {
     // Inline editable sheet view
     if (editingOjtId) {
         return (
-            <OnJobTrainingTable
-                ojtId={editingOjtId}
-                studentName={student?.fullName}
-                model="-"
-                readOnly={false}
-                onBack={() => setEditingOjtId(null)}
-            />
+            <div className="w-fit min-w-full pb-8 pr-10 sm:pr-16">
+                <OnJobTrainingTable
+                    ojtId={editingOjtId}
+                    studentName={student?.fullName}
+                    model="-"
+                    readOnly={false}
+                    onBack={() => setEditingOjtId(null)}
+                />
+            </div>
         );
     }
 
@@ -151,48 +157,73 @@ const OnJobTrainingStudentPage = () => {
                         <Table>
                             <TableHeader>
                                 <TableRow>
+                                    <TableHead>Level</TableHead>
                                     <TableHead>Date</TableHead>
                                     <TableHead>Training Name</TableHead>
                                     <TableHead>Department</TableHead>
                                     <TableHead>Line</TableHead>
                                     <TableHead>Machine</TableHead>
                                     <TableHead>Result</TableHead>
-                                    <TableHead>Doc No.</TableHead>
+                                    <TableHead>Doc Info</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {ojts.map((ojt) => (
-                                    <TableRow key={ojt.id || ojt._id}>
-                                        <TableCell>{formatDate(ojt.createdAt)}</TableCell>
-                                        <TableCell className="font-medium">{ojt.name || "Evaluation"}</TableCell>
-                                        <TableCell>{ojt.department?.name || "-"}</TableCell>
-                                        <TableCell>{ojt.line?.name || "-"}</TableCell>
-                                        <TableCell>{ojt.machine?.name || "-"}</TableCell>
-                                        <TableCell>{getResultBadge(ojt.result)}</TableCell>
-                                        <TableCell>{ojt.docNo || "—"}</TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex justify-end gap-1">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => setEditingOjtId(ojt.id || ojt._id)}
-                                                >
-                                                    <IconPencil className="h-4 w-4" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    disabled={isDeleting}
-                                                    onClick={() => handleDelete(ojt)}
-                                                    className="text-[#dc2626]"
-                                                >
-                                                    <IconTrash className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
+                                {ojts.map((ojt) => {
+                                    const levelOrder = ojt.levelOrder !== undefined && ojt.levelOrder !== null ? Number(ojt.levelOrder) : 0;
+                                    const levelName = ojt.levelName || `L${levelOrder + 1}`;
+                                    return (
+                                        <TableRow key={ojt.id || ojt._id}>
+                                            <TableCell>
+                                                <Badge variant="outline" className="inline-flex items-center gap-1.5 font-bold border-blue-400 text-blue-700 bg-blue-50 py-1 px-2">
+                                                    <SkillLevelCircle
+                                                        levelName={levelName}
+                                                        levelIndex={levelOrder}
+                                                        levels={levels}
+                                                        size={14}
+                                                    />
+                                                    <span>{levelName}</span>
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>{formatDate(ojt.createdAt)}</TableCell>
+                                            <TableCell className="font-medium">{ojt.name || "Evaluation"}</TableCell>
+                                            <TableCell>{ojt.department?.name || "-"}</TableCell>
+                                            <TableCell>{ojt.line?.name || "-"}</TableCell>
+                                            <TableCell>{ojt.machine?.name || "-"}</TableCell>
+                                            <TableCell>{getResultBadge(ojt.result)}</TableCell>
+                                            <TableCell>
+                                                <div>
+                                                    <span className="font-mono font-bold text-xs">{ojt.docNo || "—"}</span>
+                                                    {(ojt.revNo || ojt.revDate) && (
+                                                        <div className="text-[10px] text-muted-foreground font-mono">
+                                                            Rev: {ojt.revNo || "—"} • {ojt.revDate || "—"}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <div className="flex justify-end gap-1">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => setEditingOjtId(ojt.id || ojt._id)}
+                                                    >
+                                                        <IconPencil className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        disabled={isDeleting}
+                                                        onClick={() => handleDelete(ojt)}
+                                                        className="text-[#dc2626]"
+                                                    >
+                                                        <IconTrash className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
                             </TableBody>
                         </Table>
                     )}
