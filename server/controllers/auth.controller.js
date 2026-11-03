@@ -176,7 +176,7 @@ export const login = asyncHandler(async (req, res) => {
     .json(
       new ApiResponse(
         200,
-        { user: fetchedUser, redirectUrl },
+        { user: fetchedUser, accessToken, refreshToken, redirectUrl },
         "Login successful"
       )
     );

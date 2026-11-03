@@ -9,11 +9,11 @@ module.exports = {
             watch: ["index.js", "controllers", "routes", "models", "services"],
             ignore_watch: ["node_modules", "logs"],
             env: {
-                NODE_ENV: "production",
+                NODE_ENV: "development",
                 NODE_SKIP_PLATFORM_CHECK: "1"
             },
-            env_development: {
-                NODE_ENV: "development",
+            env_production: {
+                NODE_ENV: "production",
                 NODE_SKIP_PLATFORM_CHECK: "1"
             }
         },
@@ -23,11 +23,11 @@ module.exports = {
             args: isWin ? ["/c", "npm run dev"] : "run dev",
             cwd: "./admin",
             env: {
-                NODE_ENV: "production",
+                NODE_ENV: "development",
                 NODE_SKIP_PLATFORM_CHECK: "1"
             },
-            env_development: {
-                NODE_ENV: "development",
+            env_production: {
+                NODE_ENV: "production",
                 NODE_SKIP_PLATFORM_CHECK: "1"
             }
         }

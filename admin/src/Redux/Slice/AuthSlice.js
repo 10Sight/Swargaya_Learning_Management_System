@@ -90,6 +90,9 @@ const authSlice = createSlice({
                 state.error = null
                 state.redirectUrl = action?.payload?.data?.redirectUrl
                 localStorage.setItem("isLoggedIn", state.isLoggedIn ? "true" : "false")
+                if (action?.payload?.data?.accessToken) {
+                    localStorage.setItem("token", action.payload.data.accessToken)
+                }
                 
                 // Show success toast
                 const userName = state.user?.fullName || state.user?.userName || 'User'
@@ -104,6 +107,7 @@ const authSlice = createSlice({
                 state.user = null
                 state.isLoggedIn = false
                 localStorage.setItem("isLoggedIn", "false")
+                localStorage.removeItem("token")
                 
                 // Show error toast
                 toast.error('Login Failed', {
@@ -122,6 +126,9 @@ const authSlice = createSlice({
                 state.isLoggedIn = !!state.user
                 state.error = null
                 localStorage.setItem("isLoggedIn", state.isLoggedIn ? "true" : "false")
+                if (action?.payload?.data?.accessToken) {
+                    localStorage.setItem("token", action.payload.data.accessToken)
+                }
                 
                 // Show success toast
                 const userName = state.user?.fullName || state.user?.userName || 'User'
@@ -136,6 +143,7 @@ const authSlice = createSlice({
                 state.user = null
                 state.isLoggedIn = false
                 localStorage.setItem("isLoggedIn", "false")
+                localStorage.removeItem("token")
                 
                 // Show error toast
                 toast.error('Registration Failed', {
@@ -154,6 +162,7 @@ const authSlice = createSlice({
                 state.isLoggedIn = false
                 state.error = null
                 localStorage.setItem("isLoggedIn", "false")
+                localStorage.removeItem("token")
                 
                 // Show success toast
                 toast.success('Logged Out Successfully', {
@@ -167,6 +176,7 @@ const authSlice = createSlice({
                 state.user = null
                 state.isLoggedIn = false
                 localStorage.setItem("isLoggedIn", "false")
+                localStorage.removeItem("token")
                 
                 // Show warning toast
                 toast.warning('Session Cleared', {
@@ -178,11 +188,15 @@ const authSlice = createSlice({
                 state.user = action?.payload?.data || null
                 state.isLoggedIn = !!state.user
                 localStorage.setItem("isLoggedIn", state.isLoggedIn ? "true" : "false")
+                if (action?.payload?.data?.accessToken) {
+                    localStorage.setItem("token", action.payload.data.accessToken)
+                }
             })
             .addCase(profile.rejected, (state) => {
                 state.user = null
                 state.isLoggedIn = false
                 localStorage.setItem("isLoggedIn", "false")
+                localStorage.removeItem("token")
             })
     },
 })
@@ -190,4 +204,3 @@ const authSlice = createSlice({
 export const { clearRedirectUrl } = authSlice.actions
 
 export default authSlice.reducer
-
