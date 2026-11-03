@@ -1,3 +1,5 @@
+const isWin = process.platform === "win32";
+
 module.exports = {
     apps: [
         {
@@ -17,8 +19,8 @@ module.exports = {
         },
         {
             name: "lms-admin",
-            script: "cmd.exe",
-            args: ["/c", "npm run dev"],
+            script: isWin ? "cmd.exe" : "npm",
+            args: isWin ? ["/c", "npm run dev"] : "run dev",
             cwd: "./admin",
             env: {
                 NODE_ENV: "production",
